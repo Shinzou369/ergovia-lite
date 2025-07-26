@@ -1,0 +1,34 @@
+{
+  "109868904684201389926": {
+    "googleId": "109868904684201389926",
+    "email": "gabrielmarius2077@gmail.com",
+    "googleName": "Gabriel Marius",
+    "profilePicture": "https://lh3.googleusercontent.com/a/ACg8ocIrYxXbWGPZrXePwqupK4SuH21gvWoNfoCmS_kJ41k3_e7-7o45=s96-c",
+    "preferredFirstName": "Gabriel",
+    "preferredLastName": "Marius",
+    "createdAt": "2025-06-04T15:21:50.339Z",
+    "isComplete": true,
+    "isPremium": true,
+    "subscriptionType": "premium",
+    "subscriptionStatus": "active",
+    "subscriptionStartDate": "2025-01-23T12:00:00.000Z",
+    "hasUnlimitedAccess": true,
+    "canAccessTaskforces": true,
+    "canAccessAffiliates": true,
+    "isAffiliate": true,
+    "affiliateId": "AFF_109868904684201389926",
+    "affiliateCommissionRate": 30,
+    "maxTokensPerDay": -1,
+    "premiumFeatures": ["unlimited_tokens", "taskforce_access", "affiliate_access", "priority_support", "advanced_models"]
+  },
+  "105997488153824192459": {
+    "googleId": "105997488153824192459",
+    "email": "ernagabriel2077@gmail.com",
+    "googleName": "Gabriel",
+    "profilePicture": "https://lh3.googleusercontent.com/a/ACg8ocLfMW63QRS1gVSBMaHCJPgM7dhrnSlNh6ESzkwRaP3icQ2WiKe2=s96-c",
+    "preferredFirstName": "Gabriel",
+    "preferredLastName": "mASRIUS",
+    "createdAt": "2025-06-12T08:52:27.567Z",
+    "isComplete": true
+  }
+}

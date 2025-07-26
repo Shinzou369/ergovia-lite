@@ -1,0 +1,616 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskforce Onboarding - ERGOVIA-AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="LOGO.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .onboard-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .onboard-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .onboard-header h1 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 2.5rem;
+        }
+        
+        .onboard-progress {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+        
+        .progress-step.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .progress-step.completed {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .onboard-form {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .form-step {
+            display: none;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .form-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 30px;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-quaternary);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+        
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .back-btn {
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+        
+        .back-btn:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+        
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .theme-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+        
+        .theme-btn:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .success-icon {
+            font-size: 4rem;
+            color: var(--secondary);
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .onboard-form {
+                padding: 20px;
+            }
+            
+            .progress-step {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+            
+            .form-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="/taskforce.html" class="back-btn">
+                <i data-lucide="arrow-left"></i>
+                Back
+            </a>
+            <div class="logo-container">
+                <img src="LOGO.png" alt="ERGOVIA-AI" class="logo-icon">
+                <span class="logo-text">ERGOVIA-AI Taskforce</span>
+            </div>
+        </div>
+        <div class="nav-right">
+            <button class="theme-btn" onclick="toggleTheme()">
+                <i data-lucide="moon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="onboard-container">
+        <div class="onboard-header">
+            <h1>Setup Your AI Taskforce</h1>
+            <p>Let's get your business connected with AI-powered automation</p>
+        </div>
+
+        <div class="onboard-progress" id="progress-indicator">
+            <div class="progress-step active" data-step="1">
+                <i data-lucide="building"></i>
+                <span>Business Info</span>
+            </div>
+            <div class="progress-step" data-step="2">
+                <i data-lucide="user"></i>
+                <span>Contact Details</span>
+            </div>
+            <div class="progress-step" data-step="3">
+                <i data-lucide="map-pin"></i>
+                <span>Location</span>
+            </div>
+            <div class="progress-step" data-step="4">
+                <i data-lucide="settings"></i>
+                <span>Services</span>
+            </div>
+            <div class="progress-step" data-step="5">
+                <i data-lucide="users"></i>
+                <span>Audience</span>
+            </div>
+            <div class="progress-step" data-step="6">
+                <i data-lucide="check"></i>
+                <span>Deploy</span>
+            </div>
+        </div>
+
+        <form class="onboard-form" id="onboard-form">
+            <!-- Step 1: Business Information -->
+            <div class="form-step active" data-step="1">
+                <h2>Business Information</h2>
+                <div class="form-group">
+                    <label class="form-label" for="businessName">Business Name *</label>
+                    <input type="text" id="businessName" name="businessName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="businessType">Business Type *</label>
+                    <select id="businessType" name="businessType" class="form-select" required>
+                        <option value="">Select your business type</option>
+                        <option value="contractor">Local Contractor (Plumber, HVAC, Electrician)</option>
+                        <option value="tutoring">Tutoring & Review Center</option>
+                        <option value="dental">Dental Office</option>
+                        <option value="gym">Gym & Fitness Center</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="real-estate">Real Estate</option>
+                        <option value="auto">Auto Service</option>
+                        <option value="beauty">Beauty & Wellness</option>
+                        <option value="legal">Legal Services</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="businessDescription">Brief Description</label>
+                    <textarea id="businessDescription" name="businessDescription" class="form-textarea" 
+                              placeholder="Tell us about your business..."></textarea>
+                </div>
+            </div>
+
+            <!-- Step 2: Contact Details -->
+            <div class="form-step" data-step="2">
+                <h2>Contact Information</h2>
+                <div class="form-group">
+                    <label class="form-label" for="contactName">Primary Contact Name *</label>
+                    <input type="text" id="contactName" name="contactName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="contactEmail">Email Address *</label>
+                    <input type="email" id="contactEmail" name="contactEmail" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="contactPhone">Phone Number *</label>
+                    <input type="tel" id="contactPhone" name="contactPhone" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="website">Website (Optional)</label>
+                    <input type="url" id="website" name="website" class="form-input" placeholder="https://yourwebsite.com">
+                </div>
+            </div>
+
+            <!-- Step 3: Location -->
+            <div class="form-step" data-step="3">
+                <h2>Business Location</h2>
+                <div class="form-group">
+                    <label class="form-label" for="address">Street Address *</label>
+                    <input type="text" id="address" name="address" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="city">City *</label>
+                    <input type="text" id="city" name="city" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="state">State *</label>
+                    <input type="text" id="state" name="state" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="zipCode">ZIP Code *</label>
+                    <input type="text" id="zipCode" name="zipCode" class="form-input" required>
+                </div>
+            </div>
+
+            <!-- Step 4: Services -->
+            <div class="form-step" data-step="4">
+                <h2>Services & Features</h2>
+                <div class="form-group">
+                    <label class="form-label">What services would you like AI to handle? *</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="appointment-booking" name="services" value="appointment-booking">
+                            <label for="appointment-booking">Appointment Booking</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="customer-inquiries" name="services" value="customer-inquiries">
+                            <label for="customer-inquiries">Customer Inquiries</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="quote-follow-ups" name="services" value="quote-follow-ups">
+                            <label for="quote-follow-ups">Quote Follow-ups</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="payment-reminders" name="services" value="payment-reminders">
+                            <label for="payment-reminders">Payment Reminders</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="review-requests" name="services" value="review-requests">
+                            <label for="review-requests">Review Requests</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="lead-qualification" name="services" value="lead-qualification">
+                            <label for="lead-qualification">Lead Qualification</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="businessHours">Business Hours</label>
+                    <textarea id="businessHours" name="businessHours" class="form-textarea" 
+                              placeholder="e.g., Mon-Fri 9AM-6PM, Sat 9AM-3PM, Closed Sunday"></textarea>
+                </div>
+            </div>
+
+            <!-- Step 5: Target Audience -->
+            <div class="form-step" data-step="5">
+                <h2>Target Audience</h2>
+                <div class="form-group">
+                    <label class="form-label" for="targetAudience">Who are your primary customers? *</label>
+                    <textarea id="targetAudience" name="targetAudience" class="form-textarea" 
+                              placeholder="Describe your ideal customers..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="averageTicket">Average Service Value</label>
+                    <select id="averageTicket" name="averageTicket" class="form-select">
+                        <option value="">Select range</option>
+                        <option value="under-100">Under $100</option>
+                        <option value="100-500">$100 - $500</option>
+                        <option value="500-1000">$500 - $1,000</option>
+                        <option value="1000-5000">$1,000 - $5,000</option>
+                        <option value="over-5000">Over $5,000</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="painPoints">What are your biggest customer service challenges?</label>
+                    <textarea id="painPoints" name="painPoints" class="form-textarea" 
+                              placeholder="e.g., Missing calls, slow response times, appointment scheduling..."></textarea>
+                </div>
+            </div>
+
+            <!-- Step 6: Deploy -->
+            <div class="form-step" data-step="6">
+                <div class="success-message">
+                    <div class="success-icon">🚀</div>
+                    <h2>Ready to Deploy!</h2>
+                    <p>Your AI Taskforce is configured and ready to start helping your business.</p>
+                    <p>We'll send you integration instructions within 24 hours.</p>
+                    <div style="margin-top: 30px;">
+                        <button type="button" class="btn-primary" onclick="submitOnboardingForm()">Deploy Taskforce</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-buttons">
+                <button type="button" class="btn-secondary" id="prev-btn" onclick="previousStep()" style="display: none;">
+                    Previous
+                </button>
+                <button type="button" class="btn-primary" id="next-btn" onclick="nextStep()">
+                    Next
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 6;
+
+        function updateProgress() {
+            const steps = document.querySelectorAll('.progress-step');
+            const formSteps = document.querySelectorAll('.form-step');
+
+            steps.forEach((step, index) => {
+                const stepNumber = index + 1;
+                step.classList.remove('active', 'completed');
+                
+                if (stepNumber < currentStep) {
+                    step.classList.add('completed');
+                } else if (stepNumber === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            formSteps.forEach((step, index) => {
+                step.classList.remove('active');
+                if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+            
+            if (currentStep === totalSteps) {
+                nextBtn.style.display = 'none';
+            } else {
+                nextBtn.style.display = 'block';
+                nextBtn.textContent = currentStep === totalSteps - 1 ? 'Review & Deploy' : 'Next';
+            }
+        }
+
+        function nextStep() {
+            if (validateCurrentStep()) {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    updateProgress();
+                }
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateProgress();
+            }
+        }
+
+        function validateCurrentStep() {
+            const currentFormStep = document.querySelector(`.form-step[data-step="${currentStep}"]`);
+            const requiredFields = currentFormStep.querySelectorAll('[required]');
+            
+            for (let field of requiredFields) {
+                if (!field.value.trim()) {
+                    field.focus();
+                    alert('Please fill in all required fields.');
+                    return false;
+                }
+            }
+
+            // Special validation for step 4 (services)
+            if (currentStep === 4) {
+                const checkboxes = currentFormStep.querySelectorAll('input[type="checkbox"]:checked');
+                if (checkboxes.length === 0) {
+                    alert('Please select at least one service.');
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function completeDeploy() {
+            // This function is deprecated and will be replaced by submitOnboardingForm
+            console.warn("completeDeploy() is deprecated.");
+        }
+
+        async function submitOnboardingForm() {
+            const form = document.getElementById('onboard-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            
+            const services = Array.from(document.querySelectorAll('input[name="services"]:checked'))
+                .map(cb => cb.value);
+            data.services = services.join(', '); // Join services into a string
+
+            // Add the taskforceType from the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            data.taskforceType = urlParams.get('niche');
+
+            try {
+                const response = await fetch('/api/taskforce/onboard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Onboarding successful:', result);
+                    alert('🎉 Taskforce deployed successfully! Check your email for next steps.');
+                    window.location.href = '/taskforce.html';
+                } else {
+                    const error = await response.json();
+                    console.error('Onboarding failed:', error);
+                    alert(`Error: ${error.error || 'An unknown error occurred.'}`);
+                }
+            } catch (error) {
+                console.error('Network or server error:', error);
+                alert('A network or server error occurred. Please try again later.');
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            const themeIcon = document.querySelector('.theme-btn i');
+            themeIcon.setAttribute('data-lucide', newTheme === 'dark' ? 'moon' : 'sun');
+            lucide.createIcons();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            updateProgress();
+
+            // Pre-select business type from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const niche = urlParams.get('niche');
+            if (niche) {
+                const businessTypeSelect = document.getElementById('businessType');
+                if (businessTypeSelect) {
+                    businessTypeSelect.value = niche;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

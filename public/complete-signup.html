@@ -1,0 +1,372 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Signup - Ergovia-AI</title>
+  <style>
+    /* Critical CSS to prevent FOUC */
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --text-primary: #FFD700;
+      --border-color: #404040;
+    }
+    [data-theme="light"] {
+      --bg-primary: #DEEDE5;
+      --bg-secondary: #ECEAE5;
+      --text-primary: #2C3E50;
+      --border-color: #D5DBE4;
+    }
+    body { 
+      background: var(--bg-primary); 
+      color: var(--text-primary); 
+      margin: 0; 
+      font-family: 'Inter', sans-serif; 
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="LOGO.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .complete-signup-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+    }
+
+    .auth-header {
+      margin-bottom: 32px;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .auth-logo img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+    }
+
+    .auth-logo-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: var(--prismity-text-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-family: var(--font-heading);
+    }
+
+    .auth-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      font-family: var(--font-heading);
+    }
+
+    .auth-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .user-info {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid var(--border-light);
+    }
+
+    .user-details {
+      text-align: left;
+      flex: 1;
+    }
+
+    .user-email {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .user-name {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .name-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .form-label {
+      color: var(--text-primary);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .complete-btn {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .complete-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .complete-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      padding: 12px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    .success-message {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+      padding: 12px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 480px) {
+      .complete-signup-container {
+        padding: 24px;
+      }
+      
+      .user-info {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .user-details {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="complete-signup-container">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <img src="LOGO.png" alt="Ergovia AI">
+          <span class="auth-logo-text">Ergovia-AI</span>
+        </div>
+        <h1 class="auth-title">Complete Your Profile</h1>
+        <p class="auth-subtitle">Let's personalize your Ergovia-AI experience</p>
+      </div>
+
+      <div class="user-info" id="user-info">
+        <!-- User info will be loaded here -->
+      </div>
+
+      <form class="name-form" id="name-form">
+        <div class="form-group">
+          <label class="form-label" for="firstName">First Name</label>
+          <input type="text" id="firstName" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lastName">Last Name</label>
+          <input type="text" id="lastName" class="form-input" required>
+        </div>
+      </form>
+
+      <div id="message"></div>
+
+      <button class="complete-btn" id="complete-btn" onclick="completeSignup()">
+        Complete Setup
+      </button>
+    </div>
+  </div>
+
+  <script>
+    async function loadUserInfo() {
+      try {
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        
+        if (data.authenticated && data.user) {
+          const userInfoDiv = document.getElementById('user-info');
+          userInfoDiv.innerHTML = `
+            ${data.user.picture ? `<img src="${data.user.picture}" alt="Profile" class="user-avatar">` : ''}
+            <div class="user-details">
+              <div class="user-email">${data.user.email}</div>
+              <div class="user-name">${data.user.name || 'Google User'}</div>
+            </div>
+          `;
+          
+          // Pre-fill form if Google name is available
+          if (data.user.name) {
+            const nameParts = data.user.name.split(' ');
+            document.getElementById('firstName').value = nameParts[0] || '';
+            document.getElementById('lastName').value = nameParts.slice(1).join(' ') || '';
+          }
+        } else {
+          // Redirect to signup if not authenticated
+          window.location.href = '/signup';
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+        showMessage('Error loading user information. Please try again.', 'error');
+      }
+    }
+
+    async function completeSignup() {
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const btn = document.getElementById('complete-btn');
+      const messageDiv = document.getElementById('message');
+
+      if (!firstName || !lastName) {
+        showMessage('Please fill in both first and last name.', 'error');
+        return;
+      }
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> Completing Setup...';
+      messageDiv.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/complete-signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ firstName, lastName })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage('Account setup completed successfully! Redirecting...', 'success');
+          
+          // Wait a moment then redirect to dashboard
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } else {
+          throw new Error(data.error || 'Signup completion failed');
+        }
+      } catch (error) {
+        console.error('Error completing signup:', error);
+        showMessage(error.message || 'Error completing signup. Please try again.', 'error');
+        
+        // Reset button
+        btn.disabled = false;
+        btn.innerHTML = 'Complete Setup';
+      }
+    }
+
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.innerHTML = `<div class="${type}-message">${text}</div>`;
+    }
+
+    // Handle Enter key submission
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !document.getElementById('complete-btn').disabled) {
+        completeSignup();
+      }
+    });
+
+    // Load user info on page load
+    document.addEventListener('DOMContentLoaded', loadUserInfo);
+
+    // Set theme
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  </script>
+</body>
+</html>

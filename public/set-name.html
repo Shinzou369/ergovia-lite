@@ -1,0 +1,227 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set Your Name - ERGOVIA-AI</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .name-setup-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-primary);
+      padding: 20px;
+    }
+    
+    .name-setup-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+    }
+    
+    .setup-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: icon-bounce 1s ease-out forwards;
+    }
+    
+    .setup-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    
+    .setup-subtitle {
+      color: var(--text-muted);
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    
+    .name-input-group {
+      margin-bottom: 20px;
+    }
+    
+    .name-input {
+      width: 100%;
+      padding: 15px 20px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      text-align: center;
+      transition: var(--transition);
+      box-sizing: border-box;
+    }
+    
+    .name-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .name-validation {
+      margin-top: 8px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    
+    .name-validation.error {
+      color: #ef4444;
+    }
+    
+    .name-validation.success {
+      color: #10b981;
+    }
+    
+    .save-name-btn {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .save-name-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    
+    .save-name-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .skip-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    
+    .skip-link:hover {
+      color: var(--text-primary);
+      text-decoration: underline;
+    }
+    
+    @keyframes icon-bounce {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="name-setup-container">
+    <div class="name-setup-card">
+      <div class="setup-icon">👋</div>
+      <h1 class="setup-title">What should we call you?</h1>
+      <p class="setup-subtitle">
+        Let's personalize your Prismity AI experience with a preferred name.
+      </p>
+      
+      <div class="name-input-group">
+        <input 
+          type="text" 
+          id="preferred-name" 
+          class="name-input" 
+          placeholder="Enter your preferred name"
+          maxlength="30"
+          autocomplete="given-name"
+        >
+        <div class="name-validation" id="name-validation">
+          2-30 characters, letters only
+        </div>
+      </div>
+      
+      <button class="save-name-btn" id="save-name-btn" disabled>
+        Save & Continue
+      </button>
+      
+      <a href="/" class="skip-link">Skip for now</a>
+    </div>
+  </div>
+
+  <script>
+    const nameInput = document.getElementById('preferred-name');
+    const saveBtn = document.getElementById('save-name-btn');
+    const validation = document.getElementById('name-validation');
+    
+    function validateName(name) {
+      const nameRegex = /^[a-zA-Z\s]{2,30}$/;
+      return nameRegex.test(name.trim());
+    }
+    
+    nameInput.addEventListener('input', function() {
+      const name = this.value.trim();
+      
+      if (name.length === 0) {
+        validation.textContent = '2-30 characters, letters only';
+        validation.className = 'name-validation';
+        saveBtn.disabled = true;
+      } else if (validateName(name)) {
+        validation.textContent = '✓ Looks good!';
+        validation.className = 'name-validation success';
+        saveBtn.disabled = false;
+      } else {
+        validation.textContent = 'Please use only letters (2-30 characters)';
+        validation.className = 'name-validation error';
+        saveBtn.disabled = true;
+      }
+    });
+    
+    saveBtn.addEventListener('click', async function() {
+      const name = nameInput.value.trim();
+      
+      if (!validateName(name)) return;
+      
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      
+      try {
+        const response = await fetch('/api/set-preferred-name', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ preferredName: name })
+        });
+        
+        if (response.ok) {
+          window.location.href = '/';
+        } else {
+          throw new Error('Failed to save name');
+        }
+      } catch (error) {
+        console.error('Error saving name:', error);
+        validation.textContent = 'Error saving name. Please try again.';
+        validation.className = 'name-validation error';
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save & Continue';
+      }
+    });
+    
+    // Allow Enter key to submit
+    nameInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !saveBtn.disabled) {
+        saveBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>

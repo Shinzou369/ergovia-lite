@@ -1,0 +1,180 @@
+{
+  "105997488153824192459": [
+    {
+      "id": 1749529004340,
+      "title": "New Chat",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are TaskAI, a helpful assistant for marketing and productivity tasks."
+        }
+      ]
+    },
+    {
+      "id": 1749528260581,
+      "title": "Welcome Back Interaction",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are TaskAI, a helpful assistant for marketing and productivity tasks."
+        },
+        {
+          "role": "user",
+          "content": "Hi again"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hello!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hi there!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I help you today?"
+        },
+        {
+          "role": "user",
+          "content": "Uhmm hello"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        }
+      ]
+    },
+    {
+      "id": 1749526237575,
+      "title": "Cheerful Greetings Exchange",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are TaskAI, a helpful assistant for marketing and productivity tasks."
+        },
+        {
+          "role": "user",
+          "content": "Hello there!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hi there!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I help you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hi there!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        }
+      ]
+    },
+    {
+      "id": 1749487060786,
+      "title": "Engaging Greetings Exchange",
+      "conversation": [
+        {
+          "role": "system",
+          "content": "You are TaskAI, a helpful assistant for marketing and productivity tasks."
+        },
+        {
+          "role": "user",
+          "content": "Hello there"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Testing my Website hehe. I need to train you tho"
+        },
+        {
+          "role": "assistant",
+          "content": "That's great to hear! I'm here to help you with any training or information you need. Just let me know what you'd like to focus on, and I'll provide you with the assistance you need."
+        },
+        {
+          "role": "user",
+          "content": "Hello Prismity!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello there! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "What is Prismity.AI?"
+        },
+        {
+          "role": "assistant",
+          "content": "Prismity.AI is an advanced artificial intelligence technology designed to assist businesses with marketing strategies, productivity enhancement, and decision-making processes. It offers personalized insights, automation solutions, and data analysis to help businesses grow and succeed in today's competitive market. Is there anything specific you would like to know about Prismity.AI?"
+        },
+        {
+          "role": "user",
+          "content": "Hello there!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hi"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hello again"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! It's nice to hear from you again. How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Shalo0m!"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today? If you have any questions or need help with something, feel free to let me know."
+        },
+        {
+          "role": "user",
+          "content": "Shalom1"
+        },
+        {
+          "role": "assistant",
+          "content": "Shalom! How can I assist you today?"
+        },
+        {
+          "role": "user",
+          "content": "Hello there"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I assist you today? If you have any questions or need help with something, feel free to let me know."
+        }
+      ]
+    }
+  ]
+}

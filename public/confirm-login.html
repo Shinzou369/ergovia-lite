@@ -1,0 +1,303 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Login - ERGOVIA-AI</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .confirm-login-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+    }
+
+    .auth-header {
+      margin-bottom: 32px;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .auth-logo img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+    }
+
+    .auth-logo-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: var(--ergovia-text-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-family: var(--font-heading);
+      color: var(--text-primary); /* Fallback for unsupported browsers */
+    }
+
+    .auth-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      font-family: var(--font-heading);
+    }
+
+    .auth-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .user-info {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid var(--border-light);
+    }
+
+    .user-details {
+      text-align: left;
+      flex: 1;
+    }
+
+    .user-email {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .user-name {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .continue-btn {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 1rem;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .continue-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .continue-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ef4444;
+      padding: 12px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    .success-message {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+      padding: 12px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    .back-home {
+      margin-top: 16px;
+    }
+
+    .back-home a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+
+    .back-home a:hover {
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 480px) {
+      .confirm-login-container {
+        padding: 24px;
+      }
+      
+      .user-info {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .user-details {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="confirm-login-container">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <img src="LOGO.png" alt="Prismity AI">
+          <span class="auth-logo-text">ERGOVIA-AI</span>
+        </div>
+        <h1 class="auth-title">Welcome Back!</h1>
+        <p class="auth-subtitle">Ready to continue with your ERGOVIA-AI account?</p>
+      </div>
+
+      <div class="user-info" id="user-info">
+        <!-- User info will be loaded here -->
+      </div>
+
+      <button class="continue-btn" id="continue-btn" onclick="confirmLogin()">
+        Continue to ERGOVIA-AI
+      </button>
+
+      <div id="message"></div>
+
+      <div class="back-home">
+        <a href="/">← Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadUserInfo() {
+      try {
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        
+        if (data.authenticated && data.user) {
+          const userInfoDiv = document.getElementById('user-info');
+          userInfoDiv.innerHTML = `
+            ${data.user.picture ? `<img src="${data.user.picture}" alt="Profile" class="user-avatar">` : ''}
+            <div class="user-details">
+              <div class="user-email">${data.user.email}</div>
+              <div class="user-name">${data.user.preferredFirstName ? `${data.user.preferredFirstName} ${data.user.preferredLastName || ''}` : data.user.name || 'User'}</div>
+            </div>
+          `;
+        } else {
+          // Redirect to login if not authenticated
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+        showMessage('Error loading user information. Please try again.', 'error');
+      }
+    }
+
+    async function confirmLogin() {
+      const btn = document.getElementById('continue-btn');
+      const messageDiv = document.getElementById('message');
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> Signing you in...';
+      messageDiv.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/confirm-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage('Login confirmed! Redirecting to dashboard...', 'success');
+          
+          // Wait a moment then redirect to dashboard
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } else {
+          throw new Error(data.error || 'Login confirmation failed');
+        }
+      } catch (error) {
+        console.error('Error confirming login:', error);
+        showMessage(error.message || 'Error confirming login. Please try again.', 'error');
+        
+        // Reset button
+        btn.disabled = false;
+        btn.innerHTML = 'Continue to Dashboard';
+      }
+    }
+
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.innerHTML = `<div class="${type}-message">${text}</div>`;
+    }
+
+    // Load user info on page load
+    document.addEventListener('DOMContentLoaded', loadUserInfo);
+
+    // Set theme
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  </script>
+</body>
+</html>

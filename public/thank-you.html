@@ -1,0 +1,86 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Successful - ERGOVIA-AI</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="CHROME.png" type="image/png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  </head>
+  <body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+      <div class="nav-left">
+        <a href="/" class="back-btn" aria-label="Back to Home">
+          <svg
+            class="back-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            viewBox="0 0 24 24"
+          >
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </a>
+        <div class="logo-container">
+          <img src="LOGO.png" alt="Ergovia AI" class="logo-icon" />
+          <span class="logo-text">ERGOVIA-AI</span>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container" style="padding-top: 100px;">
+      <div class="success-container" style="max-width: 600px; margin: 0 auto; text-align: center; background: var(--bg-secondary); border-radius: var(--radius-xl); padding: 40px; box-shadow: var(--shadow-lg); border: 2px solid var(--primary);">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
+        <h1 style="color: var(--text-primary); margin-bottom: 16px; font-size: 2rem;">Payment Successful!</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 1.1rem; line-height: 1.6;">
+          Thank you for subscribing to ERGOVIA-AI VIP! Your payment has been processed successfully.
+        </p>
+        
+        <div style="background: var(--bg-tertiary); border-radius: var(--radius); padding: 20px; margin-bottom: 30px; border: 1px solid var(--border-color);">
+          <h3 style="color: var(--text-primary); margin-bottom: 12px;">What happens next?</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 0; font-size: 0.95rem;">
+            Our team will manually activate your VIP access within 24 hours. You'll receive an email confirmation once your account is upgraded.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+          <a href="/" style="background: var(--ergovia-gradient); color: white; padding: 12px 24px; border-radius: var(--radius); text-decoration: none; font-weight: 600; transition: var(--transition);">
+            Return to Dashboard
+          </a>
+          <a href="/templates.html" style="background: var(--bg-tertiary); color: var(--text-primary); padding: 12px 24px; border-radius: var(--radius); text-decoration: none; font-weight: 600; border: 1px solid var(--border-color); transition: var(--transition);">
+            Browse Taskforce
+          </a>
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 30px;">
+          Questions? Contact us at support@ergovia-ai.com
+        </p>
+      </div>
+    </div>
+
+    <script>
+      // Set theme immediately
+      (function () {
+        const savedTheme = localStorage.getItem("theme") || "dark";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      })();
+
+      // Initialize Lucide icons
+      document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+      });
+    </script>
+  </body>
+</html>

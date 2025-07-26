@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - ERGOVIA-AI</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .admin-container {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: var(--bg-primary);
+      border-radius: 12px;
+      box-shadow: 0 4px 8px var(--shadow-color);
+    }
+
+    .model-config-section {
+      margin-bottom: 20px;
+    }
+
+    .model-triggers {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .model-trigger-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .model-name {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .trigger-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .trigger-tag {
+      background-color: var(--button-primary);
+      color: white;
+      border-radius: 20px;
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .remove-trigger {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .add-trigger {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .add-trigger input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      flex: 1;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      justify-content: flex-end;
+    }
+
+    .back-to-app {
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <h1>Model Configuration</h1>
+    <p>Customize trigger words for each AI model</p>
+
+    <div class="model-config-section">
+      <h2>Default Model</h2>
+      <select id="default-model">
+        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        <option value="gpt-4">GPT-4</option>
+        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+        <option value="deepseek-chat">DeepSeek Chat</option>
+      </select>
+    </div>
+
+    <div class="model-config-section">
+      <h2>Model Triggers</h2>
+      <p>Add trigger words that will select specific models when included in a prompt.</p>
+
+      <div class="model-triggers" id="model-triggers">
+        <!-- Model triggers will be loaded here -->
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button id="save-config" class="quick-btn">Save Configuration</button>
+      <button id="reset-defaults" class="quick-btn">Reset to Defaults</button>
+    </div>
+
+    <div class="back-to-app">
+      <a href="index.html">← Back to Application</a>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

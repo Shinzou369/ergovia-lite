@@ -1,0 +1,29 @@
+entrypoint="index.html"
+hidden=[".config"]
+modules = ["nodejs-20", "python-3.11", "web:v2-20230623-0b7a606"]
+
+[nix]
+channel = "stable-23_11"
+packages = ["run", "pup"]
+
+[deployment]
+publicDir = "public"
+deploymentTarget = "cloudrun"
+run = ["sh", "-c", "npm start"]
+build = ["sh", "-c", "npm install"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[workflows]
+runButton = "Dev"
+
+[[workflows.workflow]]
+name = "Dev"
+author = 42809642
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"

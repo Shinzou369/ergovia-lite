@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Exists - Ergovia-AI</title>
+  <style>
+    /* Critical CSS to prevent FOUC */
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --text-primary: #FFD700;
+      --border-color: #404040;
+    }
+    [data-theme="light"] {
+      --bg-primary: #DEEDE5;
+      --bg-secondary: #ECEAE5;
+      --text-primary: #2C3E50;
+      --border-color: #D5DBE4;
+    }
+    body { 
+      background: var(--bg-primary); 
+      color: var(--text-primary); 
+      margin: 0; 
+      font-family: 'Inter', sans-serif; 
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="LOGO.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+    }
+
+    .auth-header {
+      margin-bottom: 32px;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .auth-logo img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+    }
+
+    .auth-logo-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: var(--ergovia-text-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-family: var(--font-heading);
+      color: var(--text-primary); /* Fallback for unsupported browsers */
+    }
+
+    .auth-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      font-family: var(--font-heading);
+    }
+
+    .auth-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .user-info {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid var(--border-light);
+    }
+
+    .user-details {
+      text-align: left;
+      flex: 1;
+    }
+
+    .user-email {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .user-name {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .primary-btn {
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 1rem;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .secondary-btn {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 12px 24px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .secondary-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .back-home {
+      margin-top: 16px;
+    }
+
+    .back-home a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+
+    .back-home a:hover {
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 480px) {
+      .auth-container {
+        padding: 24px;
+      }
+      
+      .user-info {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .user-details {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <img src="LOGO.png" alt="Ergovia AI">
+          <span class="auth-logo-text">ERGOVIA-AI</span>
+        </div>
+        <h1 class="auth-title">Account Already Exists</h1>
+        <p class="auth-subtitle">This Google account is already registered with ERGOVIA-AI</p>
+      </div>
+
+      <div class="user-info" id="user-info">
+        <!-- User info will be loaded here -->
+      </div>
+
+      <div class="action-buttons">
+        <button class="primary-btn" onclick="loginInstead()">
+          Log In Instead
+        </button>
+        <a href="/set-auth-intent/signup" class="secondary-btn">
+          Use Different Account
+        </a>
+      </div>
+
+      <div class="back-home">
+        <a href="/">← Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadUserInfo() {
+      try {
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        
+        if (data.authenticated && data.user) {
+          const userInfoDiv = document.getElementById('user-info');
+          userInfoDiv.innerHTML = `
+            ${data.user.picture ? `<img src="${data.user.picture}" alt="Profile" class="user-avatar">` : ''}
+            <div class="user-details">
+              <div class="user-email">${data.user.email}</div>
+              <div class="user-name">${data.user.name || 'Google User'}</div>
+            </div>
+          `;
+        } else {
+          // Redirect to signup if not authenticated
+          window.location.href = '/signup';
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    }
+
+    function loginInstead() {
+      window.location.href = '/confirm-login';
+    }
+
+    // Load user info on page load
+    document.addEventListener('DOMContentLoaded', loadUserInfo);
+
+    // Set theme
+    const savedTheme = localStorage.getItem("theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  </script>
+</body>
+</html>
