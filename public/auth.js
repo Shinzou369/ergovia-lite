@@ -155,7 +155,6 @@ function updateTopNavForUser(user) {
       </div>
       <div class="user-info">
         <span class="user-name">${user.name}</span>
-        ${isPremium ? '<span class="premium-status">Premium</span>' : '<span class="free-status">Free</span>'}
       </div>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
