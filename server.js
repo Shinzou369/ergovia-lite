@@ -57,18 +57,18 @@ function checkExpiredSubscriptions() {
 
   Object.keys(users).forEach(userId => {
     const user = users[userId];
-    
+
     // Check if monthly subscription has expired
     if (user.subscriptionType === 'monthly' && 
         user.subscriptionExpiresAt && 
         user.isPremium && 
         user.subscriptionStatus === 'active') {
-      
+
       const expirationDate = new Date(user.subscriptionExpiresAt);
-      
+
       if (now > expirationDate) {
         console.log('🕐 Expiring subscription for user:', user.email, 'Expired at:', expirationDate);
-        
+
         user.isPremium = false;
         user.subscriptionStatus = 'expired';
         user.subscriptionEndDate = now.toISOString();
@@ -212,7 +212,7 @@ function requirePremium(req, res, next) {
   const userId = req.user.id;
   const userEmail = req.user.emails?.[0]?.value;
   const users = readUsersFileSync();
-  
+
   // Try to find user by Google ID first, then by email
   let userRecord = users[userId];
   if (!userRecord && userEmail) {
@@ -220,7 +220,7 @@ function requirePremium(req, res, next) {
   }
 
   console.log('Premium check - User ID:', userId, 'Email:', userEmail, 'User record found:', !!userRecord);
-  
+
   if (!userRecord) {
     console.log('❌ No user record found for:', userEmail || userId);
     return res.status(403).json({ error: 'Premium access required' });
@@ -230,16 +230,16 @@ function requirePremium(req, res, next) {
   if (userRecord.subscriptionType === 'monthly' && userRecord.subscriptionExpiresAt) {
     const now = new Date();
     const expirationDate = new Date(userRecord.subscriptionExpiresAt);
-    
+
     if (now > expirationDate) {
       console.log('❌ Subscription expired for user:', userEmail, 'Expired at:', expirationDate);
-      
+
       // Update user record to reflect expired status
       userRecord.isPremium = false;
       userRecord.subscriptionStatus = 'expired';
       users[userId] = userRecord;
       saveUsers(users);
-      
+
       return res.status(403).json({ 
         error: 'Subscription expired', 
         message: 'Your monthly subscription has expired. Please renew to continue using premium features.',
@@ -320,7 +320,7 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
     const signature = req.headers['x-signature'];
     const hmac = crypto.createHmac('sha256', secret);
     const digest = hmac.update(req.body, 'utf8').digest('hex');
-    
+
     if (signature !== digest) {
       console.error('Invalid webhook signature');
       return res.status(400).send('Invalid signature');
@@ -332,46 +332,46 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
     // Handle subscription created/updated
     if (event.meta.event_name === 'subscription_created' || 
         event.meta.event_name === 'subscription_updated') {
-      
+
       const subscription = event.data;
       const customerEmail = subscription.attributes.user_email;
-      
+
       if (subscription.attributes.status === 'active') {
         // Find user by email and activate premium
         const users = loadUsers();
         const userKey = Object.keys(users).find(key => 
           users[key].email === customerEmail
         );
-        
+
         if (userKey) {
           const now = new Date();
           const subscriptionType = subscription.attributes.variant_name?.toLowerCase().includes('monthly') ? 'monthly' : 'yearly';
-          
+
           // Calculate expiration date for monthly subscriptions
           let expirationDate = null;
           if (subscriptionType === 'monthly') {
             expirationDate = new Date(now);
             expirationDate.setMonth(expirationDate.getMonth() + 1);
           }
-          
+
           users[userKey].isPremium = true;
           users[userKey].subscriptionId = subscription.id;
           users[userKey].subscriptionStatus = 'active';
           users[userKey].subscriptionType = subscriptionType;
           users[userKey].upgradeDate = now.toISOString();
           users[userKey].subscriptionStartDate = now.toISOString();
-          
+
           if (expirationDate) {
             users[userKey].subscriptionExpiresAt = expirationDate.toISOString();
           }
-          
+
           // Renew date for next billing cycle
           if (subscription.attributes.renews_at) {
             users[userKey].nextRenewalDate = subscription.attributes.renews_at;
           }
-          
+
           saveUsers(users);
-          
+
           console.log('✅ Premium activated for user:', customerEmail, 'Type:', subscriptionType, 'Expires:', expirationDate?.toISOString());
         } else {
           console.log('⚠️ User not found for email:', customerEmail);
@@ -383,27 +383,27 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
     if (event.meta.event_name === 'subscription_payment_success') {
       const subscription = event.data;
       const customerEmail = subscription.attributes.user_email;
-      
+
       const users = loadUsers();
       const userKey = Object.keys(users).find(key => 
         users[key].email === customerEmail
       );
-      
+
       if (userKey && users[userKey].subscriptionType === 'monthly') {
         // Extend subscription for another month
         const now = new Date();
         const newExpirationDate = new Date(now);
         newExpirationDate.setMonth(newExpirationDate.getMonth() + 1);
-        
+
         users[userKey].subscriptionExpiresAt = newExpirationDate.toISOString();
         users[userKey].subscriptionStatus = 'active';
         users[userKey].isPremium = true;
         users[userKey].lastRenewalDate = now.toISOString();
-        
+
         if (subscription.attributes.renews_at) {
           users[userKey].nextRenewalDate = subscription.attributes.renews_at;
         }
-        
+
         saveUsers(users);
         console.log('✅ Subscription renewed for user:', customerEmail, 'New expiration:', newExpirationDate.toISOString());
       }
@@ -412,22 +412,22 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
     // Handle subscription cancelled/expired
     if (event.meta.event_name === 'subscription_cancelled' || 
         event.meta.event_name === 'subscription_expired') {
-      
+
       const subscription = event.data;
       const customerEmail = subscription.attributes.user_email;
-      
+
       // Find user and deactivate premium
       const users = loadUsers();
       const userKey = Object.keys(users).find(key => 
         users[key].email === customerEmail
       );
-      
+
       if (userKey) {
         users[userKey].isPremium = false;
         users[userKey].subscriptionStatus = subscription.attributes.status;
         users[userKey].subscriptionEndDate = new Date().toISOString();
         saveUsers(users);
-        
+
         console.log('❌ Premium deactivated for user:', customerEmail);
       }
     }
@@ -436,17 +436,17 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
     if (event.meta.event_name === 'subscription_payment_failed') {
       const subscription = event.data;
       const customerEmail = subscription.attributes.user_email;
-      
+
       const users = loadUsers();
       const userKey = Object.keys(users).find(key => 
         users[key].email === customerEmail
       );
-      
+
       if (userKey) {
         users[userKey].subscriptionStatus = 'past_due';
         users[userKey].lastFailedPayment = new Date().toISOString();
         saveUsers(users);
-        
+
         console.log('⚠️ Payment failed for user:', customerEmail);
       }
     }
@@ -712,7 +712,7 @@ app.get("/api/profile", (req, res) => {
 app.get("/api/auth/status", (req, res) => {
   console.log('Auth status check - isAuthenticated:', req.isAuthenticated());
   console.log('Session data:', req.session?.passport?.user ? 'Session exists' : 'No session');
-  
+
   if (!req.isAuthenticated()) {
     return res.json({ authenticated: false, user: null });
   }
@@ -1002,7 +1002,7 @@ app.post("/api/confirm-login", (req, res) => {
   req.user.preferredLastName = existingUser.preferredLastName;
   req.user.isComplete = existingUser.isComplete;
   req.user.savedUserData = existingUser;
-  
+
   // Store user session data properly
   req.session.user = {
     googleId: existingUser.googleId,
@@ -1129,6 +1129,27 @@ app.get('/api/user/profile', requireAuth, (req, res) => {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Taskforce onboarding routes
+app.get('/taskforce/:type/onboard', requireAuth, (req, res) => {
+  const { type } = req.params;
+
+  // Validate taskforce type
+  const validTypes = ['dental', 'gym', 'contractor', 'tutoring', 'massage'];
+  if (!validTypes.includes(type)) {
+    return res.status(404).send('Taskforce type not found');
+  }
+
+  // For now, redirect to main dashboard with a message
+  // In the future, this would load a specific onboarding flow
+  res.redirect(`/?template=${type}&action=onboard`);
+});
+
+// Enhanced error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start server
