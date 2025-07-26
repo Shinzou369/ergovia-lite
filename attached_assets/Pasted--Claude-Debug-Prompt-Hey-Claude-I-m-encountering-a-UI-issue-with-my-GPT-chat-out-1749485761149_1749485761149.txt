@@ -1,0 +1,47 @@
+
+
+### ✅ Claude Debug Prompt:
+
+> Hey Claude, I’m encountering a **UI issue** with my GPT chat output in a web app. The GPT messages render correctly at first — including model name, tokens used, copy buttons, etc. — but then **after a short moment (less than a second)**, the UI “snaps” into a simplified format. Only the message text and the copy button remain, and the extra UI elements disappear.
+>
+> **Important**: This is *not a GPT response logic issue* — it’s a UI/DOM/CSS issue.
+>
+> Please check the following items one by one to locate the cause and fix it:
+
+---
+
+### 🛠️ ✅ Checklist for Claude to Debug:
+
+1. **Avoid Overwriting Message UI**
+
+   * Make sure no JavaScript (like `renderMessages()` or a loop over `outputBox.innerHTML = ...`) is wiping or replacing the full HTML of `.message.gpt` after the first render.
+
+2. **Use `appendChild()` Instead of `innerHTML +=`**
+
+   * Direct string-based DOM updates like `outputBox.innerHTML +=` can cause re-parsing issues and strip out nested elements like icons or model metadata.
+
+3. **Ensure Lucide Icons Are Initialized Correctly**
+
+   * Run `lucide.createIcons()` **immediately after** the message DOM is added, so `<i data-lucide="copy">` is converted properly.
+   * Confirm it’s **not re-running later** and interfering with layout.
+
+4. **Inspect MutationObservers or Cleanup Code**
+
+   * Look for any `MutationObserver`, `setInterval()`, or `setTimeout()` logic that could be re-rendering messages or resetting layout containers.
+
+5. **Check for CSS Transition/Animation Conflicts**
+
+   * Review `style.css` for any `transition`, `animation`, or `display: flex/grid` rules applied to `.message`, `.output-box`, or `.chat-container` that might affect layout mid-render.
+   * Also check for unintended style resets or layout shifts.
+
+6. **Prevent Snapback by Logging DOM Changes**
+
+   * Add `console.log()` inside the rendering logic to verify if `.message.gpt` is being appended once or being replaced after it first appears.
+
+---
+
+> Please walk through this checklist and help me identify where the “snap” is coming from — and help me fix it so the full GPT UI (model, tokens, icons) **remains visible** without being stripped or replaced.
+
+---
+
+

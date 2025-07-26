@@ -1,0 +1,48 @@
+
+
+### ✅ Claude Prompt: Fix GPT Message UI "Snapback" Bug
+
+> Hey Claude, I need your help with a UI issue. My GPT messages display correctly when first rendered — including things like the model tag (`.model-tag`), token count (`.token-usage`), and a copy button with a Lucide icon.
+>
+> However, **after a brief moment**, the message UI **snaps into a simplified format**, where only the message text and a generic copy button remain. It looks like something is **overwriting the message HTML after it initially appears**.
+>
+> I've checked the HTML and CSS — they're fine. So this issue is likely coming from **JavaScript (in `script.js`)**. Please walk through these steps:
+
+---
+
+### 🛠️ Checklist for Claude:
+
+1. **Look in `script.js` for any `outputBox.innerHTML = ...` calls**
+
+   * If you're overwriting the entire `.output-box`, you're wiping out the rich GPT message structure.
+   * Instead, use `appendChild()` or `insertAdjacentHTML('beforeend', ...)` to add new messages without clearing previous ones.
+
+2. **Avoid simplified fallback rendering**
+
+   * Make sure you aren’t re-rendering GPT messages later with something like:
+
+     ```js
+     <div class="message gpt">${message}</div>
+     ```
+
+     This would replace any `.gpt-content`, `.model-tag`, or `.token-usage` structure.
+
+3. **Ensure GPT messages are rendered only once**
+
+   * Check for `setTimeout`, `setInterval`, or any `MutationObserver` logic that might re-render the messages after they initially appear.
+
+4. **Confirm Lucide icons are re-initialized correctly**
+
+   * Run `lucide.createIcons()` immediately after rendering a new GPT message, not later or globally.
+
+5. **Log message rendering**
+
+   * Add `console.log("Rendering message:", fullHTML)` where GPT responses are rendered. See if it's run more than once or if `fullHTML` looks too simple.
+
+---
+
+> Please fix the message rendering logic so that the **full GPT message layout stays in place** — including model name, token usage, copy button, and proper class names — without being stripped or replaced after it renders.
+
+Let me know if you need the full HTML structure or style classes I'm using.
+
+

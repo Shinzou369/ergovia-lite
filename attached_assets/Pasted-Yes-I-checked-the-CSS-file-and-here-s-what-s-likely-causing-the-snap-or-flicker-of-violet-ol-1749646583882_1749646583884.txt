@@ -1,0 +1,74 @@
+Yes, I checked the CSS file, and here’s what’s likely causing the **“snap” or flicker** of violet/old UI for a brief second before the new Ergovia theme fully loads:
+
+---
+
+### 🔍 **Diagnosis:**
+
+1. **Missing Fallback Styling Before Theme Loads**
+
+   * Your gradients and colors (like `--ergovia-gradient`, `--ergovia-text-gradient`) are defined in `:root`, but the UI may briefly use default or browser-styled elements before the CSS variables apply—especially if JS is switching themes (`data-theme="dark"` or `"light"`) after page load.
+
+2. **JavaScript or Theme Transition Delay**
+
+   * If JavaScript applies the `data-theme="dark"` after a few milliseconds, the initial `:root` loads briefly with fallback blue or violet defaults from older themes or unstyled markup.
+
+3. **Cached Styles or Old Violet Classes Still Exist**
+
+   * A few components or transitions may still reference violet or older color variables in their base classes or initial states.
+
+---
+
+### ✅ **How to Fix (Tell Claude):**
+
+Here’s an instruction Claude can follow to remove the flicker:
+
+---
+
+**Instruction for Claude:**
+
+---
+
+Please resolve the UI color flicker issue that occurs briefly on load. Here's how:
+
+### 1. **Ensure Theme Loads Immediately**
+
+* Apply the correct `data-theme="dark"` or `"light"` **directly in the HTML `<html>` tag**, not via JS after the DOM loads.
+
+```html
+<html lang="en" data-theme="dark">
+```
+
+### 2. **Inline Critical Ergovia Theme Styles**
+
+* Inline the base `:root` CSS variables **above the fold** using `<style>` inside the `<head>` to prevent flash of unstyled content (FOUC).
+
+### 3. **Remove Any Leftover Violet or Default Gradients**
+
+* Do a sweep for any lingering violet/blue styles or transitions from the original Prismity theme—especially:
+
+  * Old fallback colors in transitions
+  * Animation keyframes using violet tones
+  * `.hover` or `.active` button states
+
+### 4. **Set Initial Styles to Match Final Styles**
+
+* Ensure the elements have their **final Ergovia styles already applied** at load so there’s no “before > after” visual jump.
+
+### 5. **Use `prefers-color-scheme` to Match Theme Early**
+
+* Optionally, use media query for system dark/light mode to apply gradients faster:
+
+```css
+@media (prefers-color-scheme: dark) {
+  html {
+    --bg-primary: #0f0f0f;
+    /* etc */
+  }
+}
+```
+
+---
+
+Once Claude applies this, the snap/flicker should disappear completely and the theme will feel truly polished and native.
+
+Let me know if you'd like me to generate the inline fallback `<style>` block for the `<head>` — it’s a great trick for instant styling!

@@ -1,0 +1,73 @@
+
+
+### 📋 Prompt to Claude — Prismity AI Login Block After First Chat Attempt
+
+You are the UI/UX frontend designer for **Prismity AI**.
+
+The website UI should remain fully visible and usable *at first*. But if a **user is not logged in** and tries to **send a chat prompt**, Prismity must show a full-screen login requirement and **block further use**.
+
+---
+
+### 🎯 What You Must Build (Frontend/UI Only)
+
+1. **Trigger-Based Login Gate (Frontend Only)**
+
+   * Let the user type into the chat normally.
+   * But as soon as they click **“Send”**:
+
+     * If `isUserLoggedIn === false`:
+
+       * **Immediately show a full-page login modal**
+       * **Do NOT send the message**
+       * Block everything in the background
+
+---
+
+### 🖼 Modal UI Design
+
+* **Dark overlay**: Apply `backdrop-filter: blur(...)` + dark semi-transparent layer to background.
+* **Centered login box**:
+
+  * Google Login button (use official style)
+  * Message: “Sign in to use Prismity AI”
+  * Optional: Add “Your first message will be saved after login” (optional)
+* **Disable all background interaction**
+
+  * Prevent clicks, keyboard input, or scroll.
+  * Use `pointer-events: none` on background, `pointer-events: auto` on modal.
+
+---
+
+### ✅ Implementation Details
+
+* Place `isUserLoggedIn` (boolean) in frontend state.
+* When user sends a message:
+
+  ```js
+  if (!isUserLoggedIn) {
+    showLoginModal(); // darken background, show modal
+    return; // prevent message from being submitted
+  }
+  ```
+
+---
+
+### ✨ Optional Enhancements
+
+* Animate the modal for smooth UX (fade-in, scale-up)
+* Store the unsent prompt so it can be submitted *after* login (optional)
+
+---
+
+### 🧪 Final Test Flow (Expected)
+
+1. User opens Prismity AI (not logged in)
+2. User types a prompt and clicks “Send”
+3. Instead of chatting:
+
+   * A **login modal** appears over the app
+   * Background is darkened and disabled
+   * Only option: **Sign in with Google**
+4. After login, chat resumes and the UI becomes fully available
+
+

@@ -1,0 +1,9 @@
+
+{
+  "dependencies_to_install": {
+    "axios": "^1.6.0",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.0"
+  },
+  "install_command": "npm install axios sqlite3 uuid"
+}

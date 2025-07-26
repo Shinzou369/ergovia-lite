@@ -1,0 +1,88 @@
+
+
+**Instruction for Claude:**
+
+Please update the `Templates.html` file with the following changes. Be sure to **only modify this file**, and do **not affect any other pages or site components**.
+
+---
+
+### 🔁 Step 1: Replace the existing `<header>` block
+
+Find the current `<header class="taskforce-hero ...">` section that includes:
+
+```html
+<h1 class="hero-title">PRISMiTY.AI</h1>
+<p class="hero-subtitle">Your <strong>AI-powered productivity assistant</strong> for marketing and automation tasks...</p>
+```
+
+Replace the **entire header block** with this:
+
+```html
+<header class="taskforce-hero animate__animated animate__fadeInUp">
+  <div class="hero-content">
+    <h1 class="hero-title">Prismity Taskforce</h1>
+    <p class="hero-subtitle">
+      Discover powerful AI templates designed to automate your workflow
+      and boost productivity. Choose from our collection of specialized AI
+      assistants.
+    </p>
+
+    <!-- Search functionality -->
+    <div class="search-container">
+      <div class="search-wrapper">
+        <div class="search-icon"><i data-lucide="search"></i></div>
+        <input
+          type="text"
+          id="search-input"
+          class="search-input"
+          placeholder="Search templates..."
+          oninput="filterTemplates()"
+        />
+      </div>
+    </div>
+  </div>
+</header>
+```
+
+---
+
+### 🔁 Step 2: Replace the Templates section content
+
+Find the section where the template/taskforce cards are listed (likely inside a grid or container).
+
+Replace **only the template cards** with the following:
+
+```html
+<div class="template-card">
+  <h3>🔧 Local Contractors (Plumbers, HVAC, Electricians) Taskforce</h3>
+  <p>An AI office assistant for tradespeople. Manages customer inquiries, appointment booking, quote follow-ups, and connects jobs to your calendar.</p>
+</div>
+
+<div class="template-card">
+  <h3>📚 Tutoring & Review Centers Taskforce</h3>
+  <p>An AI academic coordinator. Responds to parent/student inquiries, shares class schedules, follows up on payments, and helps fill class slots faster.</p>
+</div>
+
+<div class="template-card">
+  <h3>🦷 Dental Office Taskforce</h3>
+  <p>An AI front desk agent. Handles appointment requests, sends reminders, reschedules visits, and answers common patient questions — automatically.</p>
+</div>
+
+<div class="template-card">
+  <h3>🏋️ Gym & Fitness Center Taskforce</h3>
+  <p>An AI membership manager. Answers new member inquiries, sends trial invites, collects feedback, and reminds leads or clients to take action.</p>
+</div>
+
+<div class="template-card">
+  <h3>💆 Massage Therapy Clinic Taskforce</h3>
+  <p>An AI receptionist. Books sessions, manages reminders, handles inquiries about services, and keeps your schedule filled without lifting a finger.</p>
+</div>
+```
+
+---
+
+✅ Be sure not to modify scripts, CSS, navigation, or other layout elements — only the header and the tool/template list.
+
+Let me know when it’s complete!
+
+

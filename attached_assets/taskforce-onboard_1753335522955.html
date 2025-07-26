@@ -1,0 +1,449 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taskforce Setup - Ergovia AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><radialGradient id="a" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="white" stop-opacity=".1"/><stop offset="100%" stop-color="white" stop-opacity="0"/></radialGradient></defs><rect width="100%" height="100%" fill="url(%23a)"/></svg>');
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+        
+        .progress-container {
+            padding: 0 40px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.4s ease;
+            border-radius: 3px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 20px;
+        }
+        
+        .step-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .step-dot.active {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .step-dot.completed {
+            background: #28a745;
+            color: white;
+        }
+        
+        .form-container {
+            padding: 50px;
+        }
+        
+        .step {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .step-title {
+            font-size: 2.2em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+        
+        .step-subtitle {
+            font-size: 1.1em;
+            color: #6c757d;
+            margin-bottom: 35px;
+            line-height: 1.6;
+        }
+        
+        .taskforce-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .taskforce-card {
+            border: 3px solid #e9ecef;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .taskforce-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
+        }
+        
+        .taskforce-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea10, #764ba210);
+        }
+        
+        .taskforce-icon {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .taskforce-card h3 {
+            font-size: 1.4em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .taskforce-card p {
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        
+        .form-group {
+            margin-bottom: 30px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .required {
+            color: #e74c3c;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: #667eea;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: 10px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 60px 40px;
+        }
+        
+        .success-icon {
+            font-size: 5em;
+            color: #28a745;
+            margin-bottom: 30px;
+            display: block;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 80px 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .review-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .config-item:last-child {
+            border-bottom: none;
+        }
+        
+        .config-label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .config-value {
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1>🚀 Taskforce Setup</h1>
+                <p>Deploy your personalized AI automation in minutes</p>
+            </div>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="step-indicator">
+                <div class="step-dot active" id="dot1">1</div>
+                <div class="step-dot" id="dot2">2</div>
+                <div class="step-dot" id="dot3">3</div>
+                <div class="step-dot" id="dot4">4</div>
+                <div class="step-dot" id="dot5">✓</div>
+            </div>
+        </div>
+        
+        <div class="form-container">
+            <!-- Step 1: Select Taskforce -->
+            <div class="step active" id="step1">
+                <h2 class="step-title">Choose Your Taskforce</h2>
+                <p class="step-subtitle">Select the AI automation that best fits your business needs</p>
+                
+                <div class="taskforce-selector" id="taskforceOptions">
+                    <!-- Dynamic taskforce options will be loaded here -->
+                </div>
+                
+                <div class="navigation">
+                    <div></div>
+                    <button class="btn" onclick="nextStep()" id="nextBtn1" disabled>Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Business Information -->
+            <div class="step" id="step2">
+                <h2 class="step-title">Business Information</h2>
+                <p class="step-subtitle">Tell us about your business so we can personalize your automation</p>
+                
+                <div class="form-group">
+                    <label for="businessName">Business Name <span class="required">*</span></label>
+                    <input type="text" id="businessName" required placeholder="Your Business Name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="businessEmail">Business Email <span class="required">*</span></label>
+                    <input type="email" id="businessEmail" required placeholder="contact@yourbusiness.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="businessPhone">Business Phone <span class="required">*</span></label>
+                    <input type="tel" id="businessPhone" required placeholder="+1 (555) 123-4567">
+                </div>
+                
+                <div class="navigation">
+                    <button class="btn btn-secondary" onclick="prevStep()">Previous</button>
+                    <button class="btn" onclick="nextStep()" id="nextBtn2">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Taskforce Configuration -->
+            <div class="step" id="step3">
+                <h2 class="step-title">Configure Your Automation</h2>
+                <p class="step-subtitle">Provide the specific details needed for your taskforce automation</p>
+                
+                <div id="dynamicFields">
+                    <!-- Dynamic fields based on selected taskforce -->
+                </div>
+                
+                <div class="navigation">
+                    <button class="btn btn-secondary" onclick="prevStep()">Previous</button>
+                    <button class="btn" onclick="nextStep()" id="nextBtn3">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Review & Deploy -->
+            <div class="step" id="step4">
+                <h2 class="step-title">Review Your Setup</h2>
+                <p class="step-subtitle">Confirm your configuration and deploy your personalized automation</p>
+                
+                <div class="review-section" id="reviewContent">
+                    <!-- Review content will be populated -->
+                </div>
+                
+                <div class="navigation">
+                    <button class="btn btn-secondary" onclick="prevStep()">Previous</button>
+                    <button class="btn btn-success" onclick="deployTaskforce()" id="deployBtn">Deploy My Taskforce</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Deployment -->
+            <div class="step" id="step5">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <h3>Deploying Your Taskforce...</h3>
+                    <p>Creating your personalized AI automation workflow...</p>
+                </div>
+            </div>
+
+            <!-- Step 6: Success -->
+            <div class="step" id="step6">
+                <div class="success-message">
+                    <span class="success-icon">🎉</span>
+                    <h2>Taskforce Deployed Successfully!</h2>
+                    <p>Your personalized AI automation is now active and ready to work for your business.</p>
+                    <div id="deploymentDetails"></div>
+                    <button class="btn" onclick="window.location.href='/taskforce'">Return to Taskforce</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="taskforce-onboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+:root {
+    /* Ergovia-AI Dark Theme Colors */
+    --background-color: #1A1A1A; /* Deep charcoal black */
+    --card-background: #222222; /* Slightly lighter black/dark gray */
+    --text-color-primary: #FFFFFF; /* Clean white */
+    --text-color-muted: #CCCCCC; /* Light gray for subtext */
+    --accent-gold: #FFD700; /* Rich golden yellow */
+    --accent-gold-hover: #FFCC33; /* Lighter gold for hover */
+    --border-color: #333333; /* Darker border for separation */
+    --progress-fill: var(--accent-gold);
+
+    /* Light Mode (for toggle) - a more standard light theme */
+    --light-background-color: #f4f7f6;
+    --light-card-background: #ffffff;
+    --light-text-color-primary: #333333;
+    --light-text-color-muted: #6c757d;
+    --light-accent-blue: #007bff;
+    --light-border-color: #e0e0e0;
+    --light-progress-fill: #28a745;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: var(--background-color);
+    color: var(--text-color-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.light-mode {
+    background-color: var(--light-background-color);
+    color: var(--light-text-color-primary);
+}
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+body.light-mode .dashboard-container {
+    background-color: var(--light-card-background);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: border-color 0.3s;
+}
+
+body.light-mode header {
+    border-color: var(--light-border-color);
+}
+
+.header-content {
+    flex-grow: 1;
+}
+
+h1 {
+    color: var(--accent-gold); /* Main title in gold */
+    margin: 0;
+    font-size: 2.5em;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); /* Subtle glow */
+}
+
+.motivational-quote {
+    font-style: italic;
+    color: var(--text-color-muted);
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+.theme-toggle {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: var(--text-color-primary);
+    transition: color 0.3s;
+}
+
+body.light-mode .theme-toggle {
+    color: var(--light-text-color-primary);
+}
+
+.card {
+    background-color: var(--card-background);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Subtle lift on hover */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+body.light-mode .card {
+    background-color: var(--light-card-background);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.section h2 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: var(--text-color-primary);
+    transition: color 0.3s;
+}
+
+body.light-mode .section h2 {
+    color: var(--light-text-color-primary);
+}
+
+.description {
+    font-size: 0.9em;
+    color: var(--text-color-muted);
+    margin-bottom: 20px;
+    transition: color 0.3s;
+}
+
+body.light-mode .description {
+    color: var(--light-text-color-muted);
+}
+
+.niche-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.niche-card {
+    background-color: var(--card-background);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s ease-in-out;
+}
+
+.niche-card:hover {
+    transform: translateY(-5px); /* Subtle lift on hover */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+body.light-mode .niche-card {
+    background-color: var(--light-card-background);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .niche-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.niche-card h3 {
+    margin-top: 0;
+    color: var(--accent-gold);
+    transition: color 0.3s;
+}
+
+body.light-mode .niche-card h3 {
+    color: var(--light-accent-blue);
+}
+
+.niche-card p {
+    margin: 5px 0;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: var(--border-color);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+}
+
+body.light-mode .progress-bar-container {
+    background-color: var(--light-border-color);
+}
+
+.progress-bar {
+    height: 10px;
+    background-color: var(--progress-fill);
+    border-radius: 5px;
+    width: 0%; /* Start at 0 for animation */
+    transition: width 1s ease-out, background-color 0.3s;
+}
+
+body.light-mode .progress-bar {
+    background-color: var(--light-progress-fill);
+}
+
+.progress-bar-label {
+    font-size: 0.85em;
+    margin-bottom: 5px;
+    color: var(--text-color-muted);
+    transition: color 0.3s;
+}
+
+body.light-mode .progress-bar-label {
+    color: var(--light-text-color-muted);
+}
+
+.niche-card .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.niche-card .controls .emoji {
+    font-size: 1.8em;
+    transition: transform 0.2s ease-in-out;
+}
+
+.niche-card .controls .emoji:hover {
+    transform: scale(1.2); /* Pop on hover */
+}
+
+.niche-card .trophy-icon {
+    color: var(--accent-gold);
+    font-size: 1.5em;
+    margin-left: 5px;
+}
+
+/* iPhone-like Toggle Switch */
+.airplane-mode-toggle {
+    width: 50px; /* Wider for switch look */
+    height: 30px; /* Taller */
+    background-color: #555; /* Off state color */
+    border-radius: 15px; /* Half of height for pill shape */
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Start at left for off state */
+    padding: 0 3px;
+}
+
+.airplane-mode-toggle i {
+    font-size: 1.2em;
+    color: #fff; /* Icon color */
+    transition: transform 0.3s, color 0.3s;
+}
+
+.airplane-mode-toggle.active {
+    background-color: var(--accent-gold); /* On state color */
+    justify-content: flex-end; /* Move to right for on state */
+}
+
+.airplane-mode-toggle.active i {
+    transform: translateX(18px); /* Move icon to the right */
+    color: #333; /* Darker icon on gold background */
+}
+
+.revenue-breakdown hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 15px 0;
+    transition: border-color 0.3s;
+}
+
+body.light-mode .revenue-breakdown hr {
+    border-color: var(--light-border-color);
+}
+
+.grand-total {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text-color-primary);
+    transition: color 0.3s;
+}
+
+body.light-mode .grand-total {
+    color: var(--light-text-color-primary);
+}
+
+/* Ergovia Network Section - Larger Card */
+.ergovia-network-card {
+    grid-column: span 2; /* Make it span 2 columns in a grid */
+    min-height: 200px; /* Give it a minimum height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background-color: var(--card-background);
+    border: 2px solid var(--accent-gold); /* Gold border to highlight importance */
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); /* Gold glow */
+}
+
+.ergovia-network-card h2 {
+    color: var(--accent-gold);
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+.ergovia-network-card p {
+    font-size: 1.1em;
+    color: var(--text-color-primary);
+}
+
+.ergovia-network-card .progress-bar-container {
+    width: 80%;
+    margin-top: 20px;
+}
+
+/* Achievement Banner (Top MRR Box) */
+.achievement-banner {
+    text-align: center;
+    padding: 30px 20px;
+    border: 2px solid var(--accent-gold);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+    background: linear-gradient(45deg, #222222, #1A1A1A);
+    position: relative;
+    overflow: hidden;
+}
+
+.achievement-banner:hover {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.9); /* More intense glow on hover */
+}
+
+.achievement-banner h2 {
+    color: var(--accent-gold);
+    font-size: 2.2em;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+}
+
+.mrr-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.radial-progress-container {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(#555555 0%, var(--border-color) 0%); /* Changed progress bar color to a darker gray */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    transition: background 1s ease-out; /* For progress animation */
+}
+
+.radial-progress-container::before {
+    content: '';
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background-color: var(--card-background); /* Black background for MRR number */
+    z-index: 1;
+}
+
+.mrr-value {
+    position: relative;
+    z-index: 2;
+    font-size: 3.5em; /* Made bigger */
+    font-weight: bold;
+    color: var(--accent-gold); /* Text color remains gold */
+    text-shadow: 0 0 10px var(--accent-gold), 0 0 20px var(--accent-gold); /* Gold glow */
+}
+
+.mrr-value .currency-value {
+    color: var(--accent-gold); /* Make the number gold */
+}
+
+.dynamic-subtitle {
+    font-size: 1.1em;
+    color: var(--text-color-primary); /* White on gold for contrast */
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* Confetti Overlay */
+.confetti-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allows clicks to pass through */
+    z-index: 1000;
+    overflow: hidden;
+    display: none; /* Hidden by default */
+}
+
+.confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: var(--accent-gold);
+    opacity: 0;
+    animation: confetti-fall 3s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* Celebrate Button */
+.celebrate-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: var(--accent-gold);
+    color: #1A1A1A;
+    border: none;
+    border-radius: 50px;
+    padding: 15px 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.5);
+    transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s ease-in-out;
+    z-index: 999;
+}
+
+.celebrate-button:hover {
+    background-color: var(--accent-gold-hover);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.7);
+    transform: translateY(-3px);
+}
+
+.celebrate-button i {
+    margin-right: 8px;
+}
+
+/* Tooltip for Marketing Tokens */
+.marketing-tokens-info {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+    border-bottom: 1px dotted var(--text-color-muted);
+}
+
+.marketing-tokens-info .tooltiptext {
+    visibility: hidden;
+    width: 250px;
+    background-color: var(--card-background);
+    color: var(--text-color-primary);
+    text-align: center;
+    border-radius: 6px;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Position the tooltip above the text */
+    left: 50%;
+    margin-left: -125px; /* Center the tooltip */
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+}
+
+.marketing-tokens-info .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--card-background) transparent transparent transparent;
+}
+
+.marketing-tokens-info:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+body.light-mode .marketing-tokens-info .tooltiptext {
+    background-color: var(--light-card-background);
+    color: var(--light-text-color-primary);
+    border: 1px solid var(--light-border-color);
+}
+
+body.light-mode .marketing-tokens-info .tooltiptext::after {
+    border-color: var(--light-card-background) transparent transparent transparent;
+}

@@ -1,0 +1,167 @@
+Here is a refined and professional version of your website pages, optimized for clarity, legal completeness, and strong alignment with Lemon Squeezy’s approval requirements:
+
+---
+
+## 🔒 Privacy Policy
+
+**Prismity.Ai**
+*Last updated: January 2025*
+
+### 1. Information We Collect
+
+We collect the following information when you interact with our platform:
+
+* **Google Account Details** (name, email, profile picture) used for authentication
+* **Chat Content and Conversation Data** generated through your interactions with our AI
+* **Usage Data and Preferences** to help us improve service delivery
+
+### 2. How We Use Your Information
+
+Your data is used to:
+
+* Provide and enhance the AI chat services and user experience
+* Authenticate your account and manage access
+* Respond to support inquiries and feedback
+* Analyze usage patterns to develop better features
+
+### 3. Information Sharing
+
+We do not sell or trade your personal data. We may share information only:
+
+* With AI service providers (e.g., OpenAI, DeepSeek) to process requests
+* When required by law, legal process, or to protect our rights
+* With your explicit consent
+
+### 4. Data Security
+
+We employ industry-standard measures to protect your data. While we work hard to ensure security, no online platform can be 100% immune to breaches.
+
+### 5. Your Rights
+
+You may:
+
+* Access and update your personal data
+* Request deletion of your account and associated data
+* Opt out of non-essential communications
+* Request a data export of your personal information
+
+### 6. Cookies and Tracking
+
+We use session cookies to manage login state and user preferences. We do not use advertising or third-party tracking cookies.
+
+### 7. Changes to This Policy
+
+We will notify users of major changes to this policy via email or website notifications. Updates will be reflected with a new effective date.
+
+### 8. Contact Us
+
+For privacy-related inquiries:
+📧 **[privacy@prismity.ai](mailto:privacy@prismity.ai)**
+🌐 **prismity.ai**
+
+---
+
+## 📜 Terms of Service
+
+**Prismity.Ai**
+*Last updated: January 2025*
+
+### 1. Acceptance of Terms
+
+By using Prismity.Ai, you agree to these terms and any updates we publish.
+
+### 2. Description of Service
+
+Prismity.Ai provides:
+
+* A personal AI assistant (TaskAI) to help users with productivity, marketing, and business operations
+* An affiliate program to resell Prismity.Ai and Prismity Taskforce (PTF) automation solutions to businesses
+
+### 3. User Accounts
+
+* You must use accurate and truthful information when registering
+* You are responsible for account security
+* Account sharing is not allowed
+* Users must be 13 years or older
+
+### 4. Acceptable Use
+
+You agree not to use Prismity.Ai to:
+
+* Generate or promote illegal, harmful, or offensive content
+* Reverse engineer, copy, or misuse AI services
+* Violate laws or infringe on intellectual property
+* Harass or spam others
+
+### 5. Intellectual Property
+
+All original features, branding, and services of Prismity.Ai are protected under intellectual property law.
+
+### 6. Content and Data
+
+* You retain rights to the content you input
+* You grant us the right to use content for delivering services
+* We may analyze anonymized data to improve our platform
+* AI-generated content is provided “as-is” and may contain inaccuracies
+
+### 7. Service Availability
+
+We aim for 99% uptime but cannot guarantee uninterrupted access. We reserve the right to suspend or terminate access for maintenance or policy violations.
+
+### 8. Limitation of Liability
+
+We are not liable for damages resulting from the use—or inability to use—our services, to the maximum extent allowed by law.
+
+### 9. Termination
+
+Accounts may be terminated without notice if users violate these terms.
+
+### 10. Modifications
+
+Terms may be updated. Significant changes will be announced on our platform or via email.
+
+### 11. Contact Us
+
+📧 **[legal@prismity.ai](mailto:legal@prismity.ai)**
+🌐 **prismity.ai**
+
+---
+
+## 📬 Contact Us
+
+### General Support
+
+📧 **[support@prismity.ai](mailto:support@prismity.ai)**
+
+### Legal and Privacy
+
+📧 **[legal@prismity.ai](mailto:legal@prismity.ai)**
+📧 **[privacy@prismity.ai](mailto:privacy@prismity.ai)**
+
+### Partnerships & Business Inquiries
+
+📧 **[business@prismity.ai](mailto:business@prismity.ai)**
+
+### Report Bugs
+
+📧 **[bugs@prismity.ai](mailto:bugs@prismity.ai)**
+
+---
+
+## ❓ Frequently Asked Questions (FAQs)
+
+**Q: How do I reset my password?**
+A: We use Google OAuth. Log in with your Google account—no separate password is needed.
+
+**Q: Is my data secure?**
+A: Yes. We use industry-standard encryption and do not sell your data. Only essential service providers (e.g., OpenAI, DeepSeek) may process limited data to deliver AI responses.
+
+**Q: Which AI models does Prismity use?**
+A: We currently support GPT-3.5 Turbo, GPT-4, GPT-4 Turbo, and DeepSeek Chat. The system selects the best model based on your input and available resources.
+
+**Q: How do I delete my account?**
+A: Email **[support@prismity.ai](mailto:support@prismity.ai)** and we will permanently delete your account and related data.
+
+**Response Time:** We typically respond to support emails within **24–48 business hours**.
+
+

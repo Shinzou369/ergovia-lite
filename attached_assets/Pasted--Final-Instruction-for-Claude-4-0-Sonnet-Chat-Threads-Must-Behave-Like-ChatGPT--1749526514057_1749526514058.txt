@@ -1,0 +1,81 @@
+
+
+## ✅ Final Instruction for Claude 4.0 Sonnet
+
+### 🧠 Chat Threads Must Behave Like ChatGPT
+
+> ### 🎯 Objective:
+>
+> Please make sure that the **chat thread system behaves like ChatGPT’s thread-based model**, where:
+>
+> * ✅ **Starting a new chat** clears the output box completely.
+> * ✅ **Each thread has its own message history.**
+> * ✅ **Messages from one thread do not appear in another.**
+> * ✅ **Switching threads instantly shows only that thread’s messages.**
+> * ✅ **Chat output and typing animation reset on thread switch or new chat.**
+>
+> ---
+>
+> ### 🔧 Files to Modify:
+>
+> * `public/script.js`: Fix how threads are loaded, displayed, and how new chats are handled.
+> * `server.js`: Ensure thread-specific message handling.
+> * `user_threads.json`: Threads must contain isolated message arrays tied to a `threadId`.
+>
+> ---
+>
+> ### ✅ Expected Behavior (Match ChatGPT):
+>
+> | Action                   | Result                                                |
+> | ------------------------ | ----------------------------------------------------- |
+> | Click “New Chat”         | Output clears. New message saved to new empty thread. |
+> | Switch to another thread | Output changes to that thread’s messages only.        |
+> | Send message             | Only stored in selected thread’s history.             |
+> | Refresh browser          | Last selected thread reloads if user is logged in.    |
+> | Logout/Login             | Correct threads/messages load for that user only.     |
+>
+> ---
+>
+> ### 🧱 Suggested Data Structure per Thread:
+>
+> ```json
+> {
+>   "id": "thread-uuid",
+>   "title": "Auto-generated summary",
+>   "messages": [
+>     { "role": "user", "content": "What's a sales funnel?" },
+>     { "role": "assistant", "content": "A sales funnel is..." }
+>   ]
+> }
+> ```
+>
+> ---
+>
+> ### ⚠️ Do NOT:
+>
+> * Do not allow message display to persist between threads.
+> * Do not append new chat messages to previous threads.
+> * Do not affect any styling, authentication, or unrelated features.
+>
+> ---
+>
+> ### 📋 Manual Testing Scenarios:
+>
+> * ✅ Start New Chat → No previous messages shown
+> * ✅ Switch threads → See only that thread’s messages
+> * ✅ Logout → Output clears
+> * ✅ Log back in → Proper thread list and message history loads
+> * ✅ Refresh while inside a thread → That thread reloads cleanly
+>
+> ---
+>
+> ### 📦 After Task Completion:
+>
+> Please give a short summary that includes:
+>
+> * Files changed
+> * Main logic added or changed
+> * Any assumptions you made
+> * Confirmation that behavior now matches ChatGPT-style threads
+
+
