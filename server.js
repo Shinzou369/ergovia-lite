@@ -47,6 +47,48 @@ passport.serializeUser((user, done) => {
   done(null, user);
 });
 
+
+// Daily subscription check to handle expired subscriptions
+function checkExpiredSubscriptions() {
+  const users = loadUsers();
+  const now = new Date();
+  let updatedAny = false;
+
+  Object.keys(users).forEach(userId => {
+    const user = users[userId];
+    
+    // Check if monthly subscription has expired
+    if (user.subscriptionType === 'monthly' && 
+        user.subscriptionExpiresAt && 
+        user.isPremium && 
+        user.subscriptionStatus === 'active') {
+      
+      const expirationDate = new Date(user.subscriptionExpiresAt);
+      
+      if (now > expirationDate) {
+        console.log('🕐 Expiring subscription for user:', user.email, 'Expired at:', expirationDate);
+        
+        user.isPremium = false;
+        user.subscriptionStatus = 'expired';
+        user.subscriptionEndDate = now.toISOString();
+        updatedAny = true;
+      }
+    }
+  });
+
+  if (updatedAny) {
+    saveUsers(users);
+    console.log('✅ Daily subscription check completed - expired subscriptions updated');
+  }
+}
+
+// Run subscription check every 24 hours
+setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000);
+
+// Run check on server start
+setTimeout(checkExpiredSubscriptions, 5000);
+
+
 passport.deserializeUser((user, done) => {
   done(null, user);
 });
@@ -157,12 +199,41 @@ function requirePremium(req, res, next) {
   }
 
   console.log('Premium check - User ID:', userId, 'Email:', userEmail, 'User record found:', !!userRecord);
-  if (userRecord) {
-    console.log('Premium status:', userRecord.isPremium, 'Unlimited access:', userRecord.hasUnlimitedAccess);
+  
+  if (!userRecord) {
+    console.log('❌ No user record found for:', userEmail || userId);
+    return res.status(403).json({ error: 'Premium access required' });
   }
 
-  if (!userRecord || (!userRecord.isPremium && !userRecord.hasUnlimitedAccess)) {
-    console.log('❌ Premium access denied for user:', userEmail || userId);
+  // Check subscription expiration for monthly subscribers
+  if (userRecord.subscriptionType === 'monthly' && userRecord.subscriptionExpiresAt) {
+    const now = new Date();
+    const expirationDate = new Date(userRecord.subscriptionExpiresAt);
+    
+    if (now > expirationDate) {
+      console.log('❌ Subscription expired for user:', userEmail, 'Expired at:', expirationDate);
+      
+      // Update user record to reflect expired status
+      userRecord.isPremium = false;
+      userRecord.subscriptionStatus = 'expired';
+      users[userId] = userRecord;
+      saveUsers(users);
+      
+      return res.status(403).json({ 
+        error: 'Subscription expired', 
+        message: 'Your monthly subscription has expired. Please renew to continue using premium features.',
+        expirationDate: expirationDate.toISOString()
+      });
+    }
+  }
+
+  // Check if user has active premium access
+  const hasValidSubscription = userRecord.isPremium && 
+    (userRecord.subscriptionStatus === 'active' || userRecord.hasUnlimitedAccess);
+
+  if (!hasValidSubscription) {
+    console.log('❌ Premium access denied for user:', userEmail || userId, 
+                'Premium:', userRecord.isPremium, 'Status:', userRecord.subscriptionStatus);
     return res.status(403).json({ error: 'Premium access required' });
   }
 
@@ -252,16 +323,68 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
         );
         
         if (userKey) {
+          const now = new Date();
+          const subscriptionType = subscription.attributes.variant_name?.toLowerCase().includes('monthly') ? 'monthly' : 'yearly';
+          
+          // Calculate expiration date for monthly subscriptions
+          let expirationDate = null;
+          if (subscriptionType === 'monthly') {
+            expirationDate = new Date(now);
+            expirationDate.setMonth(expirationDate.getMonth() + 1);
+          }
+          
           users[userKey].isPremium = true;
           users[userKey].subscriptionId = subscription.id;
           users[userKey].subscriptionStatus = 'active';
-          users[userKey].upgradeDate = new Date().toISOString();
+          users[userKey].subscriptionType = subscriptionType;
+          users[userKey].upgradeDate = now.toISOString();
+          users[userKey].subscriptionStartDate = now.toISOString();
+          
+          if (expirationDate) {
+            users[userKey].subscriptionExpiresAt = expirationDate.toISOString();
+          }
+          
+          // Renew date for next billing cycle
+          if (subscription.attributes.renews_at) {
+            users[userKey].nextRenewalDate = subscription.attributes.renews_at;
+          }
+          
           saveUsers(users);
           
-          console.log('✅ Premium activated for user:', customerEmail);
+          console.log('✅ Premium activated for user:', customerEmail, 'Type:', subscriptionType, 'Expires:', expirationDate?.toISOString());
         } else {
           console.log('⚠️ User not found for email:', customerEmail);
         }
+      }
+    }
+
+    // Handle subscription renewal
+    if (event.meta.event_name === 'subscription_payment_success') {
+      const subscription = event.data;
+      const customerEmail = subscription.attributes.user_email;
+      
+      const users = loadUsers();
+      const userKey = Object.keys(users).find(key => 
+        users[key].email === customerEmail
+      );
+      
+      if (userKey && users[userKey].subscriptionType === 'monthly') {
+        // Extend subscription for another month
+        const now = new Date();
+        const newExpirationDate = new Date(now);
+        newExpirationDate.setMonth(newExpirationDate.getMonth() + 1);
+        
+        users[userKey].subscriptionExpiresAt = newExpirationDate.toISOString();
+        users[userKey].subscriptionStatus = 'active';
+        users[userKey].isPremium = true;
+        users[userKey].lastRenewalDate = now.toISOString();
+        
+        if (subscription.attributes.renews_at) {
+          users[userKey].nextRenewalDate = subscription.attributes.renews_at;
+        }
+        
+        saveUsers(users);
+        console.log('✅ Subscription renewed for user:', customerEmail, 'New expiration:', newExpirationDate.toISOString());
       }
     }
 
@@ -281,9 +404,29 @@ app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req,
       if (userKey) {
         users[userKey].isPremium = false;
         users[userKey].subscriptionStatus = subscription.attributes.status;
+        users[userKey].subscriptionEndDate = new Date().toISOString();
         saveUsers(users);
         
         console.log('❌ Premium deactivated for user:', customerEmail);
+      }
+    }
+
+    // Handle failed payments
+    if (event.meta.event_name === 'subscription_payment_failed') {
+      const subscription = event.data;
+      const customerEmail = subscription.attributes.user_email;
+      
+      const users = loadUsers();
+      const userKey = Object.keys(users).find(key => 
+        users[key].email === customerEmail
+      );
+      
+      if (userKey) {
+        users[userKey].subscriptionStatus = 'past_due';
+        users[userKey].lastFailedPayment = new Date().toISOString();
+        saveUsers(users);
+        
+        console.log('⚠️ Payment failed for user:', customerEmail);
       }
     }
 
@@ -569,7 +712,11 @@ app.get("/api/auth/status", (req, res) => {
     preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
     isComplete: userData?.isComplete || req.user.isComplete || false,
     isPremium: userData?.isPremium || false,
-    hasUnlimitedAccess: userData?.hasUnlimitedAccess || false
+    hasUnlimitedAccess: userData?.hasUnlimitedAccess || false,
+    subscriptionType: userData?.subscriptionType || null,
+    subscriptionStatus: userData?.subscriptionStatus || null,
+    subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
+    nextRenewalDate: userData?.nextRenewalDate || null
   };
 
   console.log('✅ Auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
