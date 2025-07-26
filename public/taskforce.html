@@ -214,6 +214,7 @@
             "An AI veterinary assistant. Manages pet appointments, handles owner inquiries, sends vaccination reminders, and coordinates emergency visits.",
           icon: "🐾",
           tags: ["Veterinary", "Pet Care", "Appointments"],
+          hasOnboarding: true,
         },
       ];
 
@@ -234,10 +235,20 @@
         grid.innerHTML = templatesToRender
           .map(
             (template) => {
-              // For now, all cards will show "Coming Soon" and redirect to main dashboard
-              // You can replace specific template IDs with actual onboarding pages when ready
-              let onclickAction = `onclick="window.location.href='/'"`;
-              let overlayContent = `<div class="coming-soon-overlay">Coming Soon</div>`;
+              // Pet Clinic has onboarding, others show "Coming Soon"
+              let onclickAction, overlayContent;
+              
+              if (template.id === "pet-clinic") {
+                onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
+                overlayContent = `<div class="coming-soon-overlay" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                  <i class="overlay-icon" data-lucide="rocket"></i>
+                  <span class="overlay-text">Get Started!</span>
+                  <span class="overlay-subtitle">Set up your taskforce today</span>
+                </div>`;
+              } else {
+                onclickAction = `onclick="window.location.href='/'"`;
+                overlayContent = `<div class="coming-soon-overlay">Coming Soon</div>`;
+              }
               
               return `
         <div class="template-card" ${onclickAction}>
