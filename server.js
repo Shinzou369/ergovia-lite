@@ -145,24 +145,28 @@ function requirePremium(req, res, next) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  // Get user ID from authenticated user
+  // Get user ID from authenticated user (Google OAuth uses 'id' field)
   const userId = req.user.id;
+  const userEmail = req.user.emails?.[0]?.value;
   const users = readUsersFileSync();
-  const user = users[userId];
-
-  // Also check by email if not found by ID
-  let userRecord = user;
-  if (!userRecord) {
-    const userEmail = req.user.emails?.[0]?.value;
+  
+  // Try to find user by Google ID first, then by email
+  let userRecord = users[userId];
+  if (!userRecord && userEmail) {
     userRecord = Object.values(users).find(u => u.email === userEmail);
   }
 
-  console.log('Premium check for user:', userId, 'User record:', userRecord);
+  console.log('Premium check - User ID:', userId, 'Email:', userEmail, 'User record found:', !!userRecord);
+  if (userRecord) {
+    console.log('Premium status:', userRecord.isPremium, 'Unlimited access:', userRecord.hasUnlimitedAccess);
+  }
 
   if (!userRecord || (!userRecord.isPremium && !userRecord.hasUnlimitedAccess)) {
+    console.log('❌ Premium access denied for user:', userEmail || userId);
     return res.status(403).json({ error: 'Premium access required' });
   }
 
+  console.log('✅ Premium access granted for user:', userEmail);
   next();
 }
 
