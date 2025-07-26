@@ -141,15 +141,25 @@ function requireAuth(req, res, next) {
 
 // Middleware to check if user has premium access
 function requirePremium(req, res, next) {
-  if (!req.session.user) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const userId = req.session.user.googleId;
+  // Get user ID from authenticated user
+  const userId = req.user.id;
   const users = readUsersFileSync();
   const user = users[userId];
 
-  if (!user || (!user.isPremium && !user.hasUnlimitedAccess)) {
+  // Also check by email if not found by ID
+  let userRecord = user;
+  if (!userRecord) {
+    const userEmail = req.user.emails?.[0]?.value;
+    userRecord = Object.values(users).find(u => u.email === userEmail);
+  }
+
+  console.log('Premium check for user:', userId, 'User record:', userRecord);
+
+  if (!userRecord || (!userRecord.isPremium && !userRecord.hasUnlimitedAccess)) {
     return res.status(403).json({ error: 'Premium access required' });
   }
 
@@ -812,11 +822,20 @@ app.post("/api/confirm-login", (req, res) => {
   req.user.preferredLastName = existingUser.preferredLastName;
   req.user.isComplete = existingUser.isComplete;
   req.user.savedUserData = existingUser;
+  
+  // Store user session data properly
+  req.session.user = {
+    googleId: existingUser.googleId,
+    email: existingUser.email,
+    isPremium: existingUser.isPremium,
+    hasUnlimitedAccess: existingUser.hasUnlimitedAccess
+  };
 
   console.log('✅ User Login:', {
     name: `${existingUser.preferredFirstName} ${existingUser.preferredLastName}`,
     email: existingUser.email,
     id: existingUser.googleId,
+    isPremium: existingUser.isPremium,
     timestamp: new Date().toISOString()
   });
 
