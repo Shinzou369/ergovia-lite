@@ -104,19 +104,31 @@ passport.use(new GoogleStrategy({
 }));
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'ergovia-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'ergovia-ai-stable-secret-key-2024-production',
   resave: false,
   saveUninitialized: false,
-  rolling: true, // Reset expiry on activity
+  rolling: false, // Don't reset expiry on activity to maintain stable sessions
   cookie: {
     secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
     httpOnly: true,
     sameSite: 'lax'
   }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Debug middleware to track session issues
+app.use((req, res, next) => {
+  if (req.session && req.sessionID) {
+    console.log('Session Debug:', {
+      sessionID: req.sessionID.substring(0, 8) + '...',
+      authenticated: req.isAuthenticated(),
+      userEmail: req.user?.emails?.[0]?.value || 'none'
+    });
+  }
+  next();
+});
 
 // Security and parsing middleware
 app.use(express.json({ limit: '10mb' }));
