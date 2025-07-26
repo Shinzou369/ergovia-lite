@@ -3,6 +3,7 @@ const express = require("express");
 const path = require("path");
 const OpenAI = require('openai');
 const session = require("express-session");
+const FileStore = require('session-file-store')(session);
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const fs = require('fs');
@@ -104,6 +105,14 @@ passport.use(new GoogleStrategy({
 }));
 
 app.use(session({
+  store: new FileStore({
+    path: './sessions',
+    retries: 2,
+    factor: 1,
+    minTimeout: 50,
+    maxTimeout: 100,
+    logFn: function() {} // Disable logging to avoid spam
+  }),
   secret: process.env.SESSION_SECRET || 'ergovia-ai-stable-secret-key-2024-production',
   resave: false,
   saveUninitialized: false,

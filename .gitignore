@@ -1,5 +1,5 @@
 node_modules/
 .env
-attached_assets
-attached_assets
-.git.backup.*
+*.log
+.DS_Store
+sessions/
