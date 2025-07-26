@@ -240,14 +240,18 @@
               
               if (template.id === "pet-clinic") {
                 onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
-                overlayContent = `<div class="coming-soon-overlay" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                overlayContent = `<div class="coming-soon-overlay">
                   <i class="overlay-icon" data-lucide="rocket"></i>
                   <span class="overlay-text">Get Started!</span>
-                  <span class="overlay-subtitle">Set up your taskforce today</span>
+                  <span class="overlay-subtitle">Deploy your AI vet assistant</span>
                 </div>`;
               } else {
                 onclickAction = `onclick="window.location.href='/'"`;
-                overlayContent = `<div class="coming-soon-overlay">Coming Soon</div>`;
+                overlayContent = `<div class="coming-soon-overlay">
+                  <i class="overlay-icon" data-lucide="clock"></i>
+                  <span class="overlay-text">Coming Soon</span>
+                  <span class="overlay-subtitle">Stay tuned for updates</span>
+                </div>`;
               }
               
               return `
