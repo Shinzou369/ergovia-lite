@@ -637,39 +637,9 @@
                 <li><i data-lucide="check"></i> Advanced AI models</li>
                 <li><i data-lucide="check"></i> Export conversations</li>
               </ul>
-              <form
-                action="https://www.paypal.com/cgi-bin/webscr"
-                method="post"
-                target="_top"
-                style="width: 100%; margin-top: 24px"
-              >
-                <input type="hidden" name="cmd" value="_s-xclick" />
-                <input
-                  type="hidden"
-                  name="hosted_button_id"
-                  value="VZ6W3NR3MUURQ"
-                />
-                <input type="hidden" name="currency_code" value="USD" />
-                <input
-                  type="hidden"
-                  name="return"
-                  value="https://ergovia-ai.replit.app/thank-you.html"
-                />
-                <input
-                  type="hidden"
-                  name="cancel_return"
-                  value="https://ergovia-ai.replit.app/payment-cancelled.html"
-                />
-                <button
-                  type="submit"
-                  class="custom-subscribe-btn"
-                  title="Subscribe via PayPal - The safer, easier way to pay online!"
-                >
-                  <i data-lucide="credit-card"></i>
-                  <span>Subscribe with PayPal</span>
-                  <span class="btn-price">$30/month</span>
-                </button>
-              </form>
+              <button type="button" class="upgrade-btn" onclick="redirectToLemonSqueezy()">
+            Upgrade Now - $30/month
+          </button>
             </div>
           </div>
 
@@ -845,6 +815,11 @@
           }
         }, 100);
       });
+    </script>
+  <script>
+    function redirectToLemonSqueezy() {
+      window.location.href = 'https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d';
+    }
     </script>
   </body>
 </html>

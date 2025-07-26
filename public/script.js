@@ -951,7 +951,7 @@ function hidePaymentModal() {
 
 // Handle Token Usage button click - check if user is logged in
 function handleTokenUsageClick() {
-  if (typeof isUserLoggedIn !== 'undefined' && isUserLoggedIn) {
+  if (typeofisUserLoggedIn !== 'undefined' && isUserLoggedIn) {
     window.location.href = '/token-dashboard.html';
   } else {
     showLoginModal();
@@ -1274,7 +1274,7 @@ function updateThemeIcon(theme) {
       lucide.createIcons();
     }
   }
-  
+
   // Update settings icon color based on theme
   const settingsIcon = document.querySelector('.admin-link i');
   if (settingsIcon) {
@@ -1347,7 +1347,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Set initial theme
   const savedTheme = localStorage.getItem("theme") || "dark";
   setTheme(savedTheme);
-  
+
   // Initialize theme icon
   updateThemeIcon(savedTheme);
 
@@ -1509,6 +1509,26 @@ document.addEventListener("DOMContentLoaded", () => {
           //   }
           // }, 10000);
 });
+
+// Handle enter key in prompt input
+    document.getElementById('prompt-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitPrompt();
+      }
+    });
+
+    // Lemon Squeezy checkout function
+    function redirectToLemonSqueezy() {
+      // Get current user info to pass to checkout
+      if (currentUser && currentUser.email) {
+        const checkoutUrl = `https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d?checkout[email]=${encodeURIComponent(currentUser.email)}&checkout[name]=${encodeURIComponent(currentUser.name || '')}`;
+        window.open(checkoutUrl, '_blank');
+      } else {
+        // Fallback if no user info
+        window.open('https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d', '_blank');
+      }
+    }
 
 // Initialize page after DOM loads
 document.addEventListener('DOMContentLoaded', () => {

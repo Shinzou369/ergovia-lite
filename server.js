@@ -11,6 +11,7 @@ const cors = require('cors');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -198,6 +199,85 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Lemon Squeezy webhook endpoint
+app.post('/webhook/lemonsqueezy', express.raw({type: 'application/json'}), (req, res) => {
+  try {
+    const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error('Missing LEMONSQUEEZY_WEBHOOK_SECRET');
+      return res.status(400).send('Webhook secret not configured');
+    }
+
+    // Verify webhook signature
+    const signature = req.headers['x-signature'];
+    const hmac = crypto.createHmac('sha256', secret);
+    const digest = hmac.update(req.body, 'utf8').digest('hex');
+    
+    if (signature !== digest) {
+      console.error('Invalid webhook signature');
+      return res.status(400).send('Invalid signature');
+    }
+
+    const event = JSON.parse(req.body.toString());
+    console.log('Lemon Squeezy webhook received:', event.meta.event_name);
+
+    // Handle subscription created/updated
+    if (event.meta.event_name === 'subscription_created' || 
+        event.meta.event_name === 'subscription_updated') {
+      
+      const subscription = event.data;
+      const customerEmail = subscription.attributes.user_email;
+      
+      if (subscription.attributes.status === 'active') {
+        // Find user by email and activate premium
+        const users = loadUsers();
+        const userKey = Object.keys(users).find(key => 
+          users[key].email === customerEmail
+        );
+        
+        if (userKey) {
+          users[userKey].isPremium = true;
+          users[userKey].subscriptionId = subscription.id;
+          users[userKey].subscriptionStatus = 'active';
+          users[userKey].upgradeDate = new Date().toISOString();
+          saveUsers(users);
+          
+          console.log('✅ Premium activated for user:', customerEmail);
+        } else {
+          console.log('⚠️ User not found for email:', customerEmail);
+        }
+      }
+    }
+
+    // Handle subscription cancelled/expired
+    if (event.meta.event_name === 'subscription_cancelled' || 
+        event.meta.event_name === 'subscription_expired') {
+      
+      const subscription = event.data;
+      const customerEmail = subscription.attributes.user_email;
+      
+      // Find user and deactivate premium
+      const users = loadUsers();
+      const userKey = Object.keys(users).find(key => 
+        users[key].email === customerEmail
+      );
+      
+      if (userKey) {
+        users[userKey].isPremium = false;
+        users[userKey].subscriptionStatus = subscription.attributes.status;
+        saveUsers(users);
+        
+        console.log('❌ Premium deactivated for user:', customerEmail);
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // Chat endpoint with thread and system message support
