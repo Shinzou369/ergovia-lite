@@ -691,10 +691,6 @@ async function submitPrompt(promptText) {
     return;
   }
 
-  // Show payment modal for logged-in users (temporary - remove this when ready for full functionality)
-  showPaymentModal();
-  return;
-
   const submitBtn = document.getElementById("submit-btn");
   const promptInput = document.getElementById("prompt-input");
 
