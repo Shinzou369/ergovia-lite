@@ -225,9 +225,15 @@
 
         grid.innerHTML = templatesToRender
           .map(
-            (template) => `
-        <div class="template-card" onclick="selectTemplate('${template.id}')">
-          <div class="coming-soon-overlay">Coming Soon</div>
+            (template) => {
+              // For now, all cards will show "Coming Soon" and redirect to main dashboard
+              // You can replace specific template IDs with actual onboarding pages when ready
+              let onclickAction = `onclick="window.location.href='/'"`;
+              let overlayContent = `<div class="coming-soon-overlay">Coming Soon</div>`;
+              
+              return `
+        <div class="template-card" ${onclickAction}>
+          ${overlayContent}
           <div class="card-icon">${template.icon}</div>
           <h3 class="card-title">${template.title}</h3>
           <p class="card-description">${template.description}</p>
@@ -236,7 +242,8 @@
           </div>
           <div class="card-arrow">→</div>
         </div>
-      `,
+      `;
+            }
           )
           .join("");
       }
