@@ -546,6 +546,9 @@ app.get("/api/profile", (req, res) => {
 
 // Check authentication status endpoint
 app.get("/api/auth/status", (req, res) => {
+  console.log('Auth status check - isAuthenticated:', req.isAuthenticated());
+  console.log('Session data:', req.session?.passport?.user ? 'Session exists' : 'No session');
+  
   if (!req.isAuthenticated()) {
     return res.json({ authenticated: false, user: null });
   }
@@ -555,6 +558,7 @@ app.get("/api/auth/status", (req, res) => {
   if (!userData) {
     const userEmail = req.user.emails?.[0]?.value;
     userData = findUserByEmail(userEmail);
+    console.log('Found user data by email:', userEmail, !!userData);
   }
 
   const userResponse = {
@@ -563,8 +567,12 @@ app.get("/api/auth/status", (req, res) => {
     picture: req.user.photos?.[0]?.value,
     preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
     preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
-    isComplete: userData?.isComplete || req.user.isComplete || false
+    isComplete: userData?.isComplete || req.user.isComplete || false,
+    isPremium: userData?.isPremium || false,
+    hasUnlimitedAccess: userData?.hasUnlimitedAccess || false
   };
+
+  console.log('✅ Auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
 
   res.json({ 
     authenticated: true,
