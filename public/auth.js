@@ -75,6 +75,16 @@ async function updateUIForLoggedInUser(user) {
   // Update top navigation with user info
   updateTopNavForUser(user);
 
+  // Show/hide premium indicator in sidebar
+  const premiumSidebar = document.getElementById('premium-status-sidebar');
+  if (premiumSidebar) {
+    if (user.isPremium || user.hasUnlimitedAccess) {
+      premiumSidebar.style.display = 'flex';
+    } else {
+      premiumSidebar.style.display = 'none';
+    }
+  }
+
   // Personalize hero title
   personalizeHeroTitle(user);
 
@@ -130,6 +140,10 @@ function updateTopNavForUser(user) {
     existingAuth.remove();
   }
 
+  // Check if user has premium access
+  const isPremium = user.isPremium || user.hasUnlimitedAccess;
+  const premiumBadge = isPremium ? '<div class="premium-badge" title="Premium Member">👑</div>' : '';
+
   // Create user info container
   const authContainer = document.createElement('div');
   authContainer.className = 'auth-container';
@@ -137,8 +151,12 @@ function updateTopNavForUser(user) {
     <div class="user-profile">
       <div class="user-avatar">
         ${user.picture ? `<img src="${user.picture}" alt="${user.name}" class="avatar-img">` : '👤'}
+        ${premiumBadge}
       </div>
-      <span class="user-name">${user.name}</span>
+      <div class="user-info">
+        <span class="user-name">${user.name}</span>
+        ${isPremium ? '<span class="premium-status">Premium</span>' : '<span class="free-status">Free</span>'}
+      </div>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   `;
