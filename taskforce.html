@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prismity AI TaskForce - AI Templates</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Added subtle animations library -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  </head>
+  <body>
+    <!-- Enhanced top navigation bar with Back to Home button -->
+    <nav class="top-nav animate__animated animate__fadeInDown">
+      <div class="nav-left">
+        <a href="/" class="back-btn" aria-label="Back to Home">
+          <svg
+            class="back-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            viewBox="0 0 24 24"
+          >
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </a>
+        <div class="logo-container">
+          <img
+            src="Logo_of_an_AI_called_Prismity.png"
+            alt="Prismity AI"
+            class="logo-icon"
+          />
+          <span class="logo-text">Prismity Taskforce</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <a href="/" class="back-home-btn" title="Back to Dashboard">
+          <span><i data-lucide="arrow-left"></i></span>
+          <span>Dashboard</span>
+        </a>
+        <div class="auth-container" id="auth-container">
+          <!-- Auth content will be populated by auth.js -->
+        </div>
+        <a href="admin.html" class="admin-link" title="Model Configuration">
+          <i data-lucide="settings"></i>
+        </a>
+        <button class="theme-btn" onclick="toggleTheme()">
+          <i data-lucide="moon"></i>
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <!-- TaskForce Hero Section -->
+      <header class="taskforce-hero animate__animated animate__fadeInUp">
+        <div class="hero-content">
+          <h1 class="hero-title">
+            Prismity Taskforce
+            <button class="info-button" id="taskforce-info-btn" title="Click for more info">
+              <i data-lucide="info"></i>
+            </button>
+          </h1>
+          <div class="info-tooltip" id="taskforce-info-tooltip">
+            <div class="info-tooltip-content">
+              <p>Down below are your Prismity Taskforce agents — ready to deploy into real businesses.</p>
+              <p>Think of it like running your own AI-powered VA agency: you're the boss.</p>
+              <p>You find businesses that need help, and you offer them a Taskforce — an AI agent that works 24/7 like a virtual employee.</p>
+              <p>Every time a business signs up, you earn $30/month recurring income, as long as they stay subscribed.</p>
+            </div>
+          </div>
+          <p class="hero-subtitle">
+            Start your AI Taskforce business — sell smart agents to real businesses and earn monthly income.
+          </p>
+          <div class="search-container">
+            <div class="search-wrapper">
+              <div class="search-icon"><i data-lucide="search"></i></div>
+              <input
+                type="text"
+                id="search-input"
+                class="search-input"
+                placeholder="Search templates..."
+                oninput="filterTemplates()"
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Templates Main Content -->
+      <main class="templates-main">
+        <div class="templates-grid" id="templates-grid">
+          <!-- Templates will be populated by JavaScript -->
+        </div>
+
+        <!-- No results message -->
+        <div class="no-results" id="no-results" style="display: none">
+          <div class="no-results-icon">🔍</div>
+          <h3>No templates found</h3>
+          <p>
+            Try adjusting your search terms or browse all available templates.
+          </p>
+        </div>
+      </main>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+      // Info button functionality
+        function initializeInfoButton() {
+          const infoBtn = document.getElementById('taskforce-info-btn');
+          const tooltip = document.getElementById('taskforce-info-tooltip');
+
+          if (infoBtn && tooltip) {
+            // Show tooltip on hover
+            infoBtn.addEventListener('mouseenter', (e) => {
+              tooltip.classList.add('show');
+            });
+
+            // Hide tooltip when mouse leaves
+            infoBtn.addEventListener('mouseleave', (e) => {
+              // Add small delay to prevent flickering
+              setTimeout(() => {
+                if (!tooltip.matches(':hover') && !infoBtn.matches(':hover')) {
+                  tooltip.classList.remove('show');
+                }
+              }, 100);
+            });
+
+            // Keep tooltip visible when hovering over it
+            tooltip.addEventListener('mouseenter', () => {
+              tooltip.classList.add('show');
+            });
+
+            tooltip.addEventListener('mouseleave', () => {
+              tooltip.classList.remove('show');
+            });
+
+            // Also support click for mobile
+            infoBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              tooltip.classList.toggle('show');
+            });
+
+            // Close tooltip when clicking outside
+            document.addEventListener('click', (e) => {
+              if (!tooltip.contains(e.target) && !infoBtn.contains(e.target)) {
+                tooltip.classList.remove('show');
+              }
+            });
+          }
+        }
+
+      // Simple search functionality
+      // Template data
+      const templates = [
+        {
+          id: "local-contractors",
+          title: "Local Contractors (Plumbers, HVAC, Electricians) Taskforce",
+          description:
+            "An AI office assistant for tradespeople. Manages customer inquiries, appointment booking, quote follow-ups, and connects jobs to your calendar.",
+          icon: "🔧",
+          tags: ["Contractors", "Scheduling", "Customer Service"],
+        },
+        {
+          id: "tutoring-centers",
+          title: "Tutoring & Review Centers Taskforce",
+          description:
+            "An AI academic coordinator. Responds to parent/student inquiries, shares class schedules, follows up on payments, and helps fill class slots faster.",
+          icon: "📚",
+          tags: ["Education", "Scheduling", "Coordination"],
+        },
+        {
+          id: "dental-office",
+          title: "Dental Office Taskforce",
+          description:
+            "An AI front desk agent. Handles appointment requests, sends reminders, reschedules visits, and answers common patient questions — automatically.",
+          icon: "🦷",
+          tags: ["Healthcare", "Appointments", "Patient Care"],
+        },
+        {
+          id: "gym-fitness",
+          title: "Gym & Fitness Center Taskforce",
+          description:
+            "An AI membership manager. Answers new member inquiries, sends trial invites, collects feedback, and reminds leads or clients to take action.",
+          icon: "🏋️",
+          tags: ["Fitness", "Membership", "Customer Engagement"],
+        },
+        {
+          id: "massage-therapy",
+          title: "Massage Therapy Clinic Taskforce",
+          description:
+            "An AI receptionist. Books sessions, manages reminders, handles inquiries about services, and keeps your schedule filled without lifting a finger.",
+          icon: "💆",
+          tags: ["Wellness", "Booking", "Customer Service"],
+        },
+      ];
+
+      // Render templates
+      function renderTemplates(templatesToRender = templates) {
+        const grid = document.getElementById("templates-grid");
+        const noResults = document.getElementById("no-results");
+
+        if (templatesToRender.length === 0) {
+          grid.style.display = "none";
+          noResults.style.display = "flex";
+          return;
+        }
+
+        grid.style.display = "grid";
+        noResults.style.display = "none";
+
+        grid.innerHTML = templatesToRender
+          .map(
+            (template) => `
+        <div class="template-card" onclick="selectTemplate('${template.id}')">
+          <div class="coming-soon-overlay">Coming Soon</div>
+          <div class="card-icon">${template.icon}</div>
+          <h3 class="card-title">${template.title}</h3>
+          <p class="card-description">${template.description}</p>
+          <div class="card-tags">
+            ${template.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+          </div>
+          <div class="card-arrow">→</div>
+        </div>
+      `,
+          )
+          .join("");
+      }
+
+      // Filter templates
+      function filterTemplates() {
+        const searchTerm = document
+          .getElementById("search-input")
+          .value.toLowerCase();
+        const filtered = templates.filter(
+          (template) =>
+            template.title.toLowerCase().includes(searchTerm) ||
+            template.description.toLowerCase().includes(searchTerm) ||
+            template.tags.some((tag) => tag.toLowerCase().includes(searchTerm)),
+        );
+        renderTemplates(filtered);
+      }
+
+      // Select template
+      function selectTemplate(templateId) {
+        localStorage.setItem("selectedTemplate", templateId);
+        window.location.href = "/";
+      }
+
+      // Navigation functions
+      function goBackToMain() {
+        window.location.href = "/";
+      }
+
+      // Theme handling
+      function toggleTheme() {
+        const currentTheme = localStorage.getItem("theme") || "dark";
+        const newTheme = currentTheme === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+      }
+
+      // Initialize page
+        document.addEventListener("DOMContentLoaded", () => {
+        // Set theme first
+        const savedTheme = localStorage.getItem("theme") || "dark";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+
+        // Initialize Lucide icons AFTER DOM is loaded
+        lucide.createIcons();
+
+        // Store the correct Hero section content
+        const correctHeroContent = `
+          <h1 class="hero-title">
+            Prismity Taskforce
+            <button class="info-button" id="taskforce-info-btn" title="Click for more info">
+              <i data-lucide="info"></i>
+            </button>
+          </h1>
+          <div class="info-tooltip" id="taskforce-info-tooltip">
+            <div class="info-tooltip-content">
+              <p>Down below are your Prismity Taskforce agents — ready to deploy into real businesses.</p>
+              <p>Think of it like running your own AI-powered VA agency: you're the boss.</p>
+              <p>You find businesses that need help, and you offer them a Taskforce — an AI agent that works 24/7 like a virtual employee.</p>
+              <p>Every time a business signs up, you earn $30/month recurring income, as long as they stay subscribed.</p>
+            </div>
+          </div>
+          <p class="hero-subtitle">
+            Start your AI Taskforce business — sell smart agents to real businesses and earn monthly income.
+          </p>
+          <div class="search-container">
+            <div class="search-wrapper">
+              <div class="search-icon"><i data-lucide="search"></i></div>
+              <input
+                type="text"
+                id="search-input"
+                class="search-input"
+                placeholder="Search templates..."
+                oninput="filterTemplates()"
+              />
+            </div>
+          </div>
+        `;
+
+        // Protect and verify hero content
+        const heroSection = document.querySelector('.taskforce-hero');
+        const heroContent = document.querySelector('.taskforce-hero .hero-content');
+
+        // Ensure correct hero content is always present
+        function enforceCorrectHeroContent() {
+          if (heroContent) {
+            const currentTitle = heroContent.querySelector('.hero-title');
+            const currentSubtitle = heroContent.querySelector('.hero-subtitle');
+            const currentSearch = heroContent.querySelector('.search-container');
+
+            // Check if any essential element is missing or incorrect
+            if (!currentTitle ||
+                !currentTitle.querySelector('#taskforce-info-btn') ||
+                currentTitle.textContent.indexOf('Prismity Taskforce') === -1 ||
+                !currentSubtitle ||
+                !currentSubtitle.textContent.includes('Start your AI Taskforce business') ||
+                !currentSearch) {
+
+              console.log('Restoring correct Hero section content');
+              heroContent.innerHTML = correctHeroContent;
+              lucide.createIcons();
+            }
+          }
+        }
+
+        // Initial enforcement
+        enforceCorrectHeroContent();
+
+        // Render templates
+        renderTemplates();
+
+        // Create a robust protection system for hero content
+        if (heroSection && heroContent) {
+          // Create a MutationObserver to prevent unwanted changes
+          const observer = new MutationObserver((mutations) => {
+            let needsRestoration = false;
+
+            mutations.forEach((mutation) => {
+              // Check for any changes that might affect the hero content
+              if (mutation.type === 'childList' ||
+                  mutation.type === 'characterData' ||
+                  mutation.type === 'attributes') {
+                needsRestoration = true;
+              }
+            });
+
+            if (needsRestoration) {
+              // Debounce the restoration to avoid infinite loops
+              setTimeout(() => {
+                enforceCorrectHeroContent();
+              }, 10);
+            }
+          });
+
+          // Start observing with comprehensive options
+          observer.observe(heroContent, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+            attributes: true
+          });
+
+          // Additional protection: override any attempts to modify innerHTML
+          let isInternalUpdate = false;
+          const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+
+          Object.defineProperty(heroContent, 'innerHTML', {
+            get: function() {
+              return originalInnerHTML.get.call(this);
+            },
+            set: function(value) {
+              if (isInternalUpdate) {
+                originalInnerHTML.set.call(this, value);
+                return;
+              }
+
+              // Only allow setting if it contains all correct elements
+              if (value.includes('Prismity Taskforce') &&
+                  value.includes('<button class="info-button" id="taskforce-info-btn"') &&
+                  value.includes('Start your AI Taskforce business') &&
+                  value.includes('search-container')) {
+                isInternalUpdate = true;
+                originalInnerHTML.set.call(this, value);
+                isInternalUpdate = false;
+                lucide.createIcons();
+              } else {
+                console.log('Blocked attempt to modify Hero section with incorrect content');
+                // Restore correct content instead
+                isInternalUpdate = true;
+                originalInnerHTML.set.call(this, correctHeroContent);
+                isInternalUpdate = false;
+                lucide.createIcons();
+              }
+            }
+          });
+
+          // Periodic check to ensure content stays correct
+          setInterval(enforceCorrectHeroContent, 1000);
+        }
+
+        initializeInfoButton();
+      });
+    </script>
+  </body>
+</html>
