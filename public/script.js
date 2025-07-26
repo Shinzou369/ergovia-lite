@@ -958,7 +958,7 @@ function handleTokenUsageClick() {
   }
 }
 
-// PayPal payment is now handled directly by the form in the payment modal
+// Lemon Squeezy payment is handled by redirecting to the checkout URL
 
 // === LOGIN MODAL FUNCTIONS ===
 function showLoginModal() {
