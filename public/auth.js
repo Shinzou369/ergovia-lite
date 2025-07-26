@@ -142,7 +142,7 @@ function updateTopNavForUser(user) {
 
   // Check if user has premium access
   const isPremium = user.isPremium || user.hasUnlimitedAccess;
-  const premiumBadge = isPremium ? '<div class="premium-badge" title="Premium Member">👑</div>' : '';
+  const premiumBadge = isPremium ? '<span class="premium-badge" title="Premium Member">👑</span>' : '';
 
   // Create user info container
   const authContainer = document.createElement('div');
@@ -151,10 +151,9 @@ function updateTopNavForUser(user) {
     <div class="user-profile">
       <div class="user-avatar">
         ${user.picture ? `<img src="${user.picture}" alt="${user.name}" class="avatar-img">` : '👤'}
-        ${premiumBadge}
       </div>
       <div class="user-info">
-        <span class="user-name">${user.name}</span>
+        <span class="user-name">${user.name} ${premiumBadge}</span>
       </div>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
