@@ -724,6 +724,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateProgress();
+            
+            // Auto-select taskforce type from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskforceType = urlParams.get('type');
+            if (taskforceType) {
+                const taskforceSelect = document.getElementById('taskforceType');
+                if (taskforceSelect) {
+                    taskforceSelect.value = taskforceType;
+                    updateProgress();
+                }
+            }
         });
 
         // Progress tracking

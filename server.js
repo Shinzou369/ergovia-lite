@@ -277,9 +277,25 @@ app.use((req, res, next) => {
 // Serve static files
 app.use(express.static('public'));
 
-// Pet Clinic onboarding route
+// Taskforce onboarding routes - redirect to ETF onboard with type
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
+  res.redirect('/etf-onboard?type=dental');
+});
+
+app.get('/taskforce/gym/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=gym');
+});
+
+app.get('/taskforce/contractors/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=contractors');
+});
+
+app.get('/taskforce/tutoring/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=tutoring');
+});
+
+app.get('/taskforce/massage/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=massage');
 });
 
 // ========================================
