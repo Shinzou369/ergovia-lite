@@ -1,0 +1,407 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF Automation Setup - Ergovia AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .workflow-preview {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid white;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 ETF Automation Setup</h1>
+            <p>Get your personalized AI taskforce automation deployed in minutes</p>
+            <div class="workflow-preview">
+                <strong>What you'll get:</strong>
+                <ul class="feature-list">
+                    <li>Personalized automation workflows for your business</li>
+                    <li>AI-powered customer service and lead processing</li>
+                    <li>24/7 automated responses and task management</li>
+                    <li>Integration with your existing business systems</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="etfOnboardingForm">
+                <div class="form-section">
+                    <h2>📋 Business Information</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="businessName">Business Name *</label>
+                            <input type="text" id="businessName" name="business_name" required 
+                                   placeholder="Your Business Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="industry">Industry</label>
+                            <select id="industry" name="industry">
+                                <option value="">Select Industry</option>
+                                <option value="healthcare">Healthcare</option>
+                                <option value="fitness">Fitness & Wellness</option>
+                                <option value="construction">Construction & Contracting</option>
+                                <option value="education">Education & Tutoring</option>
+                                <option value="beauty">Beauty & Spa Services</option>
+                                <option value="professional">Professional Services</option>
+                                <option value="retail">Retail</option>
+                                <option value="technology">Technology</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contactEmail">Contact Email *</label>
+                            <input type="email" id="contactEmail" name="email" required 
+                                   placeholder="contact@yourbusiness.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number *</label>
+                            <input type="tel" id="phoneNumber" name="phone" required 
+                                   placeholder="+1-555-123-4567">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>⚙️ Automation Configuration</h2>
+                    
+                    <div class="form-group">
+                        <label for="taskforceType">Taskforce Type *</label>
+                        <select id="taskforceType" name="taskforce_type" required>
+                            <option value="">Select Taskforce Type</option>
+                            <option value="dental">Dental Practice Automation</option>
+                            <option value="gym">Gym & Fitness Automation</option>
+                            <option value="contractors">Contractor & Service Automation</option>
+                            <option value="tutoring">Tutoring & Education Automation</option>
+                            <option value="massage">Massage & Spa Automation</option>
+                            <option value="general">General Business Automation</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supportEmail">Support Email</label>
+                            <input type="email" id="supportEmail" name="support_email" 
+                                   placeholder="support@yourbusiness.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="businessHours">Business Hours</label>
+                            <input type="text" id="businessHours" name="business_hours" 
+                                   placeholder="9 AM - 5 PM">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="specialRequirements">Special Requirements</label>
+                        <textarea id="specialRequirements" name="special_requirements" rows="3"
+                                  placeholder="Any specific automation needs or integrations..."></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🚀 Deploy My ETF Automation
+                </button>
+            </form>
+
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('etfOnboardingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading-spinner"></div>Creating your automation...';
+            resultDiv.style.display = 'none';
+            
+            // Collect form data
+            const formData = new FormData(this);
+            const clientData = Object.fromEntries(formData.entries());
+            
+            // Prepare deployment data
+            const deploymentData = {
+                client_data: {
+                    name: clientData.business_name,
+                    email: clientData.email,
+                    company: clientData.business_name,
+                    phone: clientData.phone,
+                    industry: clientData.industry,
+                    taskforce_type: clientData.taskforce_type
+                },
+                config_data: {
+                    business_name: clientData.business_name,
+                    business_email: clientData.email,
+                    business_phone: clientData.phone,
+                    support_email: clientData.support_email || clientData.email,
+                    business_hours: clientData.business_hours || '9 AM - 5 PM',
+                    special_requirements: clientData.special_requirements
+                },
+                template_id: 'auto-select' // Will be selected based on taskforce_type
+            };
+            
+            try {
+                // First, get available templates
+                const templatesResponse = await fetch('/api/etf/templates');
+                const templates = await templatesResponse.json();
+                
+                // Find matching template for taskforce type
+                const matchingTemplate = templates.find(t => 
+                    t.taskforce_type === clientData.taskforce_type || 
+                    t.taskforce_type === 'general'
+                );
+                
+                if (!matchingTemplate && templates.length > 0) {
+                    deploymentData.template_id = templates[0].id; // Use first available template
+                } else if (matchingTemplate) {
+                    deploymentData.template_id = matchingTemplate.id;
+                } else {
+                    throw new Error('No automation templates available');
+                }
+                
+                // Deploy the workflow
+                const response = await fetch('/api/etf/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(deploymentData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3>🎉 Success! Your ETF automation is deployed!</h3>
+                        <p><strong>Workflow:</strong> ${result.workflow_name}</p>
+                        <p><strong>Workflow ID:</strong> ${result.workflow_id}</p>
+                        ${result.webhook_url ? `<p><strong>Webhook URL:</strong> <code>${result.webhook_url}</code></p>` : ''}
+                        <p>Your automation is now live and ready to handle your business processes 24/7!</p>
+                        <p><em>You will be billed $30/month for this automation service.</em></p>
+                    `;
+                    
+                    // Reset form
+                    this.reset();
+                } else {
+                    throw new Error(result.error || 'Deployment failed');
+                }
+                
+            } catch (error) {
+                console.error('Deployment error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Deployment Failed</h3>
+                    <p>Error: ${error.message}</p>
+                    <p>Please try again or contact support if the problem persists.</p>
+                `;
+            } finally {
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Deploy My ETF Automation';
+                resultDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

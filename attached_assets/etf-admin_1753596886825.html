@@ -1,0 +1,410 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF Admin Dashboard - Ergovia AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .connection-status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .header .container {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🎛️ ETF Admin Dashboard</h1>
+            <div>
+                <a href="/etf-onboard" class="btn btn-secondary">View Onboarding</a>
+                <button onclick="refreshData()" class="btn">Refresh Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="connection-status">
+            <strong>N8N Connection:</strong> <span id="connectionText">Checking...</span>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="totalClients">-</h3>
+                <p>Total Clients</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="activeDeployments">-</h3>
+                <p>Active Deployments</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="monthlyDeployments">-</h3>
+                <p>This Month</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="estimatedRevenue">$-</h3>
+                <p>Monthly Revenue</p>
+            </div>
+        </div>
+
+        <!-- Available Templates -->
+        <div class="section">
+            <div class="section-header">
+                <h2>📋 Available Templates</h2>
+            </div>
+            <div class="section-content">
+                <div id="templatesContent" class="loading">Loading templates...</div>
+            </div>
+        </div>
+
+        <!-- Recent Deployments -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🚀 Recent Deployments</h2>
+            </div>
+            <div class="section-content">
+                <div id="deploymentsContent" class="loading">Loading deployments...</div>
+            </div>
+        </div>
+
+        <!-- System Tools -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🔧 System Tools</h2>
+            </div>
+            <div class="section-content">
+                <button onclick="testN8NConnection()" class="btn">Test N8N Connection</button>
+                <button onclick="refreshTemplates()" class="btn">Sync Templates</button>
+                <button onclick="exportData()" class="btn btn-secondary">Export Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            await Promise.all([
+                testN8NConnection(),
+                loadStats(),
+                loadTemplates(),
+                loadDeployments()
+            ]);
+        }
+
+        async function testN8NConnection() {
+            const statusDiv = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+            
+            try {
+                const response = await fetch('/api/etf/test-n8n');
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.className = 'connection-status connected';
+                    statusText.textContent = `Connected (${result.workflow_count} workflows available)`;
+                } else {
+                    statusDiv.className = 'connection-status disconnected';
+                    statusText.textContent = `Disconnected - ${result.message}`;
+                }
+            } catch (error) {
+                statusDiv.className = 'connection-status disconnected';
+                statusText.textContent = 'Connection failed';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/etf/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalClients').textContent = stats.total_clients || 0;
+                document.getElementById('activeDeployments').textContent = stats.active_deployments || 0;
+                document.getElementById('monthlyDeployments').textContent = stats.monthly_deployments || 0;
+                document.getElementById('estimatedRevenue').textContent = `$${stats.estimated_monthly_revenue || 0}`;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadTemplates() {
+            const contentDiv = document.getElementById('templatesContent');
+            
+            try {
+                const response = await fetch('/api/etf/templates');
+                const templates = await response.json();
+                
+                if (templates.length === 0) {
+                    contentDiv.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Templates Available</h3>
+                            <p>Create and activate workflows in your N8N instance to see them here.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const tableHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Template Name</th>
+                                <th>Taskforce Type</th>
+                                <th>Workflow ID</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${templates.map(template => `
+                                <tr>
+                                    <td><strong>${template.name}</strong></td>
+                                    <td><span class="status active">${template.taskforce_type}</span></td>
+                                    <td><code>${template.id}</code></td>
+                                    <td>${new Date(template.created_at).toLocaleDateString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                contentDiv.innerHTML = tableHTML;
+            } catch (error) {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Failed to Load Templates</h3>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadDeployments() {
+            const contentDiv = document.getElementById('deploymentsContent');
+            
+            // Since we don't have a specific deployments endpoint, show placeholder
+            contentDiv.innerHTML = `
+                <div class="empty-state">
+                    <h3>Deployment History</h3>
+                    <p>Recent deployments will appear here once clients start using the ETF onboarding.</p>
+                    <a href="/etf-onboard" class="btn">Test Onboarding Flow</a>
+                </div>
+            `;
+        }
+
+        async function refreshData() {
+            await loadDashboard();
+        }
+
+        async function refreshTemplates() {
+            await loadTemplates();
+            alert('Templates refreshed from N8N!');
+        }
+
+        function exportData() {
+            alert('Export functionality would be implemented here.');
+        }
+    </script>
+</body>
+</html>

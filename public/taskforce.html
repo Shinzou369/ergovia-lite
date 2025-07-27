@@ -38,11 +38,7 @@
           </svg>
         </a>
         <div class="logo-container">
-          <img
-            src="Logo_of_an_AI_called_Prismity.png"
-            alt="Prismity AI"
-            class="logo-icon"
-          />
+          <img src="LOGO.png" alt="Prismity AI" class="logo-icon" />
           <span class="logo-text">Prismity Taskforce</span>
         </div>
       </div>
@@ -70,20 +66,37 @@
         <div class="hero-content">
           <h1 class="hero-title">
             Prismity Taskforce
-            <button class="info-button" id="taskforce-info-btn" title="Click for more info">
+            <button
+              class="info-button"
+              id="taskforce-info-btn"
+              title="Click for more info"
+            >
               <i data-lucide="info"></i>
             </button>
           </h1>
           <div class="info-tooltip" id="taskforce-info-tooltip">
             <div class="info-tooltip-content">
-              <p>Down below are your Prismity Taskforce agents — ready to deploy into real businesses.</p>
-              <p>Think of it like running your own AI-powered VA agency: you're the boss.</p>
-              <p>You find businesses that need help, and you offer them a Taskforce — an AI agent that works 24/7 like a virtual employee.</p>
-              <p>Every time a business signs up, you earn $30/month recurring income, as long as they stay subscribed.</p>
+              <p>
+                Down below are your Prismity Taskforce agents — ready to deploy
+                into real businesses.
+              </p>
+              <p>
+                Think of it like running your own AI-powered VA agency: you're
+                the boss.
+              </p>
+              <p>
+                You find businesses that need help, and you offer them a
+                Taskforce — an AI agent that works 24/7 like a virtual employee.
+              </p>
+              <p>
+                Every time a business signs up, you earn $30/month recurring
+                income, as long as they stay subscribed.
+              </p>
             </div>
           </div>
           <p class="hero-subtitle">
-            Start your AI Taskforce business — sell smart agents to real businesses and earn monthly income.
+            Start your AI Taskforce business — sell smart agents to real
+            businesses and earn monthly income.
           </p>
           <div class="search-container">
             <div class="search-wrapper">
@@ -120,49 +133,49 @@
     <script src="auth.js"></script>
     <script>
       // Info button functionality
-        function initializeInfoButton() {
-          const infoBtn = document.getElementById('taskforce-info-btn');
-          const tooltip = document.getElementById('taskforce-info-tooltip');
+      function initializeInfoButton() {
+        const infoBtn = document.getElementById("taskforce-info-btn");
+        const tooltip = document.getElementById("taskforce-info-tooltip");
 
-          if (infoBtn && tooltip) {
-            // Show tooltip on hover
-            infoBtn.addEventListener('mouseenter', (e) => {
-              tooltip.classList.add('show');
-            });
+        if (infoBtn && tooltip) {
+          // Show tooltip on hover
+          infoBtn.addEventListener("mouseenter", (e) => {
+            tooltip.classList.add("show");
+          });
 
-            // Hide tooltip when mouse leaves
-            infoBtn.addEventListener('mouseleave', (e) => {
-              // Add small delay to prevent flickering
-              setTimeout(() => {
-                if (!tooltip.matches(':hover') && !infoBtn.matches(':hover')) {
-                  tooltip.classList.remove('show');
-                }
-              }, 100);
-            });
-
-            // Keep tooltip visible when hovering over it
-            tooltip.addEventListener('mouseenter', () => {
-              tooltip.classList.add('show');
-            });
-
-            tooltip.addEventListener('mouseleave', () => {
-              tooltip.classList.remove('show');
-            });
-
-            // Also support click for mobile
-            infoBtn.addEventListener('click', (e) => {
-              e.stopPropagation();
-              tooltip.classList.toggle('show');
-            });
-
-            // Close tooltip when clicking outside
-            document.addEventListener('click', (e) => {
-              if (!tooltip.contains(e.target) && !infoBtn.contains(e.target)) {
-                tooltip.classList.remove('show');
+          // Hide tooltip when mouse leaves
+          infoBtn.addEventListener("mouseleave", (e) => {
+            // Add small delay to prevent flickering
+            setTimeout(() => {
+              if (!tooltip.matches(":hover") && !infoBtn.matches(":hover")) {
+                tooltip.classList.remove("show");
               }
-            });
-          }
+            }, 100);
+          });
+
+          // Keep tooltip visible when hovering over it
+          tooltip.addEventListener("mouseenter", () => {
+            tooltip.classList.add("show");
+          });
+
+          tooltip.addEventListener("mouseleave", () => {
+            tooltip.classList.remove("show");
+          });
+
+          // Also support click for mobile
+          infoBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            tooltip.classList.toggle("show");
+          });
+
+          // Close tooltip when clicking outside
+          document.addEventListener("click", (e) => {
+            if (!tooltip.contains(e.target) && !infoBtn.contains(e.target)) {
+              tooltip.classList.remove("show");
+            }
+          });
         }
+      }
 
       // Simple search functionality
       // Template data
@@ -233,28 +246,27 @@
         noResults.style.display = "none";
 
         grid.innerHTML = templatesToRender
-          .map(
-            (template) => {
-              // Pet Clinic has onboarding, others show "Coming Soon"
-              let onclickAction, overlayContent;
-              
-              if (template.id === "pet-clinic") {
-                onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
-                overlayContent = `<div class="coming-soon-overlay">
+          .map((template) => {
+            // Pet Clinic has onboarding, others show "Coming Soon"
+            let onclickAction, overlayContent;
+
+            if (template.id === "pet-clinic") {
+              onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
+              overlayContent = `<div class="coming-soon-overlay">
                   <i class="overlay-icon" data-lucide="rocket"></i>
                   <span class="overlay-text">Get Started!</span>
                   <span class="overlay-subtitle">Deploy your AI vet assistant</span>
                 </div>`;
-              } else {
-                onclickAction = `onclick="window.location.href='/'"`;
-                overlayContent = `<div class="coming-soon-overlay">
+            } else {
+              onclickAction = `onclick="window.location.href='/'"`;
+              overlayContent = `<div class="coming-soon-overlay">
                   <i class="overlay-icon" data-lucide="clock"></i>
                   <span class="overlay-text">Coming Soon</span>
                   <span class="overlay-subtitle">Stay tuned for updates</span>
                 </div>`;
-              }
-              
-              return `
+            }
+
+            return `
         <div class="template-card" ${onclickAction}>
           ${overlayContent}
           <div class="card-icon">${template.icon}</div>
@@ -268,8 +280,7 @@
           <div class="card-arrow">→</div>
         </div>
       `;
-            }
-          )
+          })
           .join("");
       }
 
@@ -307,7 +318,7 @@
       }
 
       // Initialize page
-        document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", () => {
         // Set theme first
         const savedTheme = localStorage.getItem("theme") || "dark";
         document.documentElement.setAttribute("data-theme", savedTheme);
@@ -349,25 +360,31 @@
         `;
 
         // Protect and verify hero content
-        const heroSection = document.querySelector('.taskforce-hero');
-        const heroContent = document.querySelector('.taskforce-hero .hero-content');
+        const heroSection = document.querySelector(".taskforce-hero");
+        const heroContent = document.querySelector(
+          ".taskforce-hero .hero-content",
+        );
 
         // Ensure correct hero content is always present
         function enforceCorrectHeroContent() {
           if (heroContent) {
-            const currentTitle = heroContent.querySelector('.hero-title');
-            const currentSubtitle = heroContent.querySelector('.hero-subtitle');
-            const currentSearch = heroContent.querySelector('.search-container');
+            const currentTitle = heroContent.querySelector(".hero-title");
+            const currentSubtitle = heroContent.querySelector(".hero-subtitle");
+            const currentSearch =
+              heroContent.querySelector(".search-container");
 
             // Check if any essential element is missing or incorrect
-            if (!currentTitle ||
-                !currentTitle.querySelector('#taskforce-info-btn') ||
-                currentTitle.textContent.indexOf('Prismity Taskforce') === -1 ||
-                !currentSubtitle ||
-                !currentSubtitle.textContent.includes('Start your AI Taskforce business') ||
-                !currentSearch) {
-
-              console.log('Restoring correct Hero section content');
+            if (
+              !currentTitle ||
+              !currentTitle.querySelector("#taskforce-info-btn") ||
+              currentTitle.textContent.indexOf("Prismity Taskforce") === -1 ||
+              !currentSubtitle ||
+              !currentSubtitle.textContent.includes(
+                "Start your AI Taskforce business",
+              ) ||
+              !currentSearch
+            ) {
+              console.log("Restoring correct Hero section content");
               heroContent.innerHTML = correctHeroContent;
               lucide.createIcons();
             }
@@ -388,9 +405,11 @@
 
             mutations.forEach((mutation) => {
               // Check for any changes that might affect the hero content
-              if (mutation.type === 'childList' ||
-                  mutation.type === 'characterData' ||
-                  mutation.type === 'attributes') {
+              if (
+                mutation.type === "childList" ||
+                mutation.type === "characterData" ||
+                mutation.type === "attributes"
+              ) {
                 needsRestoration = true;
               }
             });
@@ -408,41 +427,50 @@
             childList: true,
             subtree: true,
             characterData: true,
-            attributes: true
+            attributes: true,
           });
 
           // Additional protection: override any attempts to modify innerHTML
           let isInternalUpdate = false;
-          const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+          const originalInnerHTML = Object.getOwnPropertyDescriptor(
+            Element.prototype,
+            "innerHTML",
+          );
 
-          Object.defineProperty(heroContent, 'innerHTML', {
-            get: function() {
+          Object.defineProperty(heroContent, "innerHTML", {
+            get: function () {
               return originalInnerHTML.get.call(this);
             },
-            set: function(value) {
+            set: function (value) {
               if (isInternalUpdate) {
                 originalInnerHTML.set.call(this, value);
                 return;
               }
 
               // Only allow setting if it contains all correct elements
-              if (value.includes('Prismity Taskforce') &&
-                  value.includes('<button class="info-button" id="taskforce-info-btn"') &&
-                  value.includes('Start your AI Taskforce business') &&
-                  value.includes('search-container')) {
+              if (
+                value.includes("Prismity Taskforce") &&
+                value.includes(
+                  '<button class="info-button" id="taskforce-info-btn"',
+                ) &&
+                value.includes("Start your AI Taskforce business") &&
+                value.includes("search-container")
+              ) {
                 isInternalUpdate = true;
                 originalInnerHTML.set.call(this, value);
                 isInternalUpdate = false;
                 lucide.createIcons();
               } else {
-                console.log('Blocked attempt to modify Hero section with incorrect content');
+                console.log(
+                  "Blocked attempt to modify Hero section with incorrect content",
+                );
                 // Restore correct content instead
                 isInternalUpdate = true;
                 originalInnerHTML.set.call(this, correctHeroContent);
                 isInternalUpdate = false;
                 lucide.createIcons();
               }
-            }
+            },
           });
 
           // Periodic check to ensure content stays correct
