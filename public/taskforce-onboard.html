@@ -687,7 +687,7 @@
                         support_email: configData.support_email || clientData.email.trim().toLowerCase(),
                         taskforce_type: selectedTaskforce
                     },
-                    template_id: 'eC6TieLjDueYJCs9' // Use the active PET CLINIC workflow directly
+                    template_id: taskforce.templateId
                 };
                 
                 console.log('Deploying taskforce:', selectedTaskforce, 'for:', clientData.name);
@@ -740,31 +740,25 @@
             const detailsContainer = document.getElementById('deploymentDetails');
             
             // Safely extract and display deployment information
+            const workflowId = deploymentResult?.workflow_id || 'N/A';
+            const workflowName = deploymentResult?.workflow_name || 'Unnamed Workflow';
             const clientId = deploymentResult?.client_id || 'N/A';
-            const totalWorkflows = deploymentResult?.total_workflows || 0;
-            const successfulDeployments = deploymentResult?.successful_deployments || 0;
-            const failedDeployments = deploymentResult?.failed_deployments || 0;
+            const webhookUrl = deploymentResult?.webhook_url;
             
-            let workflowsHTML = '';
-            if (deploymentResult?.deployed_workflows && deploymentResult.deployed_workflows.length > 0) {
-                workflowsHTML = '<div style="margin: 10px 0;"><h5>Workflow Details:</h5>';
-                deploymentResult.deployed_workflows.forEach((workflow, index) => {
-                    if (workflow.error) {
-                        workflowsHTML += `<p>❌ Workflow ${index + 1}: Failed (${workflow.template_id})</p>`;
-                    } else {
-                        workflowsHTML += `<p>✅ Workflow ${index + 1}: ${workflow.workflow_name} (ID: ${workflow.workflow_id})</p>`;
-                    }
-                });
-                workflowsHTML += '</div>';
+            let webhookDisplay = '';
+            if (webhookUrl && webhookUrl.startsWith('http')) {
+                // Truncate long URLs for display
+                const displayUrl = webhookUrl.length > 50 ? 
+                    webhookUrl.substring(0, 47) + '...' : webhookUrl;
+                webhookDisplay = `<p><strong>Webhook URL:</strong> <a href="${webhookUrl}" target="_blank" rel="noopener">${displayUrl}</a></p>`;
             }
             
             detailsContainer.innerHTML = `
                 <h4>Deployment Details:</h4>
+                <p><strong>Workflow ID:</strong> ${workflowId}</p>
+                <p><strong>Workflow Name:</strong> ${workflowName}</p>
                 <p><strong>Client ID:</strong> ${clientId}</p>
-                <p><strong>Total Workflows:</strong> ${totalWorkflows}</p>
-                <p><strong>Successfully Deployed:</strong> ${successfulDeployments}</p>
-                <p><strong>Failed:</strong> ${failedDeployments}</p>
-                ${workflowsHTML}
+                ${webhookDisplay}
                 <p><strong>Status:</strong> ✅ Active and Ready</p>
                 <p><strong>Monthly Cost:</strong> $30/month</p>
                 <p><strong>Deployed:</strong> ${new Date().toLocaleDateString()}</p>

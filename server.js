@@ -24,8 +24,6 @@ if (N8N_BASE_URL && !N8N_BASE_URL.startsWith('http://') && !N8N_BASE_URL.startsW
   N8N_BASE_URL = 'https://' + N8N_BASE_URL;
 }
 
-console.log('N8N_BASE_URL configured as:', N8N_BASE_URL);
-
 const N8N_API_KEY = process.env.N8N_API_KEY || '';
 
 // N8N API Helper Class
@@ -48,10 +46,7 @@ class N8NApiClient {
 
   async makeRequest(method, endpoint, data = null) {
     try {
-      // Clean the base URL and endpoint to prevent double slashes
-      const baseUrl = this.baseURL.replace(/\/+$/, ''); // Remove trailing slashes
-      const cleanEndpoint = endpoint.replace(/^\/+/, '/'); // Ensure single leading slash
-      const fullUrl = `${baseUrl}${cleanEndpoint}`;
+      const fullUrl = `${this.baseURL}/api/v1${endpoint}`;
       console.log(`Making N8N API request: ${method} ${fullUrl}`);
 
       const config = {
@@ -69,7 +64,7 @@ class N8NApiClient {
       return response.data;
     } catch (error) {
       console.error('N8N API Error Details:', {
-        url: `${baseUrl}${cleanEndpoint}`,
+        url: `${this.baseURL}/api/v1${endpoint}`,
         method,
         error: error.response?.data || error.message,
         status: error.response?.status
@@ -78,22 +73,10 @@ class N8NApiClient {
     }
   }
 
-  // Simple methods to work with workflows directly
-  async getWorkflows() { 
-    return await this.makeRequest('GET', '/api/v1/workflows');
-  }
-  
-  async getWorkflow(id) { 
-    return await this.makeRequest('GET', `/api/v1/workflows/${id}`); 
-  }
-  
-  async createWorkflow(workflowData) { 
-    return await this.makeRequest('POST', '/api/v1/workflows', workflowData); 
-  }
-  
-  async activateWorkflow(id) { 
-    return await this.makeRequest('POST', `/api/v1/workflows/${id}/activate`); 
-  }
+  async getWorkflows() { return await this.makeRequest('GET', '/workflows'); }
+  async getWorkflow(id) { return await this.makeRequest('GET', `/workflows/${id}`); }
+  async createWorkflow(workflowData) { return await this.makeRequest('POST', '/workflows', workflowData); }
+  async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
 }
 
 // Validate N8N configuration and exit if critical vars missing
@@ -364,156 +347,120 @@ app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
 });
 
-// Get available templates from n8n workflows
+// Get available templates from n8n
 app.get('/api/etf/templates', async (req, res) => {
   try {
-    // Get all workflows
     const workflows = await n8nClient.getWorkflows();
-    if (!workflows.data && !workflows.length) {
-      return res.json({ templates: [], message: 'No workflows found in n8n' });
-    }
 
-    // Handle both response formats
-    const workflowList = workflows.data || workflows;
+    // Filter active workflows as templates
+    const templates = workflows.data ? 
+      workflows.data.filter(workflow => workflow.active === true).map(workflow => ({
+        id: workflow.id,
+        name: workflow.name,
+        description: `ETF automation workflow: ${workflow.name}`,
+        taskforce_type: extractTaskforceType(workflow.name),
+        config_fields: analyzeWorkflowConfig(workflow),
+        created_at: workflow.createdAt,
+        updated_at: workflow.updatedAt
+      })) : [];
 
-    // Filter for template workflows (active workflows that aren't client-specific)
-    const templateWorkflows = workflowList.filter(workflow => {
-      return workflow.active && 
-             !workflow.name.includes('[') && // Not a client-specific workflow
-             workflow.nodes && workflow.nodes.length > 0;
-    }).map(workflow => ({
-      id: workflow.id,
-      name: workflow.name,
-      type: 'workflow',
-      description: `ETF automation workflow: ${workflow.name}`,
-      taskforce_type: extractTaskforceType(workflow.name),
-      config_fields: analyzeWorkflowConfig(workflow),
-      node_count: workflow.nodes ? workflow.nodes.length : 0,
-      has_webhook: workflow.nodes ? workflow.nodes.some(n => n.type && n.type.includes('webhook')) : false,
-      created_at: workflow.createdAt,
-      updated_at: workflow.updatedAt
-    }));
-
-    res.json({
-      templates: templateWorkflows,
-      total_workflows: workflowList.length,
-      message: `Found ${templateWorkflows.length} template workflows`
-    });
+    res.json(templates);
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
-    res.status(500).json({ error: 'Failed to fetch templates', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch templates' });
   }
 });
 
-// Deploy ETF workflow for client - Single workflow duplication
+// Deploy ETF workflow for client
 app.post('/api/etf/deploy', async (req, res) => {
   try {
     const { client_data, config_data, template_id } = req.body;
 
-    console.log(`🚀 Deploying ETF workflow for ${client_data.name}`);
-    console.log(`📋 Template ID: ${template_id}`);
+    console.log(`🚀 Duplicating workflow ${template_id} for ${client_data.name}`);
 
-    // Get the specific template workflow
-    const templateWorkflow = await n8nClient.getWorkflow(template_id);
-    
-    if (!templateWorkflow.active) {
-      return res.status(400).json({
-        success: false,
-        error: 'Template workflow is inactive',
-        details: `Workflow ${template_id} is not active`
-      });
+    // Get the template workflow from N8N
+    const originalWorkflow = await n8nClient.getWorkflow(template_id);
+
+    // Create clean workflow data - exclude ALL read-only properties
+    const personalizedWorkflow = {
+      name: `[${client_data.name}] ${originalWorkflow.name}`,
+      nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
+      connections: originalWorkflow.connections || {},
+      settings: originalWorkflow.settings || {},
+      staticData: originalWorkflow.staticData || {}
+      // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
+    };
+
+    // Create and activate new workflow
+    const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+    console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+
+    try {
+      await n8nClient.activateWorkflow(newWorkflow.id);
+      console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+    } catch (activationError) {
+      console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError);
+      throw new Error(`Workflow created but activation failed: ${activationError.message}`);
     }
 
-    console.log(`✅ Found active template workflow: ${templateWorkflow.name} (${template_id})`);
-
+    // Save client and deployment records
     const client_id = uuidv4();
     const deployment_id = uuidv4();
 
-    console.log(`🔄 Processing workflow ${templateWorkflow.id} (${templateWorkflow.name})...`);
-
-    // Create personalized workflow
-    const personalizedWorkflow = {
-      name: `[${client_data.name}] ${templateWorkflow.name}`,
-      nodes: personalizeWorkflowNodes(templateWorkflow.nodes || [], config_data, client_data),
-      connections: templateWorkflow.connections || {},
-      settings: templateWorkflow.settings || {},
-      staticData: templateWorkflow.staticData || {},
-      tags: [...(templateWorkflow.tags || []), `CLIENT_${client_data.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`]
-    };
-
-    // Create new workflow
-    const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-    console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${templateWorkflow.name})`);
-
-    // Try to activate if it has trigger nodes
-    const hasTrigger = personalizedWorkflow.nodes.some(node => 
-      node.type && (
-        node.type.includes('webhook') || 
-        node.type.includes('trigger') || 
-        node.type.includes('poll') ||
-        node.type.includes('cron')
-      )
-    );
-
-    if (hasTrigger) {
-      try {
-        await n8nClient.activateWorkflow(newWorkflow.id);
-        console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-      } catch (activationError) {
-        console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError.message);
-      }
-    } else {
-      console.log(`ℹ️ Workflow ${newWorkflow.id} has no trigger nodes - skipping activation`);
-    }
-
-    // Insert client record
+    // Insert client
     await new Promise((resolve, reject) => {
       etfDB.run(
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [client_id, client_data.name, client_data.email, client_data.company || client_data.name, 
-         client_data.industry || 'General', extractTaskforceType(templateWorkflow.name)],
+        [client_id, client_data.name, client_data.email, client_data.name, 
+         'General', 'general'],
         (err) => err ? reject(err) : resolve()
       );
     });
 
-    // Save deployment record
+    // Insert deployment
     await new Promise((resolve, reject) => {
       etfDB.run(
         `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [deployment_id, client_id, templateWorkflow.id, newWorkflow.id, newWorkflow.name, 
-         extractTaskforceType(templateWorkflow.name), JSON.stringify(config_data)],
+        [deployment_id, client_id, template_id, newWorkflow.id, newWorkflow.name, 
+         'general', JSON.stringify(config_data)],
         (err) => err ? reject(err) : resolve()
       );
     });
 
-    const webhookUrl = extractWebhookUrl(personalizedWorkflow.nodes);
-
     res.json({
       success: true,
-      client_id: client_id,
-      deployment_id: deployment_id,
-      template_id: templateWorkflow.id,
-      template_name: templateWorkflow.name,
       workflow_id: newWorkflow.id,
       workflow_name: newWorkflow.name,
-      webhook_url: webhookUrl,
-      has_trigger: hasTrigger,
-      message: `Successfully deployed workflow for ${client_data.name}`,
-      taskforce_type: extractTaskforceType(templateWorkflow.name)
+      client_id: client_id,
+      deployment_id: deployment_id,
+      message: `Workflow duplicated successfully for ${client_data.name}`,
+      webhook_url: extractWebhookUrl(personalizedWorkflow.nodes)
     });
 
   } catch (error) {
-    console.error('ETF deployment error:', {
+    console.error('Workflow duplication error:', {
       message: error.message,
-      client: req.body.client_data?.name,
       template_id: req.body.template_id,
+      client: req.body.client_data?.name,
       timestamp: new Date().toISOString()
     });
-
+    
+    // Provide specific error messages based on error type
+    let userMessage = 'Workflow duplication failed';
+    if (error.message.includes('N8N_BASE_URL')) {
+      userMessage = 'ETF service configuration error';
+    } else if (error.message.includes('N8N_API_KEY')) {
+      userMessage = 'ETF service authentication error';
+    } else if (error.message.includes('workflow not found')) {
+      userMessage = 'Template workflow not found';
+    } else if (error.message.includes('timeout')) {
+      userMessage = 'ETF service timeout - please try again';
+    }
+    
     res.status(500).json({ 
-      error: 'ETF deployment failed', 
+      error: userMessage, 
       details: error.message,
       success: false 
     });
@@ -549,35 +496,12 @@ app.get('/api/etf/stats', (req, res) => {
 // Test n8n connection
 app.get('/api/etf/test-n8n', async (req, res) => {
   try {
-    const analysis = {
-      success: true,
+    const workflows = await n8nClient.getWorkflows();
+    res.json({ 
+      success: true, 
       message: 'N8N connection successful',
-      api_tests: {}
-    };
-
-    // Test: Get all workflows
-    try {
-      const workflows = await n8nClient.getWorkflows();
-      analysis.api_tests.all_workflows = {
-        success: true,
-        count: workflows.data ? workflows.data.length : 0,
-        sample_structure: workflows.data && workflows.data.length > 0 ? {
-          keys: Object.keys(workflows.data[0]),
-          sample_workflow: {
-            id: workflows.data[0].id,
-            name: workflows.data[0].name,
-            active: workflows.data[0].active
-          }
-        } : null
-      };
-    } catch (error) {
-      analysis.api_tests.all_workflows = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    res.json(analysis);
+      workflow_count: workflows.data ? workflows.data.length : 0
+    });
   } catch (error) {
     res.status(500).json({ 
       success: false, 

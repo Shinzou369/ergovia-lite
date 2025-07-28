@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -556,90 +557,6 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--border-light);
         }
-
-        .template-card {
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: white;
-            position: relative;
-        }
-
-        .template-card:hover {
-            border-color: #6c5ce7;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .template-card.selected {
-            border-color: #6c5ce7;
-            background-color: #f8f7ff;
-        }
-
-        .template-type-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .template-type-badge.folder {
-            background-color: #00b894;
-            color: white;
-        }
-
-        .template-type-badge.workflow {
-            background-color: #6c5ce7;
-            color: white;
-        }
-
-        .workflow-list {
-            margin-top: 15px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .workflow-item {
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 4px;
-            font-size: 13px;
-            border-left: 3px solid #ddd;
-        }
-
-        .workflow-item.active {
-            background-color: #e8f5e8;
-            border-left-color: #00b894;
-        }
-
-        .workflow-item.inactive {
-            background-color: #fff2f2;
-            border-left-color: #e17055;
-            opacity: 0.7;
-        }
-
-        .template-type-selector {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .template-type-selector label {
-            display: block;
-            margin: 8px 0;
-            cursor: pointer;
-        }
-
-        .template-type-selector input[type="radio"] {
-            margin-right: 8px;
-        }
     </style>
 </head>
 <body>
@@ -655,32 +572,32 @@
         <div class="header">
             <h1>🤖 ETF Automation Setup</h1>
             <p>Deploy your personalized AI taskforce automation in minutes</p>
-
+            
             <div class="workflow-preview">
                 <div class="preview-title">
                     <i data-lucide="zap"></i>
                     What you'll get with ETF Automation:
                 </div>
-
+                
                 <div class="feature-grid">
                     <div class="feature-card">
                         <span class="feature-icon">🎯</span>
                         <h4>Personalized Workflows</h4>
                         <p>Custom automation tailored to your business needs</p>
                     </div>
-
+                    
                     <div class="feature-card">
                         <span class="feature-icon">💬</span>
                         <h4>AI Customer Service</h4>
                         <p>24/7 intelligent customer support and lead processing</p>
                     </div>
-
+                    
                     <div class="feature-card">
                         <span class="feature-icon">⚡</span>
                         <h4>Task Management</h4>
                         <p>Automated task handling and business process optimization</p>
                     </div>
-
+                    
                     <div class="feature-card">
                         <span class="feature-icon">🔗</span>
                         <h4>System Integration</h4>
@@ -705,7 +622,7 @@
                         </div>
                         <h2 class="section-title">Business Information</h2>
                     </div>
-
+                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="businessName">Business Name <span class="required">*</span></label>
@@ -743,7 +660,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateProgress();
-
+            
             // Auto-select taskforce type from URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             const taskforceType = urlParams.get('type');
@@ -761,14 +678,14 @@
             const form = document.getElementById('etfOnboardingForm');
             const progressFill = document.getElementById('progressFill');
             const requiredFields = form.querySelectorAll('input[required], select[required]');
-
+            
             let filledFields = 0;
             requiredFields.forEach(field => {
                 if (field.value.trim() !== '') {
                     filledFields++;
                 }
             });
-
+            
             const progress = (filledFields / requiredFields.length) * 100;
             progressFill.style.width = progress + '%';
         }
@@ -777,7 +694,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('etfOnboardingForm');
             const inputs = form.querySelectorAll('input, select, textarea');
-
+            
             inputs.forEach(input => {
                 input.addEventListener('input', updateProgress);
                 input.addEventListener('change', updateProgress);
@@ -787,37 +704,21 @@
         // Form submission
         document.getElementById('etfOnboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
+            
             const submitBtn = document.getElementById('submitBtn');
             const resultDiv = document.getElementById('result');
             const originalBtnContent = submitBtn.innerHTML;
-
+            
             // Show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<div class="loading-spinner"></div><span>Deploying your automation...</span>';
             resultDiv.style.display = 'none';
-
+            
             // Collect form data
             const formData = new FormData(this);
             const clientData = Object.fromEntries(formData.entries());
-
-            // Get the first available template workflow
-            let templateId = null;
-            try {
-                const templatesResponse = await fetch('/api/etf/templates');
-                const templatesData = await templatesResponse.json();
-                if (templatesData.templates && templatesData.templates.length > 0) {
-                    templateId = templatesData.templates[0].id;
-                }
-            } catch (error) {
-                console.error('Failed to get templates:', error);
-            }
-
-            if (!templateId) {
-                throw new Error('No template workflows available');
-            }
-
-            // Prepare deployment data with workflow template
+            
+            // Prepare deployment data with specific workflow ID
             const deploymentData = {
                 client_data: {
                     name: clientData.business_name,
@@ -829,13 +730,13 @@
                     business_email: clientData.email,
                     business_phone: clientData.phone
                 },
-                template_id: templateId
+                template_id: 'eC6TieLjDueYJCs9' // Default template - should be configurable
             };
-
+            
             try {
                 // Simulate network delay for better UX
                 await new Promise(resolve => setTimeout(resolve, 1000));
-
+                
                 // Deploy the workflow directly
                 const response = await fetch('/api/etf/deploy', {
                     method: 'POST',
@@ -844,58 +745,29 @@
                     },
                     body: JSON.stringify(deploymentData)
                 });
-
+                
                 const result = await response.json();
-
+                
                 if (result.success) {
                     resultDiv.className = 'result success';
-
-                    // Generate workflow details HTML
-                    let workflowDetailsHTML = '';
-                    if (result.deployed_workflows && result.deployed_workflows.length > 0) {
-                        workflowDetailsHTML = '<div style="margin: 15px 0;"><h4>Deployed Workflows:</h4>';
-                        result.deployed_workflows.forEach((workflow, index) => {
-                            if (workflow.error) {
-                                workflowDetailsHTML += `
-                                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 10px; margin: 5px 0; border-radius: 8px;">
-                                        <p><strong>Workflow ${index + 1}:</strong> ❌ Failed</p>
-                                        <p><strong>Template ID:</strong> <code>${workflow.template_id}</code></p>
-                                        <p><strong>Error:</strong> ${workflow.error}</p>
-                                    </div>
-                                `;
-                            } else {
-                                workflowDetailsHTML += `
-                                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px; margin: 5px 0; border-radius: 8px;">
-                                        <p><strong>Workflow ${index + 1}:</strong> ✅ ${workflow.workflow_name}</p>
-                                        <p><strong>Workflow ID:</strong> <code>${workflow.workflow_id}</code></p>
-                                        ${workflow.webhook_url ? `<p><strong>Webhook URL:</strong> <code>${workflow.webhook_url.length > 50 ? workflow.webhook_url.substring(0, 47) + '...' : workflow.webhook_url}</code></p>` : ''}
-                                    </div>
-                                `;
-                            }
-                        });
-                        workflowDetailsHTML += '</div>';
-                    }
-
                     resultDiv.innerHTML = `
-                        <h3><i data-lucide="check-circle"></i> Success! Your ETF automation is deployed!</h3>
-                        <p><strong>Total Workflows:</strong> ${result.total_workflows || 'Unknown'}</p>
-                        <p><strong>Successfully Deployed:</strong> ${result.successful_deployments || 0}</p>
-                        <p><strong>Failed:</strong> ${result.failed_deployments || 0}</p>
-                        <p><strong>Client ID:</strong> <code>${result.client_id}</code></p>
-                        ${workflowDetailsHTML}
-                        <p>🎉 Your personalized automation workflows are now active!</p>
-                        <p>Each workflow has been customized with your business information:</p>
+                        <h3><i data-lucide="check-circle"></i> Success! Your workflow is deployed!</h3>
+                        <p><strong>Workflow Name:</strong> ${result.workflow_name}</p>
+                        <p><strong>Workflow ID:</strong> <code>${result.workflow_id}</code></p>
+                        ${result.webhook_url ? `<p><strong>Webhook URL:</strong> <code>${result.webhook_url}</code></p>` : ''}
+                        <p>🎉 Your personalized workflow is now active with your business information!</p>
+                        <p>The workflow has been duplicated from your N8N instance and customized with:</p>
                         <ul style="margin: 10px 0; padding-left: 20px;">
                             <li><strong>Business Name:</strong> ${deploymentData.client_data.name}</li>
                             <li><strong>Email:</strong> ${deploymentData.client_data.email}</li>
                             <li><strong>Phone:</strong> ${deploymentData.client_data.phone}</li>
                         </ul>
                     `;
-
+                    
                     // Reset form and progress
                     this.reset();
                     updateProgress();
-
+                    
                     // Animate result appearance
                     setTimeout(() => {
                         lucide.createIcons();
@@ -903,7 +775,7 @@
                 } else {
                     throw new Error(result.error || 'Deployment failed');
                 }
-
+                
             } catch (error) {
                 console.error('Deployment error:', error);
                 resultDiv.className = 'result error';
@@ -918,7 +790,7 @@
                         <li>Email us at support@ergovia-ai.com for immediate assistance</li>
                     </ul>
                 `;
-
+                
                 setTimeout(() => {
                     lucide.createIcons();
                 }, 100);
@@ -927,10 +799,10 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnContent;
                 resultDiv.style.display = 'block';
-
+                
                 // Scroll to result
                 resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
+                
                 // Re-initialize icons
                 lucide.createIcons();
             }
@@ -940,16 +812,16 @@
         function validateForm() {
             const requiredFields = document.querySelectorAll('input[required], select[required]');
             let isValid = true;
-
+            
             requiredFields.forEach(field => {
                 const value = field.value.trim();
-
+                
                 if (!value) {
                     isValid = false;
                     field.style.borderColor = '#ef4444';
                 } else {
                     field.style.borderColor = '';
-
+                    
                     // Email validation
                     if (field.type === 'email' && value) {
                         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -958,7 +830,7 @@
                             field.style.borderColor = '#ef4444';
                         }
                     }
-
+                    
                     // Phone validation
                     if (field.type === 'tel' && value) {
                         const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
@@ -970,14 +842,14 @@
                     }
                 }
             });
-
+            
             return isValid;
         }
 
         // Real-time validation
         document.addEventListener('DOMContentLoaded', function() {
             const inputs = document.querySelectorAll('input, select');
-
+            
             inputs.forEach(input => {
                 input.addEventListener('blur', function() {
                     if (this.hasAttribute('required') && !this.value.trim()) {
@@ -986,7 +858,7 @@
                         this.style.borderColor = '';
                     }
                 });
-
+                
                 input.addEventListener('input', function() {
                     if (this.style.borderColor === 'rgb(239, 68, 68)') {
                         this.style.borderColor = '';
