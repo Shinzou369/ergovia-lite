@@ -115,7 +115,13 @@ class N8NApiClient {
     // Filter workflows that have all the specified tags
     return workflows.filter(workflow => {
       const workflowTags = workflow.tags || [];
-      return tags.every(tag => workflowTags.includes(tag));
+      return tags.every(tag => {
+        if (typeof tag !== 'string') return false;
+        return workflowTags.some(workflowTag => 
+          typeof workflowTag === 'string' && 
+          workflowTag.toUpperCase().includes(tag.toUpperCase())
+        );
+      });
     });
   }
 
@@ -498,26 +504,32 @@ app.get('/api/etf/templates', async (req, res) => {
     // Add tag-based templates for PET CLINIC workflows
     const petClinicWorkflows = workflowList.filter(workflow => {
       const workflowName = workflow.name || '';
-      return workflowName.toUpperCase().includes('PET CLINIC') && 
+      const workflowTags = workflow.tags || [];
+      
+      const nameMatch = workflowName.toUpperCase().includes('PET CLINIC');
+      const tagMatch = workflowTags.some(tag => 
+        typeof tag === 'string' && tag.toUpperCase().includes('PET CLINIC')
+      );
+      
+      return (nameMatch || tagMatch) && 
              workflow.active && 
-             !workflow.name.includes('[');
-    }).map(workflow => ({
+             !workflowName.includes('[');
+    });
+
+    const petClinicTemplates = petClinicWorkflows.length > 0 ? [{
       id: 'PET CLINIC',
       name: 'PET CLINIC Workflows',
       type: 'tag',
-      description: `Tag-based template containing ${workflowList.filter(wf => wf.name && wf.name.toUpperCase().includes('PET CLINIC') && wf.active).length} PET CLINIC workflows`,
+      description: `Tag-based template containing ${petClinicWorkflows.length} PET CLINIC workflows`,
       taskforce_type: 'dental',
-      workflow_count: workflowList.filter(wf => wf.name && wf.name.toUpperCase().includes('PET CLINIC') && wf.active).length,
-      workflows: workflowList.filter(wf => wf.name && wf.name.toUpperCase().includes('PET CLINIC') && wf.active).map(wf => ({
+      workflow_count: petClinicWorkflows.length,
+      workflows: petClinicWorkflows.map(wf => ({
         id: wf.id,
         name: wf.name,
         active: wf.active,
         has_webhook: wf.nodes ? wf.nodes.some(n => n.type && n.type.includes('webhook')) : false
       }))
-    }));
-
-    // Only add PET CLINIC tag if there are workflows
-    const tagTemplates = petClinicWorkflows.length > 0 && petClinicWorkflows[0].workflow_count > 0 ? petClinicWorkflows : [];
+    }] : [];
 
     // Format folder templates
     const folderTemplates = templateFolders.map(folder => ({
@@ -536,15 +548,15 @@ app.get('/api/etf/templates', async (req, res) => {
       }))
     }));
 
-    const allTemplates = [...folderTemplates, ...individualTemplates, ...tagTemplates];
+    const allTemplates = [...folderTemplates, ...individualTemplates, ...petClinicTemplates];
 
     res.json({
       templates: allTemplates,
       folders: templateFolders,
       individual_workflows: individualTemplates,
-      tag_templates: tagTemplates,
+      tag_templates: petClinicTemplates,
       total_workflows: workflowList.length,
-      message: `Found ${folderTemplates.length} template folders, ${individualTemplates.length} individual templates, and ${tagTemplates.length} tag-based templates`
+      message: `Found ${folderTemplates.length} template folders, ${individualTemplates.length} individual templates, and ${petClinicTemplates.length} tag-based templates`
     });
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
@@ -576,10 +588,21 @@ app.post('/api/etf/deploy', async (req, res) => {
           const workflowName = workflow.name || '';
           const workflowTags = workflow.tags || [];
           
-          // Check if workflow name contains the template_id (like "PET CLINIC")
+          // For PET CLINIC specifically, look for workflows with "PET CLINIC" in the name
+          if (template_id === 'OTkgImaRhmTXepG3' || template_id.toUpperCase().includes('PET')) {
+            const nameMatch = workflowName.toUpperCase().includes('PET CLINIC');
+            const tagMatch = workflowTags.some(tag => 
+              typeof tag === 'string' && tag.toUpperCase().includes('PET CLINIC')
+            );
+            return (nameMatch || tagMatch) && workflow.active === true;
+          }
+          
+          // For other templates, check if workflow name contains the template_id
           // or if it has the template_id as a tag
           const nameMatch = workflowName.toUpperCase().includes(template_id.toUpperCase());
-          const tagMatch = workflowTags.some(tag => tag.toUpperCase().includes(template_id.toUpperCase()));
+          const tagMatch = workflowTags.some(tag => 
+            typeof tag === 'string' && tag.toUpperCase().includes(template_id.toUpperCase())
+          );
           
           return (nameMatch || tagMatch) && workflow.active === true;
         });
