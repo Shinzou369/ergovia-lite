@@ -696,6 +696,191 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
   }
 });
 
+// Test endpoint for creating tags
+app.post('/api/etf/test-create-tag', async (req, res) => {
+  try {
+    const { tagName } = req.body;
+    
+    if (!tagName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tag name is required'
+      });
+    }
+
+    console.log(`🧪 Testing tag creation for: "${tagName}"`);
+    
+    // Test the createTag method
+    const result = await n8nClient.createTag(tagName);
+    
+    res.json({
+      success: true,
+      message: `Tag "${tagName}" created successfully`,
+      tag: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test tag creation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'Check server logs for full error details'
+    });
+  }
+});
+
+// Test endpoint for listing tags
+app.get('/api/etf/list-tags', async (req, res) => {
+  try {
+    console.log('🧪 Testing tag listing...');
+    
+    const tagsResponse = await n8nClient.makeRequest('GET', '/tags');
+    const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
+    
+    res.json({
+      success: true,
+      total_tags: tags.length,
+      tags: tags,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test tag listing error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Test endpoint for applying tags to workflows
+app.post('/api/etf/test-apply-tags', async (req, res) => {
+  try {
+    const { workflowId, tags } = req.body;
+    
+    if (!workflowId || !tags) {
+      return res.status(400).json({
+        success: false,
+        error: 'Workflow ID and tags are required'
+      });
+    }
+
+    console.log(`🧪 Testing tag application to workflow ${workflowId}:`, tags);
+    
+    // Test the updateWorkflowTags method
+    const result = await n8nClient.updateWorkflowTags(workflowId, tags);
+    
+    res.json({
+      success: true,
+      message: `Tags applied to workflow ${workflowId}`,
+      result: result,
+      applied_tags: tags,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test tag application error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      workflow_id: req.body.workflowId,
+      attempted_tags: req.body.tags
+    });
+  }
+});
+
+// Test endpoint to try both tag formats
+app.post('/api/etf/test-both-formats', async (req, res) => {
+  try {
+    const { workflowId } = req.body;
+    
+    if (!workflowId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Workflow ID is required'
+      });
+    }
+
+    const testResults = {
+      workflow_id: workflowId,
+      tests: []
+    };
+
+    // Test 1: String array format
+    console.log('🧪 Testing string array format...');
+    try {
+      const stringTags = ['TEST_STRING_FORMAT'];
+      await n8nClient.updateWorkflowTags(workflowId, stringTags);
+      testResults.tests.push({
+        format: 'string_array',
+        input: stringTags,
+        status: 'success',
+        message: 'String array format worked'
+      });
+    } catch (error) {
+      testResults.tests.push({
+        format: 'string_array',
+        input: ['TEST_STRING_FORMAT'],
+        status: 'failed',
+        error: error.message
+      });
+    }
+
+    // Test 2: Object array format
+    console.log('🧪 Testing object array format...');
+    try {
+      const objectTags = [{ name: 'TEST_OBJECT_FORMAT' }];
+      await n8nClient.updateWorkflowTags(workflowId, objectTags);
+      testResults.tests.push({
+        format: 'object_array',
+        input: objectTags,
+        status: 'success',
+        message: 'Object array format worked'
+      });
+    } catch (error) {
+      testResults.tests.push({
+        format: 'object_array',
+        input: [{ name: 'TEST_OBJECT_FORMAT' }],
+        status: 'failed',
+        error: error.message
+      });
+    }
+
+    // Test 3: Mixed format
+    console.log('🧪 Testing mixed format...');
+    try {
+      const mixedTags = ['TEST_MIXED_STRING', { name: 'TEST_MIXED_OBJECT' }];
+      await n8nClient.updateWorkflowTags(workflowId, mixedTags);
+      testResults.tests.push({
+        format: 'mixed_array',
+        input: mixedTags,
+        status: 'success',
+        message: 'Mixed format worked'
+      });
+    } catch (error) {
+      testResults.tests.push({
+        format: 'mixed_array',
+        input: ['TEST_MIXED_STRING', { name: 'TEST_MIXED_OBJECT' }],
+        status: 'failed',
+        error: error.message
+      });
+    }
+
+    const successCount = testResults.tests.filter(t => t.status === 'success').length;
+    
+    res.json({
+      success: successCount > 0,
+      message: `${successCount}/${testResults.tests.length} tag formats worked`,
+      results: testResults,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Test both formats error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (!req.session.user) {
