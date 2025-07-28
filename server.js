@@ -420,22 +420,6 @@ app.post('/api/etf/deploy', async (req, res) => {
     const duplicatedWorkflows = [];
     const client_id = uuidv4();
 
-    // Create client folder first
-    let clientFolder = null;
-    try {
-      const folderName = `PET CLINIC - ${client_data.name}`;
-      console.log(`📁 Creating client folder: ${folderName}`);
-      
-      clientFolder = await n8nClient.makeRequest('POST', '/projects', {
-        name: folderName,
-        type: 'team' // or 'personal' depending on your N8N setup
-      });
-      console.log(`✅ Client folder created with ID: ${clientFolder.id}`);
-    } catch (folderError) {
-      console.warn(`⚠️ Could not create client folder: ${folderError.message}`);
-      // Continue without folder organization
-    }
-
     // Duplicate each PET workflow
     for (const petWorkflow of petWorkflows) {
       try {
@@ -457,19 +441,6 @@ app.post('/api/etf/deploy', async (req, res) => {
         // Create new workflow
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
-
-        // Move workflow to client folder if folder was created successfully
-        if (clientFolder) {
-          try {
-            await n8nClient.makeRequest('PUT', `/workflows/${newWorkflow.id}/move`, {
-              projectId: clientFolder.id
-            });
-            console.log(`📁 Workflow ${newWorkflow.id} moved to client folder`);
-          } catch (moveError) {
-            console.warn(`⚠️ Could not move workflow to folder: ${moveError.message}`);
-            // Continue without moving - workflow still exists
-          }
-        }
 
         // Try to activate the workflow (but continue if activation fails)
         try {
@@ -526,11 +497,7 @@ app.post('/api/etf/deploy', async (req, res) => {
       client_id: client_id,
       duplicated_workflows: duplicatedWorkflows,
       total_duplicated: duplicatedWorkflows.length,
-      client_folder: clientFolder ? {
-        id: clientFolder.id,
-        name: clientFolder.name
-      } : null,
-      message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}${clientFolder ? ' and organized them in a dedicated folder' : ''}`
+      message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}`
     });
 
   } catch (error) {
