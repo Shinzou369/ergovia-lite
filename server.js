@@ -357,150 +357,177 @@ app.get('/api/etf/templates', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
 
-    // Filter active workflows as templates
-    const templates = workflows.data ? 
-      workflows.data.filter(workflow => workflow.active === true).map(workflow => ({
-        id: workflow.id,
-        name: workflow.name,
-        description: `ETF automation workflow: ${workflow.name}`,
-        taskforce_type: extractTaskforceType(workflow.name),
-        config_fields: analyzeWorkflowConfig(workflow),
-        created_at: workflow.createdAt,
-        updated_at: workflow.updatedAt
-      })) : [];
+    if (!workflows.data) {
+      return res.json({ templates: [], message: 'No workflows found in n8n' });
+    }
 
-    res.json(templates);
+    // Filter active workflows that can serve as templates
+    const potentialTemplates = workflows.data.filter(workflow => {
+      return workflow.active === true && 
+             !workflow.name.includes('[') && // Not already personalized
+             workflow.nodes && workflow.nodes.length > 0; // Has actual content
+    });
+
+    const templates = potentialTemplates.map(workflow => ({
+      id: workflow.id,
+      name: workflow.name,
+      description: `ETF automation workflow: ${workflow.name}`,
+      taskforce_type: extractTaskforceType(workflow.name),
+      config_fields: analyzeWorkflowConfig(workflow),
+      node_count: workflow.nodes ? workflow.nodes.length : 0,
+      has_webhook: workflow.nodes ? workflow.nodes.some(n => n.type && n.type.includes('webhook')) : false,
+      created_at: workflow.createdAt,
+      updated_at: workflow.updatedAt,
+      is_template_candidate: workflow.name.includes('CLINIC') || 
+                           workflow.name.includes('TEMPLATE') ||
+                           workflow.name.includes('BASE') ||
+                           workflow.name.includes('PET')
+    }));
+
+    // Sort by template candidates first, then by name
+    templates.sort((a, b) => {
+      if (a.is_template_candidate && !b.is_template_candidate) return -1;
+      if (!a.is_template_candidate && b.is_template_candidate) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    res.json({
+      templates,
+      total_workflows: workflows.data.length,
+      active_workflows: potentialTemplates.length,
+      message: `Found ${templates.length} potential template workflows`
+    });
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
-    res.status(500).json({ error: 'Failed to fetch templates' });
+    res.status(500).json({ error: 'Failed to fetch templates', details: error.message });
   }
 });
 
-// Deploy ETF workflow for client - Folder-based duplication
+// Deploy ETF workflow for client - Flexible workflow duplication
 app.post('/api/etf/deploy', async (req, res) => {
   try {
-    const { client_data, config_data, folder_id } = req.body;
+    const { client_data, config_data, template_ids, folder_id } = req.body;
 
-    // Use the provided folder ID or default to the Pet Clinic Template folder
-    const templateFolderId = folder_id || 'OTkgImaRhmTXepG3';
+    console.log(`🚀 Deploying ETF workflow for ${client_data.name}`);
 
-    console.log(`🚀 Duplicating folder ${templateFolderId} for ${client_data.name}`);
+    let templateWorkflows = [];
 
-    // Try to get workflows from the specific folder using various N8N API approaches
-    let folderWorkflows = [];
-    console.log(`🔍 Attempting to fetch workflows from folder: ${templateFolderId}`);
-
-    // Method 1: Try direct folder workflows endpoint
-    try {
-      console.log('🔍 Method 1: Trying /workflows?folderId= endpoint');
-      const folderResponse = await n8nClient.makeRequest('GET', `/workflows?folderId=${templateFolderId}`);
-      if (folderResponse.data && folderResponse.data.length > 0) {
-        folderWorkflows = folderResponse.data.filter(workflow => workflow.active === true);
-        console.log(`📁 Method 1 success: Found ${folderWorkflows.length} active workflows`);
-      }
-    } catch (folderError) {
-      console.log('⚠️ Method 1 failed:', folderError.message);
-    }
-
-    // Method 2: Try folder-specific endpoint if method 1 failed
-    if (folderWorkflows.length === 0) {
-      try {
-        console.log('🔍 Method 2: Trying /folders/{id}/workflows endpoint');
-        const folderResponse = await n8nClient.makeRequest('GET', `/folders/${templateFolderId}/workflows`);
-        if (folderResponse.data && folderResponse.data.length > 0) {
-          folderWorkflows = folderResponse.data.filter(workflow => workflow.active === true);
-          console.log(`📁 Method 2 success: Found ${folderWorkflows.length} active workflows`);
+    // Method 1: Use specific template IDs if provided
+    if (template_ids && Array.isArray(template_ids) && template_ids.length > 0) {
+      console.log(`🔍 Using provided template IDs: ${template_ids.join(', ')}`);
+      
+      for (const templateId of template_ids) {
+        try {
+          const workflow = await n8nClient.getWorkflow(templateId);
+          if (workflow.active) {
+            templateWorkflows.push(workflow);
+            console.log(`✅ Found active template workflow: ${workflow.name} (${templateId})`);
+          } else {
+            console.log(`⚠️ Template workflow ${templateId} is inactive - skipping`);
+          }
+        } catch (error) {
+          console.log(`❌ Failed to fetch template workflow ${templateId}:`, error.message);
         }
-      } catch (folderError) {
-        console.log('⚠️ Method 2 failed:', folderError.message);
       }
     }
 
-    // Method 3: Get all workflows and filter by folder relationship
-    if (folderWorkflows.length === 0) {
-      console.log('🔍 Method 3: Fetching all workflows and filtering by folder');
+    // Method 2: Try folder-based approach if no specific IDs provided
+    if (templateWorkflows.length === 0 && folder_id) {
+      console.log(`🔍 Attempting folder-based duplication with folder ID: ${folder_id}`);
+      
       try {
         const allWorkflows = await n8nClient.getWorkflows();
         console.log(`📋 Total workflows found: ${allWorkflows.data ? allWorkflows.data.length : 0}`);
 
         if (allWorkflows.data) {
-          // Debug: Show first few workflows to understand structure
-          console.log('🔍 Sample workflow structure:');
-          allWorkflows.data.slice(0, 3).forEach(wf => {
-            console.log(`   Workflow: ${wf.name}`);
-            console.log(`   Keys:`, Object.keys(wf));
-            console.log(`   Folder-related fields:`, {
-              folderId: wf.folderId,
-              parentId: wf.parentId,
-              folder: wf.folder,
-              sharedWith: wf.sharedWith
-            });
-          });
-
-          // Filter workflows by folder
-          folderWorkflows = allWorkflows.data.filter(workflow => {
-            const matchesFolder = workflow.folderId === templateFolderId || 
-                                 workflow.parentId === templateFolderId ||
-                                 (workflow.folder && workflow.folder.id === templateFolderId) ||
-                                 (typeof workflow.folder === 'string' && workflow.folder === templateFolderId);
+          // Filter workflows by folder (if folders are supported)
+          const folderWorkflows = allWorkflows.data.filter(workflow => {
+            const matchesFolder = workflow.folderId === folder_id || 
+                                 workflow.parentId === folder_id ||
+                                 (workflow.folder && workflow.folder.id === folder_id) ||
+                                 (typeof workflow.folder === 'string' && workflow.folder === folder_id);
             return matchesFolder && workflow.active === true;
           });
           
-          console.log(`📁 Method 3 result: Found ${folderWorkflows.length} active workflows in folder`);
+          templateWorkflows = folderWorkflows;
+          console.log(`📁 Found ${templateWorkflows.length} active workflows in folder`);
         }
       } catch (error) {
-        console.error('⚠️ Method 3 failed:', error.message);
+        console.error('⚠️ Folder-based approach failed:', error.message);
       }
     }
 
-    console.log(`📁 Final result: ${folderWorkflows.length} active workflows in folder ${templateFolderId}`);
-
-    if (folderWorkflows.length === 0) {
-      // Check if folder exists with inactive workflows
-      const allWorkflows = await n8nClient.getWorkflows();
-      const inactiveFolderWorkflows = allWorkflows.data ? 
-        allWorkflows.data.filter(workflow => (workflow.folderId === templateFolderId || workflow.parentId === templateFolderId)) : [];
-
-      if (inactiveFolderWorkflows.length > 0) {
-        throw new Error(`Found ${inactiveFolderWorkflows.length} workflows in folder ${templateFolderId}, but none are active. Please activate the template workflows in n8n.`);
-      } else {
-        throw new Error(`Folder ${templateFolderId} not found or contains no workflows. Please check the folder ID in n8n.`);
+    // Method 3: Fallback to predefined template workflows by name pattern
+    if (templateWorkflows.length === 0) {
+      console.log(`🔍 Fallback: Looking for template workflows by name pattern`);
+      
+      try {
+        const allWorkflows = await n8nClient.getWorkflows();
+        
+        if (allWorkflows.data) {
+          // Look for workflows that appear to be templates (not already personalized)
+          const potentialTemplates = allWorkflows.data.filter(workflow => {
+            const isTemplate = workflow.active && 
+                              !workflow.name.includes('[') && // Not already personalized
+                              (workflow.name.includes('CLINIC') || 
+                               workflow.name.includes('TEMPLATE') ||
+                               workflow.name.includes('BASE') ||
+                               workflow.name.includes('PET'));
+            return isTemplate;
+          });
+          
+          templateWorkflows = potentialTemplates;
+          console.log(`📋 Found ${templateWorkflows.length} potential template workflows:`, 
+                     templateWorkflows.map(w => w.name));
+        }
+      } catch (error) {
+        console.error('⚠️ Template pattern search failed:', error.message);
       }
     }
 
-    console.log(`📁 Found ${folderWorkflows.length} workflows in folder`);
+    if (templateWorkflows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No template workflows found',
+        details: 'Please provide valid template_ids or ensure template workflows exist and are active in n8n',
+        available_methods: [
+          'Provide template_ids array in request body',
+          'Ensure folder_id contains active workflows',
+          'Create active template workflows with names containing CLINIC, TEMPLATE, BASE, or PET'
+        ]
+      });
+    }
 
     const deployedWorkflows = [];
     const client_id = uuidv4();
 
-    // Process each workflow in the folder
-    for (const templateWorkflow of folderWorkflows) {
+    // Process each template workflow
+    for (const templateWorkflow of templateWorkflows) {
       try {
         console.log(`🔄 Processing workflow ${templateWorkflow.id} (${templateWorkflow.name})...`);
 
-        // Get the full workflow details
-        const originalWorkflow = await n8nClient.getWorkflow(templateWorkflow.id);
-
         // Create clean workflow data - exclude ALL read-only properties
         const personalizedWorkflow = {
-          name: `[${client_data.name}] ${originalWorkflow.name}`,
-          nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
-          connections: originalWorkflow.connections || {},
-          settings: originalWorkflow.settings || {},
-          staticData: originalWorkflow.staticData || {}
+          name: `[${client_data.name}] ${templateWorkflow.name}`,
+          nodes: personalizeWorkflowNodes(templateWorkflow.nodes || [], config_data, client_data),
+          connections: templateWorkflow.connections || {},
+          settings: templateWorkflow.settings || {},
+          staticData: templateWorkflow.staticData || {}
           // Explicitly exclude: id, active, versionId, createdAt, updatedAt, folderId, etc.
         };
 
         // Create new workflow
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-        console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${originalWorkflow.name})`);
+        console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${templateWorkflow.name})`);
 
         // Only try to activate if the workflow has trigger nodes
         const hasTrigger = personalizedWorkflow.nodes.some(node => 
-          node.type.includes('webhook') || 
-          node.type.includes('trigger') || 
-          node.type.includes('poll') ||
-          node.type.includes('cron')
+          node.type && (
+            node.type.includes('webhook') || 
+            node.type.includes('trigger') || 
+            node.type.includes('poll') ||
+            node.type.includes('cron')
+          )
         );
 
         if (hasTrigger) {
@@ -522,25 +549,27 @@ app.post('/api/etf/deploy', async (req, res) => {
             `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [deployment_id, client_id, templateWorkflow.id, newWorkflow.id, newWorkflow.name, 
-             'general', JSON.stringify(config_data)],
+             extractTaskforceType(templateWorkflow.name), JSON.stringify(config_data)],
             (err) => err ? reject(err) : resolve()
           );
         });
 
         deployedWorkflows.push({
           template_id: templateWorkflow.id,
+          template_name: templateWorkflow.name,
           workflow_id: newWorkflow.id,
           workflow_name: newWorkflow.name,
           deployment_id,
           webhook_url: extractWebhookUrl(personalizedWorkflow.nodes),
-          has_trigger: hasTrigger
+          has_trigger: hasTrigger,
+          success: true
         });
 
       } catch (workflowError) {
         console.error(`❌ Failed to process workflow ${templateWorkflow.id}:`, workflowError.message);
-        // Continue with other workflows
         deployedWorkflows.push({
           template_id: templateWorkflow.id,
+          template_name: templateWorkflow.name,
           error: workflowError.message,
           success: false
         });
@@ -552,25 +581,25 @@ app.post('/api/etf/deploy', async (req, res) => {
       etfDB.run(
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [client_id, client_data.name, client_data.email, client_data.name, 
-         'General', 'general'],
+        [client_id, client_data.name, client_data.email, client_data.company || client_data.name, 
+         client_data.industry || 'General', extractTaskforceType(templateWorkflows[0]?.name || 'general')],
         (err) => err ? reject(err) : resolve()
       );
     });
 
-    const successfulDeployments = deployedWorkflows.filter(w => !w.error);
-    const failedDeployments = deployedWorkflows.filter(w => w.error);
+    const successfulDeployments = deployedWorkflows.filter(w => w.success);
+    const failedDeployments = deployedWorkflows.filter(w => !w.success);
 
     res.json({
       success: successfulDeployments.length > 0,
       client_id: client_id,
-      folder_id: templateFolderId,
-      total_workflows: folderWorkflows.length,
+      total_workflows: templateWorkflows.length,
       successful_deployments: successfulDeployments.length,
       failed_deployments: failedDeployments.length,
       deployed_workflows: deployedWorkflows,
-      message: `Successfully deployed ${successfulDeployments.length}/${folderWorkflows.length} workflows from folder for ${client_data.name}`,
-      webhook_urls: successfulDeployments.map(w => w.webhook_url).filter(Boolean)
+      message: `Successfully deployed ${successfulDeployments.length}/${templateWorkflows.length} workflows for ${client_data.name}`,
+      webhook_urls: successfulDeployments.map(w => w.webhook_url).filter(Boolean),
+      template_workflows_used: templateWorkflows.map(w => ({ id: w.id, name: w.name }))
     });
 
   } catch (error) {
@@ -580,18 +609,8 @@ app.post('/api/etf/deploy', async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Provide specific error messages based on error type
-    let userMessage = 'ETF deployment failed';
-    if (error.message.includes('N8N_BASE_URL')) {
-      userMessage = 'ETF service configuration error';
-    } else if (error.message.includes('N8N_API_KEY')) {
-      userMessage = 'ETF service authentication error';
-    } else if (error.message.includes('timeout')) {
-      userMessage = 'ETF service timeout - please try again';
-    }
-
     res.status(500).json({ 
-      error: userMessage, 
+      error: 'ETF deployment failed', 
       details: error.message,
       success: false 
     });
