@@ -4,57 +4,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pet Clinic Taskforce - Setup | ERGOVIA-AI</title>
+    <title>Taskforce Setup | ERGOVIA-AI</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-        .onboard-container {
-            max-width: 800px;
+        .container {
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
         
-        .onboard-header {
+        .header {
             text-align: center;
             margin-bottom: 40px;
+            padding: 40px 0;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
+            border-radius: var(--radius);
         }
         
-        .onboard-header h1 {
-            color: var(--text-primary);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+            font-weight: 700;
         }
         
-        .onboard-steps {
-            display: flex;
-            justify-content: center;
+        .progress-container {
             margin-bottom: 40px;
+        }
+        
+        .progress-bar {
+            background: var(--bg-tertiary);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .progress-fill {
+            background: var(--accent-color);
+            height: 100%;
+            transition: width 0.3s ease;
+            width: 16.67%;
         }
         
         .step-indicator {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
         }
         
         .step-dot {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 16px;
             transition: all 0.3s ease;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
         }
         
         .step-dot.active {
@@ -67,23 +80,11 @@
             color: white;
         }
         
-        .step-dot:not(.active):not(.completed) {
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
-        }
-        
-        .step-line {
-            width: 50px;
-            height: 2px;
-            background: var(--border-color);
-        }
-        
-        .step-content {
+        .form-container {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
             padding: 40px;
-            margin-bottom: 30px;
         }
         
         .step {
@@ -91,6 +92,51 @@
         }
         
         .step.active {
+            display: block;
+        }
+        
+        .step-title {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .step-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+        
+        .taskforce-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .taskforce-card {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .taskforce-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        
+        .taskforce-card.selected {
+            border-color: var(--accent-color);
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .taskforce-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
             display: block;
         }
         
@@ -116,6 +162,7 @@
             color: var(--text-primary);
             font-size: 14px;
             transition: border-color 0.2s ease;
+            box-sizing: border-box;
         }
         
         .form-group input:focus,
@@ -143,6 +190,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 14px;
         }
         
         .btn-primary {
@@ -165,24 +213,23 @@
             background: var(--bg-secondary);
         }
         
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border-color);
-            border-top: 3px solid var(--accent-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+        .review-section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .review-section h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--text-primary);
         }
         
         .success-message {
@@ -191,126 +238,76 @@
         }
         
         .success-icon {
-            font-size: 48px;
+            font-size: 4rem;
             margin-bottom: 20px;
-            display: block;
-        }
-        
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .feature-card {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .feature-icon {
-            font-size: 24px;
-            margin-bottom: 12px;
             display: block;
         }
     </style>
 </head>
 <body>
-    <div class="onboard-container">
-        <div class="onboard-header">
-            <h1>
-                🐾 Pet Clinic Taskforce Setup
-            </h1>
-            <p>Set up your AI veterinary assistant in just a few minutes</p>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Taskforce Setup</h1>
+            <p>Deploy your personalized AI automation in minutes</p>
         </div>
-
-        <div class="onboard-steps">
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
             <div class="step-indicator">
-                <div class="step-dot active" id="dot-1">1</div>
-                <div class="step-line"></div>
-                <div class="step-dot" id="dot-2">2</div>
-                <div class="step-line"></div>
-                <div class="step-dot" id="dot-3">3</div>
-                <div class="step-line"></div>
-                <div class="step-dot" id="dot-4">4</div>
+                <div class="step-dot active" id="dot1">1</div>
+                <div class="step-dot" id="dot2">2</div>
+                <div class="step-dot" id="dot3">3</div>
+                <div class="step-dot" id="dot4">4</div>
+                <div class="step-dot" id="dot5">5</div>
+                <div class="step-dot" id="dot6">6</div>
             </div>
         </div>
-
-        <div class="step-content">
-            <!-- Step 1: Business Information -->
-            <div class="step active" id="step-1">
-                <h2>Clinic Information</h2>
-                <p>Tell us about your veterinary clinic so we can personalize your AI assistant.</p>
+        
+        <div class="form-container">
+            <!-- Step 1: Select Taskforce -->
+            <div class="step active" id="step1">
+                <h2 class="step-title">Choose Your Taskforce</h2>
+                <p class="step-subtitle">Select the AI automation that best fits your business needs</p>
                 
-                <div class="form-group">
-                    <label for="clinicName">Clinic Name *</label>
-                    <input type="text" id="clinicName" placeholder="e.g., Happy Paws Veterinary Clinic" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="ownerName">Owner/Manager Name *</label>
-                    <input type="text" id="ownerName" placeholder="Your full name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="email">Email Address *</label>
-                    <input type="email" id="email" placeholder="your@email.com" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="phone">Phone Number *</label>
-                    <input type="tel" id="phone" placeholder="(555) 123-4567" required>
+                <div class="taskforce-selector" id="taskforceOptions">
+                    <!-- Dynamic taskforce options will be loaded here -->
                 </div>
                 
                 <div class="navigation">
                     <a href="/taskforce.html" class="btn btn-secondary">
                         <i data-lucide="arrow-left"></i> Back to Taskforce
                     </a>
-                    <button class="btn btn-primary" onclick="nextStep()">
+                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn1" disabled>
                         Next Step <i data-lucide="arrow-right"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Step 2: Service Configuration -->
-            <div class="step" id="step-2">
-                <h2>Service Configuration</h2>
-                <p>Configure what services your AI assistant will help with.</p>
+            <!-- Step 2: Business Information -->
+            <div class="step" id="step2">
+                <h2 class="step-title">Business Information</h2>
+                <p class="step-subtitle">Tell us about your business so we can personalize your AI assistant</p>
                 
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <span class="feature-icon">📅</span>
-                        <h4>Appointment Booking</h4>
-                        <p>Automatically schedule appointments with clients</p>
-                    </div>
-                    <div class="feature-card">
-                        <span class="feature-icon">💬</span>
-                        <h4>Client Inquiries</h4>
-                        <p>Answer common questions about services and pricing</p>
-                    </div>
-                    <div class="feature-card">
-                        <span class="feature-icon">💉</span>
-                        <h4>Vaccination Reminders</h4>
-                        <p>Send automated reminders for pet vaccinations</p>
-                    </div>
-                    <div class="feature-card">
-                        <span class="feature-icon">🚨</span>
-                        <h4>Emergency Coordination</h4>
-                        <p>Handle urgent appointment requests</p>
-                    </div>
+                <div class="form-group">
+                    <label for="businessName">Business Name *</label>
+                    <input type="text" id="businessName" placeholder="Your business name" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="hours">Operating Hours</label>
-                    <textarea id="hours" rows="3" placeholder="Monday-Friday: 8:00 AM - 6:00 PM&#10;Saturday: 9:00 AM - 4:00 PM&#10;Sunday: Closed"></textarea>
+                    <label for="businessEmail">Business Email *</label>
+                    <input type="email" id="businessEmail" placeholder="your@business.com" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="services">Main Services (one per line)</label>
-                    <textarea id="services" rows="4" placeholder="General checkups&#10;Vaccinations&#10;Surgery&#10;Emergency care"></textarea>
+                    <label for="businessPhone">Business Phone *</label>
+                    <input type="tel" id="businessPhone" placeholder="(555) 123-4567" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="supportEmail">Support Email</label>
+                    <input type="email" id="supportEmail" placeholder="support@business.com">
                 </div>
                 
                 <div class="navigation">
@@ -323,10 +320,29 @@
                 </div>
             </div>
 
-            <!-- Step 3: Review & Confirm -->
-            <div class="step" id="step-3">
-                <h2>Review & Confirm</h2>
-                <p>Please review your information before deploying your AI assistant.</p>
+            <!-- Step 3: Taskforce Configuration -->
+            <div class="step" id="step3">
+                <h2 class="step-title">Configuration</h2>
+                <p class="step-subtitle">Configure your taskforce-specific settings</p>
+                
+                <div id="configFields">
+                    <!-- Dynamic configuration fields will be loaded here -->
+                </div>
+                
+                <div class="navigation">
+                    <button class="btn btn-secondary" onclick="prevStep()">
+                        <i data-lucide="arrow-left"></i> Previous
+                    </button>
+                    <button class="btn btn-primary" onclick="nextStep()">
+                        Next Step <i data-lucide="arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Review -->
+            <div class="step" id="step4">
+                <h2 class="step-title">Review & Confirm</h2>
+                <p class="step-subtitle">Please review your information before proceeding</p>
                 
                 <div id="reviewContent">
                     <!-- Review content will be populated by JavaScript -->
@@ -336,27 +352,22 @@
                     <button class="btn btn-secondary" onclick="prevStep()">
                         <i data-lucide="arrow-left"></i> Previous
                     </button>
-                    <button class="btn btn-primary" onclick="deployTaskforce()">
-                        Deploy My AI Assistant <i data-lucide="rocket"></i>
+                    <button class="btn btn-primary" onclick="nextStep()">
+                        Confirm Setup <i data-lucide="check"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Step 4: Success -->
-            <div class="step" id="step-4">
+            <!-- Step 5: Data Collection Complete -->
+            <div class="step" id="step5">
                 <div class="success-message">
-                    <span class="success-icon">🎉</span>
-                    <h2>Your Pet Clinic AI is Ready!</h2>
-                    <p>Your personalized AI veterinary assistant has been deployed and is now active.</p>
+                    <span class="success-icon">📋</span>
+                    <h2>Information Collected!</h2>
+                    <p>We have successfully gathered all the information needed for your taskforce setup.</p>
                     
                     <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px; margin: 20px 0; text-align: left;">
-                        <h4>Next Steps:</h4>
-                        <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li>Your AI assistant is now monitoring your clinic's communications</li>
-                            <li>It will automatically respond to appointment requests and inquiries</li>
-                            <li>You'll receive a setup guide via email within 24 hours</li>
-                            <li>Monthly billing of $30 will begin after your 7-day free trial</li>
-                        </ul>
+                        <h4>Collected Data Summary:</h4>
+                        <div id="finalSummary"></div>
                     </div>
                     
                     <button class="btn btn-primary" onclick="window.location.href='/taskforce.html'">
@@ -369,102 +380,287 @@
 
     <script>
         let currentStep = 1;
-        const totalSteps = 4;
+        const totalSteps = 5;
+        let selectedTaskforce = null;
         let clientData = {};
+        let configData = {};
 
-        function updateStepIndicator() {
+        // Taskforce definitions
+        const taskforceTypes = {
+            'dental': {
+                name: 'Dental Office Taskforce',
+                icon: '🦷',
+                description: 'AI front desk agent for appointment management and patient care',
+                config: [
+                    { key: 'office_hours', label: 'Office Hours', type: 'textarea', placeholder: 'Monday-Friday: 9AM-5PM' },
+                    { key: 'appointment_types', label: 'Appointment Types', type: 'textarea', placeholder: 'Cleaning, Checkup, Emergency' }
+                ]
+            },
+            'gym': {
+                name: 'Gym & Fitness Center Taskforce',
+                icon: '🏋️',
+                description: 'AI membership manager for lead generation and client engagement',
+                config: [
+                    { key: 'membership_types', label: 'Membership Types', type: 'textarea', placeholder: 'Basic, Premium, VIP' },
+                    { key: 'gym_hours', label: 'Gym Hours', type: 'textarea', placeholder: '24/7 or specific hours' }
+                ]
+            },
+            'contractors': {
+                name: 'Local Contractors Taskforce',
+                icon: '🔧',
+                description: 'AI office assistant for tradespeople and service appointments',
+                config: [
+                    { key: 'service_areas', label: 'Service Areas', type: 'textarea', placeholder: 'Plumbing, Electrical, HVAC' },
+                    { key: 'coverage_area', label: 'Coverage Area', type: 'text', placeholder: 'City or region served' }
+                ]
+            },
+            'tutoring': {
+                name: 'Tutoring & Review Centers Taskforce',
+                icon: '📚',
+                description: 'AI academic coordinator for class scheduling and parent communication',
+                config: [
+                    { key: 'subjects', label: 'Subjects Offered', type: 'textarea', placeholder: 'Math, Science, English' },
+                    { key: 'grade_levels', label: 'Grade Levels', type: 'text', placeholder: 'K-12, College' }
+                ]
+            },
+            'massage': {
+                name: 'Massage Therapy Clinic Taskforce',
+                icon: '💆',
+                description: 'AI receptionist for session booking and customer service',
+                config: [
+                    { key: 'therapy_types', label: 'Therapy Types', type: 'textarea', placeholder: 'Swedish, Deep Tissue, Hot Stone' },
+                    { key: 'session_lengths', label: 'Session Lengths', type: 'text', placeholder: '30min, 60min, 90min' }
+                ]
+            }
+        };
+
+        function updateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            const progress = (currentStep / totalSteps) * 100;
+            progressFill.style.width = `${progress}%`;
+
+            // Update step indicators
             for (let i = 1; i <= totalSteps; i++) {
-                const dot = document.getElementById(`dot-${i}`);
-                const step = document.getElementById(`step-${i}`);
+                const dot = document.getElementById(`dot${i}`);
+                const step = document.getElementById(`step${i}`);
                 
                 if (i < currentStep) {
                     dot.className = 'step-dot completed';
+                    dot.innerHTML = '✓';
                 } else if (i === currentStep) {
                     dot.className = 'step-dot active';
+                    dot.innerHTML = i;
                 } else {
                     dot.className = 'step-dot';
+                    dot.innerHTML = i;
                 }
                 
                 step.classList.toggle('active', i === currentStep);
             }
         }
 
-        function nextStep() {
+        function detectTaskforceType() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskforceParam = urlParams.get('type');
+            
+            if (taskforceParam && taskforceTypes[taskforceParam]) {
+                selectedTaskforce = taskforceParam;
+                setTimeout(() => {
+                    selectTaskforce(taskforceParam);
+                }, 500);
+            }
+        }
+
+        function loadTaskforceOptions() {
+            const container = document.getElementById('taskforceOptions');
+            
+            Object.entries(taskforceTypes).forEach(([key, taskforce]) => {
+                const card = document.createElement('div');
+                card.className = 'taskforce-card';
+                card.onclick = () => selectTaskforce(key);
+                
+                card.innerHTML = `
+                    <span class="taskforce-icon">${taskforce.icon}</span>
+                    <h3>${taskforce.name}</h3>
+                    <p>${taskforce.description}</p>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function selectTaskforce(taskforceKey) {
+            selectedTaskforce = taskforceKey;
+            
+            // Update UI
+            document.querySelectorAll('.taskforce-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event?.target?.closest('.taskforce-card')?.classList.add('selected');
+            
+            // Enable next button
+            document.getElementById('nextBtn1').disabled = false;
+        }
+
+        function loadConfigFields() {
+            if (!selectedTaskforce) return;
+            
+            const container = document.getElementById('configFields');
+            const taskforce = taskforceTypes[selectedTaskforce];
+            
+            container.innerHTML = '';
+            
+            taskforce.config.forEach(field => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                
+                let inputElement = '';
+                if (field.type === 'textarea') {
+                    inputElement = `<textarea id="${field.key}" placeholder="${field.placeholder || ''}" rows="3"></textarea>`;
+                } else {
+                    inputElement = `<input type="${field.type}" id="${field.key}" placeholder="${field.placeholder || ''}">`;
+                }
+                
+                formGroup.innerHTML = `
+                    <label for="${field.key}">${field.label}</label>
+                    ${inputElement}
+                `;
+                
+                container.appendChild(formGroup);
+            });
+        }
+
+        function collectClientData() {
+            clientData = {
+                business_name: document.getElementById('businessName').value,
+                business_email: document.getElementById('businessEmail').value,
+                business_phone: document.getElementById('businessPhone').value,
+                support_email: document.getElementById('supportEmail').value
+            };
+        }
+
+        function collectConfigData() {
+            if (!selectedTaskforce) return;
+            
+            const taskforce = taskforceTypes[selectedTaskforce];
+            configData = {};
+            
+            taskforce.config.forEach(field => {
+                const element = document.getElementById(field.key);
+                if (element) {
+                    configData[field.key] = element.value;
+                }
+            });
+        }
+
+        function showReview() {
+            const reviewContent = document.getElementById('reviewContent');
+            const taskforce = taskforceTypes[selectedTaskforce];
+            
+            let configHTML = '';
+            if (taskforce && taskforce.config) {
+                taskforce.config.forEach(field => {
+                    const value = configData[field.key] || 'Not specified';
+                    configHTML += `<p><strong>${field.label}:</strong> ${value.replace(/\n/g, '<br>')}</p>`;
+                });
+            }
+            
+            reviewContent.innerHTML = `
+                <div class="review-section">
+                    <h4>Selected Taskforce:</h4>
+                    <p><strong>${taskforce.name}</strong></p>
+                    <p>${taskforce.description}</p>
+                </div>
+                
+                <div class="review-section">
+                    <h4>Business Information:</h4>
+                    <p><strong>Business Name:</strong> ${clientData.business_name}</p>
+                    <p><strong>Business Email:</strong> ${clientData.business_email}</p>
+                    <p><strong>Business Phone:</strong> ${clientData.business_phone}</p>
+                    <p><strong>Support Email:</strong> ${clientData.support_email || 'Not specified'}</p>
+                </div>
+                
+                <div class="review-section">
+                    <h4>Configuration:</h4>
+                    ${configHTML}
+                </div>
+            `;
+        }
+
+        function showFinalSummary() {
+            const summaryContainer = document.getElementById('finalSummary');
+            const taskforce = taskforceTypes[selectedTaskforce];
+            
+            summaryContainer.innerHTML = `
+                <p><strong>Taskforce Type:</strong> ${taskforce.name}</p>
+                <p><strong>Business:</strong> ${clientData.business_name}</p>
+                <p><strong>Contact:</strong> ${clientData.business_email}</p>
+                <p><strong>Data Collection Date:</strong> ${new Date().toLocaleDateString()}</p>
+            `;
+        }
+
+        function validateStep() {
             if (currentStep === 1) {
-                // Validate required fields
-                const requiredFields = ['clinicName', 'ownerName', 'email', 'phone'];
+                return selectedTaskforce !== null;
+            }
+            
+            if (currentStep === 2) {
+                const requiredFields = ['businessName', 'businessEmail', 'businessPhone'];
                 for (const field of requiredFields) {
                     const input = document.getElementById(field);
                     if (!input.value.trim()) {
                         input.focus();
                         alert(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
-                        return;
+                        return false;
                     }
                 }
-                
-                // Store data
-                clientData.clinicName = document.getElementById('clinicName').value;
-                clientData.ownerName = document.getElementById('ownerName').value;
-                clientData.email = document.getElementById('email').value;
-                clientData.phone = document.getElementById('phone').value;
+                return true;
             }
             
+            return true;
+        }
+
+        function nextStep() {
+            if (!validateStep()) return;
+            
             if (currentStep === 2) {
-                // Store service configuration
-                clientData.hours = document.getElementById('hours').value;
-                clientData.services = document.getElementById('services').value;
-                
-                // Show review
+                collectClientData();
+                loadConfigFields();
+            }
+            
+            if (currentStep === 3) {
+                collectConfigData();
                 showReview();
             }
             
-            if (currentStep < totalSteps && currentStep !== 3) {
+            if (currentStep === 4) {
+                showFinalSummary();
+                console.log('Data collection complete:', {
+                    taskforce: selectedTaskforce,
+                    client: clientData,
+                    config: configData
+                });
+            }
+            
+            if (currentStep < totalSteps) {
                 currentStep++;
-                updateStepIndicator();
+                updateProgress();
             }
         }
 
         function prevStep() {
             if (currentStep > 1) {
                 currentStep--;
-                updateStepIndicator();
+                updateProgress();
             }
-        }
-
-        function showReview() {
-            const reviewContent = document.getElementById('reviewContent');
-            reviewContent.innerHTML = `
-                <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px;">
-                    <h4>Clinic Information:</h4>
-                    <p><strong>Name:</strong> ${clientData.clinicName}</p>
-                    <p><strong>Owner:</strong> ${clientData.ownerName}</p>
-                    <p><strong>Email:</strong> ${clientData.email}</p>
-                    <p><strong>Phone:</strong> ${clientData.phone}</p>
-                    
-                    <h4 style="margin-top: 20px;">Service Configuration:</h4>
-                    <p><strong>Hours:</strong><br>${(clientData.hours || 'Not specified').replace(/\n/g, '<br>')}</p>
-                    <p><strong>Services:</strong><br>${(clientData.services || 'Not specified').replace(/\n/g, '<br>')}</p>
-                </div>
-            `;
-        }
-
-        function deployTaskforce() {
-            currentStep = 4;
-            updateStepIndicator();
-            
-            // In a real implementation, this would send data to your backend
-            console.log('Deploying taskforce with data:', clientData);
-            
-            // Simulate deployment process
-            setTimeout(() => {
-                console.log('Pet Clinic AI Assistant deployed successfully!');
-            }, 2000);
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            updateStepIndicator();
+            detectTaskforceType();
+            loadTaskforceOptions();
+            updateProgress();
         });
     </script>
 </body>
