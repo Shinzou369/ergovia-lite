@@ -358,7 +358,8 @@ app.get('/api/etf/templates', async (req, res) => {
         id: workflow.id,
         name: workflow.name,
         description: `ETF automation workflow: ${workflow.name}`,
-        taskforce_type: extractTaskforceType(workflow.name),
+        taskforce_type: extractTaskforceType(workflow.name, workflow.tags),
+        tags: workflow.tags || [],
         config_fields: analyzeWorkflowConfig(workflow),
         created_at: workflow.createdAt,
         updated_at: workflow.updatedAt
@@ -1473,24 +1474,67 @@ app.use((err, req, res, next) => {
 // ETF Helper Functions
 // ========================================
 
-function extractTaskforceType(workflowName) {
+function extractTaskforceType(workflowName, workflowTags = []) {
   const name = workflowName.toLowerCase();
+  const tags = workflowTags.map(tag => tag.toLowerCase()).join(' ');
+  
+  // Check tags first for more accurate classification
+  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'dental';
+  if (tags.includes('dental') || tags.includes('clinic')) return 'dental';
+  if (tags.includes('gym') || tags.includes('fitness') || tags.includes('workout')) return 'gym';
+  if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
+  if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
+  if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
+  
+  // Fallback to name-based detection
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
   if (name.includes('gym') || name.includes('fitness')) return 'gym';
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
+  
   return 'general';
 }
 
 function analyzeWorkflowConfig(workflow) {
+  // Extract tags from N8N workflow metadata
+  const workflowTags = workflow.tags || [];
+  const workflowNotes = workflow.notes || '';
+  const customFields = [];
+  
+  // Parse custom fields from workflow tags or notes
+  workflowTags.forEach(tag => {
+    // Check for custom field definitions in tags like "field:appointment_types"
+    if (tag.startsWith('field:')) {
+      const fieldKey = tag.replace('field:', '');
+      customFields.push({
+        key: fieldKey,
+        label: fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        type: 'textarea',
+        required: false
+      });
+    }
+    
+    // Check for specific pet clinic tags
+    if (tag.includes('veterinary') || tag.includes('pet') || tag.includes('clinic')) {
+      customFields.push(
+        { key: 'clinic_hours', label: 'Clinic Hours', type: 'textarea', placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM' },
+        { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Vaccinations, Surgery, Dental Care, Emergency' },
+        { key: 'emergency_hours', label: 'Emergency Hours', type: 'text', placeholder: 'After hours emergency contact' }
+      );
+    }
+  });
+  
   // Standard configuration fields for all ETF workflows
-  return [
+  const standardFields = [
     { key: 'business_name', label: 'Business Name', type: 'text', required: true },
     { key: 'business_email', label: 'Business Email', type: 'email', required: true },
     { key: 'business_phone', label: 'Business Phone', type: 'tel', required: true },
     { key: 'support_email', label: 'Support Email', type: 'email', required: false }
   ];
+  
+  // Combine standard fields with custom fields from tags
+  return [...standardFields, ...customFields];
 }
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
