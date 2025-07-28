@@ -81,34 +81,64 @@ class N8NApiClient {
   // Create or get tag first, then update workflow with tags
   async createTag(tagName) {
     try {
+      // First check if tag already exists
+      const tagsResponse = await this.makeRequest('GET', '/tags');
+      const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
+      const existingTag = tags.find(tag => tag.name === tagName);
+      
+      if (existingTag) {
+        console.log(`✅ Tag "${tagName}" already exists`);
+        return existingTag;
+      }
+      
+      // Tag doesn't exist, create it
+      console.log(`🔄 Creating new tag: "${tagName}"`);
       return await this.makeRequest('POST', '/tags', { name: tagName });
     } catch (error) {
-      if (error.message.includes('409') || error.message.includes('Tag already exists')) {
-        // Tag already exists, try to get it
-        const tagsResponse = await this.makeRequest('GET', '/tags');
-        // Handle both array response and object with data property
-        const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
-        const existingTag = tags.find(tag => tag.name === tagName);
-        if (existingTag) {
-          return existingTag;
-        }
-      }
+      console.error(`❌ Error with tag "${tagName}":`, error.message);
       throw error;
     }
   }
 
   async updateWorkflowTags(workflowId, tags) {
-    // N8N expects an array of tag names (strings), not tag objects
-    const tagNames = Array.isArray(tags) ? tags.map(tag => {
+    // N8N expects an array of tag objects with 'name' property
+    const tagObjects = Array.isArray(tags) ? tags.map(tag => {
       if (typeof tag === 'string') {
-        return tag;
+        return { name: tag };
       } else if (typeof tag === 'object' && tag.name) {
-        return tag.name;
+        return { name: tag.name };
       }
-      return String(tag);
+      return { name: String(tag) };
     }) : [];
 
-    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagNames);
+    console.log(`🏷️ Applying tags to workflow ${workflowId}:`, tagObjects);
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagObjects);
+  }
+
+  // Helper method to check if workflow can be activated
+  async canActivateWorkflow(workflowId) {
+    try {
+      const workflow = await this.getWorkflow(workflowId);
+      const nodes = workflow.nodes || [];
+      
+      // Check for trigger, poller, or webhook nodes
+      const hasTriggerNode = nodes.some(node => {
+        const nodeType = node.type?.toLowerCase() || '';
+        return (
+          nodeType.includes('trigger') ||
+          nodeType.includes('webhook') ||
+          nodeType.includes('poller') ||
+          nodeType.includes('manual') ||
+          nodeType.includes('cron') ||
+          nodeType.includes('interval')
+        );
+      });
+      
+      return hasTriggerNode;
+    } catch (error) {
+      console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
+      return false;
+    }
   }
 }
 
@@ -475,21 +505,26 @@ app.post('/api/etf/deploy', async (req, res) => {
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
-        // Add tag to the workflow using correct API sequence
+        // Add tag to the workflow using improved API sequence
         try {
           const tagName = `PET[${client_data.name}]`;
           const tag = await n8nClient.createTag(tagName);
           await n8nClient.updateWorkflowTags(newWorkflow.id, [tagName]);
-          console.log(`✅ Tag ${tagName} added to workflow ${newWorkflow.id}`);
+          console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
         } catch (tagError) {
           console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
           // Continue - workflow creation succeeded even if tagging failed
         }
 
-        // Try to activate the workflow (but continue if activation fails)
+        // Check if workflow can be activated before attempting activation
         try {
-          await n8nClient.activateWorkflow(newWorkflow.id);
-          console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
+          if (canActivate) {
+            await n8nClient.activateWorkflow(newWorkflow.id);
+            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+          } else {
+            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+          }
         } catch (activationError) {
           console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
           // Continue with next workflow instead of failing completely
