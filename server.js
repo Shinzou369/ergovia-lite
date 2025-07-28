@@ -49,7 +49,9 @@ class N8NApiClient {
 
   async makeRequest(method, endpoint, data = null) {
     try {
-      const fullUrl = `${this.baseURL}/api/v1${endpoint}`;
+      // Ensure proper URL construction without double slashes
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      const fullUrl = `${this.baseURL}/api/v1${cleanEndpoint}`;
       console.log(`Making N8N API request: ${method} ${fullUrl}`);
 
       const config = {
