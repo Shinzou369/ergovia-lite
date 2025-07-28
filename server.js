@@ -101,9 +101,9 @@ class N8NApiClient {
   }
 
   async updateWorkflowTags(workflowId, tags) {
-    // N8N expects an array of tag IDs (strings), not full tag objects
-    // First, we need to get the actual tag IDs from N8N
-    const tagIds = [];
+    // N8N expects an array of tag objects with both 'id' and 'name' properties
+    // First, we need to get the actual tag objects with their IDs from N8N
+    const tagObjects = [];
     
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagName;
@@ -121,19 +121,22 @@ class N8NApiClient {
         const allTags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
         const existingTag = allTags.find(t => t.name === tagName);
         
-        if (existingTag && existingTag.id) {
-          tagIds.push(existingTag.id);
+        if (existingTag && existingTag.id && existingTag.name) {
+          tagObjects.push({
+            id: existingTag.id,
+            name: existingTag.name
+          });
           console.log(`✅ Found tag "${tagName}" with ID: ${existingTag.id}`);
         } else {
-          console.warn(`⚠️ Tag "${tagName}" not found or missing ID`);
+          console.warn(`⚠️ Tag "${tagName}" not found or missing ID/name`);
         }
       } catch (error) {
         console.error(`❌ Error getting tag "${tagName}":`, error.message);
       }
     }
 
-    console.log(`🏷️ Applying tag IDs to workflow ${workflowId}:`, tagIds);
-    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagIds);
+    console.log(`🏷️ Applying tag objects to workflow ${workflowId}:`, tagObjects);
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagObjects);
   }
 
   // Helper method to check if workflow can be activated
