@@ -381,32 +381,72 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // Use the provided folder ID or default to the Pet Clinic Template folder
     const templateFolderId = folder_id || 'OTkgImaRhmTXepG3';
-    
+
     console.log(`🚀 Duplicating folder ${templateFolderId} for ${client_data.name}`);
 
-    // Get all workflows from the specified folder
-    const allWorkflows = await n8nClient.getWorkflows();
-    console.log(`📋 Total workflows found: ${allWorkflows.data ? allWorkflows.data.length : 0}`);
-    
-    // Debug: Show all workflows and their folder assignments
-    if (allWorkflows.data) {
-      allWorkflows.data.forEach(wf => {
-        console.log(`🔍 Workflow: ${wf.name} | Folder: ${wf.folderId || 'No folder'} | Active: ${wf.active}`);
-      });
-    }
-    
-    const folderWorkflows = allWorkflows.data ? 
-      allWorkflows.data.filter(workflow => 
-        workflow.folderId === templateFolderId && workflow.active === true
-      ) : [];
+    // Try to get workflows directly from the folder using n8n folder API
+    let folderWorkflows = [];
+    console.log(`🔍 Attempting to fetch workflows from folder: ${templateFolderId}`);
 
-    console.log(`📁 Workflows in folder ${templateFolderId}: ${folderWorkflows.length}`);
-    
+    try {
+      // Try folder-specific API endpoint first
+      const folderResponse = await n8nClient.makeRequest('GET', `/workflows?folder=${templateFolderId}`);
+      if (folderResponse.data && folderResponse.data.length > 0) {
+        folderWorkflows = folderResponse.data.filter(workflow => workflow.active === true);
+        console.log(`📁 Found ${folderWorkflows.length} active workflows via folder API`);
+      }
+    } catch (folderError) {
+      console.log('⚠️ Folder API not available, trying alternative methods');
+    }
+
+    // If folder API didn't work, try project-based approach
+    if (folderWorkflows.length === 0) {
+      try {
+        const projectId = 'odntzCjg5yMWuwan';
+        console.log(`🔍 Attempting project-specific API call for project: ${projectId}`);
+
+        // Try project workflows endpoint
+        const projectWorkflows = await n8nClient.makeRequest('GET', `/projects/${projectId}/workflows`);
+        if (projectWorkflows.data) {
+          folderWorkflows = projectWorkflows.data.filter(workflow => 
+            (workflow.folderId === templateFolderId || workflow.parentId === templateFolderId) && 
+            workflow.active === true
+          );
+          console.log(`📁 Found ${folderWorkflows.length} workflows in project folder`);
+        }
+      } catch (projectError) {
+        console.log('⚠️ Project API not available, falling back to general workflow search');
+      }
+    }
+
+    // Final fallback: get all workflows and filter
+    if (folderWorkflows.length === 0) {
+      console.log('🔍 Using fallback method: fetching all workflows');
+      const allWorkflows = await n8nClient.getWorkflows();
+      console.log(`📋 Total workflows found: ${allWorkflows.data ? allWorkflows.data.length : 0}`);
+
+      // Debug: Show all workflows and their folder assignments
+      if (allWorkflows.data) {
+        allWorkflows.data.forEach(wf => {
+          console.log(`🔍 Workflow: ${wf.name} | Folder: ${wf.folderId || wf.parentId || 'No folder'} | Active: ${wf.active}`);
+        });
+      }
+
+      folderWorkflows = allWorkflows.data ? 
+        allWorkflows.data.filter(workflow => 
+          (workflow.folderId === templateFolderId || workflow.parentId === templateFolderId) && 
+          workflow.active === true
+        ) : [];
+    }
+
+    console.log(`📁 Final result: ${folderWorkflows.length} active workflows in folder ${templateFolderId}`);
+
     if (folderWorkflows.length === 0) {
       // Check if folder exists with inactive workflows
+      const allWorkflows = await n8nClient.getWorkflows();
       const inactiveFolderWorkflows = allWorkflows.data ? 
-        allWorkflows.data.filter(workflow => workflow.folderId === templateFolderId) : [];
-      
+        allWorkflows.data.filter(workflow => (workflow.folderId === templateFolderId || workflow.parentId === templateFolderId)) : [];
+
       if (inactiveFolderWorkflows.length > 0) {
         throw new Error(`Found ${inactiveFolderWorkflows.length} workflows in folder ${templateFolderId}, but none are active. Please activate the template workflows in n8n.`);
       } else {
@@ -525,7 +565,7 @@ app.post('/api/etf/deploy', async (req, res) => {
       client: req.body.client_data?.name,
       timestamp: new Date().toISOString()
     });
-    
+
     // Provide specific error messages based on error type
     let userMessage = 'ETF deployment failed';
     if (error.message.includes('N8N_BASE_URL')) {
@@ -535,7 +575,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     } else if (error.message.includes('timeout')) {
       userMessage = 'ETF service timeout - please try again';
     }
-    
+
     res.status(500).json({ 
       error: userMessage, 
       details: error.message,
@@ -574,7 +614,7 @@ app.get('/api/etf/stats', (req, res) => {
 app.get('/api/etf/test-n8n', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
-    
+
     // Group workflows by folder for debugging
     const folderGroups = {};
     if (workflows.data) {
@@ -590,7 +630,7 @@ app.get('/api/etf/test-n8n', async (req, res) => {
         });
       });
     }
-    
+
     res.json({ 
       success: true, 
       message: 'N8N connection successful',
