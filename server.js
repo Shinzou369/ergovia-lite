@@ -17,7 +17,13 @@ const crypto = require('crypto');
 // ========================================
 // ETF Integration - N8N Configuration
 // ========================================
-const N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n-app-gvq5.onrender.com';
+let N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n-app-gvq5.onrender.com';
+
+// Ensure URL has proper protocol
+if (N8N_BASE_URL && !N8N_BASE_URL.startsWith('http://') && !N8N_BASE_URL.startsWith('https://')) {
+  N8N_BASE_URL = 'https://' + N8N_BASE_URL;
+}
+
 const N8N_API_KEY = process.env.N8N_API_KEY || '';
 
 // N8N API Helper Class
