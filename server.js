@@ -357,11 +357,19 @@ app.get('/api/etf/templates', async (req, res) => {
       workflows.data.filter(workflow => {
         const workflowTags = workflow.tags || [];
         // Check if workflow has "PET CLINIC" tag (case insensitive)
-        const hasPetClinicTag = workflowTags.some(tag => 
-          tag.toLowerCase().includes('pet clinic') || 
-          tag.toLowerCase().includes('pet-clinic') ||
-          tag.toLowerCase().includes('petclinic')
-        );
+        const hasPetClinicTag = Array.isArray(workflowTags) && workflowTags.some(tag => {
+          if (typeof tag === 'string') {
+            return tag.toLowerCase().includes('pet clinic') || 
+                   tag.toLowerCase().includes('pet-clinic') ||
+                   tag.toLowerCase().includes('petclinic');
+          } else if (tag && typeof tag === 'object' && tag.name) {
+            // Handle N8N tag objects with name property
+            return tag.name.toLowerCase().includes('pet clinic') || 
+                   tag.name.toLowerCase().includes('pet-clinic') ||
+                   tag.name.toLowerCase().includes('petclinic');
+          }
+          return false;
+        });
         return hasPetClinicTag && workflow.active === true;
       }).map(workflow => ({
         id: workflow.id,
@@ -395,11 +403,19 @@ app.post('/api/etf/deploy', async (req, res) => {
       const petClinicWorkflow = workflows.data ? 
         workflows.data.find(workflow => {
           const workflowTags = workflow.tags || [];
-          return workflowTags.some(tag => 
-            tag.toLowerCase().includes('pet clinic') || 
-            tag.toLowerCase().includes('pet-clinic') ||
-            tag.toLowerCase().includes('petclinic')
-          ) && workflow.active === true;
+          return Array.isArray(workflowTags) && workflowTags.some(tag => {
+            if (typeof tag === 'string') {
+              return tag.toLowerCase().includes('pet clinic') || 
+                     tag.toLowerCase().includes('pet-clinic') ||
+                     tag.toLowerCase().includes('petclinic');
+            } else if (tag && typeof tag === 'object' && tag.name) {
+              // Handle N8N tag objects with name property
+              return tag.name.toLowerCase().includes('pet clinic') || 
+                     tag.name.toLowerCase().includes('pet-clinic') ||
+                     tag.name.toLowerCase().includes('petclinic');
+            }
+            return false;
+          }) && workflow.active === true;
         }) : null;
 
       if (!petClinicWorkflow) {
@@ -556,11 +572,19 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
         name: workflow.name,
         active: workflow.active,
         tags: workflow.tags || [],
-        hasPetClinicTag: (workflow.tags || []).some(tag => 
-          tag.toLowerCase().includes('pet clinic') || 
-          tag.toLowerCase().includes('pet-clinic') ||
-          tag.toLowerCase().includes('petclinic')
-        )
+        hasPetClinicTag: Array.isArray(workflow.tags) && workflow.tags.some(tag => {
+          if (typeof tag === 'string') {
+            return tag.toLowerCase().includes('pet clinic') || 
+                   tag.toLowerCase().includes('pet-clinic') ||
+                   tag.toLowerCase().includes('petclinic');
+          } else if (tag && typeof tag === 'object' && tag.name) {
+            // Handle N8N tag objects with name property
+            return tag.name.toLowerCase().includes('pet clinic') || 
+                   tag.name.toLowerCase().includes('pet-clinic') ||
+                   tag.name.toLowerCase().includes('petclinic');
+          }
+          return false;
+        })
       })) : [];
 
     res.json({
@@ -1542,7 +1566,14 @@ app.use((err, req, res, next) => {
 
 function extractTaskforceType(workflowName, workflowTags = []) {
   const name = workflowName.toLowerCase();
-  const tags = workflowTags.map(tag => tag.toLowerCase()).join(' ');
+  const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
+    if (typeof tag === 'string') {
+      return tag.toLowerCase();
+    } else if (tag && typeof tag === 'object' && tag.name) {
+      return tag.name.toLowerCase();
+    }
+    return '';
+  }).join(' ') : '';
   
   // Check tags first for more accurate classification
   if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'dental';
