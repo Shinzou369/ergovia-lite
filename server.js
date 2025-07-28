@@ -1,6 +1,3 @@
-I will update the code to remove the folder ID dependency and simplify PET CLINIC tag detection when deploying ETF workflows, ensuring only workflows with the "PET CLINIC" tag are considered and avoiding duplication of client workflows.
-```
-```replit_final_file
 require('dotenv').config();
 const express = require("express");
 const path = require("path");
@@ -88,15 +85,15 @@ class N8NApiClient {
     // Fetch all workflows and filter by tags
     return await this.makeRequest('GET', '/api/v1/workflows');
   }
-
+  
   async getWorkflow(id) { 
     return await this.makeRequest('GET', `/projects/${this.projectId}/workflows/${id}`); 
   }
-
+  
   async createWorkflow(workflowData) { 
     return await this.makeRequest('POST', `/projects/${this.projectId}/workflows`, workflowData); 
   }
-
+  
   async activateWorkflow(id) { 
     return await this.makeRequest('POST', `/projects/${this.projectId}/workflows/${id}/activate`); 
   }
@@ -110,7 +107,7 @@ class N8NApiClient {
   async getWorkflowsByTags(tags) {
     const allWorkflows = await this.getWorkflows();
     const workflows = allWorkflows.data || allWorkflows;
-
+    
     if (!Array.isArray(workflows)) {
       return [];
     }
@@ -132,7 +129,7 @@ class N8NApiClient {
   async getFolderWorkflows(folderPath) {
     const allWorkflows = await this.getWorkflows();
     const workflows = allWorkflows.data || allWorkflows;
-
+    
     if (!Array.isArray(workflows)) {
       return [];
     }
@@ -140,7 +137,7 @@ class N8NApiClient {
     // Convert folder path to expected tags
     // e.g., "PETCLINIC/ApptSys" becomes ["PETCLINIC", "ApptSys"]
     const expectedTags = folderPath.split('/').filter(tag => tag.length > 0);
-
+    
     return workflows.filter(workflow => {
       const workflowTags = workflow.tags || [];
       // Check if workflow has all the folder tags
@@ -444,11 +441,11 @@ app.get('/api/etf/templates', async (req, res) => {
 
     workflowList.forEach(workflow => {
       const workflowTags = workflow.tags || [];
-
+      
       if (workflowTags.length > 0) {
         // Use the first tag as the primary folder
         const primaryFolder = workflowTags[0];
-
+        
         if (!folderGroups[primaryFolder]) {
           folderGroups[primaryFolder] = {
             id: primaryFolder,
@@ -506,24 +503,17 @@ app.get('/api/etf/templates', async (req, res) => {
 
     // Add tag-based templates for PET CLINIC workflows
     const petClinicWorkflows = workflowList.filter(workflow => {
-      const workflowTags = workflow.tags || [];
-
-      // Only look for workflows that have "PET CLINIC" in their tags
-      const hasClinicTag = workflowTags.some(tag => {
-        if (typeof tag === 'string') {
-          return tag.toUpperCase().includes('PET CLINIC');
-        } else if (tag && typeof tag === 'object' && tag.name) {
-          return tag.name.toUpperCase().includes('PET CLINIC');
-        }
-        return false;
-      });
-
-      // Only include workflows that are active, have the PET CLINIC tag, 
-      // and don't already have a client name in brackets (to avoid duplicating client workflows)
       const workflowName = workflow.name || '';
-      const isNotClientWorkflow = !workflowName.includes('[') || !workflowName.includes(']');
-
-      return hasClinicTag && workflow.active === true && isNotClientWorkflow;
+      const workflowTags = workflow.tags || [];
+      
+      const nameMatch = workflowName.toUpperCase().includes('PET CLINIC');
+      const tagMatch = workflowTags.some(tag => 
+        typeof tag === 'string' && tag.toUpperCase().includes('PET CLINIC')
+      );
+      
+      return (nameMatch || tagMatch) && 
+             workflow.active && 
+             !workflowName.includes('[');
     });
 
     const petClinicTemplates = petClinicWorkflows.length > 0 ? [{
@@ -588,35 +578,37 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Handle tag-based workflow duplication
     if (template_type === 'tag' || template_type === 'folder') {
       console.log(`🏷️ Processing tag-based template: ${template_id}`);
-
+      
       try {
         // Get all workflows and filter by tag
         const allWorkflows = await n8nClient.getWorkflows();
         const workflows = allWorkflows.data || allWorkflows;
-
+        
         templateWorkflows = workflows.filter(workflow => {
-          const workflowTags = workflow.tags || [];
-
-          // Only look for workflows that have "PET CLINIC" in their tags
-          const hasClinicTag = workflowTags.some(tag => {
-            if (typeof tag === 'string') {
-              return tag.toUpperCase().includes('PET CLINIC');
-            } else if (tag && typeof tag === 'object' && tag.name) {
-              return tag.name.toUpperCase().includes('PET CLINIC');
-            }
-            return false;
-          });
-
-          // Only include workflows that are active, have the PET CLINIC tag, 
-          // and don't already have a client name in brackets (to avoid duplicating client workflows)
           const workflowName = workflow.name || '';
-          const isNotClientWorkflow = !workflowName.includes('[') || !workflowName.includes(']');
-
-          return hasClinicTag && workflow.active === true && isNotClientWorkflow;
+          const workflowTags = workflow.tags || [];
+          
+          // For PET CLINIC specifically, look for workflows with "PET CLINIC" in the name
+          if (template_id === 'OTkgImaRhmTXepG3' || template_id.toUpperCase().includes('PET')) {
+            const nameMatch = workflowName.toUpperCase().includes('PET CLINIC');
+            const tagMatch = workflowTags.some(tag => 
+              typeof tag === 'string' && tag.toUpperCase().includes('PET CLINIC')
+            );
+            return (nameMatch || tagMatch) && workflow.active === true;
+          }
+          
+          // For other templates, check if workflow name contains the template_id
+          // or if it has the template_id as a tag
+          const nameMatch = workflowName.toUpperCase().includes(template_id.toUpperCase());
+          const tagMatch = workflowTags.some(tag => 
+            typeof tag === 'string' && tag.toUpperCase().includes(template_id.toUpperCase())
+          );
+          
+          return (nameMatch || tagMatch) && workflow.active === true;
         });
-
+        
         console.log(`🏷️ Found ${templateWorkflows.length} active workflows matching: ${template_id}`);
-
+        
         // Log the found workflows for debugging
         templateWorkflows.forEach(wf => {
           console.log(`  - ${wf.name} (ID: ${wf.id}, Tags: ${JSON.stringify(wf.tags || [])})`);
@@ -634,7 +626,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Handle individual workflow duplication
     else {
       console.log(`🔄 Processing individual workflow template: ${template_id}`);
-
+      
       try {
         const workflow = await n8nClient.getWorkflow(template_id);
         if (workflow.active) {
@@ -680,7 +672,7 @@ app.post('/api/etf/deploy', async (req, res) => {
         // Create clean workflow data with client tags
         const clientTags = [`CLIENT_${client_data.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`];
         const originalTags = templateWorkflow.tags || [];
-
+        
         const personalizedWorkflow = {
           name: `[${client_data.name}] ${templateWorkflow.name}`,
           nodes: personalizeWorkflowNodes(templateWorkflow.nodes || [], config_data, client_data),
@@ -844,7 +836,7 @@ app.get('/api/etf/check-n8n-url', async (req, res) => {
         },
         timeout: 10000
       });
-
+      
       investigation.url_tests.project_workflows = {
         success: true,
         status: response.status,
@@ -865,12 +857,11 @@ app.get('/api/etf/check-n8n-url', async (req, res) => {
       const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects/${projectId}/folders/${folderId}/workflows`, {
         headers: {
           'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'```tool_code
           'Content-Type': 'application/json'
         },
         timeout: 10000
       });
-
+      
       investigation.url_tests.project_folder_workflows = {
         success: true,
         status: response.status,
@@ -895,7 +886,7 @@ app.get('/api/etf/check-n8n-url', async (req, res) => {
         },
         timeout: 10000
       });
-
+      
       investigation.url_tests.projects_list = {
         success: true,
         status: response.status,
@@ -918,7 +909,7 @@ app.get('/api/etf/check-n8n-url', async (req, res) => {
         },
         timeout: 10000
       });
-
+      
       if (response.data?.data && response.data.data.length > 0) {
         const sampleWorkflow = response.data.data[0];
         investigation.url_tests.workflow_structure_analysis = {
@@ -972,7 +963,7 @@ app.get('/api/etf/investigate-n8n', async (req, res) => {
         },
         timeout: 10000
       });
-
+      
       investigation.tests.basic_connection = {
         success: true,
         status: response.status,
@@ -1019,7 +1010,7 @@ app.get('/api/etf/investigate-n8n', async (req, res) => {
         },
         timeout: 10000
       });
-
+      
       investigation.tests.folders_endpoint = {
         success: true,
         status: response.status,
@@ -1042,7 +1033,7 @@ app.get('/api/etf/investigate-n8n', async (req, res) => {
         },
         timeout: 10000
       });
-
+      
       investigation.tests.specific_folder = {
         success: true,
         status: response.status,
@@ -1817,3 +1808,435 @@ app.get("/api/token-usage", (req, res) => {
     res.json({ usage });
   }
 });
+
+app.post("/api/token-usage", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
+  const { usage } = req.body;
+
+  updateUserTokenUsage(userId, usage);
+  res.json({ success: true, usage });
+});
+
+app.post("/api/token-usage/increment", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
+  const currentUsage = getUserTokenUsage(userId);
+
+  // Handle both old format (number) and new format (object)
+  let newUsage;
+  if (typeof currentUsage === 'number') {
+    newUsage = { tokens: currentUsage + 1, prompts: 0 };
+  } else {
+    newUsage = { 
+      tokens: (currentUsage.tokens || 0) + 1, 
+      prompts: currentUsage.prompts || 0 
+    };
+  }
+
+  updateUserTokenUsage(userId, newUsage);
+  res.json({ success: true, usage: newUsage });
+});
+
+app.post("/api/token-usage/increment-prompt", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
+  incrementUserPromptCount(userId);
+  const currentUsage = getUserTokenUsage(userId);
+
+  res.json({ success: true, usage: currentUsage });
+});
+
+app.post("/api/threads", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
+  const { threads } = req.body;
+
+  if (!Array.isArray(threads)) {
+    return res.status(400).json({ error: "Threads must be an array" });
+  }
+
+  saveThreadsForUser(userId, threads);
+  res.json({ success: true });
+});
+
+app.delete("/api/threads/:threadId", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
+  const threadId = parseInt(req.params.threadId);
+
+  let threads = getUserThreads(userId);
+  threads = threads.filter(thread => thread.id !== threadId);
+
+  saveThreadsForUser(userId, threads);
+  res.json({ success: true });
+});
+
+// Complete signup route
+app.post("/api/complete-signup", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const { firstName, lastName } = req.body;
+  if (!firstName || !lastName) {
+    return res.status(400).json({ error: "First name and last name are required" });
+  }
+
+  const userData = {
+    googleId: req.user.id,
+    email: req.user.emails?.[0]?.value,
+    googleName: req.user.displayName,
+    profilePicture: req.user.photos?.[0]?.value,
+    preferredFirstName: firstName,
+    preferredLastName: lastName,
+    createdAt: new Date().toISOString(),
+    isComplete: true
+  };
+
+  // Save user data to persistent storage
+  saveUser(userData);
+
+  // Update the session user object with complete profile data
+  req.user.preferredFirstName = firstName;
+  req.user.preferredLastName = lastName;
+  req.user.isComplete = true;
+  req.user.savedUserData = userData;
+
+  // Ensure session is marked as modified to trigger save
+  req.session.passport.user = req.user;
+
+  // Force session save before responding
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.status(500).json({ error: "Session save failed" });
+    }
+
+    console.log('✅ New User Signup:', {
+      name: `${firstName} ${lastName}`,
+      email: userData.email,
+      id: userData.googleId,
+      timestamp: userData.createdAt
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Signup completed successfully",
+      user: {
+        name: `${firstName} ${lastName}`,
+        email: userData.email,
+        picture: userData.profilePicture,
+        preferredFirstName: firstName,
+        preferredLastName: lastName,
+        isComplete: true
+      }
+    });
+  });
+});
+
+// Confirm login route
+app.post("/api/confirm-login", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userEmail = req.user.emails?.[0]?.value;
+  const existingUser = findUserByEmail(userEmail);
+
+  if (!existingUser) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Load user data into session for consistent access
+  req.user.preferredFirstName = existingUser.preferredFirstName;
+  req.user.preferredLastName = existingUser.preferredLastName;
+  req.user.isComplete = existingUser.isComplete;
+  req.user.savedUserData = existingUser;
+
+  // Store user session data properly
+  req.session.user = {
+    googleId: existingUser.googleId,
+    email: existingUser.email,
+    isPremium: existingUser.isPremium,
+    hasUnlimitedAccess: existingUser.hasUnlimitedAccess
+  };
+
+  console.log('✅ User Login:', {
+    name: `${existingUser.preferredFirstName} ${existingUser.preferredLastName}`,
+    email: existingUser.email,
+    id: existingUser.googleId,
+    isPremium: existingUser.isPremium,
+    timestamp: new Date().toISOString()
+  });
+
+  res.json({ success: true, message: "Login confirmed" });
+});
+
+// Serve signup and login pages
+app.get("/signup", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "signup.html"));
+});
+
+app.get("/complete-signup", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/signup");
+  }
+  res.sendFile(path.join(__dirname, "public", "complete-signup.html"));
+});
+
+app.get("/confirm-login", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/signup");
+  }
+  res.sendFile(path.join(__dirname, "public", "confirm-login.html"));
+});
+
+// Account exists route (for signup attempts with existing accounts)
+app.get("/account-exists", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/signup");
+  }
+  res.sendFile(path.join(__dirname, "public", "account-exists.html"));
+});
+
+// No account route (for login attempts without accounts)
+app.get("/no-account", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  res.sendFile(path.join(__dirname, "public", "no-account.html"));
+});
+
+// Login failed route
+app.get("/login-failed", (req, res) => {
+  res.redirect("/?error=auth_failed");
+});
+
+// Serve login page
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Serve the frontend
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Serve token dashboard
+app.get("/token-dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "token-dashboard.html"));
+});
+
+// Model configuration endpoints
+const modelConfigFile = 'model_config.json';
+
+app.post('/save-model-config', (req, res) => {
+  try {
+    const fs = require('fs');
+    fs.writeFileSync(modelConfigFile, JSON.stringify(req.body, null, 2));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving model config:', error);
+    res.status(500).json({ error: 'Failed to save configuration' });
+  }
+});
+
+app.get('/model-config', (req, res) => {
+  try {
+    const fs = require('fs');
+    if (fs.existsSync(modelConfigFile)) {
+      const config = JSON.parse(fs.readFileSync(modelConfigFile, 'utf8'));
+      res.json(config);
+    } else {
+      res.json({
+        model_triggers: {
+          "gpt-4-turbo": ["complex", "detailed", "thorough", "comprehensive", "advanced"],
+          "gpt-4": ["longer", "extensive", "elaborate", "in-depth", "complete"],
+          "gpt-3.5-turbo": ["quick", "simple", "basic", "fast", "brief"],
+          "deepseek-chat": ["deeper", "creative", "deep", "innovative", "alternative"]
+        },
+        default_model: "gpt-3.5-turbo"
+      });
+    }
+  } catch (error) {
+    console.error('Error loading model config:', error);
+    res.status(500).json({ error: 'Failed to load configuration' });
+  }
+});
+
+// User profile endpoint
+app.get('/api/user/profile', requireAuth, (req, res) => {
+  try {
+    const users = loadUsers();
+    const user = users[req.session.user.googleId];
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Taskforce onboarding routes
+app.get('/taskforce/:type/onboard', requireAuth, (req, res) => {
+  const { type } = req.params;
+
+  // Validate taskforce type
+  const validTypes = ['dental', 'gym', 'contractor', 'tutoring', 'massage'];
+  if (!validTypes.includes(type)) {
+    return res.status(404).send('Taskforce type not found');
+  }
+
+  // For now, redirect to main dashboard with a message
+  // In the future, this would load a specific onboarding flow
+  res.redirect(`/?template=${type}&action=onboard`);
+});
+
+// Enhanced error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// ========================================
+// ETF Helper Functions
+// ========================================
+
+function extractTaskforceType(workflowName) {
+  const name = workflowName.toLowerCase();
+  if (name.includes('dental') || name.includes('clinic')) return 'dental';
+  if (name.includes('gym') || name.includes('fitness')) return 'gym';
+  if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
+  if (name.includes('tutor') || name.includes('education')) return 'tutoring';
+  if (name.includes('massage') || name.includes('spa')) return 'massage';
+  return 'general';
+}
+
+function analyzeWorkflowConfig(workflow) {
+  // Standard configuration fields for all ETF workflows
+  return [
+    { key: 'business_name', label: 'Business Name', type: 'text', required: true },
+    { key: 'business_email', label: 'Business Email', type: 'email', required: true },
+    { key: 'business_phone', label: 'Business Phone', type: 'tel', required: true },
+    { key: 'support_email', label: 'Support Email', type: 'email', required: false }
+  ];
+}
+
+function personalizeWorkflowNodes(nodes, configData, clientData) {
+  if (!Array.isArray(nodes)) {
+    return [];
+  }
+
+  return nodes.map(node => {
+    // Create clean node object with only essential fields
+    const personalizedNode = {
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      typeVersion: node.typeVersion || 1,
+      position: node.position || [0, 0],
+      parameters: personalizeParameters(node.parameters || {}, configData, clientData)
+    };
+
+    // Add optional fields if they exist and are allowed (exclude read-only fields)
+    if (node.credentials) personalizedNode.credentials = node.credentials;
+    if (node.webhookId) personalizedNode.webhookId = node.webhookId;
+    if (node.disabled !== undefined) personalizedNode.disabled = node.disabled;
+    if (node.continueOnFail !== undefined) personalizedNode.continueOnFail = node.continueOnFail;
+    if (node.alwaysOutputData !== undefined) personalizedNode.alwaysOutputData = node.alwaysOutputData;
+    if (node.executeOnce !== undefined) personalizedNode.executeOnce = node.executeOnce;
+    if (node.retryOnFail !== undefined) personalizedNode.retryOnFail = node.retryOnFail;
+    if (node.maxTries !== undefined) personalizedNode.maxTries = node.maxTries;
+    if (node.waitBetweenTries !== undefined) personalizedNode.waitBetweenTries = node.waitBetweenTries;
+    if (node.notes) personalizedNode.notes = node.notes;
+    if (node.notesInFlow !== undefined) personalizedNode.notesInFlow = node.notesInFlow;
+
+    return personalizedNode;
+  });
+}
+
+function personalizeParameters(parameters, configData, clientData) {
+  const substitutions = {
+    '{{CLIENT_NAME}}': clientData.name || '',
+    '{{CLIENT_EMAIL}}': clientData.email || '',
+    '{{CLIENT_COMPANY}}': clientData.company || clientData.name || '',
+    '{{CLIENT_PHONE}}': clientData.phone || '',
+    '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
+    '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
+    '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || ''
+  };
+
+  function replaceInObject(obj) {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    if (typeof obj === 'string') {
+      let result = obj;
+      Object.entries(substitutions).forEach(([placeholder, value]) => {
+        const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
+        result = result.replace(regex, value);
+      });
+      return result;
+    } else if (Array.isArray(obj)) {
+      return obj.map(replaceInObject);
+    } else if (typeof obj === 'object') {
+      const newObj = {};
+      Object.entries(obj).forEach(([key, value]) => {
+        newObj[key] = replaceInObject(value);
+      });
+      return newObj;
+    }
+    return obj;
+  }
+
+  return replaceInObject(parameters || {});
+}
+
+function extractWebhookUrl(nodes) {
+  const webhookNodes = nodes.filter(node => node.type === 'n8n-nodes-base.webhook');
+  if (webhookNodes.length > 0) {
+    const webhookPath = webhookNodes[0].parameters?.path || '';
+    return `${N8N_BASE_URL}/webhook${webhookPath}`;
+  }
+  return null;
+}
+
+// Start server
+const port = process.env.PORT || 3000;
+console.log(`Server is running on port ${port}`);
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
+});
+
+async function readUsersFile() {
+  try {
+    const data = await fs.promises.readFile('users.json', 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error reading users file:', error);
+    return {};
+  }
+}
