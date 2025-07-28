@@ -31,12 +31,12 @@ class N8NApiClient {
   constructor(config) {
     this.baseURL = config.baseURL;
     this.auth = config.auth || {};
-    
+
     // Validate base URL
     if (!this.baseURL || this.baseURL === '') {
       throw new Error('N8N_BASE_URL is not configured');
     }
-    
+
     try {
       new URL(this.baseURL);
     } catch (urlError) {
@@ -48,7 +48,7 @@ class N8NApiClient {
     try {
       const fullUrl = `${this.baseURL}/api/v1${endpoint}`;
       console.log(`Making N8N API request: ${method} ${fullUrl}`);
-      
+
       const config = {
         method,
         url: fullUrl,
@@ -105,7 +105,7 @@ const db = new sqlite3.Database('./taskforce.db', (err) => {
 // ========================================
 function initETFDatabase() {
   const etfDB = new sqlite3.Database('etf_data.db');
-  
+
   // Clients table
   etfDB.run(`
     CREATE TABLE IF NOT EXISTS etf_clients (
@@ -349,7 +349,7 @@ app.get('/etf-admin', (req, res) => {
 app.get('/api/etf/templates', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
-    
+
     // Filter active workflows as templates
     const templates = workflows.data ? 
       workflows.data.filter(workflow => workflow.active === true).map(workflow => ({
@@ -379,20 +379,20 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Get the template workflow from N8N
     const originalWorkflow = await n8nClient.getWorkflow(template_id);
 
-    // Create clean workflow data - only include essential fields
+    // Create clean workflow data - exclude ALL read-only properties
     const personalizedWorkflow = {
       name: `[${client_data.name}] ${originalWorkflow.name}`,
       nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
       connections: originalWorkflow.connections || {},
-      active: false,
       settings: originalWorkflow.settings || {},
       staticData: originalWorkflow.staticData || {}
+      // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
     };
 
     // Create and activate new workflow
     const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
     console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
-    
+
     try {
       await n8nClient.activateWorkflow(newWorkflow.id);
       console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
@@ -458,10 +458,10 @@ app.get('/api/etf/stats', (req, res) => {
       res.status(500).json({ error: 'Failed to fetch stats' });
       return;
     }
-    
+
     // Calculate estimated monthly revenue ($30 per active deployment)
     const estimatedRevenue = (row.active_deployments || 0) * 30;
-    
+
     res.json({
       ...row,
       estimated_monthly_revenue: estimatedRevenue
@@ -1473,7 +1473,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
   if (!Array.isArray(nodes)) {
     return [];
   }
-  
+
   return nodes.map(node => {
     // Create clean node object with only essential fields
     const personalizedNode = {
@@ -1484,12 +1484,20 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
       position: node.position || [0, 0],
       parameters: personalizeParameters(node.parameters || {}, configData, clientData)
     };
-    
-    // Add optional fields if they exist
+
+    // Add optional fields if they exist and are allowed (exclude read-only fields)
     if (node.credentials) personalizedNode.credentials = node.credentials;
     if (node.webhookId) personalizedNode.webhookId = node.webhookId;
     if (node.disabled !== undefined) personalizedNode.disabled = node.disabled;
-    
+    if (node.continueOnFail !== undefined) personalizedNode.continueOnFail = node.continueOnFail;
+    if (node.alwaysOutputData !== undefined) personalizedNode.alwaysOutputData = node.alwaysOutputData;
+    if (node.executeOnce !== undefined) personalizedNode.executeOnce = node.executeOnce;
+    if (node.retryOnFail !== undefined) personalizedNode.retryOnFail = node.retryOnFail;
+    if (node.maxTries !== undefined) personalizedNode.maxTries = node.maxTries;
+    if (node.waitBetweenTries !== undefined) personalizedNode.waitBetweenTries = node.waitBetweenTries;
+    if (node.notes) personalizedNode.notes = node.notes;
+    if (node.notesInFlow !== undefined) personalizedNode.notesInFlow = node.notesInFlow;
+
     return personalizedNode;
   });
 }
@@ -1510,7 +1518,7 @@ function personalizeParameters(parameters, configData, clientData) {
     if (obj === null || obj === undefined) {
       return obj;
     }
-    
+
     if (typeof obj === 'string') {
       let result = obj;
       Object.entries(substitutions).forEach(([placeholder, value]) => {
