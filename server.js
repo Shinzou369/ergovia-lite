@@ -80,16 +80,10 @@ class N8NApiClient {
     }
   }
 
-  // Updated methods to use project-based endpoints
+  // Updated methods to handle tag-based folder system
   async getWorkflows() { 
-    // Try project-folder specific endpoint first
-    try {
-      return await this.makeRequest('GET', `/projects/${this.projectId}/folders/${this.folderId}/workflows`);
-    } catch (error) {
-      console.log('Folder-specific endpoint failed, trying project workflows:', error.message);
-      // Fallback to project workflows
-      return await this.makeRequest('GET', `/projects/${this.projectId}/workflows`);
-    }
+    // Fetch all workflows and filter by tags
+    return await this.makeRequest('GET', '/api/v1/workflows');
   }
   
   async getWorkflow(id) { 
@@ -109,9 +103,40 @@ class N8NApiClient {
     return await this.makeRequest('GET', `/projects/${this.projectId}/folders`);
   }
 
-  // Get workflows in specific folder
-  async getFolderWorkflows(folderId) {
-    return await this.makeRequest('GET', `/projects/${this.projectId}/folders/${folderId}/workflows`);
+  // Get workflows by folder tags (N8N uses tags, not physical folders)
+  async getWorkflowsByTags(tags) {
+    const allWorkflows = await this.getWorkflows();
+    const workflows = allWorkflows.data || allWorkflows;
+    
+    if (!Array.isArray(workflows)) {
+      return [];
+    }
+
+    // Filter workflows that have all the specified tags
+    return workflows.filter(workflow => {
+      const workflowTags = workflow.tags || [];
+      return tags.every(tag => workflowTags.includes(tag));
+    });
+  }
+
+  // Get workflows in specific folder by reconstructing folder structure from tags
+  async getFolderWorkflows(folderPath) {
+    const allWorkflows = await this.getWorkflows();
+    const workflows = allWorkflows.data || allWorkflows;
+    
+    if (!Array.isArray(workflows)) {
+      return [];
+    }
+
+    // Convert folder path to expected tags
+    // e.g., "PETCLINIC/ApptSys" becomes ["PETCLINIC", "ApptSys"]
+    const expectedTags = folderPath.split('/').filter(tag => tag.length > 0);
+    
+    return workflows.filter(workflow => {
+      const workflowTags = workflow.tags || [];
+      // Check if workflow has all the folder tags
+      return expectedTags.every(tag => workflowTags.includes(tag));
+    });
   }
 }
 
@@ -404,22 +429,26 @@ app.get('/api/etf/templates', async (req, res) => {
     // Handle both response formats
     const workflowList = workflows.data || workflows;
 
-    // Group workflows by folder
+    // Group workflows by tag-based folders
     const folderGroups = {};
     const unfoldered = [];
 
     workflowList.forEach(workflow => {
-      const folderId = workflow.folderId || workflow.parentId || workflow.folder || null;
+      const workflowTags = workflow.tags || [];
       
-      if (folderId) {
-        if (!folderGroups[folderId]) {
-          folderGroups[folderId] = {
-            id: folderId,
-            name: `Folder ${folderId}`,
-            workflows: []
+      if (workflowTags.length > 0) {
+        // Use the first tag as the primary folder
+        const primaryFolder = workflowTags[0];
+        
+        if (!folderGroups[primaryFolder]) {
+          folderGroups[primaryFolder] = {
+            id: primaryFolder,
+            name: primaryFolder,
+            workflows: [],
+            tags: [primaryFolder]
           };
         }
-        folderGroups[folderId].workflows.push(workflow);
+        folderGroups[primaryFolder].workflows.push(workflow);
       } else {
         unfoldered.push(workflow);
       }
@@ -508,38 +537,32 @@ app.post('/api/etf/deploy', async (req, res) => {
     let templateWorkflows = [];
     let clientFolderId = null;
 
-    // Handle folder-based duplication
+    // Handle folder-based duplication using tag system
     if (template_type === 'folder') {
       console.log(`📁 Processing folder template: ${template_id}`);
       
       try {
-        // Get all workflows and filter by folder
-        const allWorkflows = await n8nClient.getWorkflows();
+        // Get workflows by folder tags (N8N uses tags, not physical folders)
+        // template_id should be a folder path like "PETCLINIC" or "PETCLINIC/ApptSys"
+        const folderWorkflows = await n8nClient.getFolderWorkflows(template_id);
         
-        if (allWorkflows.data) {
-          const folderWorkflows = allWorkflows.data.filter(workflow => {
-            const matchesFolder = workflow.folderId === template_id || 
-                                 workflow.parentId === template_id ||
-                                 (workflow.folder && workflow.folder.id === template_id) ||
-                                 (typeof workflow.folder === 'string' && workflow.folder === template_id);
-            return matchesFolder && workflow.active === true;
+        // Filter for active workflows only
+        templateWorkflows = folderWorkflows.filter(workflow => workflow.active === true);
+        console.log(`📁 Found ${templateWorkflows.length} active workflows with folder tags: ${template_id}`);
+
+        if (templateWorkflows.length === 0) {
+          // Fallback: try to find workflows by matching template_id as a tag
+          const allWorkflows = await n8nClient.getWorkflows();
+          const workflows = allWorkflows.data || allWorkflows;
+          
+          templateWorkflows = workflows.filter(workflow => {
+            const workflowTags = workflow.tags || [];
+            return workflowTags.includes(template_id) && workflow.active === true;
           });
           
-          templateWorkflows = folderWorkflows;
-          console.log(`📁 Found ${templateWorkflows.length} active workflows in folder ${template_id}`);
-
-          // Try to create a client folder (if N8N supports it)
-          try {
-            const clientFolderData = {
-              name: `[${client_data.name}] Client Workflows`
-            };
-            const newFolder = await n8nClient.makeRequest('POST', '/folders', clientFolderData);
-            clientFolderId = newFolder.id;
-            console.log(`✅ Created client folder: ${clientFolderId}`);
-          } catch (folderCreationError) {
-            console.log(`⚠️ Could not create client folder (not supported):`, folderCreationError.message);
-          }
+          console.log(`📁 Fallback search found ${templateWorkflows.length} workflows with tag: ${template_id}`);
         }
+
       } catch (error) {
         console.error('❌ Folder-based duplication failed:', error.message);
         return res.status(400).json({
@@ -595,19 +618,18 @@ app.post('/api/etf/deploy', async (req, res) => {
       try {
         console.log(`🔄 Processing workflow ${templateWorkflow.id} (${templateWorkflow.name})...`);
 
-        // Create clean workflow data
+        // Create clean workflow data with client tags
+        const clientTags = [`CLIENT_${client_data.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`];
+        const originalTags = templateWorkflow.tags || [];
+        
         const personalizedWorkflow = {
           name: `[${client_data.name}] ${templateWorkflow.name}`,
           nodes: personalizeWorkflowNodes(templateWorkflow.nodes || [], config_data, client_data),
           connections: templateWorkflow.connections || {},
           settings: templateWorkflow.settings || {},
-          staticData: templateWorkflow.staticData || {}
+          staticData: templateWorkflow.staticData || {},
+          tags: [...originalTags, ...clientTags] // Preserve original tags and add client tag
         };
-
-        // Add folder assignment if we created a client folder
-        if (clientFolderId) {
-          personalizedWorkflow.folderId = clientFolderId;
-        }
 
         // Create new workflow
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
