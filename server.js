@@ -97,9 +97,18 @@ class N8NApiClient {
     }
   }
 
-  async updateWorkflowTags(workflowId, tagIds) {
-    // N8N expects an array of tag IDs directly, not wrapped in an object
-    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagIds);
+  async updateWorkflowTags(workflowId, tags) {
+    // N8N expects an array of tag names (strings), not tag objects
+    const tagNames = Array.isArray(tags) ? tags.map(tag => {
+      if (typeof tag === 'string') {
+        return tag;
+      } else if (typeof tag === 'object' && tag.name) {
+        return tag.name;
+      }
+      return String(tag);
+    }) : [];
+
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagNames);
   }
 }
 
@@ -470,7 +479,7 @@ app.post('/api/etf/deploy', async (req, res) => {
         try {
           const tagName = `PET[${client_data.name}]`;
           const tag = await n8nClient.createTag(tagName);
-          await n8nClient.updateWorkflowTags(newWorkflow.id, [tag.id]);
+          await n8nClient.updateWorkflowTags(newWorkflow.id, [tagName]);
           console.log(`✅ Tag ${tagName} added to workflow ${newWorkflow.id}`);
         } catch (tagError) {
           console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
