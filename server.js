@@ -33,6 +33,8 @@ class N8NApiClient {
   constructor(config) {
     this.baseURL = config.baseURL;
     this.auth = config.auth || {};
+    this.projectId = 'odntzCjg5yMWuwan'; // Project ID for this N8N instance
+    this.folderId = 'OTkgImaRhmTXepG3'; // Template folder ID
 
     // Validate base URL
     if (!this.baseURL || this.baseURL === '') {
@@ -51,7 +53,7 @@ class N8NApiClient {
       // Clean the base URL and endpoint to prevent double slashes
       const baseUrl = this.baseURL.replace(/\/+$/, ''); // Remove trailing slashes
       const cleanEndpoint = endpoint.replace(/^\/+/, '/'); // Ensure single leading slash
-      const fullUrl = `${baseUrl}/api/v1${cleanEndpoint}`;
+      const fullUrl = `${baseUrl}${cleanEndpoint}`;
       console.log(`Making N8N API request: ${method} ${fullUrl}`);
 
       const config = {
@@ -69,7 +71,7 @@ class N8NApiClient {
       return response.data;
     } catch (error) {
       console.error('N8N API Error Details:', {
-        url: `${this.baseURL}/api/v1${endpoint}`,
+        url: `${baseUrl}${cleanEndpoint}`,
         method,
         error: error.response?.data || error.message,
         status: error.response?.status
@@ -78,10 +80,39 @@ class N8NApiClient {
     }
   }
 
-  async getWorkflows() { return await this.makeRequest('GET', '/workflows'); }
-  async getWorkflow(id) { return await this.makeRequest('GET', `/workflows/${id}`); }
-  async createWorkflow(workflowData) { return await this.makeRequest('POST', '/workflows', workflowData); }
-  async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
+  // Updated methods to use project-based endpoints
+  async getWorkflows() { 
+    // Try project-folder specific endpoint first
+    try {
+      return await this.makeRequest('GET', `/projects/${this.projectId}/folders/${this.folderId}/workflows`);
+    } catch (error) {
+      console.log('Folder-specific endpoint failed, trying project workflows:', error.message);
+      // Fallback to project workflows
+      return await this.makeRequest('GET', `/projects/${this.projectId}/workflows`);
+    }
+  }
+  
+  async getWorkflow(id) { 
+    return await this.makeRequest('GET', `/projects/${this.projectId}/workflows/${id}`); 
+  }
+  
+  async createWorkflow(workflowData) { 
+    return await this.makeRequest('POST', `/projects/${this.projectId}/workflows`, workflowData); 
+  }
+  
+  async activateWorkflow(id) { 
+    return await this.makeRequest('POST', `/projects/${this.projectId}/workflows/${id}/activate`); 
+  }
+
+  // Get folders in project
+  async getFolders() {
+    return await this.makeRequest('GET', `/projects/${this.projectId}/folders`);
+  }
+
+  // Get workflows in specific folder
+  async getFolderWorkflows(folderId) {
+    return await this.makeRequest('GET', `/projects/${this.projectId}/folders/${folderId}/workflows`);
+  }
 }
 
 // Validate N8N configuration and exit if critical vars missing
@@ -358,23 +389,26 @@ app.get('/api/etf/templates', async (req, res) => {
     // Try to get folders first
     let folders = [];
     try {
-      const foldersResponse = await n8nClient.makeRequest('GET', '/folders');
+      const foldersResponse = await n8nClient.getFolders();
       folders = foldersResponse.data || foldersResponse || [];
     } catch (folderError) {
-      console.log('No folders endpoint available, falling back to workflow analysis');
+      console.log('No project folders endpoint available, falling back to workflow analysis');
     }
 
-    // Get all workflows
+    // Get workflows from the template folder
     const workflows = await n8nClient.getWorkflows();
-    if (!workflows.data) {
-      return res.json({ templates: [], folders: [], message: 'No workflows found in n8n' });
+    if (!workflows.data && !workflows.length) {
+      return res.json({ templates: [], folders: [], message: 'No workflows found in n8n template folder' });
     }
+
+    // Handle both response formats
+    const workflowList = workflows.data || workflows;
 
     // Group workflows by folder
     const folderGroups = {};
     const unfoldered = [];
 
-    workflows.data.forEach(workflow => {
+    workflowList.forEach(workflow => {
       const folderId = workflow.folderId || workflow.parentId || workflow.folder || null;
       
       if (folderId) {
@@ -454,7 +488,7 @@ app.get('/api/etf/templates', async (req, res) => {
       templates: allTemplates,
       folders: templateFolders,
       individual_workflows: individualTemplates,
-      total_workflows: workflows.data.length,
+      total_workflows: workflowList.length,
       message: `Found ${folderTemplates.length} template folders and ${individualTemplates.length} individual templates`
     });
   } catch (error) {

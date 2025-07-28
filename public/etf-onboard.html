@@ -801,7 +801,7 @@
             const formData = new FormData(this);
             const clientData = Object.fromEntries(formData.entries());
 
-            // Prepare deployment data with specific workflow ID
+            // Prepare deployment data with folder-based template
             const deploymentData = {
                 client_data: {
                     name: clientData.business_name,
@@ -813,7 +813,8 @@
                     business_email: clientData.email,
                     business_phone: clientData.phone
                 },
-                template_ids: ['eC6TieLjDueYJCs9', 'XZbOJL3eMPMG8wCE'] // Multiple workflows to deploy
+                template_id: 'OTkgImaRhmTXepG3', // Template folder ID
+                template_type: 'folder'
             };
 
             try {
