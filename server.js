@@ -27,6 +27,8 @@ if (N8N_BASE_URL && !N8N_BASE_URL.startsWith('http://') && !N8N_BASE_URL.startsW
 // Remove trailing slashes to prevent double slash issues
 N8N_BASE_URL = N8N_BASE_URL.replace(/\/+$/, '');
 
+console.log('N8N_BASE_URL configured as:', N8N_BASE_URL);
+
 const N8N_API_KEY = process.env.N8N_API_KEY || '';
 
 // N8N API Helper Class
@@ -49,9 +51,10 @@ class N8NApiClient {
 
   async makeRequest(method, endpoint, data = null) {
     try {
-      // Ensure proper URL construction without double slashes
-      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      const fullUrl = `${this.baseURL}/api/v1${cleanEndpoint}`;
+      // Clean the base URL and endpoint to prevent double slashes
+      const baseUrl = this.baseURL.replace(/\/+$/, ''); // Remove trailing slashes
+      const cleanEndpoint = endpoint.replace(/^\/+/, '/'); // Ensure single leading slash
+      const fullUrl = `${baseUrl}/api/v1${cleanEndpoint}`;
       console.log(`Making N8N API request: ${method} ${fullUrl}`);
 
       const config = {
