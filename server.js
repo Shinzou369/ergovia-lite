@@ -352,7 +352,7 @@ app.get('/api/etf/templates', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
 
-    // Filter workflows with "PET CLINIC" tag specifically
+    // Filter workflows with "PET" tag specifically (active AND inactive)
     const templates = workflows.data ? 
       workflows.data.filter(workflow => {
         const workflowTags = workflow.tags || [];
@@ -366,19 +366,20 @@ app.get('/api/etf/templates', async (req, res) => {
           }
           return false;
         });
-        return hasPetTag && workflow.active === true;
+        return hasPetTag; // No active status filter - include ALL PET workflows
       }).map(workflow => ({
         id: workflow.id,
         name: workflow.name,
         description: `ETF automation workflow: ${workflow.name}`,
         taskforce_type: 'dental', // Pet clinics are categorized as dental
         tags: workflow.tags || [],
+        active: workflow.active,
         config_fields: analyzeWorkflowConfig(workflow),
         created_at: workflow.createdAt,
         updated_at: workflow.updatedAt
       })) : [];
 
-    console.log(`Found ${templates.length} PET CLINIC workflows with tags`);
+    console.log(`Found ${templates.length} PET workflows (active and inactive)`);
     res.json(templates);
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
@@ -391,65 +392,92 @@ app.post('/api/etf/deploy', async (req, res) => {
   try {
     let { client_data, config_data, template_id } = req.body;
 
-    // If no template_id provided, find the first PET CLINIC workflow
-    if (!template_id) {
-      console.log('🔍 No template_id provided, searching for PET workflows...');
-      
-      const workflows = await n8nClient.getWorkflows();
-      const petWorkflow = workflows.data ? 
-        workflows.data.find(workflow => {
-          const workflowTags = workflow.tags || [];
-          return Array.isArray(workflowTags) && workflowTags.some(tag => {
-            if (typeof tag === 'string') {
-              return tag.toLowerCase().includes('pet');
-            } else if (tag && typeof tag === 'object' && tag.name) {
-              // Handle N8N tag objects with name property
-              return tag.name.toLowerCase().includes('pet');
-            }
-            return false;
-          }) && workflow.active === true;
-        }) : null;
+    // Find ALL PET workflows for duplication
+    console.log('🔍 Searching for ALL PET workflows to duplicate...');
+    
+    const workflows = await n8nClient.getWorkflows();
+    const petWorkflows = workflows.data ? 
+      workflows.data.filter(workflow => {
+        const workflowTags = workflow.tags || [];
+        return Array.isArray(workflowTags) && workflowTags.some(tag => {
+          if (typeof tag === 'string') {
+            return tag.toLowerCase().includes('pet');
+          } else if (tag && typeof tag === 'object' && tag.name) {
+            // Handle N8N tag objects with name property
+            return tag.name.toLowerCase().includes('pet');
+          }
+          return false;
+        });
+        // No active status filter - include ALL PET workflows (active and inactive)
+      }) : [];
 
-      if (!petWorkflow) {
-        throw new Error('No active PET workflows found. Please ensure your N8N workflow has a "PET" tag.');
-      }
-
-      template_id = petWorkflow.id;
-      console.log(`✅ Found PET workflow: ${petWorkflow.name} (ID: ${template_id})`);
+    if (petWorkflows.length === 0) {
+      throw new Error('No PET workflows found. Please ensure your N8N workflows have "PET" tags.');
     }
 
-    console.log(`🚀 Duplicating workflow ${template_id} for ${client_data.name}`);
+    console.log(`✅ Found ${petWorkflows.length} PET workflows to duplicate`);
 
-    // Get the template workflow from N8N
-    const originalWorkflow = await n8nClient.getWorkflow(template_id);
-
-    // Create clean workflow data - exclude ALL read-only properties
-    const personalizedWorkflow = {
-      name: `[${client_data.name}] ${originalWorkflow.name}`,
-      nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
-      connections: originalWorkflow.connections || {},
-      settings: originalWorkflow.settings || {},
-      staticData: originalWorkflow.staticData || {}
-      // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
-    };
-
-    // Create and activate new workflow
-    const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-    console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
-
-    try {
-      await n8nClient.activateWorkflow(newWorkflow.id);
-      console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-    } catch (activationError) {
-      console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError);
-      throw new Error(`Workflow created but activation failed: ${activationError.message}`);
-    }
-
-    // Save client and deployment records
+    const duplicatedWorkflows = [];
     const client_id = uuidv4();
-    const deployment_id = uuidv4();
 
-    // Insert client
+    // Duplicate each PET workflow
+    for (const petWorkflow of petWorkflows) {
+      try {
+        console.log(`🚀 Duplicating workflow: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
+
+        // Get the template workflow from N8N
+        const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
+
+        // Create clean workflow data - exclude ALL read-only properties
+        const personalizedWorkflow = {
+          name: `[${client_data.name}] ${originalWorkflow.name}`,
+          nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
+          connections: originalWorkflow.connections || {},
+          settings: originalWorkflow.settings || {},
+          staticData: originalWorkflow.staticData || {}
+          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
+        };
+
+        // Create new workflow
+        const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+        console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+
+        // Try to activate the workflow (but continue if activation fails)
+        try {
+          await n8nClient.activateWorkflow(newWorkflow.id);
+          console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+        } catch (activationError) {
+          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
+          // Continue with next workflow instead of failing completely
+        }
+
+        // Save deployment record
+        const deployment_id = uuidv4();
+        await new Promise((resolve, reject) => {
+          etfDB.run(
+            `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [deployment_id, client_id, petWorkflow.id, newWorkflow.id, newWorkflow.name, 
+             'general', JSON.stringify(config_data)],
+            (err) => err ? reject(err) : resolve()
+          );
+        });
+
+        duplicatedWorkflows.push({
+          original_id: petWorkflow.id,
+          original_name: petWorkflow.name,
+          new_id: newWorkflow.id,
+          new_name: newWorkflow.name,
+          deployment_id: deployment_id
+        });
+
+      } catch (workflowError) {
+        console.error(`❌ Failed to duplicate workflow ${petWorkflow.name}:`, workflowError.message);
+        // Continue with other workflows instead of failing completely
+      }
+    }
+
+    // Insert client record (only once for all workflows)
     await new Promise((resolve, reject) => {
       etfDB.run(
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
@@ -460,31 +488,21 @@ app.post('/api/etf/deploy', async (req, res) => {
       );
     });
 
-    // Insert deployment
-    await new Promise((resolve, reject) => {
-      etfDB.run(
-        `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [deployment_id, client_id, template_id, newWorkflow.id, newWorkflow.name, 
-         'general', JSON.stringify(config_data)],
-        (err) => err ? reject(err) : resolve()
-      );
-    });
+    if (duplicatedWorkflows.length === 0) {
+      throw new Error('Failed to duplicate any PET workflows');
+    }
 
     res.json({
       success: true,
-      workflow_id: newWorkflow.id,
-      workflow_name: newWorkflow.name,
       client_id: client_id,
-      deployment_id: deployment_id,
-      message: `Workflow duplicated successfully for ${client_data.name}`,
-      webhook_url: extractWebhookUrl(personalizedWorkflow.nodes)
+      duplicated_workflows: duplicatedWorkflows,
+      total_duplicated: duplicatedWorkflows.length,
+      message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}`
     });
 
   } catch (error) {
     console.error('Workflow duplication error:', {
       message: error.message,
-      template_id: req.body.template_id,
       client: req.body.client_data?.name,
       timestamp: new Date().toISOString()
     });
@@ -495,8 +513,8 @@ app.post('/api/etf/deploy', async (req, res) => {
       userMessage = 'ETF service configuration error';
     } else if (error.message.includes('N8N_API_KEY')) {
       userMessage = 'ETF service authentication error';
-    } else if (error.message.includes('workflow not found')) {
-      userMessage = 'Template workflow not found';
+    } else if (error.message.includes('No PET workflows found')) {
+      userMessage = 'No PET workflows found';
     } else if (error.message.includes('timeout')) {
       userMessage = 'ETF service timeout - please try again';
     }
@@ -575,10 +593,19 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
         })
       })) : [];
 
+    const petWorkflows = workflowList.filter(w => w.hasPetTag);
+    const activePetWorkflows = petWorkflows.filter(w => w.active);
+    const inactivePetWorkflows = petWorkflows.filter(w => !w.active);
+
     res.json({
       success: true,
       total_workflows: workflowList.length,
-      pet_workflows: workflowList.filter(w => w.hasPetTag),
+      pet_workflows: {
+        total: petWorkflows.length,
+        active: activePetWorkflows.length,
+        inactive: inactivePetWorkflows.length,
+        list: petWorkflows
+      },
       all_workflows: workflowList
     });
   } catch (error) {
