@@ -434,8 +434,7 @@ app.post('/api/etf/deploy', async (req, res) => {
           nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
           connections: originalWorkflow.connections || {},
           settings: originalWorkflow.settings || {},
-          staticData: originalWorkflow.staticData || {},
-          tags: [`PET[${client_data.name}]`]
+          staticData: originalWorkflow.staticData || {}
           // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
         };
 
