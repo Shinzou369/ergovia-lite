@@ -79,12 +79,14 @@ class N8NApiClient {
   async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
 }
 
-// Validate N8N configuration
+// Validate N8N configuration and exit if critical vars missing
 if (!N8N_BASE_URL) {
   console.error('❌ N8N_BASE_URL environment variable is not set');
+  console.error('ETF functionality will be disabled');
 }
 if (!N8N_API_KEY) {
   console.error('❌ N8N_API_KEY environment variable is not set');
+  console.error('ETF functionality will be disabled');
 }
 
 const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
@@ -438,8 +440,30 @@ app.post('/api/etf/deploy', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Workflow duplication error:', error);
-    res.status(500).json({ error: 'Workflow duplication failed', details: error.message });
+    console.error('Workflow duplication error:', {
+      message: error.message,
+      template_id: req.body.template_id,
+      client: req.body.client_data?.name,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Provide specific error messages based on error type
+    let userMessage = 'Workflow duplication failed';
+    if (error.message.includes('N8N_BASE_URL')) {
+      userMessage = 'ETF service configuration error';
+    } else if (error.message.includes('N8N_API_KEY')) {
+      userMessage = 'ETF service authentication error';
+    } else if (error.message.includes('workflow not found')) {
+      userMessage = 'Template workflow not found';
+    } else if (error.message.includes('timeout')) {
+      userMessage = 'ETF service timeout - please try again';
+    }
+    
+    res.status(500).json({ 
+      error: userMessage, 
+      details: error.message,
+      success: false 
+    });
   }
 });
 

@@ -663,14 +663,34 @@
                 statusElement.textContent = 'Connecting to workflow engine...';
                 
                 const taskforce = taskforceTypes[selectedTaskforce];
+                
+                // Validate required data before deployment
+                if (!clientData.name || !clientData.email || !clientData.phone) {
+                    throw new Error('Missing required client information');
+                }
+                
+                if (!taskforce || !taskforce.templateId) {
+                    throw new Error('Invalid taskforce configuration');
+                }
+                
                 const deploymentData = {
-                    client_data: clientData,
-                    config_data: configData,
+                    client_data: {
+                        name: clientData.name.trim(),
+                        email: clientData.email.trim().toLowerCase(),
+                        phone: clientData.phone.trim(),
+                        company: clientData.name.trim()
+                    },
+                    config_data: {
+                        business_name: clientData.name.trim(),
+                        business_email: clientData.email.trim().toLowerCase(),
+                        business_phone: clientData.phone.trim(),
+                        support_email: configData.support_email || clientData.email.trim().toLowerCase(),
+                        taskforce_type: selectedTaskforce
+                    },
                     template_id: taskforce.templateId
                 };
                 
-                // Only log non-sensitive deployment data
-                console.log('Deploying taskforce:', selectedTaskforce);
+                console.log('Deploying taskforce:', selectedTaskforce, 'for:', clientData.name);
                 
                 statusElement.textContent = 'Duplicating workflow template...';
                 
@@ -682,30 +702,33 @@
                     body: JSON.stringify(deploymentData)
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    throw new Error('Invalid response from server');
                 }
                 
-                const result = await response.json();
+                if (!response.ok) {
+                    const errorMessage = result.error || result.details || `HTTP ${response.status}: ${response.statusText}`;
+                    throw new Error(errorMessage);
+                }
                 
-                if (result.success) {
+                if (result.success && result.workflow_id) {
                     deploymentResult = result;
                     statusElement.textContent = 'Activating workflow...';
                     
-                    // Show success
+                    // Show success after short delay
                     setTimeout(() => {
                         showDeploymentSuccess();
                     }, 1000);
                 } else {
-                    throw new Error(result.details || result.error || 'Deployment failed');
+                    const errorMessage = result.error || result.details || 'Deployment failed - no workflow ID returned';
+                    throw new Error(errorMessage);
                 }
                 
             } catch (error) {
-                console.error('Deployment error:', {
-                    message: error.message,
-                    taskforce: selectedTaskforce,
-                    timestamp: new Date().toISOString()
-                });
+                console.error('Deployment failed:', error.message);
                 showDeploymentError(error.message);
             }
         }

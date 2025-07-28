@@ -1535,12 +1535,13 @@ document.addEventListener('DOMContentLoaded', () => {
   applyGoldHyphen();
 
   // Simple initialization without content protection
-  console.log('ERGOVIA-AI initialized successfully');
+  if (!window.ergoviaInitialized) {
+    console.log('ERGOVIA-AI initialized successfully');
+    window.ergoviaInitialized = true;
+  }
 
   // Load auth.js functionality after protection is in place
-  setTimeout(() => {
-    if (typeof initializeAuth === 'function') {
-      initializeAuth();
-    }
-  }, 100);
+  if (typeof initializeAuth === 'function') {
+    initializeAuth();
+  }
 });

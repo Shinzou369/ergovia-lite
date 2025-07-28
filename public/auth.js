@@ -48,8 +48,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update UI to show user info
     updateUIForLoggedInUser(authStatus.user);
   } else {
-    // User not logged in - show login option
-    console.log('User not logged in');
+    // User not logged in - show login option (log only once per session)
+    if (!window.authLoggedOnce) {
+      console.log('User not logged in');
+      window.authLoggedOnce = true;
+    }
     showLoginOption();
   }
   
