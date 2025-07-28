@@ -801,7 +801,23 @@
             const formData = new FormData(this);
             const clientData = Object.fromEntries(formData.entries());
 
-            // Prepare deployment data with folder-based template
+            // Get the first available template workflow
+            let templateId = null;
+            try {
+                const templatesResponse = await fetch('/api/etf/templates');
+                const templatesData = await templatesResponse.json();
+                if (templatesData.templates && templatesData.templates.length > 0) {
+                    templateId = templatesData.templates[0].id;
+                }
+            } catch (error) {
+                console.error('Failed to get templates:', error);
+            }
+
+            if (!templateId) {
+                throw new Error('No template workflows available');
+            }
+
+            // Prepare deployment data with workflow template
             const deploymentData = {
                 client_data: {
                     name: clientData.business_name,
@@ -813,8 +829,7 @@
                     business_email: clientData.email,
                     business_phone: clientData.phone
                 },
-                template_id: 'OTkgImaRhmTXepG3', // Template folder ID
-                template_type: 'folder'
+                template_id: templateId
             };
 
             try {

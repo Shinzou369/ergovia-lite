@@ -33,8 +33,6 @@ class N8NApiClient {
   constructor(config) {
     this.baseURL = config.baseURL;
     this.auth = config.auth || {};
-    this.projectId = 'odntzCjg5yMWuwan'; // Project ID for this N8N instance
-    this.folderId = 'OTkgImaRhmTXepG3'; // Template folder ID
 
     // Validate base URL
     if (!this.baseURL || this.baseURL === '') {
@@ -80,69 +78,21 @@ class N8NApiClient {
     }
   }
 
-  // Updated methods to handle tag-based folder system
+  // Simple methods to work with workflows directly
   async getWorkflows() { 
-    // Fetch all workflows and filter by tags
     return await this.makeRequest('GET', '/api/v1/workflows');
   }
   
   async getWorkflow(id) { 
-    return await this.makeRequest('GET', `/projects/${this.projectId}/workflows/${id}`); 
+    return await this.makeRequest('GET', `/api/v1/workflows/${id}`); 
   }
   
   async createWorkflow(workflowData) { 
-    return await this.makeRequest('POST', `/projects/${this.projectId}/workflows`, workflowData); 
+    return await this.makeRequest('POST', '/api/v1/workflows', workflowData); 
   }
   
   async activateWorkflow(id) { 
-    return await this.makeRequest('POST', `/projects/${this.projectId}/workflows/${id}/activate`); 
-  }
-
-  // Get folders in project
-  async getFolders() {
-    return await this.makeRequest('GET', `/projects/${this.projectId}/folders`);
-  }
-
-  // Get workflows by folder tags (N8N uses tags, not physical folders)
-  async getWorkflowsByTags(tags) {
-    const allWorkflows = await this.getWorkflows();
-    const workflows = allWorkflows.data || allWorkflows;
-    
-    if (!Array.isArray(workflows)) {
-      return [];
-    }
-
-    // Filter workflows that have all the specified tags
-    return workflows.filter(workflow => {
-      const workflowTags = workflow.tags || [];
-      return tags.every(tag => {
-        if (typeof tag !== 'string') return false;
-        return workflowTags.some(workflowTag => 
-          typeof workflowTag === 'string' && 
-          workflowTag.toUpperCase().includes(tag.toUpperCase())
-        );
-      });
-    });
-  }
-
-  // Get workflows in specific folder by reconstructing folder structure from tags
-  async getFolderWorkflows(folderPath) {
-    const allWorkflows = await this.getWorkflows();
-    const workflows = allWorkflows.data || allWorkflows;
-    
-    if (!Array.isArray(workflows)) {
-      return [];
-    }
-
-    // Convert folder path to expected tags
-    // e.g., "PETCLINIC/ApptSys" becomes ["PETCLINIC", "ApptSys"]
-    const expectedTags = folderPath.split('/').filter(tag => tag.length > 0);
-    
-    return workflows.filter(workflow => {
-      const workflowTags = workflow.tags || [];
-      // Check if workflow has all the folder tags
-      return expectedTags.every(tag => workflowTags.includes(tag));
-    });
+    return await this.makeRequest('POST', `/api/v1/workflows/${id}/activate`); 
   }
 }
 
@@ -414,80 +364,23 @@ app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
 });
 
-// Get available folders and templates from n8n
+// Get available templates from n8n workflows
 app.get('/api/etf/templates', async (req, res) => {
   try {
-    // Try to get folders first
-    let folders = [];
-    try {
-      const foldersResponse = await n8nClient.getFolders();
-      folders = foldersResponse.data || foldersResponse || [];
-    } catch (folderError) {
-      console.log('No project folders endpoint available, falling back to workflow analysis');
-    }
-
-    // Get workflows from the template folder
+    // Get all workflows
     const workflows = await n8nClient.getWorkflows();
     if (!workflows.data && !workflows.length) {
-      return res.json({ templates: [], folders: [], message: 'No workflows found in n8n template folder' });
+      return res.json({ templates: [], message: 'No workflows found in n8n' });
     }
 
     // Handle both response formats
     const workflowList = workflows.data || workflows;
 
-    // Group workflows by tag-based folders
-    const folderGroups = {};
-    const unfoldered = [];
-
-    workflowList.forEach(workflow => {
-      const workflowTags = workflow.tags || [];
-      
-      if (workflowTags.length > 0) {
-        // Use the first tag as the primary folder
-        const primaryFolder = workflowTags[0];
-        
-        if (!folderGroups[primaryFolder]) {
-          folderGroups[primaryFolder] = {
-            id: primaryFolder,
-            name: primaryFolder,
-            workflows: [],
-            tags: [primaryFolder]
-          };
-        }
-        folderGroups[primaryFolder].workflows.push(workflow);
-      } else {
-        unfoldered.push(workflow);
-      }
-    });
-
-    // Match folder names from the folders endpoint
-    folders.forEach(folder => {
-      if (folderGroups[folder.id]) {
-        folderGroups[folder.id].name = folder.name;
-      }
-    });
-
-    // Filter template folders (folders that don't contain personalized workflows)
-    const templateFolders = Object.values(folderGroups).filter(folder => {
-      const hasTemplateWorkflows = folder.workflows.some(wf => 
-        wf.active && !wf.name.includes('[') && wf.nodes && wf.nodes.length > 0
-      );
-      const isTemplateFolder = folder.name.toLowerCase().includes('template') || 
-                              folder.name.toLowerCase().includes('clinic') ||
-                              folder.name.toLowerCase().includes('base') ||
-                              folder.name.toLowerCase().includes('pet');
-      return hasTemplateWorkflows || isTemplateFolder;
-    });
-
-    // Also include individual template workflows not in folders
-    const individualTemplates = unfoldered.filter(workflow => {
+    // Filter for template workflows (active workflows that aren't client-specific)
+    const templateWorkflows = workflowList.filter(workflow => {
       return workflow.active && 
-             !workflow.name.includes('[') && 
-             workflow.nodes && workflow.nodes.length > 0 &&
-             (workflow.name.toUpperCase().includes('CLINIC') || 
-              workflow.name.toUpperCase().includes('TEMPLATE') ||
-              workflow.name.toUpperCase().includes('BASE') ||
-              workflow.name.toUpperCase().includes('PET'));
+             !workflow.name.includes('[') && // Not a client-specific workflow
+             workflow.nodes && workflow.nodes.length > 0;
     }).map(workflow => ({
       id: workflow.id,
       name: workflow.name,
@@ -501,62 +394,10 @@ app.get('/api/etf/templates', async (req, res) => {
       updated_at: workflow.updatedAt
     }));
 
-    // Add tag-based templates for PET CLINIC workflows
-    const petClinicWorkflows = workflowList.filter(workflow => {
-      const workflowName = workflow.name || '';
-      const workflowTags = workflow.tags || [];
-      
-      const nameMatch = workflowName.toUpperCase().includes('PET CLINIC');
-      const tagMatch = workflowTags.some(tag => 
-        typeof tag === 'string' && tag.toUpperCase().includes('PET CLINIC')
-      );
-      
-      return (nameMatch || tagMatch) && 
-             workflow.active && 
-             !workflowName.includes('[');
-    });
-
-    const petClinicTemplates = petClinicWorkflows.length > 0 ? [{
-      id: 'PET CLINIC',
-      name: 'PET CLINIC Workflows',
-      type: 'tag',
-      description: `Tag-based template containing ${petClinicWorkflows.length} PET CLINIC workflows`,
-      taskforce_type: 'dental',
-      workflow_count: petClinicWorkflows.length,
-      workflows: petClinicWorkflows.map(wf => ({
-        id: wf.id,
-        name: wf.name,
-        active: wf.active,
-        has_webhook: wf.nodes ? wf.nodes.some(n => n.type && n.type.includes('webhook')) : false
-      }))
-    }] : [];
-
-    // Format folder templates
-    const folderTemplates = templateFolders.map(folder => ({
-      id: folder.id,
-      name: folder.name,
-      type: 'folder',
-      description: `ETF folder containing ${folder.workflows.length} workflows`,
-      taskforce_type: extractTaskforceType(folder.name),
-      workflow_count: folder.workflows.length,
-      active_workflows: folder.workflows.filter(wf => wf.active).length,
-      workflows: folder.workflows.map(wf => ({
-        id: wf.id,
-        name: wf.name,
-        active: wf.active,
-        has_webhook: wf.nodes ? wf.nodes.some(n => n.type && n.type.includes('webhook')) : false
-      }))
-    }));
-
-    const allTemplates = [...folderTemplates, ...individualTemplates, ...petClinicTemplates];
-
     res.json({
-      templates: allTemplates,
-      folders: templateFolders,
-      individual_workflows: individualTemplates,
-      tag_templates: petClinicTemplates,
+      templates: templateWorkflows,
       total_workflows: workflowList.length,
-      message: `Found ${folderTemplates.length} template folders, ${individualTemplates.length} individual templates, and ${petClinicTemplates.length} tag-based templates`
+      message: `Found ${templateWorkflows.length} template workflows`
     });
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
@@ -705,262 +546,16 @@ app.get('/api/etf/stats', (req, res) => {
   });
 });
 
-// Check specific N8N project/folder endpoint
-app.get('/api/etf/check-n8n-url', async (req, res) => {
-  try {
-    const investigation = {
-      success: true,
-      message: 'N8N URL investigation completed',
-      base_url: N8N_BASE_URL,
-      timestamp: new Date().toISOString(),
-      url_tests: {}
-    };
-
-    // Test the specific URL pattern you mentioned
-    const projectId = 'odntzCjg5yMWuwan';
-    const folderId = 'OTkgImaRhmTXepG3';
-
-    // Test 1: Try project-based workflow endpoint
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects/${projectId}/workflows`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      investigation.url_tests.project_workflows = {
-        success: true,
-        status: response.status,
-        workflow_count: response.data?.data?.length || 0,
-        workflows: response.data?.data || []
-      };
-    } catch (error) {
-      investigation.url_tests.project_workflows = {
-        success: false,
-        error: error.message,
-        status: error.response?.status,
-        full_url: `${N8N_BASE_URL}/api/v1/projects/${projectId}/workflows`
-      };
-    }
-
-    // Test 2: Try the specific folder within project
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects/${projectId}/folders/${folderId}/workflows`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      investigation.url_tests.project_folder_workflows = {
-        success: true,
-        status: response.status,
-        workflow_count: response.data?.data?.length || 0,
-        workflows: response.data?.data || []
-      };
-    } catch (error) {
-      investigation.url_tests.project_folder_workflows = {
-        success: false,
-        error: error.message,
-        status: error.response?.status,
-        full_url: `${N8N_BASE_URL}/api/v1/projects/${projectId}/folders/${folderId}/workflows`
-      };
-    }
-
-    // Test 3: Try to get projects list
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      investigation.url_tests.projects_list = {
-        success: true,
-        status: response.status,
-        projects: response.data?.data || response.data || []
-      };
-    } catch (error) {
-      investigation.url_tests.projects_list = {
-        success: false,
-        error: error.message,
-        status: error.response?.status
-      };
-    }
-
-    // Test 4: Check current workflow structure for any project/folder references
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/workflows`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      if (response.data?.data && response.data.data.length > 0) {
-        const sampleWorkflow = response.data.data[0];
-        investigation.url_tests.workflow_structure_analysis = {
-          total_workflows: response.data.data.length,
-          sample_workflow_keys: Object.keys(sampleWorkflow),
-          all_unique_keys: [...new Set(response.data.data.flatMap(wf => Object.keys(wf)))],
-          workflows_with_potential_folder_info: response.data.data.map(wf => ({
-            id: wf.id,
-            name: wf.name,
-            all_fields: Object.keys(wf).reduce((obj, key) => {
-              obj[key] = wf[key];
-              return obj;
-            }, {})
-          }))
-        };
-      }
-    } catch (error) {
-      investigation.url_tests.workflow_structure_analysis = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    res.json(investigation);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'N8N URL investigation failed',
-      error: error.message
-    });
-  }
-});
-
-// Comprehensive N8N investigation endpoint
-app.get('/api/etf/investigate-n8n', async (req, res) => {
-  try {
-    const investigation = {
-      success: true,
-      message: 'N8N investigation completed',
-      base_url: N8N_BASE_URL,
-      timestamp: new Date().toISOString(),
-      tests: {}
-    };
-
-    // Test 1: Basic connection
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/workflows`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      investigation.tests.basic_connection = {
-        success: true,
-        status: response.status,
-        workflow_count: response.data?.data?.length || 0
-      };
-
-      // Analyze workflow structure
-      if (response.data?.data) {
-        const workflows = response.data.data;
-        investigation.tests.workflow_analysis = {
-          total_workflows: workflows.length,
-          sample_workflow_keys: workflows.length > 0 ? Object.keys(workflows[0]) : [],
-          workflows_summary: workflows.map(wf => ({
-            id: wf.id,
-            name: wf.name,
-            active: wf.active,
-            all_fields: Object.keys(wf).filter(key => 
-              key.toLowerCase().includes('folder') || 
-              key.toLowerCase().includes('parent') ||
-              key.toLowerCase().includes('tag') ||
-              key.toLowerCase().includes('shared')
-            ).reduce((obj, key) => {
-              obj[key] = wf[key];
-              return obj;
-            }, {})
-          }))
-        };
-      }
-    } catch (error) {
-      investigation.tests.basic_connection = {
-        success: false,
-        error: error.message,
-        status: error.response?.status,
-        full_url: `${N8N_BASE_URL}/api/v1/workflows`
-      };
-    }
-
-    // Test 2: Try to list folders
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/folders`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      investigation.tests.folders_endpoint = {
-        success: true,
-        status: response.status,
-        folders: response.data?.data || response.data || []
-      };
-    } catch (error) {
-      investigation.tests.folders_endpoint = {
-        success: false,
-        error: error.message,
-        status: error.response?.status
-      };
-    }
-
-    // Test 3: Try specific folder lookup
-    try {
-      const response = await axios.get(`${N8N_BASE_URL}/api/v1/folders/OTkgImaRhmTXepG3`, {
-        headers: {
-          'X-N8N-API-KEY': N8N_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000
-      });
-      
-      investigation.tests.specific_folder = {
-        success: true,
-        status: response.status,
-        folder_data: response.data
-      };
-    } catch (error) {
-      investigation.tests.specific_folder = {
-        success: false,
-        error: error.message,
-        status: error.response?.status
-      };
-    }
-
-    res.json(investigation);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Investigation failed',
-      error: error.message
-    });
-  }
-});
-
-// Test n8n connection with detailed folder analysis
+// Test n8n connection
 app.get('/api/etf/test-n8n', async (req, res) => {
   try {
     const analysis = {
       success: true,
       message: 'N8N connection successful',
-      target_folder_id: 'OTkgImaRhmTXepG3',
       api_tests: {}
     };
 
-    // Test 1: Get all workflows
+    // Test: Get all workflows
     try {
       const workflows = await n8nClient.getWorkflows();
       analysis.api_tests.all_workflows = {
@@ -968,76 +563,15 @@ app.get('/api/etf/test-n8n', async (req, res) => {
         count: workflows.data ? workflows.data.length : 0,
         sample_structure: workflows.data && workflows.data.length > 0 ? {
           keys: Object.keys(workflows.data[0]),
-          folder_fields: Object.keys(workflows.data[0]).filter(key => 
-            key.toLowerCase().includes('folder') || key.includes('parent')
-          ).reduce((obj, key) => {
-            obj[key] = workflows.data[0][key];
-            return obj;
-          }, {})
+          sample_workflow: {
+            id: workflows.data[0].id,
+            name: workflows.data[0].name,
+            active: workflows.data[0].active
+          }
         } : null
       };
-
-      // Analyze folder distribution
-      if (workflows.data) {
-        const folderGroups = {};
-        workflows.data.forEach(wf => {
-          const folderId = wf.folderId || wf.parentId || wf.folder || 'No folder';
-          if (!folderGroups[folderId]) folderGroups[folderId] = [];
-          folderGroups[folderId].push({
-            id: wf.id,
-            name: wf.name,
-            active: wf.active
-          });
-        });
-        analysis.api_tests.all_workflows.folder_groups = folderGroups;
-      }
     } catch (error) {
       analysis.api_tests.all_workflows = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    // Test 2: Try folder-specific API
-    try {
-      const folderWorkflows = await n8nClient.makeRequest('GET', `/workflows?folderId=${analysis.target_folder_id}`);
-      analysis.api_tests.folder_workflows_query = {
-        success: true,
-        count: folderWorkflows.data ? folderWorkflows.data.length : 0,
-        workflows: folderWorkflows.data || []
-      };
-    } catch (error) {
-      analysis.api_tests.folder_workflows_query = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    // Test 3: Try folder endpoint
-    try {
-      const folderEndpoint = await n8nClient.makeRequest('GET', `/folders/${analysis.target_folder_id}/workflows`);
-      analysis.api_tests.folder_endpoint = {
-        success: true,
-        count: folderEndpoint.data ? folderEndpoint.data.length : 0,
-        workflows: folderEndpoint.data || []
-      };
-    } catch (error) {
-      analysis.api_tests.folder_endpoint = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    // Test 4: Try to get folders list
-    try {
-      const folders = await n8nClient.makeRequest('GET', '/folders');
-      analysis.api_tests.folders_list = {
-        success: true,
-        count: folders.data ? folders.data.length : 0,
-        folders: folders.data || []
-      };
-    } catch (error) {
-      analysis.api_tests.folders_list = {
         success: false,
         error: error.message
       };
