@@ -371,30 +371,39 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client - Multiple workflows support
+// Deploy ETF workflow for client - Folder-based duplication
 app.post('/api/etf/deploy', async (req, res) => {
   try {
-    const { client_data, config_data, template_ids } = req.body;
+    const { client_data, config_data, folder_id } = req.body;
 
-    // Support both single template_id and multiple template_ids
-    const templateIds = template_ids || [req.body.template_id || 'eC6TieLjDueYJCs9'];
+    // Use the provided folder ID or default to the Pet Clinic Template folder
+    const templateFolderId = folder_id || 'OTkgImaRhmTXepG3';
     
-    // Default to both workflows if no specific templates provided
-    const defaultWorkflows = ['eC6TieLjDueYJCs9', 'XZbOJL3eMPMG8wCE'];
-    const workflowsToProcess = templateIds.length > 0 ? templateIds : defaultWorkflows;
+    console.log(`🚀 Duplicating folder ${templateFolderId} for ${client_data.name}`);
 
-    console.log(`🚀 Duplicating ${workflowsToProcess.length} workflows for ${client_data.name}`);
+    // Get all workflows from the specified folder
+    const allWorkflows = await n8nClient.getWorkflows();
+    const folderWorkflows = allWorkflows.data ? 
+      allWorkflows.data.filter(workflow => 
+        workflow.folderId === templateFolderId && workflow.active === true
+      ) : [];
+
+    if (folderWorkflows.length === 0) {
+      throw new Error(`No active workflows found in folder ${templateFolderId}`);
+    }
+
+    console.log(`📁 Found ${folderWorkflows.length} workflows in folder`);
 
     const deployedWorkflows = [];
     const client_id = uuidv4();
 
-    // Process each workflow template
-    for (const template_id of workflowsToProcess) {
+    // Process each workflow in the folder
+    for (const templateWorkflow of folderWorkflows) {
       try {
-        console.log(`🔄 Processing workflow ${template_id}...`);
+        console.log(`🔄 Processing workflow ${templateWorkflow.id} (${templateWorkflow.name})...`);
 
-        // Get the template workflow from N8N
-        const originalWorkflow = await n8nClient.getWorkflow(template_id);
+        // Get the full workflow details
+        const originalWorkflow = await n8nClient.getWorkflow(templateWorkflow.id);
 
         // Create clean workflow data - exclude ALL read-only properties
         const personalizedWorkflow = {
@@ -403,19 +412,31 @@ app.post('/api/etf/deploy', async (req, res) => {
           connections: originalWorkflow.connections || {},
           settings: originalWorkflow.settings || {},
           staticData: originalWorkflow.staticData || {}
-          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
+          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, folderId, etc.
         };
 
-        // Create and activate new workflow
+        // Create new workflow
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${originalWorkflow.name})`);
 
-        try {
-          await n8nClient.activateWorkflow(newWorkflow.id);
-          console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-        } catch (activationError) {
-          console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError);
-          // Continue with other workflows instead of failing completely
+        // Only try to activate if the workflow has trigger nodes
+        const hasTrigger = personalizedWorkflow.nodes.some(node => 
+          node.type.includes('webhook') || 
+          node.type.includes('trigger') || 
+          node.type.includes('poll') ||
+          node.type.includes('cron')
+        );
+
+        if (hasTrigger) {
+          try {
+            await n8nClient.activateWorkflow(newWorkflow.id);
+            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+          } catch (activationError) {
+            console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError.message);
+            // Continue with other workflows instead of failing completely
+          }
+        } else {
+          console.log(`ℹ️ Workflow ${newWorkflow.id} has no trigger nodes - skipping activation`);
         }
 
         // Save deployment record
@@ -424,25 +445,26 @@ app.post('/api/etf/deploy', async (req, res) => {
           etfDB.run(
             `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [deployment_id, client_id, template_id, newWorkflow.id, newWorkflow.name, 
+            [deployment_id, client_id, templateWorkflow.id, newWorkflow.id, newWorkflow.name, 
              'general', JSON.stringify(config_data)],
             (err) => err ? reject(err) : resolve()
           );
         });
 
         deployedWorkflows.push({
-          template_id,
+          template_id: templateWorkflow.id,
           workflow_id: newWorkflow.id,
           workflow_name: newWorkflow.name,
           deployment_id,
-          webhook_url: extractWebhookUrl(personalizedWorkflow.nodes)
+          webhook_url: extractWebhookUrl(personalizedWorkflow.nodes),
+          has_trigger: hasTrigger
         });
 
       } catch (workflowError) {
-        console.error(`❌ Failed to process workflow ${template_id}:`, workflowError.message);
+        console.error(`❌ Failed to process workflow ${templateWorkflow.id}:`, workflowError.message);
         // Continue with other workflows
         deployedWorkflows.push({
-          template_id,
+          template_id: templateWorkflow.id,
           error: workflowError.message,
           success: false
         });
@@ -466,11 +488,12 @@ app.post('/api/etf/deploy', async (req, res) => {
     res.json({
       success: successfulDeployments.length > 0,
       client_id: client_id,
-      total_workflows: workflowsToProcess.length,
+      folder_id: templateFolderId,
+      total_workflows: folderWorkflows.length,
       successful_deployments: successfulDeployments.length,
       failed_deployments: failedDeployments.length,
       deployed_workflows: deployedWorkflows,
-      message: `Successfully deployed ${successfulDeployments.length}/${workflowsToProcess.length} workflows for ${client_data.name}`,
+      message: `Successfully deployed ${successfulDeployments.length}/${folderWorkflows.length} workflows from folder for ${client_data.name}`,
       webhook_urls: successfulDeployments.map(w => w.webhook_url).filter(Boolean)
     });
 
