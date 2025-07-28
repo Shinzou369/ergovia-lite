@@ -19,13 +19,14 @@ const crypto = require('crypto');
 // ========================================
 let N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n-app-gvq5.onrender.com';
 
-// Ensure URL has proper protocol and clean formatting
+// Clean the URL properly - remove any trailing slashes and fix double slashes
+N8N_BASE_URL = N8N_BASE_URL.replace(/\/+$/, ''); // Remove trailing slashes
+N8N_BASE_URL = N8N_BASE_URL.replace(/([^:]\/)\/+/g, '$1'); // Fix double slashes except after protocol
+
+// Ensure URL has proper protocol
 if (N8N_BASE_URL && !N8N_BASE_URL.startsWith('http://') && !N8N_BASE_URL.startsWith('https://')) {
   N8N_BASE_URL = 'https://' + N8N_BASE_URL;
 }
-
-// Remove trailing slashes to prevent double slash issues
-N8N_BASE_URL = N8N_BASE_URL.replace(/\/+$/, '');
 
 console.log('N8N_BASE_URL configured as:', N8N_BASE_URL);
 
@@ -625,6 +626,120 @@ app.get('/api/etf/stats', (req, res) => {
       estimated_monthly_revenue: estimatedRevenue
     });
   });
+});
+
+// Comprehensive N8N investigation endpoint
+app.get('/api/etf/investigate-n8n', async (req, res) => {
+  try {
+    const investigation = {
+      success: true,
+      message: 'N8N investigation completed',
+      base_url: N8N_BASE_URL,
+      timestamp: new Date().toISOString(),
+      tests: {}
+    };
+
+    // Test 1: Basic connection
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/workflows`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      investigation.tests.basic_connection = {
+        success: true,
+        status: response.status,
+        workflow_count: response.data?.data?.length || 0
+      };
+
+      // Analyze workflow structure
+      if (response.data?.data) {
+        const workflows = response.data.data;
+        investigation.tests.workflow_analysis = {
+          total_workflows: workflows.length,
+          sample_workflow_keys: workflows.length > 0 ? Object.keys(workflows[0]) : [],
+          workflows_summary: workflows.map(wf => ({
+            id: wf.id,
+            name: wf.name,
+            active: wf.active,
+            all_fields: Object.keys(wf).filter(key => 
+              key.toLowerCase().includes('folder') || 
+              key.toLowerCase().includes('parent') ||
+              key.toLowerCase().includes('tag') ||
+              key.toLowerCase().includes('shared')
+            ).reduce((obj, key) => {
+              obj[key] = wf[key];
+              return obj;
+            }, {})
+          }))
+        };
+      }
+    } catch (error) {
+      investigation.tests.basic_connection = {
+        success: false,
+        error: error.message,
+        status: error.response?.status,
+        full_url: `${N8N_BASE_URL}/api/v1/workflows`
+      };
+    }
+
+    // Test 2: Try to list folders
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/folders`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      investigation.tests.folders_endpoint = {
+        success: true,
+        status: response.status,
+        folders: response.data?.data || response.data || []
+      };
+    } catch (error) {
+      investigation.tests.folders_endpoint = {
+        success: false,
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+
+    // Test 3: Try specific folder lookup
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/folders/OTkgImaRhmTXepG3`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      investigation.tests.specific_folder = {
+        success: true,
+        status: response.status,
+        folder_data: response.data
+      };
+    } catch (error) {
+      investigation.tests.specific_folder = {
+        success: false,
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+
+    res.json(investigation);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Investigation failed',
+      error: error.message
+    });
+  }
 });
 
 // Test n8n connection with detailed folder analysis
