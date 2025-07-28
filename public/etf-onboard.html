@@ -664,54 +664,9 @@
                     </div>
                 </div>
 
-                <!-- Automation Configuration Section -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="settings"></i>
-                        </div>
-                        <h2 class="section-title">Automation Configuration</h2>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="taskforceType">Taskforce Type <span class="required">*</span></label>
-                        <select id="taskforceType" name="taskforce_type" required>
-                            <option value="">Choose your automation type</option>
-                            <option value="dental">🦷 Dental Practice Automation</option>
-                            <option value="gym">🏋️ Gym & Fitness Automation</option>
-                            <option value="contractors">🔧 Contractor & Service Automation</option>
-                            <option value="tutoring">📚 Tutoring & Education Automation</option>
-                            <option value="massage">💆 Massage & Spa Automation</option>
-                            <option value="restaurant">🍽️ Restaurant & Food Service</option>
-                            <option value="salon">💇 Hair Salon & Beauty</option>
-                            <option value="clinic">🏥 Medical Clinic Automation</option>
-                            <option value="general">⚙️ General Business Automation</option>
-                        </select>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="supportEmail">Support Email</label>
-                            <input type="email" id="supportEmail" name="support_email" 
-                                   placeholder="support@yourbusiness.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="businessHours">Business Hours</label>
-                            <input type="text" id="businessHours" name="business_hours" 
-                                   placeholder="Mon-Fri: 9 AM - 5 PM">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="specialRequirements">Special Requirements & Integration Needs</label>
-                        <textarea id="specialRequirements" name="special_requirements" rows="4"
-                                  placeholder="Describe any specific automation needs, integrations with existing tools, or special workflows you require..."></textarea>
-                    </div>
-                </div>
-
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    <i data-lucide="rocket"></i>
-                    <span>Deploy My ETF Automation</span>
+                    <i data-lucide="play"></i>
+                    <span>Run Workflow</span>
                 </button>
             </form>
 
@@ -782,50 +737,26 @@
             const formData = new FormData(this);
             const clientData = Object.fromEntries(formData.entries());
             
-            // Prepare deployment data
+            // Prepare deployment data with specific workflow ID
             const deploymentData = {
                 client_data: {
                     name: clientData.business_name,
                     email: clientData.email,
-                    company: clientData.business_name,
-                    phone: clientData.phone,
-                    industry: clientData.industry,
-                    taskforce_type: clientData.taskforce_type
+                    phone: clientData.phone
                 },
                 config_data: {
                     business_name: clientData.business_name,
                     business_email: clientData.email,
-                    business_phone: clientData.phone,
-                    support_email: clientData.support_email || clientData.email,
-                    business_hours: clientData.business_hours || 'Standard business hours',
-                    special_requirements: clientData.special_requirements
+                    business_phone: clientData.phone
                 },
-                template_id: 'auto-select'
+                template_id: 'eC6TieLjDueYJCs9' // Specific workflow ID
             };
             
             try {
                 // Simulate network delay for better UX
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // First, get available templates
-                const templatesResponse = await fetch('/api/etf/templates');
-                const templates = await templatesResponse.json();
-                
-                // Find matching template for taskforce type
-                const matchingTemplate = templates.find(t => 
-                    t.taskforce_type === clientData.taskforce_type || 
-                    t.taskforce_type === 'general'
-                );
-                
-                if (!matchingTemplate && templates.length > 0) {
-                    deploymentData.template_id = templates[0].id;
-                } else if (matchingTemplate) {
-                    deploymentData.template_id = matchingTemplate.id;
-                } else {
-                    throw new Error('No automation templates available');
-                }
-                
-                // Deploy the workflow
+                // Deploy the workflow directly
                 const response = await fetch('/api/etf/deploy', {
                     method: 'POST',
                     headers: {
@@ -839,17 +770,16 @@
                 if (result.success) {
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
-                        <h3><i data-lucide="check-circle"></i> Success! Your ETF automation is deployed!</h3>
+                        <h3><i data-lucide="check-circle"></i> Success! Your workflow is deployed!</h3>
                         <p><strong>Workflow Name:</strong> ${result.workflow_name}</p>
                         <p><strong>Workflow ID:</strong> <code>${result.workflow_id}</code></p>
                         ${result.webhook_url ? `<p><strong>Webhook URL:</strong> <code>${result.webhook_url}</code></p>` : ''}
-                        <p>🎉 Your automation is now live and ready to handle your business processes 24/7!</p>
-                        <p><strong>Next Steps:</strong></p>
+                        <p>🎉 Your personalized workflow is now active with your business information!</p>
+                        <p>The workflow has been duplicated from your N8N instance and customized with:</p>
                         <ul style="margin: 10px 0; padding-left: 20px;">
-                            <li>Check your email for detailed setup instructions</li>
-                            <li>Your automation will be active within 15 minutes</li>
-                            <li>You'll be billed $30/month for this automation service</li>
-                            <li>Access your admin dashboard to monitor performance</li>
+                            <li><strong>Business Name:</strong> ${deploymentData.client_data.name}</li>
+                            <li><strong>Email:</strong> ${deploymentData.client_data.email}</li>
+                            <li><strong>Phone:</strong> ${deploymentData.client_data.phone}</li>
                         </ul>
                     `;
                     

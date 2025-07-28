@@ -341,9 +341,9 @@ app.post('/api/etf/deploy', async (req, res) => {
   try {
     const { client_data, config_data, template_id } = req.body;
 
-    console.log(`🚀 Deploying ETF workflow for ${client_data.name}`);
+    console.log(`🚀 Duplicating workflow ${template_id} for ${client_data.name}`);
 
-    // Get the template workflow
+    // Get the template workflow from N8N
     const originalWorkflow = await n8nClient.getWorkflow(template_id);
 
     // Create personalized workflow
@@ -367,8 +367,8 @@ app.post('/api/etf/deploy', async (req, res) => {
       etfDB.run(
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [client_id, client_data.name, client_data.email, client_data.company || client_data.name, 
-         client_data.industry || 'Not specified', client_data.taskforce_type || 'general'],
+        [client_id, client_data.name, client_data.email, client_data.name, 
+         'General', 'general'],
         (err) => err ? reject(err) : resolve()
       );
     });
@@ -379,7 +379,7 @@ app.post('/api/etf/deploy', async (req, res) => {
         `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [deployment_id, client_id, template_id, newWorkflow.id, newWorkflow.name, 
-         client_data.taskforce_type || 'general', JSON.stringify(config_data)],
+         'general', JSON.stringify(config_data)],
         (err) => err ? reject(err) : resolve()
       );
     });
@@ -390,13 +390,13 @@ app.post('/api/etf/deploy', async (req, res) => {
       workflow_name: newWorkflow.name,
       client_id: client_id,
       deployment_id: deployment_id,
-      message: `ETF automation deployed successfully for ${client_data.name}`,
+      message: `Workflow duplicated successfully for ${client_data.name}`,
       webhook_url: extractWebhookUrl(personalizedWorkflow.nodes)
     });
 
   } catch (error) {
-    console.error('ETF deployment error:', error);
-    res.status(500).json({ error: 'Deployment failed', details: error.message });
+    console.error('Workflow duplication error:', error);
+    res.status(500).json({ error: 'Workflow duplication failed', details: error.message });
   }
 });
 
