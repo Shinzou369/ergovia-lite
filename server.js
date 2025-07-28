@@ -346,12 +346,14 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Get the template workflow from N8N
     const originalWorkflow = await n8nClient.getWorkflow(template_id);
 
-    // Create personalized workflow
+    // Create clean workflow data - only include essential fields
     const personalizedWorkflow = {
-      ...originalWorkflow,
       name: `[${client_data.name}] ${originalWorkflow.name}`,
-      id: undefined, // Remove ID to create new workflow
-      nodes: personalizeWorkflowNodes(originalWorkflow.nodes, config_data, client_data)
+      nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
+      connections: originalWorkflow.connections || {},
+      active: false,
+      settings: originalWorkflow.settings || {},
+      staticData: originalWorkflow.staticData || {}
     };
 
     // Create and activate new workflow
@@ -1427,17 +1429,25 @@ function analyzeWorkflowConfig(workflow) {
 }
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
+  if (!Array.isArray(nodes)) {
+    return [];
+  }
+  
   return nodes.map(node => {
-    const personalizedNode = { ...node };
+    // Create clean node object with only essential fields
+    const personalizedNode = {
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      typeVersion: node.typeVersion || 1,
+      position: node.position || [0, 0],
+      parameters: personalizeParameters(node.parameters || {}, configData, clientData)
+    };
     
-    // Replace placeholders in node parameters
-    if (personalizedNode.parameters) {
-      personalizedNode.parameters = personalizeParameters(
-        personalizedNode.parameters, 
-        configData, 
-        clientData
-      );
-    }
+    // Add optional fields if they exist
+    if (node.credentials) personalizedNode.credentials = node.credentials;
+    if (node.webhookId) personalizedNode.webhookId = node.webhookId;
+    if (node.disabled !== undefined) personalizedNode.disabled = node.disabled;
     
     return personalizedNode;
   });
@@ -1445,27 +1455,31 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
 
 function personalizeParameters(parameters, configData, clientData) {
   const substitutions = {
-    '{{CLIENT_NAME}}': clientData.name,
-    '{{CLIENT_EMAIL}}': clientData.email,
-    '{{CLIENT_COMPANY}}': clientData.company || clientData.name,
+    '{{CLIENT_NAME}}': clientData.name || '',
+    '{{CLIENT_EMAIL}}': clientData.email || '',
+    '{{CLIENT_COMPANY}}': clientData.company || clientData.name || '',
     '{{CLIENT_PHONE}}': clientData.phone || '',
-    '{{BUSINESS_NAME}}': configData.business_name || clientData.name,
-    '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email,
-    '{{BUSINESS_PHONE}}': configData.business_phone || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email,
-    ...configData
+    '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
+    '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
+    '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || ''
   };
 
   function replaceInObject(obj) {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
     if (typeof obj === 'string') {
       let result = obj;
       Object.entries(substitutions).forEach(([placeholder, value]) => {
-        result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
+        const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
+        result = result.replace(regex, value);
       });
       return result;
     } else if (Array.isArray(obj)) {
       return obj.map(replaceInObject);
-    } else if (obj && typeof obj === 'object') {
+    } else if (typeof obj === 'object') {
       const newObj = {};
       Object.entries(obj).forEach(([key, value]) => {
         newObj[key] = replaceInObject(value);
@@ -1475,7 +1489,7 @@ function personalizeParameters(parameters, configData, clientData) {
     return obj;
   }
 
-  return replaceInObject({ ...parameters });
+  return replaceInObject(parameters || {});
 }
 
 function extractWebhookUrl(nodes) {
