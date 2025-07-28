@@ -19,10 +19,13 @@ const crypto = require('crypto');
 // ========================================
 let N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n-app-gvq5.onrender.com';
 
-// Ensure URL has proper protocol
+// Ensure URL has proper protocol and clean formatting
 if (N8N_BASE_URL && !N8N_BASE_URL.startsWith('http://') && !N8N_BASE_URL.startsWith('https://')) {
   N8N_BASE_URL = 'https://' + N8N_BASE_URL;
 }
+
+// Remove trailing slashes to prevent double slash issues
+N8N_BASE_URL = N8N_BASE_URL.replace(/\/+$/, '');
 
 const N8N_API_KEY = process.env.N8N_API_KEY || '';
 
@@ -383,13 +386,32 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // Get all workflows from the specified folder
     const allWorkflows = await n8nClient.getWorkflows();
+    console.log(`📋 Total workflows found: ${allWorkflows.data ? allWorkflows.data.length : 0}`);
+    
+    // Debug: Show all workflows and their folder assignments
+    if (allWorkflows.data) {
+      allWorkflows.data.forEach(wf => {
+        console.log(`🔍 Workflow: ${wf.name} | Folder: ${wf.folderId || 'No folder'} | Active: ${wf.active}`);
+      });
+    }
+    
     const folderWorkflows = allWorkflows.data ? 
       allWorkflows.data.filter(workflow => 
         workflow.folderId === templateFolderId && workflow.active === true
       ) : [];
 
+    console.log(`📁 Workflows in folder ${templateFolderId}: ${folderWorkflows.length}`);
+    
     if (folderWorkflows.length === 0) {
-      throw new Error(`No active workflows found in folder ${templateFolderId}`);
+      // Check if folder exists with inactive workflows
+      const inactiveFolderWorkflows = allWorkflows.data ? 
+        allWorkflows.data.filter(workflow => workflow.folderId === templateFolderId) : [];
+      
+      if (inactiveFolderWorkflows.length > 0) {
+        throw new Error(`Found ${inactiveFolderWorkflows.length} workflows in folder ${templateFolderId}, but none are active. Please activate the template workflows in n8n.`);
+      } else {
+        throw new Error(`Folder ${templateFolderId} not found or contains no workflows. Please check the folder ID in n8n.`);
+      }
     }
 
     console.log(`📁 Found ${folderWorkflows.length} workflows in folder`);
@@ -552,10 +574,29 @@ app.get('/api/etf/stats', (req, res) => {
 app.get('/api/etf/test-n8n', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
+    
+    // Group workflows by folder for debugging
+    const folderGroups = {};
+    if (workflows.data) {
+      workflows.data.forEach(wf => {
+        const folderId = wf.folderId || 'No folder';
+        if (!folderGroups[folderId]) {
+          folderGroups[folderId] = [];
+        }
+        folderGroups[folderId].push({
+          id: wf.id,
+          name: wf.name,
+          active: wf.active
+        });
+      });
+    }
+    
     res.json({ 
       success: true, 
       message: 'N8N connection successful',
-      workflow_count: workflows.data ? workflows.data.length : 0
+      workflow_count: workflows.data ? workflows.data.length : 0,
+      folders: folderGroups,
+      target_folder_id: 'OTkgImaRhmTXepG3'
     });
   } catch (error) {
     res.status(500).json({ 
