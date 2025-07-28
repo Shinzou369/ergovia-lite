@@ -582,31 +582,40 @@
             });
         }
 
+        function sanitizeInput(value) {
+            return value ? value.trim().replace(/[<>]/g, '') : '';
+        }
+        
         function collectClientData() {
+            const businessName = sanitizeInput(document.getElementById('businessName').value);
             clientData = {
-                name: document.getElementById('businessName').value,
-                email: document.getElementById('businessEmail').value,
-                phone: document.getElementById('businessPhone').value,
-                company: document.getElementById('businessName').value
+                name: businessName,
+                email: sanitizeInput(document.getElementById('businessEmail').value),
+                phone: sanitizeInput(document.getElementById('businessPhone').value),
+                company: businessName
             };
         }
 
         function collectConfigData() {
-            if (!selectedTaskforce) return;
+            if (!selectedTaskforce) {
+                console.warn('No taskforce selected for configuration');
+                return;
+            }
             
             const taskforce = taskforceTypes[selectedTaskforce];
             configData = {
-                business_name: document.getElementById('businessName').value,
-                business_email: document.getElementById('businessEmail').value,
-                business_phone: document.getElementById('businessPhone').value,
-                support_email: document.getElementById('supportEmail').value || document.getElementById('businessEmail').value
+                business_name: sanitizeInput(document.getElementById('businessName').value),
+                business_email: sanitizeInput(document.getElementById('businessEmail').value),
+                business_phone: sanitizeInput(document.getElementById('businessPhone').value),
+                support_email: sanitizeInput(document.getElementById('supportEmail').value) || 
+                              sanitizeInput(document.getElementById('businessEmail').value)
             };
             
-            // Add taskforce-specific config
+            // Add taskforce-specific config with sanitization
             taskforce.config.forEach(field => {
                 const element = document.getElementById(field.key);
                 if (element) {
-                    configData[field.key] = element.value;
+                    configData[field.key] = sanitizeInput(element.value);
                 }
             });
         }
@@ -660,7 +669,8 @@
                     template_id: taskforce.templateId
                 };
                 
-                console.log('Deploying with data:', deploymentData);
+                // Only log non-sensitive deployment data
+                console.log('Deploying taskforce:', selectedTaskforce);
                 
                 statusElement.textContent = 'Duplicating workflow template...';
                 
@@ -672,9 +682,13 @@
                     body: JSON.stringify(deploymentData)
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const result = await response.json();
                 
-                if (response.ok && result.success) {
+                if (result.success) {
                     deploymentResult = result;
                     statusElement.textContent = 'Activating workflow...';
                     
@@ -687,7 +701,11 @@
                 }
                 
             } catch (error) {
-                console.error('Deployment error:', error);
+                console.error('Deployment error:', {
+                    message: error.message,
+                    taskforce: selectedTaskforce,
+                    timestamp: new Date().toISOString()
+                });
                 showDeploymentError(error.message);
             }
         }
@@ -697,54 +715,119 @@
             updateProgress();
             
             const detailsContainer = document.getElementById('deploymentDetails');
+            
+            // Safely extract and display deployment information
+            const workflowId = deploymentResult?.workflow_id || 'N/A';
+            const workflowName = deploymentResult?.workflow_name || 'Unnamed Workflow';
+            const clientId = deploymentResult?.client_id || 'N/A';
+            const webhookUrl = deploymentResult?.webhook_url;
+            
+            let webhookDisplay = '';
+            if (webhookUrl && webhookUrl.startsWith('http')) {
+                // Truncate long URLs for display
+                const displayUrl = webhookUrl.length > 50 ? 
+                    webhookUrl.substring(0, 47) + '...' : webhookUrl;
+                webhookDisplay = `<p><strong>Webhook URL:</strong> <a href="${webhookUrl}" target="_blank" rel="noopener">${displayUrl}</a></p>`;
+            }
+            
             detailsContainer.innerHTML = `
                 <h4>Deployment Details:</h4>
-                <p><strong>Workflow ID:</strong> ${deploymentResult.workflow_id}</p>
-                <p><strong>Workflow Name:</strong> ${deploymentResult.workflow_name}</p>
-                <p><strong>Client ID:</strong> ${deploymentResult.client_id}</p>
-                ${deploymentResult.webhook_url ? `<p><strong>Webhook URL:</strong> <a href="${deploymentResult.webhook_url}" target="_blank">${deploymentResult.webhook_url}</a></p>` : ''}
+                <p><strong>Workflow ID:</strong> ${workflowId}</p>
+                <p><strong>Workflow Name:</strong> ${workflowName}</p>
+                <p><strong>Client ID:</strong> ${clientId}</p>
+                ${webhookDisplay}
                 <p><strong>Status:</strong> ✅ Active and Ready</p>
                 <p><strong>Monthly Cost:</strong> $30/month</p>
+                <p><strong>Deployed:</strong> ${new Date().toLocaleDateString()}</p>
             `;
         }
 
         function showDeploymentError(errorMessage) {
             const step5 = document.getElementById('step5');
+            
+            // Sanitize error message to prevent XSS
+            const sanitizedError = errorMessage ? 
+                errorMessage.replace(/[<>]/g, '').substring(0, 200) : 
+                'Unknown deployment error occurred';
+            
             step5.innerHTML = `
                 <div class="loading-container">
                     <h3>❌ Deployment Failed</h3>
                     <div class="error-message">
-                        <strong>Error:</strong> ${errorMessage}
+                        <strong>Error:</strong> ${sanitizedError}
                     </div>
-                    <button class="btn btn-secondary" onclick="prevStep()">
-                        <i data-lucide="arrow-left"></i> Go Back
-                    </button>
-                    <button class="btn btn-primary" onclick="deployTaskforce()">
-                        <i data-lucide="refresh-cw"></i> Try Again
-                    </button>
+                    <div class="error-help">
+                        <p>Common solutions:</p>
+                        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+                            <li>Check your internet connection</li>
+                            <li>Verify all required fields are filled</li>
+                            <li>Try again in a few moments</li>
+                        </ul>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="prevStep()" style="margin-right: 10px;">
+                            <i data-lucide="arrow-left"></i> Go Back
+                        </button>
+                        <button class="btn btn-primary" onclick="deployTaskforce()">
+                            <i data-lucide="refresh-cw"></i> Try Again
+                        </button>
+                    </div>
                 </div>
             `;
+            
+            // Reinitialize icons for the new buttons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
 
         function validateStep() {
-            if (currentStep === 1) {
-                return selectedTaskforce !== null;
-            }
+            const validators = {
+                1: () => selectedTaskforce !== null,
+                2: () => validateBusinessInfo(),
+                3: () => true, // Configuration step is always valid
+                4: () => true  // Review step is always valid
+            };
             
-            if (currentStep === 2) {
-                const requiredFields = ['businessName', 'businessEmail', 'businessPhone'];
-                for (const field of requiredFields) {
-                    const input = document.getElementById(field);
-                    if (!input.value.trim()) {
-                        input.focus();
-                        alert(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
-                        return false;
-                    }
+            return validators[currentStep] ? validators[currentStep]() : true;
+        }
+        
+        function validateBusinessInfo() {
+            const requiredFields = ['businessName', 'businessEmail', 'businessPhone'];
+            for (const field of requiredFields) {
+                const input = document.getElementById(field);
+                if (!input || !input.value.trim()) {
+                    if (input) input.focus();
+                    showValidationError(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+                    return false;
                 }
-                return true;
             }
-            
             return true;
+        }
+        
+        function showValidationError(message) {
+            // Create a more user-friendly error display instead of alert
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'validation-error';
+            errorDiv.textContent = message;
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #fee;
+                border: 1px solid #fcc;
+                color: #c33;
+                padding: 15px;
+                border-radius: 8px;
+                z-index: 1000;
+                font-weight: 500;
+            `;
+            
+            document.body.appendChild(errorDiv);
+            
+            setTimeout(() => {
+                document.body.removeChild(errorDiv);
+            }, 4000);
         }
 
         function nextStep() {
@@ -773,13 +856,27 @@
             }
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            detectTaskforceType();
-            loadTaskforceOptions();
-            updateProgress();
-        });
+        // Initialize application
+        function initializeApp() {
+            try {
+                detectTaskforceType();
+                loadTaskforceOptions();
+                updateProgress();
+                
+                // Initialize Lucide icons
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                
+                console.log('Taskforce onboarding initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                showValidationError('Failed to load application. Please refresh the page.');
+            }
+        }
+
+        // Single DOM ready handler
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
