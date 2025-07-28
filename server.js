@@ -19,10 +19,6 @@ const crypto = require('crypto');
 // ========================================
 let N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n-app-gvq5.onrender.com';
 
-// Clean the URL properly - remove any trailing slashes and fix double slashes
-N8N_BASE_URL = N8N_BASE_URL.replace(/\/+$/, ''); // Remove trailing slashes
-N8N_BASE_URL = N8N_BASE_URL.replace(/([^:]\/)\/+/g, '$1'); // Fix double slashes except after protocol
-
 // Ensure URL has proper protocol
 if (N8N_BASE_URL && !N8N_BASE_URL.startsWith('http://') && !N8N_BASE_URL.startsWith('https://')) {
   N8N_BASE_URL = 'https://' + N8N_BASE_URL;
