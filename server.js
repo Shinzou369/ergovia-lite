@@ -358,7 +358,15 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // Create and activate new workflow
     const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-    await n8nClient.activateWorkflow(newWorkflow.id);
+    console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+    
+    try {
+      await n8nClient.activateWorkflow(newWorkflow.id);
+      console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+    } catch (activationError) {
+      console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError);
+      throw new Error(`Workflow created but activation failed: ${activationError.message}`);
+    }
 
     // Save client and deployment records
     const client_id = uuidv4();
