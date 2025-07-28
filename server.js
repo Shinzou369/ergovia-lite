@@ -352,19 +352,29 @@ app.get('/api/etf/templates', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
 
-    // Filter active workflows as templates
+    // Filter workflows with "PET CLINIC" tag specifically
     const templates = workflows.data ? 
-      workflows.data.filter(workflow => workflow.active === true).map(workflow => ({
+      workflows.data.filter(workflow => {
+        const workflowTags = workflow.tags || [];
+        // Check if workflow has "PET CLINIC" tag (case insensitive)
+        const hasPetClinicTag = workflowTags.some(tag => 
+          tag.toLowerCase().includes('pet clinic') || 
+          tag.toLowerCase().includes('pet-clinic') ||
+          tag.toLowerCase().includes('petclinic')
+        );
+        return hasPetClinicTag && workflow.active === true;
+      }).map(workflow => ({
         id: workflow.id,
         name: workflow.name,
         description: `ETF automation workflow: ${workflow.name}`,
-        taskforce_type: extractTaskforceType(workflow.name, workflow.tags),
+        taskforce_type: 'dental', // Pet clinics are categorized as dental
         tags: workflow.tags || [],
         config_fields: analyzeWorkflowConfig(workflow),
         created_at: workflow.createdAt,
         updated_at: workflow.updatedAt
       })) : [];
 
+    console.log(`Found ${templates.length} PET CLINIC workflows with tags`);
     res.json(templates);
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
@@ -375,7 +385,30 @@ app.get('/api/etf/templates', async (req, res) => {
 // Deploy ETF workflow for client
 app.post('/api/etf/deploy', async (req, res) => {
   try {
-    const { client_data, config_data, template_id } = req.body;
+    let { client_data, config_data, template_id } = req.body;
+
+    // If no template_id provided, find the first PET CLINIC workflow
+    if (!template_id) {
+      console.log('🔍 No template_id provided, searching for PET CLINIC workflows...');
+      
+      const workflows = await n8nClient.getWorkflows();
+      const petClinicWorkflow = workflows.data ? 
+        workflows.data.find(workflow => {
+          const workflowTags = workflow.tags || [];
+          return workflowTags.some(tag => 
+            tag.toLowerCase().includes('pet clinic') || 
+            tag.toLowerCase().includes('pet-clinic') ||
+            tag.toLowerCase().includes('petclinic')
+          ) && workflow.active === true;
+        }) : null;
+
+      if (!petClinicWorkflow) {
+        throw new Error('No active PET CLINIC workflows found. Please ensure your N8N workflow has a "PET CLINIC" tag.');
+      }
+
+      template_id = petClinicWorkflow.id;
+      console.log(`✅ Found PET CLINIC workflow: ${petClinicWorkflow.name} (ID: ${template_id})`);
+    }
 
     console.log(`🚀 Duplicating workflow ${template_id} for ${client_data.name}`);
 
@@ -507,6 +540,39 @@ app.get('/api/etf/test-n8n', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'N8N connection failed',
+      error: error.message 
+    });
+  }
+});
+
+// Debug endpoint to list all workflows with their tags
+app.get('/api/etf/debug/workflows', async (req, res) => {
+  try {
+    const workflows = await n8nClient.getWorkflows();
+    
+    const workflowList = workflows.data ? 
+      workflows.data.map(workflow => ({
+        id: workflow.id,
+        name: workflow.name,
+        active: workflow.active,
+        tags: workflow.tags || [],
+        hasPetClinicTag: (workflow.tags || []).some(tag => 
+          tag.toLowerCase().includes('pet clinic') || 
+          tag.toLowerCase().includes('pet-clinic') ||
+          tag.toLowerCase().includes('petclinic')
+        )
+      })) : [];
+
+    res.json({
+      success: true,
+      total_workflows: workflowList.length,
+      pet_clinic_workflows: workflowList.filter(w => w.hasPetClinicTag),
+      all_workflows: workflowList
+    });
+  } catch (error) {
+    console.error('Error fetching workflow debug info:', error);
+    res.status(500).json({ 
+      success: false, 
       error: error.message 
     });
   }
