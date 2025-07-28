@@ -468,7 +468,8 @@ app.get('/api/etf/templates', async (req, res) => {
       );
       const isTemplateFolder = folder.name.toLowerCase().includes('template') || 
                               folder.name.toLowerCase().includes('clinic') ||
-                              folder.name.toLowerCase().includes('base');
+                              folder.name.toLowerCase().includes('base') ||
+                              folder.name.toLowerCase().includes('pet');
       return hasTemplateWorkflows || isTemplateFolder;
     });
 
@@ -477,10 +478,10 @@ app.get('/api/etf/templates', async (req, res) => {
       return workflow.active && 
              !workflow.name.includes('[') && 
              workflow.nodes && workflow.nodes.length > 0 &&
-             (workflow.name.includes('CLINIC') || 
-              workflow.name.includes('TEMPLATE') ||
-              workflow.name.includes('BASE') ||
-              workflow.name.includes('PET'));
+             (workflow.name.toUpperCase().includes('CLINIC') || 
+              workflow.name.toUpperCase().includes('TEMPLATE') ||
+              workflow.name.toUpperCase().includes('BASE') ||
+              workflow.name.toUpperCase().includes('PET'));
     }).map(workflow => ({
       id: workflow.id,
       name: workflow.name,
@@ -493,6 +494,30 @@ app.get('/api/etf/templates', async (req, res) => {
       created_at: workflow.createdAt,
       updated_at: workflow.updatedAt
     }));
+
+    // Add tag-based templates for PET CLINIC workflows
+    const petClinicWorkflows = workflowList.filter(workflow => {
+      const workflowName = workflow.name || '';
+      return workflowName.toUpperCase().includes('PET CLINIC') && 
+             workflow.active && 
+             !workflow.name.includes('[');
+    }).map(workflow => ({
+      id: 'PET CLINIC',
+      name: 'PET CLINIC Workflows',
+      type: 'tag',
+      description: `Tag-based template containing ${workflowList.filter(wf => wf.name && wf.name.toUpperCase().includes('PET CLINIC') && wf.active).length} PET CLINIC workflows`,
+      taskforce_type: 'dental',
+      workflow_count: workflowList.filter(wf => wf.name && wf.name.toUpperCase().includes('PET CLINIC') && wf.active).length,
+      workflows: workflowList.filter(wf => wf.name && wf.name.toUpperCase().includes('PET CLINIC') && wf.active).map(wf => ({
+        id: wf.id,
+        name: wf.name,
+        active: wf.active,
+        has_webhook: wf.nodes ? wf.nodes.some(n => n.type && n.type.includes('webhook')) : false
+      }))
+    }));
+
+    // Only add PET CLINIC tag if there are workflows
+    const tagTemplates = petClinicWorkflows.length > 0 && petClinicWorkflows[0].workflow_count > 0 ? petClinicWorkflows : [];
 
     // Format folder templates
     const folderTemplates = templateFolders.map(folder => ({
@@ -511,14 +536,15 @@ app.get('/api/etf/templates', async (req, res) => {
       }))
     }));
 
-    const allTemplates = [...folderTemplates, ...individualTemplates];
+    const allTemplates = [...folderTemplates, ...individualTemplates, ...tagTemplates];
 
     res.json({
       templates: allTemplates,
       folders: templateFolders,
       individual_workflows: individualTemplates,
+      tag_templates: tagTemplates,
       total_workflows: workflowList.length,
-      message: `Found ${folderTemplates.length} template folders and ${individualTemplates.length} individual templates`
+      message: `Found ${folderTemplates.length} template folders, ${individualTemplates.length} individual templates, and ${tagTemplates.length} tag-based templates`
     });
   } catch (error) {
     console.error('Error fetching ETF templates:', error);
@@ -526,7 +552,7 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client - Enhanced folder duplication
+// Deploy ETF workflow for client - Enhanced tag-based duplication
 app.post('/api/etf/deploy', async (req, res) => {
   try {
     const { client_data, config_data, template_id, template_type } = req.body;
@@ -537,37 +563,39 @@ app.post('/api/etf/deploy', async (req, res) => {
     let templateWorkflows = [];
     let clientFolderId = null;
 
-    // Handle folder-based duplication using tag system
-    if (template_type === 'folder') {
-      console.log(`📁 Processing folder template: ${template_id}`);
+    // Handle tag-based workflow duplication
+    if (template_type === 'tag' || template_type === 'folder') {
+      console.log(`🏷️ Processing tag-based template: ${template_id}`);
       
       try {
-        // Get workflows by folder tags (N8N uses tags, not physical folders)
-        // template_id should be a folder path like "PETCLINIC" or "PETCLINIC/ApptSys"
-        const folderWorkflows = await n8nClient.getFolderWorkflows(template_id);
+        // Get all workflows and filter by tag
+        const allWorkflows = await n8nClient.getWorkflows();
+        const workflows = allWorkflows.data || allWorkflows;
         
-        // Filter for active workflows only
-        templateWorkflows = folderWorkflows.filter(workflow => workflow.active === true);
-        console.log(`📁 Found ${templateWorkflows.length} active workflows with folder tags: ${template_id}`);
-
-        if (templateWorkflows.length === 0) {
-          // Fallback: try to find workflows by matching template_id as a tag
-          const allWorkflows = await n8nClient.getWorkflows();
-          const workflows = allWorkflows.data || allWorkflows;
+        templateWorkflows = workflows.filter(workflow => {
+          const workflowName = workflow.name || '';
+          const workflowTags = workflow.tags || [];
           
-          templateWorkflows = workflows.filter(workflow => {
-            const workflowTags = workflow.tags || [];
-            return workflowTags.includes(template_id) && workflow.active === true;
-          });
+          // Check if workflow name contains the template_id (like "PET CLINIC")
+          // or if it has the template_id as a tag
+          const nameMatch = workflowName.toUpperCase().includes(template_id.toUpperCase());
+          const tagMatch = workflowTags.some(tag => tag.toUpperCase().includes(template_id.toUpperCase()));
           
-          console.log(`📁 Fallback search found ${templateWorkflows.length} workflows with tag: ${template_id}`);
-        }
+          return (nameMatch || tagMatch) && workflow.active === true;
+        });
+        
+        console.log(`🏷️ Found ${templateWorkflows.length} active workflows matching: ${template_id}`);
+        
+        // Log the found workflows for debugging
+        templateWorkflows.forEach(wf => {
+          console.log(`  - ${wf.name} (ID: ${wf.id}, Tags: ${JSON.stringify(wf.tags || [])})`);
+        });
 
       } catch (error) {
-        console.error('❌ Folder-based duplication failed:', error.message);
+        console.error('❌ Tag-based duplication failed:', error.message);
         return res.status(400).json({
           success: false,
-          error: 'Failed to fetch folder workflows',
+          error: 'Failed to fetch tagged workflows',
           details: error.message
         });
       }
