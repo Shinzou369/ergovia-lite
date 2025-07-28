@@ -83,18 +83,23 @@ class N8NApiClient {
     try {
       return await this.makeRequest('POST', '/tags', { name: tagName });
     } catch (error) {
-      // Tag might already exist, try to get it
-      const tags = await this.makeRequest('GET', '/tags');
-      const existingTag = tags.find(tag => tag.name === tagName);
-      if (existingTag) {
-        return existingTag;
+      if (error.message.includes('409') || error.message.includes('Tag already exists')) {
+        // Tag already exists, try to get it
+        const tagsResponse = await this.makeRequest('GET', '/tags');
+        // Handle both array response and object with data property
+        const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
+        const existingTag = tags.find(tag => tag.name === tagName);
+        if (existingTag) {
+          return existingTag;
+        }
       }
       throw error;
     }
   }
 
   async updateWorkflowTags(workflowId, tagIds) {
-    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
+    // N8N expects an array of tag IDs directly, not wrapped in an object
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagIds);
   }
 }
 
