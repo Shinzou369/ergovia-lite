@@ -564,182 +564,65 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client - Enhanced tag-based duplication
+// Deploy ETF workflow for client - Single workflow duplication
 app.post('/api/etf/deploy', async (req, res) => {
   try {
-    const { client_data, config_data, template_id, template_type } = req.body;
+    const { client_data, config_data, template_id } = req.body;
 
-    console.log(`🚀 Deploying ETF ${template_type || 'workflow'} for ${client_data.name}`);
-    console.log(`📋 Template ID: ${template_id}, Type: ${template_type}`);
+    console.log(`🚀 Deploying ETF workflow for ${client_data.name}`);
+    console.log(`📋 Template ID: ${template_id}`);
 
-    let templateWorkflows = [];
-    let clientFolderId = null;
-
-    // Handle tag-based workflow duplication
-    if (template_type === 'tag' || template_type === 'folder') {
-      console.log(`🏷️ Processing tag-based template: ${template_id}`);
-      
-      try {
-        // Get all workflows and filter by tag
-        const allWorkflows = await n8nClient.getWorkflows();
-        const workflows = allWorkflows.data || allWorkflows;
-        
-        templateWorkflows = workflows.filter(workflow => {
-          const workflowName = workflow.name || '';
-          const workflowTags = workflow.tags || [];
-          
-          // For PET CLINIC specifically, look for workflows with "PET CLINIC" in the name
-          if (template_id === 'OTkgImaRhmTXepG3' || template_id.toUpperCase().includes('PET')) {
-            const nameMatch = workflowName.toUpperCase().includes('PET CLINIC');
-            const tagMatch = workflowTags.some(tag => 
-              typeof tag === 'string' && tag.toUpperCase().includes('PET CLINIC')
-            );
-            return (nameMatch || tagMatch) && workflow.active === true;
-          }
-          
-          // For other templates, check if workflow name contains the template_id
-          // or if it has the template_id as a tag
-          const nameMatch = workflowName.toUpperCase().includes(template_id.toUpperCase());
-          const tagMatch = workflowTags.some(tag => 
-            typeof tag === 'string' && tag.toUpperCase().includes(template_id.toUpperCase())
-          );
-          
-          return (nameMatch || tagMatch) && workflow.active === true;
-        });
-        
-        console.log(`🏷️ Found ${templateWorkflows.length} active workflows matching: ${template_id}`);
-        
-        // Log the found workflows for debugging
-        templateWorkflows.forEach(wf => {
-          console.log(`  - ${wf.name} (ID: ${wf.id}, Tags: ${JSON.stringify(wf.tags || [])})`);
-        });
-
-      } catch (error) {
-        console.error('❌ Tag-based duplication failed:', error.message);
-        return res.status(400).json({
-          success: false,
-          error: 'Failed to fetch tagged workflows',
-          details: error.message
-        });
-      }
-    } 
-    // Handle individual workflow duplication
-    else {
-      console.log(`🔄 Processing individual workflow template: ${template_id}`);
-      
-      try {
-        const workflow = await n8nClient.getWorkflow(template_id);
-        if (workflow.active) {
-          templateWorkflows = [workflow];
-          console.log(`✅ Found active template workflow: ${workflow.name} (${template_id})`);
-        } else {
-          return res.status(400).json({
-            success: false,
-            error: 'Template workflow is inactive',
-            details: `Workflow ${template_id} is not active`
-          });
-        }
-      } catch (error) {
-        console.error(`❌ Failed to fetch template workflow ${template_id}:`, error.message);
-        return res.status(400).json({
-          success: false,
-          error: 'Template workflow not found',
-          details: error.message
-        });
-      }
-    }
-
-    if (templateWorkflows.length === 0) {
+    // Get the specific template workflow
+    const templateWorkflow = await n8nClient.getWorkflow(template_id);
+    
+    if (!templateWorkflow.active) {
       return res.status(400).json({
         success: false,
-        error: 'No active workflows found',
-        details: template_type === 'folder' ? 
-          `No active workflows found in folder ${template_id}` : 
-          `Workflow ${template_id} not found or inactive`
+        error: 'Template workflow is inactive',
+        details: `Workflow ${template_id} is not active`
       });
     }
 
-    const deployedWorkflows = [];
+    console.log(`✅ Found active template workflow: ${templateWorkflow.name} (${template_id})`);
+
     const client_id = uuidv4();
+    const deployment_id = uuidv4();
 
-    console.log(`🔄 Processing ${templateWorkflows.length} workflows for duplication...`);
+    console.log(`🔄 Processing workflow ${templateWorkflow.id} (${templateWorkflow.name})...`);
 
-    // Process each template workflow
-    for (const templateWorkflow of templateWorkflows) {
+    // Create personalized workflow
+    const personalizedWorkflow = {
+      name: `[${client_data.name}] ${templateWorkflow.name}`,
+      nodes: personalizeWorkflowNodes(templateWorkflow.nodes || [], config_data, client_data),
+      connections: templateWorkflow.connections || {},
+      settings: templateWorkflow.settings || {},
+      staticData: templateWorkflow.staticData || {},
+      tags: [...(templateWorkflow.tags || []), `CLIENT_${client_data.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`]
+    };
+
+    // Create new workflow
+    const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+    console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${templateWorkflow.name})`);
+
+    // Try to activate if it has trigger nodes
+    const hasTrigger = personalizedWorkflow.nodes.some(node => 
+      node.type && (
+        node.type.includes('webhook') || 
+        node.type.includes('trigger') || 
+        node.type.includes('poll') ||
+        node.type.includes('cron')
+      )
+    );
+
+    if (hasTrigger) {
       try {
-        console.log(`🔄 Processing workflow ${templateWorkflow.id} (${templateWorkflow.name})...`);
-
-        // Create clean workflow data with client tags
-        const clientTags = [`CLIENT_${client_data.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`];
-        const originalTags = templateWorkflow.tags || [];
-        
-        const personalizedWorkflow = {
-          name: `[${client_data.name}] ${templateWorkflow.name}`,
-          nodes: personalizeWorkflowNodes(templateWorkflow.nodes || [], config_data, client_data),
-          connections: templateWorkflow.connections || {},
-          settings: templateWorkflow.settings || {},
-          staticData: templateWorkflow.staticData || {},
-          tags: [...originalTags, ...clientTags] // Preserve original tags and add client tag
-        };
-
-        // Create new workflow
-        const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-        console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${templateWorkflow.name})`);
-
-        // Try to activate if it has trigger nodes
-        const hasTrigger = personalizedWorkflow.nodes.some(node => 
-          node.type && (
-            node.type.includes('webhook') || 
-            node.type.includes('trigger') || 
-            node.type.includes('poll') ||
-            node.type.includes('cron')
-          )
-        );
-
-        if (hasTrigger) {
-          try {
-            await n8nClient.activateWorkflow(newWorkflow.id);
-            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-          } catch (activationError) {
-            console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError.message);
-          }
-        } else {
-          console.log(`ℹ️ Workflow ${newWorkflow.id} has no trigger nodes - skipping activation`);
-        }
-
-        // Save deployment record
-        const deployment_id = uuidv4();
-        await new Promise((resolve, reject) => {
-          etfDB.run(
-            `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [deployment_id, client_id, templateWorkflow.id, newWorkflow.id, newWorkflow.name, 
-             extractTaskforceType(templateWorkflow.name), JSON.stringify(config_data)],
-            (err) => err ? reject(err) : resolve()
-          );
-        });
-
-        deployedWorkflows.push({
-          template_id: templateWorkflow.id,
-          template_name: templateWorkflow.name,
-          workflow_id: newWorkflow.id,
-          workflow_name: newWorkflow.name,
-          deployment_id,
-          folder_id: clientFolderId,
-          webhook_url: extractWebhookUrl(personalizedWorkflow.nodes),
-          has_trigger: hasTrigger,
-          success: true
-        });
-
-      } catch (workflowError) {
-        console.error(`❌ Failed to process workflow ${templateWorkflow.id}:`, workflowError.message);
-        deployedWorkflows.push({
-          template_id: templateWorkflow.id,
-          template_name: templateWorkflow.name,
-          error: workflowError.message,
-          success: false
-        });
+        await n8nClient.activateWorkflow(newWorkflow.id);
+        console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+      } catch (activationError) {
+        console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError.message);
       }
+    } else {
+      console.log(`ℹ️ Workflow ${newWorkflow.id} has no trigger nodes - skipping activation`);
     }
 
     // Insert client record
@@ -748,33 +631,43 @@ app.post('/api/etf/deploy', async (req, res) => {
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
          VALUES (?, ?, ?, ?, ?, ?)`,
         [client_id, client_data.name, client_data.email, client_data.company || client_data.name, 
-         client_data.industry || 'General', extractTaskforceType(templateWorkflows[0]?.name || 'general')],
+         client_data.industry || 'General', extractTaskforceType(templateWorkflow.name)],
         (err) => err ? reject(err) : resolve()
       );
     });
 
-    const successfulDeployments = deployedWorkflows.filter(w => w.success);
-    const failedDeployments = deployedWorkflows.filter(w => !w.success);
+    // Save deployment record
+    await new Promise((resolve, reject) => {
+      etfDB.run(
+        `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [deployment_id, client_id, templateWorkflow.id, newWorkflow.id, newWorkflow.name, 
+         extractTaskforceType(templateWorkflow.name), JSON.stringify(config_data)],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    const webhookUrl = extractWebhookUrl(personalizedWorkflow.nodes);
 
     res.json({
-      success: successfulDeployments.length > 0,
+      success: true,
       client_id: client_id,
-      client_folder_id: clientFolderId,
-      template_type: template_type,
-      total_workflows: templateWorkflows.length,
-      successful_deployments: successfulDeployments.length,
-      failed_deployments: failedDeployments.length,
-      deployed_workflows: deployedWorkflows,
-      message: clientFolderId ? 
-        `Successfully deployed ${successfulDeployments.length}/${templateWorkflows.length} workflows in client folder for ${client_data.name}` :
-        `Successfully deployed ${successfulDeployments.length}/${templateWorkflows.length} workflows for ${client_data.name}`,
-      webhook_urls: successfulDeployments.map(w => w.webhook_url).filter(Boolean)
+      deployment_id: deployment_id,
+      template_id: templateWorkflow.id,
+      template_name: templateWorkflow.name,
+      workflow_id: newWorkflow.id,
+      workflow_name: newWorkflow.name,
+      webhook_url: webhookUrl,
+      has_trigger: hasTrigger,
+      message: `Successfully deployed workflow for ${client_data.name}`,
+      taskforce_type: extractTaskforceType(templateWorkflow.name)
     });
 
   } catch (error) {
     console.error('ETF deployment error:', {
       message: error.message,
       client: req.body.client_data?.name,
+      template_id: req.body.template_id,
       timestamp: new Date().toISOString()
     });
 
