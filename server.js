@@ -77,6 +77,11 @@ class N8NApiClient {
   async getWorkflow(id) { return await this.makeRequest('GET', `/workflows/${id}`); }
   async createWorkflow(workflowData) { return await this.makeRequest('POST', '/workflows', workflowData); }
   async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
+
+  // New method to add a tag to a workflow
+  async addTagToWorkflow(workflowId, tagName) {
+      return await this.makeRequest('POST', `/workflows/${workflowId}/tags`, { name: tagName });
+  }
 }
 
 // Validate N8N configuration and exit if critical vars missing
@@ -394,7 +399,7 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // Find ALL PET workflows for duplication
     console.log('🔍 Searching for ALL PET workflows to duplicate...');
-    
+
     const workflows = await n8nClient.getWorkflows();
     const petWorkflows = workflows.data ? 
       workflows.data.filter(workflow => {
@@ -428,19 +433,28 @@ app.post('/api/etf/deploy', async (req, res) => {
         // Get the template workflow from N8N
         const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
 
-        // Create clean workflow data - exclude ALL read-only properties
+        // Create clean workflow data - exclude ALL read-only properties including tags
         const personalizedWorkflow = {
           name: `[${client_data.name}] ${originalWorkflow.name}`,
           nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
           connections: originalWorkflow.connections || {},
           settings: originalWorkflow.settings || {},
           staticData: originalWorkflow.staticData || {}
-          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
+          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, tags, etc.
         };
 
-        // Create new workflow
+        // Create new workflow first
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+
+        // Add tag to the workflow using separate API call
+        try {
+          await n8nClient.addTagToWorkflow(newWorkflow.id, `PET[${client_data.name}]`);
+          console.log(`✅ Tag PET[${client_data.name}] added to workflow ${newWorkflow.id}`);
+        } catch (tagError) {
+          console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
+          // Continue - workflow creation succeeded even if tagging failed
+        }
 
         // Try to activate the workflow (but continue if activation fails)
         try {
@@ -506,7 +520,7 @@ app.post('/api/etf/deploy', async (req, res) => {
       client: req.body.client_data?.name,
       timestamp: new Date().toISOString()
     });
-    
+
     // Provide specific error messages based on error type
     let userMessage = 'Workflow duplication failed';
     if (error.message.includes('N8N_BASE_URL')) {
@@ -518,7 +532,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     } else if (error.message.includes('timeout')) {
       userMessage = 'ETF service timeout - please try again';
     }
-    
+
     res.status(500).json({ 
       error: userMessage, 
       details: error.message,
@@ -575,7 +589,7 @@ app.get('/api/etf/test-n8n', async (req, res) => {
 app.get('/api/etf/debug/workflows', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
-    
+
     const workflowList = workflows.data ? 
       workflows.data.map(workflow => ({
         id: workflow.id,
@@ -1589,7 +1603,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
     }
     return '';
   }).join(' ') : '';
-  
+
   // Check tags first for more accurate classification
   if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'dental';
   if (tags.includes('dental') || tags.includes('clinic')) return 'dental';
@@ -1597,14 +1611,14 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
   if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
   if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
-  
+
   // Fallback to name-based detection
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
   if (name.includes('gym') || name.includes('fitness')) return 'gym';
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
-  
+
   return 'general';
 }
 
@@ -1613,7 +1627,7 @@ function analyzeWorkflowConfig(workflow) {
   const workflowTags = workflow.tags || [];
   const workflowNotes = workflow.notes || '';
   const customFields = [];
-  
+
   // Parse custom fields from workflow tags or notes
   workflowTags.forEach(tag => {
     // Check for custom field definitions in tags like "field:appointment_types"
@@ -1626,7 +1640,7 @@ function analyzeWorkflowConfig(workflow) {
         required: false
       });
     }
-    
+
     // Check for specific pet clinic tags
     if (tag.includes('veterinary') || tag.includes('pet') || tag.includes('clinic')) {
       customFields.push(
@@ -1636,7 +1650,7 @@ function analyzeWorkflowConfig(workflow) {
       );
     }
   });
-  
+
   // Standard configuration fields for all ETF workflows
   const standardFields = [
     { key: 'business_name', label: 'Business Name', type: 'text', required: true },
@@ -1644,7 +1658,7 @@ function analyzeWorkflowConfig(workflow) {
     { key: 'business_phone', label: 'Business Phone', type: 'tel', required: true },
     { key: 'support_email', label: 'Support Email', type: 'email', required: false }
   ];
-  
+
   // Combine standard fields with custom fields from tags
   return [...standardFields, ...customFields];
 }
