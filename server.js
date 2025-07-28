@@ -371,43 +371,85 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client
+// Deploy ETF workflow for client - Multiple workflows support
 app.post('/api/etf/deploy', async (req, res) => {
   try {
-    const { client_data, config_data, template_id } = req.body;
+    const { client_data, config_data, template_ids } = req.body;
 
-    console.log(`🚀 Duplicating workflow ${template_id} for ${client_data.name}`);
+    // Support both single template_id and multiple template_ids
+    const templateIds = template_ids || [req.body.template_id || 'eC6TieLjDueYJCs9'];
+    
+    // Default to both workflows if no specific templates provided
+    const defaultWorkflows = ['eC6TieLjDueYJCs9', 'XZbOJL3eMPMG8wCE'];
+    const workflowsToProcess = templateIds.length > 0 ? templateIds : defaultWorkflows;
 
-    // Get the template workflow from N8N
-    const originalWorkflow = await n8nClient.getWorkflow(template_id);
+    console.log(`🚀 Duplicating ${workflowsToProcess.length} workflows for ${client_data.name}`);
 
-    // Create clean workflow data - exclude ALL read-only properties
-    const personalizedWorkflow = {
-      name: `[${client_data.name}] ${originalWorkflow.name}`,
-      nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
-      connections: originalWorkflow.connections || {},
-      settings: originalWorkflow.settings || {},
-      staticData: originalWorkflow.staticData || {}
-      // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
-    };
+    const deployedWorkflows = [];
+    const client_id = uuidv4();
 
-    // Create and activate new workflow
-    const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-    console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+    // Process each workflow template
+    for (const template_id of workflowsToProcess) {
+      try {
+        console.log(`🔄 Processing workflow ${template_id}...`);
 
-    try {
-      await n8nClient.activateWorkflow(newWorkflow.id);
-      console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-    } catch (activationError) {
-      console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError);
-      throw new Error(`Workflow created but activation failed: ${activationError.message}`);
+        // Get the template workflow from N8N
+        const originalWorkflow = await n8nClient.getWorkflow(template_id);
+
+        // Create clean workflow data - exclude ALL read-only properties
+        const personalizedWorkflow = {
+          name: `[${client_data.name}] ${originalWorkflow.name}`,
+          nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
+          connections: originalWorkflow.connections || {},
+          settings: originalWorkflow.settings || {},
+          staticData: originalWorkflow.staticData || {}
+          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, etc.
+        };
+
+        // Create and activate new workflow
+        const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+        console.log(`✅ Workflow created with ID: ${newWorkflow.id} (${originalWorkflow.name})`);
+
+        try {
+          await n8nClient.activateWorkflow(newWorkflow.id);
+          console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+        } catch (activationError) {
+          console.error(`❌ Failed to activate workflow ${newWorkflow.id}:`, activationError);
+          // Continue with other workflows instead of failing completely
+        }
+
+        // Save deployment record
+        const deployment_id = uuidv4();
+        await new Promise((resolve, reject) => {
+          etfDB.run(
+            `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [deployment_id, client_id, template_id, newWorkflow.id, newWorkflow.name, 
+             'general', JSON.stringify(config_data)],
+            (err) => err ? reject(err) : resolve()
+          );
+        });
+
+        deployedWorkflows.push({
+          template_id,
+          workflow_id: newWorkflow.id,
+          workflow_name: newWorkflow.name,
+          deployment_id,
+          webhook_url: extractWebhookUrl(personalizedWorkflow.nodes)
+        });
+
+      } catch (workflowError) {
+        console.error(`❌ Failed to process workflow ${template_id}:`, workflowError.message);
+        // Continue with other workflows
+        deployedWorkflows.push({
+          template_id,
+          error: workflowError.message,
+          success: false
+        });
+      }
     }
 
-    // Save client and deployment records
-    const client_id = uuidv4();
-    const deployment_id = uuidv4();
-
-    // Insert client
+    // Insert client record only once
     await new Promise((resolve, reject) => {
       etfDB.run(
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
@@ -418,43 +460,33 @@ app.post('/api/etf/deploy', async (req, res) => {
       );
     });
 
-    // Insert deployment
-    await new Promise((resolve, reject) => {
-      etfDB.run(
-        `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [deployment_id, client_id, template_id, newWorkflow.id, newWorkflow.name, 
-         'general', JSON.stringify(config_data)],
-        (err) => err ? reject(err) : resolve()
-      );
-    });
+    const successfulDeployments = deployedWorkflows.filter(w => !w.error);
+    const failedDeployments = deployedWorkflows.filter(w => w.error);
 
     res.json({
-      success: true,
-      workflow_id: newWorkflow.id,
-      workflow_name: newWorkflow.name,
+      success: successfulDeployments.length > 0,
       client_id: client_id,
-      deployment_id: deployment_id,
-      message: `Workflow duplicated successfully for ${client_data.name}`,
-      webhook_url: extractWebhookUrl(personalizedWorkflow.nodes)
+      total_workflows: workflowsToProcess.length,
+      successful_deployments: successfulDeployments.length,
+      failed_deployments: failedDeployments.length,
+      deployed_workflows: deployedWorkflows,
+      message: `Successfully deployed ${successfulDeployments.length}/${workflowsToProcess.length} workflows for ${client_data.name}`,
+      webhook_urls: successfulDeployments.map(w => w.webhook_url).filter(Boolean)
     });
 
   } catch (error) {
-    console.error('Workflow duplication error:', {
+    console.error('ETF deployment error:', {
       message: error.message,
-      template_id: req.body.template_id,
       client: req.body.client_data?.name,
       timestamp: new Date().toISOString()
     });
     
     // Provide specific error messages based on error type
-    let userMessage = 'Workflow duplication failed';
+    let userMessage = 'ETF deployment failed';
     if (error.message.includes('N8N_BASE_URL')) {
       userMessage = 'ETF service configuration error';
     } else if (error.message.includes('N8N_API_KEY')) {
       userMessage = 'ETF service authentication error';
-    } else if (error.message.includes('workflow not found')) {
-      userMessage = 'Template workflow not found';
     } else if (error.message.includes('timeout')) {
       userMessage = 'ETF service timeout - please try again';
     }
