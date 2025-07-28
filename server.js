@@ -356,21 +356,17 @@ app.get('/api/etf/templates', async (req, res) => {
     const templates = workflows.data ? 
       workflows.data.filter(workflow => {
         const workflowTags = workflow.tags || [];
-        // Check if workflow has "PET CLINIC" tag (case insensitive)
-        const hasPetClinicTag = Array.isArray(workflowTags) && workflowTags.some(tag => {
+        // Check if workflow has "PET" tag (case insensitive)
+        const hasPetTag = Array.isArray(workflowTags) && workflowTags.some(tag => {
           if (typeof tag === 'string') {
-            return tag.toLowerCase().includes('pet clinic') || 
-                   tag.toLowerCase().includes('pet-clinic') ||
-                   tag.toLowerCase().includes('petclinic');
+            return tag.toLowerCase().includes('pet');
           } else if (tag && typeof tag === 'object' && tag.name) {
             // Handle N8N tag objects with name property
-            return tag.name.toLowerCase().includes('pet clinic') || 
-                   tag.name.toLowerCase().includes('pet-clinic') ||
-                   tag.name.toLowerCase().includes('petclinic');
+            return tag.name.toLowerCase().includes('pet');
           }
           return false;
         });
-        return hasPetClinicTag && workflow.active === true;
+        return hasPetTag && workflow.active === true;
       }).map(workflow => ({
         id: workflow.id,
         name: workflow.name,
@@ -397,33 +393,29 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // If no template_id provided, find the first PET CLINIC workflow
     if (!template_id) {
-      console.log('🔍 No template_id provided, searching for PET CLINIC workflows...');
+      console.log('🔍 No template_id provided, searching for PET workflows...');
       
       const workflows = await n8nClient.getWorkflows();
-      const petClinicWorkflow = workflows.data ? 
+      const petWorkflow = workflows.data ? 
         workflows.data.find(workflow => {
           const workflowTags = workflow.tags || [];
           return Array.isArray(workflowTags) && workflowTags.some(tag => {
             if (typeof tag === 'string') {
-              return tag.toLowerCase().includes('pet clinic') || 
-                     tag.toLowerCase().includes('pet-clinic') ||
-                     tag.toLowerCase().includes('petclinic');
+              return tag.toLowerCase().includes('pet');
             } else if (tag && typeof tag === 'object' && tag.name) {
               // Handle N8N tag objects with name property
-              return tag.name.toLowerCase().includes('pet clinic') || 
-                     tag.name.toLowerCase().includes('pet-clinic') ||
-                     tag.name.toLowerCase().includes('petclinic');
+              return tag.name.toLowerCase().includes('pet');
             }
             return false;
           }) && workflow.active === true;
         }) : null;
 
-      if (!petClinicWorkflow) {
-        throw new Error('No active PET CLINIC workflows found. Please ensure your N8N workflow has a "PET CLINIC" tag.');
+      if (!petWorkflow) {
+        throw new Error('No active PET workflows found. Please ensure your N8N workflow has a "PET" tag.');
       }
 
-      template_id = petClinicWorkflow.id;
-      console.log(`✅ Found PET CLINIC workflow: ${petClinicWorkflow.name} (ID: ${template_id})`);
+      template_id = petWorkflow.id;
+      console.log(`✅ Found PET workflow: ${petWorkflow.name} (ID: ${template_id})`);
     }
 
     console.log(`🚀 Duplicating workflow ${template_id} for ${client_data.name}`);
@@ -572,16 +564,12 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
         name: workflow.name,
         active: workflow.active,
         tags: workflow.tags || [],
-        hasPetClinicTag: Array.isArray(workflow.tags) && workflow.tags.some(tag => {
+        hasPetTag: Array.isArray(workflow.tags) && workflow.tags.some(tag => {
           if (typeof tag === 'string') {
-            return tag.toLowerCase().includes('pet clinic') || 
-                   tag.toLowerCase().includes('pet-clinic') ||
-                   tag.toLowerCase().includes('petclinic');
+            return tag.toLowerCase().includes('pet');
           } else if (tag && typeof tag === 'object' && tag.name) {
             // Handle N8N tag objects with name property
-            return tag.name.toLowerCase().includes('pet clinic') || 
-                   tag.name.toLowerCase().includes('pet-clinic') ||
-                   tag.name.toLowerCase().includes('petclinic');
+            return tag.name.toLowerCase().includes('pet');
           }
           return false;
         })
@@ -590,7 +578,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
     res.json({
       success: true,
       total_workflows: workflowList.length,
-      pet_clinic_workflows: workflowList.filter(w => w.hasPetClinicTag),
+      pet_workflows: workflowList.filter(w => w.hasPetTag),
       all_workflows: workflowList
     });
   } catch (error) {
