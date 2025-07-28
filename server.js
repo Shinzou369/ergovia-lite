@@ -78,9 +78,23 @@ class N8NApiClient {
   async createWorkflow(workflowData) { return await this.makeRequest('POST', '/workflows', workflowData); }
   async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
 
-  // New method to add a tag to a workflow
-  async addTagToWorkflow(workflowId, tagName) {
-      return await this.makeRequest('POST', `/workflows/${workflowId}/tags`, { name: tagName });
+  // Create or get tag first, then update workflow with tags
+  async createTag(tagName) {
+    try {
+      return await this.makeRequest('POST', '/tags', { name: tagName });
+    } catch (error) {
+      // Tag might already exist, try to get it
+      const tags = await this.makeRequest('GET', '/tags');
+      const existingTag = tags.find(tag => tag.name === tagName);
+      if (existingTag) {
+        return existingTag;
+      }
+      throw error;
+    }
+  }
+
+  async updateWorkflowTags(workflowId, tagIds) {
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
   }
 }
 
@@ -447,10 +461,12 @@ app.post('/api/etf/deploy', async (req, res) => {
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
-        // Add tag to the workflow using separate API call
+        // Add tag to the workflow using correct API sequence
         try {
-          await n8nClient.addTagToWorkflow(newWorkflow.id, `PET[${client_data.name}]`);
-          console.log(`✅ Tag PET[${client_data.name}] added to workflow ${newWorkflow.id}`);
+          const tagName = `PET[${client_data.name}]`;
+          const tag = await n8nClient.createTag(tagName);
+          await n8nClient.updateWorkflowTags(newWorkflow.id, [tag.id]);
+          console.log(`✅ Tag ${tagName} added to workflow ${newWorkflow.id}`);
         } catch (tagError) {
           console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
           // Continue - workflow creation succeeded even if tagging failed
