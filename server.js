@@ -430,18 +430,24 @@ app.post('/api/etf/deploy', async (req, res) => {
       const allWorkflows = await n8nClient.getWorkflows();
       console.log(`📋 Total workflows found: ${allWorkflows.data ? allWorkflows.data.length : 0}`);
 
-      // Debug: Show all workflows and their folder assignments
+      // Debug: Show all workflows and their folder assignments with all possible folder fields
       if (allWorkflows.data) {
         allWorkflows.data.forEach(wf => {
-          console.log(`🔍 Workflow: ${wf.name} | Folder: ${wf.folderId || wf.parentId || 'No folder'} | Active: ${wf.active}`);
+          console.log(`🔍 Workflow: ${wf.name} | Folder Fields: folderId=${wf.folderId}, parentId=${wf.parentId}, folder=${wf.folder}, folderName=${wf.folderName} | Active: ${wf.active}`);
+          console.log(`   Full workflow object keys:`, Object.keys(wf));
         });
       }
 
+      // Try multiple possible folder field combinations
       folderWorkflows = allWorkflows.data ? 
-        allWorkflows.data.filter(workflow => 
-          (workflow.folderId === templateFolderId || workflow.parentId === templateFolderId) && 
-          workflow.active === true
-        ) : [];
+        allWorkflows.data.filter(workflow => {
+          const matchesFolder = workflow.folderId === templateFolderId || 
+                               workflow.parentId === templateFolderId ||
+                               workflow.folder === templateFolderId ||
+                               workflow.folderName === templateFolderId ||
+                               (workflow.folder && workflow.folder.id === templateFolderId);
+          return matchesFolder && workflow.active === true;
+        }) : [];
     }
 
     console.log(`📁 Final result: ${folderWorkflows.length} active workflows in folder ${templateFolderId}`);
@@ -615,20 +621,50 @@ app.get('/api/etf/stats', (req, res) => {
   });
 });
 
-// Test n8n connection
+// Test n8n connection with detailed folder analysis
 app.get('/api/etf/test-n8n', async (req, res) => {
   try {
     const workflows = await n8nClient.getWorkflows();
 
-    // Group workflows by folder for debugging
-    const folderGroups = {};
+    // Detailed folder analysis
+    const folderAnalysis = {
+      all_folder_fields: new Set(),
+      workflows_with_folders: [],
+      folder_groups: {}
+    };
+
     if (workflows.data) {
       workflows.data.forEach(wf => {
-        const folderId = wf.folderId || 'No folder';
-        if (!folderGroups[folderId]) {
-          folderGroups[folderId] = [];
+        // Collect all possible folder-related field names
+        Object.keys(wf).forEach(key => {
+          if (key.toLowerCase().includes('folder')) {
+            folderAnalysis.all_folder_fields.add(key);
+          }
+        });
+
+        // Detailed workflow info
+        const workflowInfo = {
+          id: wf.id,
+          name: wf.name,
+          active: wf.active,
+          all_folder_fields: {}
+        };
+
+        // Extract all folder-related fields
+        Object.keys(wf).forEach(key => {
+          if (key.toLowerCase().includes('folder') || key.includes('parent')) {
+            workflowInfo.all_folder_fields[key] = wf[key];
+          }
+        });
+
+        folderAnalysis.workflows_with_folders.push(workflowInfo);
+
+        // Group by most likely folder identifier
+        const folderId = wf.folderId || wf.parentId || wf.folder || 'No folder';
+        if (!folderAnalysis.folder_groups[folderId]) {
+          folderAnalysis.folder_groups[folderId] = [];
         }
-        folderGroups[folderId].push({
+        folderAnalysis.folder_groups[folderId].push({
           id: wf.id,
           name: wf.name,
           active: wf.active
@@ -636,12 +672,16 @@ app.get('/api/etf/test-n8n', async (req, res) => {
       });
     }
 
+    // Convert Set to Array for JSON serialization
+    folderAnalysis.all_folder_fields = Array.from(folderAnalysis.all_folder_fields);
+
     res.json({ 
       success: true, 
       message: 'N8N connection successful',
       workflow_count: workflows.data ? workflows.data.length : 0,
-      folders: folderGroups,
-      target_folder_id: 'OTkgImaRhmTXepG3'
+      folder_analysis: folderAnalysis,
+      target_folder_id: 'OTkgImaRhmTXepG3',
+      instructions: 'Check the folder_analysis to see how folders are structured in your N8N instance'
     });
   } catch (error) {
     res.status(500).json({ 
