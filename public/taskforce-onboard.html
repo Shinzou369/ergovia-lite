@@ -242,6 +242,44 @@
             margin-bottom: 20px;
             display: block;
         }
+        
+        .loading-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--bg-tertiary);
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .deployment-details {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: var(--radius);
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -342,7 +380,7 @@
             <!-- Step 4: Review -->
             <div class="step" id="step4">
                 <h2 class="step-title">Review & Confirm</h2>
-                <p class="step-subtitle">Please review your information before proceeding</p>
+                <p class="step-subtitle">Please review your information before deployment</p>
                 
                 <div id="reviewContent">
                     <!-- Review content will be populated by JavaScript -->
@@ -352,22 +390,30 @@
                     <button class="btn btn-secondary" onclick="prevStep()">
                         <i data-lucide="arrow-left"></i> Previous
                     </button>
-                    <button class="btn btn-primary" onclick="nextStep()">
-                        Confirm Setup <i data-lucide="check"></i>
+                    <button class="btn btn-primary" onclick="deployTaskforce()" id="deployBtn">
+                        Deploy Taskforce <i data-lucide="rocket"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Step 5: Data Collection Complete -->
+            <!-- Step 5: Deployment -->
             <div class="step" id="step5">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <h3>Deploying Your Taskforce...</h3>
+                    <p id="deploymentStatus">Creating your personalized AI automation workflow...</p>
+                </div>
+            </div>
+
+            <!-- Step 6: Success -->
+            <div class="step" id="step6">
                 <div class="success-message">
-                    <span class="success-icon">📋</span>
-                    <h2>Information Collected!</h2>
-                    <p>We have successfully gathered all the information needed for your taskforce setup.</p>
+                    <span class="success-icon">🎉</span>
+                    <h2>Taskforce Deployed Successfully!</h2>
+                    <p>Your personalized AI automation is now active and ready to work for your business.</p>
                     
-                    <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px; margin: 20px 0; text-align: left;">
-                        <h4>Collected Data Summary:</h4>
-                        <div id="finalSummary"></div>
+                    <div class="deployment-details" id="deploymentDetails">
+                        <!-- Deployment details will be populated -->
                     </div>
                     
                     <button class="btn btn-primary" onclick="window.location.href='/taskforce.html'">
@@ -380,17 +426,19 @@
 
     <script>
         let currentStep = 1;
-        const totalSteps = 5;
+        const totalSteps = 6;
         let selectedTaskforce = null;
         let clientData = {};
         let configData = {};
+        let deploymentResult = null;
 
-        // Taskforce definitions
+        // Taskforce definitions with template IDs
         const taskforceTypes = {
             'dental': {
                 name: 'Dental Office Taskforce',
                 icon: '🦷',
                 description: 'AI front desk agent for appointment management and patient care',
+                templateId: 'eC6TieLjDueYJCs9', // Your PET CLINIC workflow ID
                 config: [
                     { key: 'office_hours', label: 'Office Hours', type: 'textarea', placeholder: 'Monday-Friday: 9AM-5PM' },
                     { key: 'appointment_types', label: 'Appointment Types', type: 'textarea', placeholder: 'Cleaning, Checkup, Emergency' }
@@ -400,6 +448,7 @@
                 name: 'Gym & Fitness Center Taskforce',
                 icon: '🏋️',
                 description: 'AI membership manager for lead generation and client engagement',
+                templateId: 'eC6TieLjDueYJCs9', // Using same template for demo
                 config: [
                     { key: 'membership_types', label: 'Membership Types', type: 'textarea', placeholder: 'Basic, Premium, VIP' },
                     { key: 'gym_hours', label: 'Gym Hours', type: 'textarea', placeholder: '24/7 or specific hours' }
@@ -409,6 +458,7 @@
                 name: 'Local Contractors Taskforce',
                 icon: '🔧',
                 description: 'AI office assistant for tradespeople and service appointments',
+                templateId: 'eC6TieLjDueYJCs9', // Using same template for demo
                 config: [
                     { key: 'service_areas', label: 'Service Areas', type: 'textarea', placeholder: 'Plumbing, Electrical, HVAC' },
                     { key: 'coverage_area', label: 'Coverage Area', type: 'text', placeholder: 'City or region served' }
@@ -418,6 +468,7 @@
                 name: 'Tutoring & Review Centers Taskforce',
                 icon: '📚',
                 description: 'AI academic coordinator for class scheduling and parent communication',
+                templateId: 'eC6TieLjDueYJCs9', // Using same template for demo
                 config: [
                     { key: 'subjects', label: 'Subjects Offered', type: 'textarea', placeholder: 'Math, Science, English' },
                     { key: 'grade_levels', label: 'Grade Levels', type: 'text', placeholder: 'K-12, College' }
@@ -427,6 +478,7 @@
                 name: 'Massage Therapy Clinic Taskforce',
                 icon: '💆',
                 description: 'AI receptionist for session booking and customer service',
+                templateId: 'eC6TieLjDueYJCs9', // Using same template for demo
                 config: [
                     { key: 'therapy_types', label: 'Therapy Types', type: 'textarea', placeholder: 'Swedish, Deep Tissue, Hot Stone' },
                     { key: 'session_lengths', label: 'Session Lengths', type: 'text', placeholder: '30min, 60min, 90min' }
@@ -532,10 +584,10 @@
 
         function collectClientData() {
             clientData = {
-                business_name: document.getElementById('businessName').value,
-                business_email: document.getElementById('businessEmail').value,
-                business_phone: document.getElementById('businessPhone').value,
-                support_email: document.getElementById('supportEmail').value
+                name: document.getElementById('businessName').value,
+                email: document.getElementById('businessEmail').value,
+                phone: document.getElementById('businessPhone').value,
+                company: document.getElementById('businessName').value
             };
         }
 
@@ -543,8 +595,14 @@
             if (!selectedTaskforce) return;
             
             const taskforce = taskforceTypes[selectedTaskforce];
-            configData = {};
+            configData = {
+                business_name: document.getElementById('businessName').value,
+                business_email: document.getElementById('businessEmail').value,
+                business_phone: document.getElementById('businessPhone').value,
+                support_email: document.getElementById('supportEmail').value || document.getElementById('businessEmail').value
+            };
             
+            // Add taskforce-specific config
             taskforce.config.forEach(field => {
                 const element = document.getElementById(field.key);
                 if (element) {
@@ -574,10 +632,10 @@
                 
                 <div class="review-section">
                     <h4>Business Information:</h4>
-                    <p><strong>Business Name:</strong> ${clientData.business_name}</p>
-                    <p><strong>Business Email:</strong> ${clientData.business_email}</p>
-                    <p><strong>Business Phone:</strong> ${clientData.business_phone}</p>
-                    <p><strong>Support Email:</strong> ${clientData.support_email || 'Not specified'}</p>
+                    <p><strong>Business Name:</strong> ${clientData.name}</p>
+                    <p><strong>Business Email:</strong> ${clientData.email}</p>
+                    <p><strong>Business Phone:</strong> ${clientData.phone}</p>
+                    <p><strong>Support Email:</strong> ${configData.support_email || 'Same as business email'}</p>
                 </div>
                 
                 <div class="review-section">
@@ -587,15 +645,84 @@
             `;
         }
 
-        function showFinalSummary() {
-            const summaryContainer = document.getElementById('finalSummary');
-            const taskforce = taskforceTypes[selectedTaskforce];
+        async function deployTaskforce() {
+            try {
+                currentStep = 5;
+                updateProgress();
+                
+                const statusElement = document.getElementById('deploymentStatus');
+                statusElement.textContent = 'Connecting to workflow engine...';
+                
+                const taskforce = taskforceTypes[selectedTaskforce];
+                const deploymentData = {
+                    client_data: clientData,
+                    config_data: configData,
+                    template_id: taskforce.templateId
+                };
+                
+                console.log('Deploying with data:', deploymentData);
+                
+                statusElement.textContent = 'Duplicating workflow template...';
+                
+                const response = await fetch('/api/etf/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(deploymentData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    deploymentResult = result;
+                    statusElement.textContent = 'Activating workflow...';
+                    
+                    // Show success
+                    setTimeout(() => {
+                        showDeploymentSuccess();
+                    }, 1000);
+                } else {
+                    throw new Error(result.details || result.error || 'Deployment failed');
+                }
+                
+            } catch (error) {
+                console.error('Deployment error:', error);
+                showDeploymentError(error.message);
+            }
+        }
+
+        function showDeploymentSuccess() {
+            currentStep = 6;
+            updateProgress();
             
-            summaryContainer.innerHTML = `
-                <p><strong>Taskforce Type:</strong> ${taskforce.name}</p>
-                <p><strong>Business:</strong> ${clientData.business_name}</p>
-                <p><strong>Contact:</strong> ${clientData.business_email}</p>
-                <p><strong>Data Collection Date:</strong> ${new Date().toLocaleDateString()}</p>
+            const detailsContainer = document.getElementById('deploymentDetails');
+            detailsContainer.innerHTML = `
+                <h4>Deployment Details:</h4>
+                <p><strong>Workflow ID:</strong> ${deploymentResult.workflow_id}</p>
+                <p><strong>Workflow Name:</strong> ${deploymentResult.workflow_name}</p>
+                <p><strong>Client ID:</strong> ${deploymentResult.client_id}</p>
+                ${deploymentResult.webhook_url ? `<p><strong>Webhook URL:</strong> <a href="${deploymentResult.webhook_url}" target="_blank">${deploymentResult.webhook_url}</a></p>` : ''}
+                <p><strong>Status:</strong> ✅ Active and Ready</p>
+                <p><strong>Monthly Cost:</strong> $30/month</p>
+            `;
+        }
+
+        function showDeploymentError(errorMessage) {
+            const step5 = document.getElementById('step5');
+            step5.innerHTML = `
+                <div class="loading-container">
+                    <h3>❌ Deployment Failed</h3>
+                    <div class="error-message">
+                        <strong>Error:</strong> ${errorMessage}
+                    </div>
+                    <button class="btn btn-secondary" onclick="prevStep()">
+                        <i data-lucide="arrow-left"></i> Go Back
+                    </button>
+                    <button class="btn btn-primary" onclick="deployTaskforce()">
+                        <i data-lucide="refresh-cw"></i> Try Again
+                    </button>
+                </div>
             `;
         }
 
@@ -633,23 +760,14 @@
                 showReview();
             }
             
-            if (currentStep === 4) {
-                showFinalSummary();
-                console.log('Data collection complete:', {
-                    taskforce: selectedTaskforce,
-                    client: clientData,
-                    config: configData
-                });
-            }
-            
-            if (currentStep < totalSteps) {
+            if (currentStep < totalSteps && currentStep !== 4) { // Don't auto-advance from review
                 currentStep++;
                 updateProgress();
             }
         }
 
         function prevStep() {
-            if (currentStep > 1) {
+            if (currentStep > 1 && currentStep !== 5) { // Can't go back during deployment
                 currentStep--;
                 updateProgress();
             }
