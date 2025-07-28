@@ -628,6 +628,137 @@ app.get('/api/etf/stats', (req, res) => {
   });
 });
 
+// Check specific N8N project/folder endpoint
+app.get('/api/etf/check-n8n-url', async (req, res) => {
+  try {
+    const investigation = {
+      success: true,
+      message: 'N8N URL investigation completed',
+      base_url: N8N_BASE_URL,
+      timestamp: new Date().toISOString(),
+      url_tests: {}
+    };
+
+    // Test the specific URL pattern you mentioned
+    const projectId = 'odntzCjg5yMWuwan';
+    const folderId = 'OTkgImaRhmTXepG3';
+
+    // Test 1: Try project-based workflow endpoint
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects/${projectId}/workflows`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      investigation.url_tests.project_workflows = {
+        success: true,
+        status: response.status,
+        workflow_count: response.data?.data?.length || 0,
+        workflows: response.data?.data || []
+      };
+    } catch (error) {
+      investigation.url_tests.project_workflows = {
+        success: false,
+        error: error.message,
+        status: error.response?.status,
+        full_url: `${N8N_BASE_URL}/api/v1/projects/${projectId}/workflows`
+      };
+    }
+
+    // Test 2: Try the specific folder within project
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects/${projectId}/folders/${folderId}/workflows`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      investigation.url_tests.project_folder_workflows = {
+        success: true,
+        status: response.status,
+        workflow_count: response.data?.data?.length || 0,
+        workflows: response.data?.data || []
+      };
+    } catch (error) {
+      investigation.url_tests.project_folder_workflows = {
+        success: false,
+        error: error.message,
+        status: error.response?.status,
+        full_url: `${N8N_BASE_URL}/api/v1/projects/${projectId}/folders/${folderId}/workflows`
+      };
+    }
+
+    // Test 3: Try to get projects list
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/projects`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      investigation.url_tests.projects_list = {
+        success: true,
+        status: response.status,
+        projects: response.data?.data || response.data || []
+      };
+    } catch (error) {
+      investigation.url_tests.projects_list = {
+        success: false,
+        error: error.message,
+        status: error.response?.status
+      };
+    }
+
+    // Test 4: Check current workflow structure for any project/folder references
+    try {
+      const response = await axios.get(`${N8N_BASE_URL}/api/v1/workflows`, {
+        headers: {
+          'X-N8N-API-KEY': N8N_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      if (response.data?.data && response.data.data.length > 0) {
+        const sampleWorkflow = response.data.data[0];
+        investigation.url_tests.workflow_structure_analysis = {
+          total_workflows: response.data.data.length,
+          sample_workflow_keys: Object.keys(sampleWorkflow),
+          all_unique_keys: [...new Set(response.data.data.flatMap(wf => Object.keys(wf)))],
+          workflows_with_potential_folder_info: response.data.data.map(wf => ({
+            id: wf.id,
+            name: wf.name,
+            all_fields: Object.keys(wf).reduce((obj, key) => {
+              obj[key] = wf[key];
+              return obj;
+            }, {})
+          }))
+        };
+      }
+    } catch (error) {
+      investigation.url_tests.workflow_structure_analysis = {
+        success: false,
+        error: error.message
+      };
+    }
+
+    res.json(investigation);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'N8N URL investigation failed',
+      error: error.message
+    });
+  }
+});
+
 // Comprehensive N8N investigation endpoint
 app.get('/api/etf/investigate-n8n', async (req, res) => {
   try {
