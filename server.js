@@ -25,13 +25,27 @@ class N8NApiClient {
   constructor(config) {
     this.baseURL = config.baseURL;
     this.auth = config.auth || {};
+    
+    // Validate base URL
+    if (!this.baseURL || this.baseURL === '') {
+      throw new Error('N8N_BASE_URL is not configured');
+    }
+    
+    try {
+      new URL(this.baseURL);
+    } catch (urlError) {
+      throw new Error(`Invalid N8N_BASE_URL: ${this.baseURL}`);
+    }
   }
 
   async makeRequest(method, endpoint, data = null) {
     try {
+      const fullUrl = `${this.baseURL}/api/v1${endpoint}`;
+      console.log(`Making N8N API request: ${method} ${fullUrl}`);
+      
       const config = {
         method,
-        url: `${this.baseURL}/api/v1${endpoint}`,
+        url: fullUrl,
         headers: {
           'Content-Type': 'application/json',
           'X-N8N-API-KEY': N8N_API_KEY
@@ -43,7 +57,12 @@ class N8NApiClient {
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error('N8N API Error:', error.response?.data || error.message);
+      console.error('N8N API Error Details:', {
+        url: `${this.baseURL}/api/v1${endpoint}`,
+        method,
+        error: error.response?.data || error.message,
+        status: error.response?.status
+      });
       throw new Error(`N8N API Error: ${error.response?.status || error.message}`);
     }
   }
@@ -52,6 +71,14 @@ class N8NApiClient {
   async getWorkflow(id) { return await this.makeRequest('GET', `/workflows/${id}`); }
   async createWorkflow(workflowData) { return await this.makeRequest('POST', '/workflows', workflowData); }
   async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
+}
+
+// Validate N8N configuration
+if (!N8N_BASE_URL) {
+  console.error('❌ N8N_BASE_URL environment variable is not set');
+}
+if (!N8N_API_KEY) {
+  console.error('❌ N8N_API_KEY environment variable is not set');
 }
 
 const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
