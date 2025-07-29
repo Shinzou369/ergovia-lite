@@ -464,7 +464,7 @@ function showErrorMessage(message, type = 'error') {
 
       .error-notification.error {
         border-color: #ef4444;
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), var(--bg-secondary));
+        background: linear-gradient(135deg, rgba(239, 68, 44, 0.1), var(--bg-secondary));
       }
 
       .error-notification.warning {
@@ -952,9 +952,7 @@ function handleTokenUsageClick() {
   } else {
     showLoginModal();
   }
-}
-
-// Lemon Squeezy payment is handled by redirecting to the checkout URL
+}// Lemon Squeezy payment is handled by redirecting to the checkout URL
 
 // === LOGIN MODAL FUNCTIONS ===
 function showLoginModal() {
@@ -1545,3 +1543,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAuth();
   }
 });
+
+// HTML sanitization function
+function sanitizeHTML(html) {
+    const div = document.createElement('div');
+    div.textContent = html;
+    return div.innerHTML;
+}

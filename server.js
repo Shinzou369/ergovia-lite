@@ -318,7 +318,10 @@ app.use(session({
     maxTimeout: 100,
     logFn: function() {} // Disable logging to avoid spam
   }),
-  secret: process.env.SESSION_SECRET || 'ergovia-ai-stable-secret-key-2024-production',
+  secret: process.env.SESSION_SECRET || (() => {
+    console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
+    return 'ergovia-ai-stable-secret-key-2024-production';
+  })(),
   resave: false,
   saveUninitialized: false,
   rolling: false, // Don't reset expiry on activity to maintain stable sessions
@@ -1250,6 +1253,26 @@ app.post('/chat', requirePremium, async (req, res) => {
 const usersFile = 'users.json';
 const threadsFile = 'user_threads.json';
 
+// Reusable validation functions
+function validateUserData(userData) {
+  const errors = [];
+  if (!userData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+    errors.push('Valid email is required');
+  }
+  if (!userData.preferredFirstName || userData.preferredFirstName.trim().length < 1) {
+    errors.push('First name is required');
+  }
+  if (!userData.preferredLastName || userData.preferredLastName.trim().length < 1) {
+    errors.push('Last name is required');
+  }
+  return errors;
+}
+
+function sanitizeUserInput(input) {
+  if (typeof input !== 'string') return input;
+  return input.trim().substring(0, 100); // Limit length and trim whitespace
+}
+
 function loadUsers() {
   try {
     if (fs.existsSync(usersFile)) {
@@ -1635,12 +1658,25 @@ app.delete("/api/threads/:threadId", (req, res) => {
 // Complete signup route
 app.post("/api/complete-signup", (req, res) => {
   if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Not authenticated" });
+    return res.status(401).json({ error: "Not authenticated", code: "AUTH_REQUIRED" });
   }
 
   const { firstName, lastName } = req.body;
-  if (!firstName || !lastName) {
-    return res.status(400).json({ error: "First name and last name are required" });
+  const sanitizedFirstName = sanitizeUserInput(firstName);
+  const sanitizedLastName = sanitizeUserInput(lastName);
+  
+  const validationErrors = validateUserData({
+    email: req.user.emails?.[0]?.value,
+    preferredFirstName: sanitizedFirstName,
+    preferredLastName: sanitizedLastName
+  });
+  
+  if (validationErrors.length > 0) {
+    return res.status(400).json({ 
+      error: "Validation failed", 
+      code: "VALIDATION_ERROR",
+      details: validationErrors 
+    });
   }
 
   const userData = {
