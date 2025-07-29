@@ -435,14 +435,28 @@ app.get('/taskforce/massage/onboard', (req, res) => {
 // ETF Routes
 // ========================================
 
-// ETF Onboarding page
+// ETF Onboarding page - requires authentication
 app.get('/etf-onboard', (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect('/login?redirect=/etf-onboard');
+  }
   res.sendFile(path.join(__dirname, 'public', 'etf-onboard.html'));
 });
 
-// ETF Admin dashboard
+// ETF Admin dashboard - requires authentication
 app.get('/etf-admin', (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect('/login?redirect=/etf-admin');
+  }
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
+});
+
+// Client Dashboard - requires authentication
+app.get('/client-dashboard', (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect('/login?redirect=/client-dashboard');
+  }
+  res.sendFile(path.join(__dirname, 'public', 'client-dashboard.html'));
 });
 
 // Get available templates from n8n
@@ -485,8 +499,8 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client
-app.post('/api/etf/deploy', async (req, res) => {
+// Deploy ETF workflow for client - requires authentication
+app.post('/api/etf/deploy', requireAuth, async (req, res) => {
   try {
     let { client_data, config_data, template_id } = req.body;
 
@@ -583,85 +597,85 @@ app.post('/api/etf/deploy', async (req, res) => {
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
         try {
-        // Get the original workflow to update connections
-        const originalWorkflow = await n8nClient.getWorkflow(duplicatedWF.original_id);
-        const updatedWorkflow = await n8nClient.getWorkflow(duplicatedWF.new_id);
+          // Get the original workflow to update connections
+          const originalWorkflow = await n8nClient.getWorkflow(duplicatedWF.original_id);
+          const updatedWorkflow = await n8nClient.getWorkflow(duplicatedWF.new_id);
 
-        // Update workflow connections with new IDs
-        const updatedNodes = personalizeWorkflowNodes(
-          originalWorkflow.nodes || [], 
-          config_data, 
-          client_data, 
-          workflowMappings
-        );
-
-        // Update the workflow with corrected connections
-        const workflowUpdate = {
-          name: updatedWorkflow.name,
-          nodes: updatedNodes,
-          connections: originalWorkflow.connections || {},
-          settings: originalWorkflow.settings || {},
-          staticData: originalWorkflow.staticData || {}
-        };
-
-        await n8nClient.makeRequest('PUT', `/workflows/${duplicatedWF.new_id}`, workflowUpdate);
-        console.log(`✅ Updated connections for workflow ${duplicatedWF.new_id}`);
-
-        // Add tag to the workflow using the correct API format
-        try {
-          const tagName = `PET[${client_data.name}]`;
-          
-          // Ensure tag exists first
-          await n8nClient.createTag(tagName);
-          
-          // Apply tag using the working format (array of tag name strings)
-          await n8nClient.updateWorkflowTags(duplicatedWF.new_id, [{ name: tagName }]);
-          console.log(`✅ Tag "${tagName}" added to workflow ${duplicatedWF.new_id}`);
-        } catch (tagError) {
-          console.warn(`⚠️ Could not add tag to workflow ${duplicatedWF.new_id}: ${tagError.message}`);
-        }
-
-        // Preserve activation status from original workflow
-        try {
-          if (duplicatedWF.original_active) {
-            const canActivate = await n8nClient.canActivateWorkflow(duplicatedWF.new_id);
-            if (canActivate) {
-              await n8nClient.activateWorkflow(duplicatedWF.new_id);
-              console.log(`✅ Workflow ${duplicatedWF.new_id} activated (preserving original status)`);
-            } else {
-              console.log(`ℹ️ Workflow ${duplicatedWF.new_id} skipped activation (no trigger node)`);
-            }
-          } else {
-            console.log(`ℹ️ Workflow ${duplicatedWF.new_id} kept inactive (preserving original status)`);
-          }
-        } catch (activationError) {
-          console.warn(`⚠️ Could not activate workflow ${duplicatedWF.new_id}: ${activationError.message}`);
-        }
-
-        // Save deployment record
-        const deployment_id = uuidv4();
-        await new Promise((resolve, reject) => {
-          etfDB.run(
-            `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [deployment_id, client_id, petWorkflow.id, newWorkflow.id, newWorkflow.name, 
-             'general', JSON.stringify(config_data)],
-            (err) => err ? reject(err) : resolve()
+          // Update workflow connections with new IDs
+          const updatedNodes = personalizeWorkflowNodes(
+            originalWorkflow.nodes || [], 
+            config_data, 
+            client_data, 
+            workflowMappings
           );
-        });
 
-        duplicatedWorkflows.push({
-          original_id: petWorkflow.id,
-          original_name: petWorkflow.name,
-          new_id: newWorkflow.id,
-          new_name: newWorkflow.name,
-          deployment_id: deployment_id
-        });
+          // Update the workflow with corrected connections
+          const workflowUpdate = {
+            name: updatedWorkflow.name,
+            nodes: updatedNodes,
+            connections: originalWorkflow.connections || {},
+            settings: originalWorkflow.settings || {},
+            staticData: originalWorkflow.staticData || {}
+          };
 
-      } catch (workflowError) {
-        console.error(`❌ Failed to duplicate workflow ${petWorkflow.name}:`, workflowError.message);
-        // Continue with other workflows instead of failing completely
-      }
+          await n8nClient.makeRequest('PUT', `/workflows/${duplicatedWF.new_id}`, workflowUpdate);
+          console.log(`✅ Updated connections for workflow ${duplicatedWF.new_id}`);
+
+          // Add tag to the workflow using the correct API format
+          try {
+            const tagName = `PET[${client_data.name}]`;
+            
+            // Ensure tag exists first
+            await n8nClient.createTag(tagName);
+            
+            // Apply tag using the working format (array of tag name strings)
+            await n8nClient.updateWorkflowTags(duplicatedWF.new_id, [{ name: tagName }]);
+            console.log(`✅ Tag "${tagName}" added to workflow ${duplicatedWF.new_id}`);
+          } catch (tagError) {
+            console.warn(`⚠️ Could not add tag to workflow ${duplicatedWF.new_id}: ${tagError.message}`);
+          }
+
+          // Preserve activation status from original workflow
+          try {
+            if (duplicatedWF.original_active) {
+              const canActivate = await n8nClient.canActivateWorkflow(duplicatedWF.new_id);
+              if (canActivate) {
+                await n8nClient.activateWorkflow(duplicatedWF.new_id);
+                console.log(`✅ Workflow ${duplicatedWF.new_id} activated (preserving original status)`);
+              } else {
+                console.log(`ℹ️ Workflow ${duplicatedWF.new_id} skipped activation (no trigger node)`);
+              }
+            } else {
+              console.log(`ℹ️ Workflow ${duplicatedWF.new_id} kept inactive (preserving original status)`);
+            }
+          } catch (activationError) {
+            console.warn(`⚠️ Could not activate workflow ${duplicatedWF.new_id}: ${activationError.message}`);
+          }
+
+          // Save deployment record
+          const deployment_id = uuidv4();
+          await new Promise((resolve, reject) => {
+            etfDB.run(
+              `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [deployment_id, client_id, petWorkflow.id, newWorkflow.id, newWorkflow.name, 
+               'general', JSON.stringify(config_data)],
+              (err) => err ? reject(err) : resolve()
+            );
+          });
+
+          duplicatedWorkflows.push({
+            original_id: petWorkflow.id,
+            original_name: petWorkflow.name,
+            new_id: newWorkflow.id,
+            new_name: newWorkflow.name,
+            deployment_id: deployment_id
+          });
+
+        } catch (workflowError) {
+          console.error(`❌ Failed to duplicate workflow ${petWorkflow.name}:`, workflowError.message);
+          // Continue with other workflows instead of failing completely
+        }
     }
 
     // Insert client record (only once for all workflows)
@@ -930,8 +944,8 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
   }
 });
 
-// Client Dashboard APIs
-app.get('/api/etf/client/dashboard', async (req, res) => {
+// Client Dashboard APIs - requires authentication
+app.get('/api/etf/client/dashboard', requireAuth, async (req, res) => {
   try {
     // In a real implementation, you'd get client ID from authentication
     const clientId = req.query.client_id || 'demo-client';
@@ -981,7 +995,7 @@ app.get('/api/etf/client/dashboard', async (req, res) => {
   }
 });
 
-app.post('/api/etf/client/credentials', async (req, res) => {
+app.post('/api/etf/client/credentials', requireAuth, async (req, res) => {
   try {
     const { credentials } = req.body;
     const clientId = req.query.client_id || 'demo-client';
@@ -1030,7 +1044,7 @@ app.post('/api/etf/client/credentials', async (req, res) => {
   }
 });
 
-app.post('/api/etf/client/workflow/:workflowId/:action', async (req, res) => {
+app.post('/api/etf/client/workflow/:workflowId/:action', requireAuth, async (req, res) => {
   try {
     const { workflowId, action } = req.params;
     

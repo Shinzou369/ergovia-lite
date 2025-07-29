@@ -12,6 +12,59 @@
             margin: 0 auto;
             padding: 20px;
         }
+        .dashboard-header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .dashboard-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+        }
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .auth-required {
+            text-align: center;
+            padding: 60px 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
         .credential-form {
             background: white;
             padding: 20px;
@@ -57,8 +110,21 @@
 </head>
 <body>
     <div class="dashboard-container">
-        <h1>Client Dashboard</h1>
-        <p>Manage your automation credentials and workflows</p>
+        <div class="dashboard-header">
+            <h1>Client Control Panel</h1>
+            <p>Manage your automation credentials and workflows</p>
+            <div class="quick-actions">
+                <button onclick="openCredentialsPanel()" class="btn btn-primary">
+                    <span>🔑</span> Manage Credentials
+                </button>
+                <button onclick="openWorkflowPanel()" class="btn btn-secondary">
+                    <span>⚙️</span> Workflow Management
+                </button>
+                <button onclick="refreshDashboard()" class="btn btn-outline">
+                    <span>🔄</span> Refresh
+                </button>
+            </div>
+        </div>
 
         <!-- Credentials Section -->
         <div class="credential-form">
@@ -94,6 +160,59 @@
     </div>
 
     <script>
+        // Check authentication first
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                
+                if (!data.authenticated) {
+                    document.querySelector('.dashboard-container').innerHTML = `
+                        <div class="auth-required">
+                            <h2>🔐 Authentication Required</h2>
+                            <p>You must be logged in to access the Client Control Panel</p>
+                            <button onclick="window.location.href='/login?redirect=/client-dashboard'" class="btn btn-primary">
+                                Login to Continue
+                            </button>
+                        </div>
+                    `;
+                    return false;
+                }
+                
+                // Update header with user info
+                document.querySelector('.dashboard-header p').textContent = 
+                    `Welcome ${data.user.name}! Manage your automation credentials and workflows`;
+                
+                return true;
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                return false;
+            }
+        }
+
+        // Control panel functions
+        function openCredentialsPanel() {
+            const credentialsForm = document.querySelector('.credential-form');
+            credentialsForm.scrollIntoView({ behavior: 'smooth' });
+            credentialsForm.style.border = '2px solid #4CAF50';
+            setTimeout(() => {
+                credentialsForm.style.border = '';
+            }, 2000);
+        }
+
+        function openWorkflowPanel() {
+            const workflowList = document.querySelector('.workflow-list');
+            workflowList.scrollIntoView({ behavior: 'smooth' });
+            workflowList.style.border = '2px solid #2196F3';
+            setTimeout(() => {
+                workflowList.style.border = '';
+            }, 2000);
+        }
+
+        function refreshDashboard() {
+            location.reload();
+        }
+
         // Load client credentials and workflows
         async function loadClientData() {
             try {
@@ -183,7 +302,12 @@
         }
 
         // Load data on page load
-        loadClientData();
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAuthenticated = await checkAuth();
+            if (isAuthenticated) {
+                await loadClientData();
+            }
+        });
     </script>
 </body>
 </html>
