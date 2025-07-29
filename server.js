@@ -530,11 +530,15 @@ app.post('/api/etf/deploy', async (req, res) => {
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
-        // Add tag to the workflow using improved API sequence
+        // Add tag to the workflow using the correct API format
         try {
           const tagName = `PET[${client_data.name}]`;
-          const tag = await n8nClient.createTag(tagName);
-          await n8nClient.updateWorkflowTags(newWorkflow.id, [tagName]);
+          
+          // Ensure tag exists first
+          await n8nClient.createTag(tagName);
+          
+          // Apply tag using the working format (array of tag name strings)
+          await n8nClient.updateWorkflowTags(newWorkflow.id, [{ name: tagName }]);
           console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
         } catch (tagError) {
           console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
