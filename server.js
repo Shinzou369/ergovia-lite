@@ -222,6 +222,16 @@ function initETFDatabase() {
     )
   `);
 
+  // Client credentials table
+  etfDB.run(`
+    CREATE TABLE IF NOT EXISTS etf_client_credentials (
+      client_id TEXT PRIMARY KEY,
+      credentials_data TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(client_id) REFERENCES etf_clients(id)
+    )
+  `);
+
   console.log('ETF Database initialized');
   return etfDB;
 }
@@ -507,9 +517,51 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     const duplicatedWorkflows = [];
     const client_id = uuidv4();
+    const workflowMappings = {}; // Track original -> new workflow ID mappings
 
-    // Duplicate each PET workflow
+    // First pass: Create all workflows and build mapping
+    console.log('🔄 Phase 1: Creating workflow copies...');
     for (const petWorkflow of petWorkflows) {
+      try {
+        console.log(`🚀 Creating workflow copy: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
+
+        // Get the template workflow from N8N
+        const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
+
+        // Create clean workflow data - exclude ALL read-only properties including tags
+        const personalizedWorkflow = {
+          name: `[${client_data.name}] ${originalWorkflow.name}`,
+          nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
+          connections: originalWorkflow.connections || {},
+          settings: originalWorkflow.settings || {},
+          staticData: originalWorkflow.staticData || {},
+          active: originalWorkflow.active || false // Preserve active status
+          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, tags, etc.
+        };
+
+        // Create new workflow first
+        const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+        console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+
+        // Store mapping for second pass
+        workflowMappings[petWorkflow.id] = newWorkflow.id;
+
+        duplicatedWorkflows.push({
+          original_id: petWorkflow.id,
+          original_name: petWorkflow.name,
+          new_id: newWorkflow.id,
+          new_name: newWorkflow.name,
+          original_active: originalWorkflow.active
+        });
+
+      } catch (workflowError) {
+        console.error(`❌ Failed to create workflow ${petWorkflow.name}:`, workflowError.message);
+      }
+    }
+
+    // Second pass: Update workflow connections and apply tags
+    console.log('🔄 Phase 2: Updating connections and applying tags...');
+    for (const duplicatedWF of duplicatedWorkflows) {
       try {
         console.log(`🚀 Duplicating workflow: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
 
@@ -530,6 +582,31 @@ app.post('/api/etf/deploy', async (req, res) => {
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
+        try {
+        // Get the original workflow to update connections
+        const originalWorkflow = await n8nClient.getWorkflow(duplicatedWF.original_id);
+        const updatedWorkflow = await n8nClient.getWorkflow(duplicatedWF.new_id);
+
+        // Update workflow connections with new IDs
+        const updatedNodes = personalizeWorkflowNodes(
+          originalWorkflow.nodes || [], 
+          config_data, 
+          client_data, 
+          workflowMappings
+        );
+
+        // Update the workflow with corrected connections
+        const workflowUpdate = {
+          name: updatedWorkflow.name,
+          nodes: updatedNodes,
+          connections: originalWorkflow.connections || {},
+          settings: originalWorkflow.settings || {},
+          staticData: originalWorkflow.staticData || {}
+        };
+
+        await n8nClient.makeRequest('PUT', `/workflows/${duplicatedWF.new_id}`, workflowUpdate);
+        console.log(`✅ Updated connections for workflow ${duplicatedWF.new_id}`);
+
         // Add tag to the workflow using the correct API format
         try {
           const tagName = `PET[${client_data.name}]`;
@@ -538,25 +615,27 @@ app.post('/api/etf/deploy', async (req, res) => {
           await n8nClient.createTag(tagName);
           
           // Apply tag using the working format (array of tag name strings)
-          await n8nClient.updateWorkflowTags(newWorkflow.id, [{ name: tagName }]);
-          console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
+          await n8nClient.updateWorkflowTags(duplicatedWF.new_id, [{ name: tagName }]);
+          console.log(`✅ Tag "${tagName}" added to workflow ${duplicatedWF.new_id}`);
         } catch (tagError) {
-          console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
-          // Continue - workflow creation succeeded even if tagging failed
+          console.warn(`⚠️ Could not add tag to workflow ${duplicatedWF.new_id}: ${tagError.message}`);
         }
 
-        // Check if workflow can be activated before attempting activation
+        // Preserve activation status from original workflow
         try {
-          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
-          if (canActivate) {
-            await n8nClient.activateWorkflow(newWorkflow.id);
-            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+          if (duplicatedWF.original_active) {
+            const canActivate = await n8nClient.canActivateWorkflow(duplicatedWF.new_id);
+            if (canActivate) {
+              await n8nClient.activateWorkflow(duplicatedWF.new_id);
+              console.log(`✅ Workflow ${duplicatedWF.new_id} activated (preserving original status)`);
+            } else {
+              console.log(`ℹ️ Workflow ${duplicatedWF.new_id} skipped activation (no trigger node)`);
+            }
           } else {
-            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+            console.log(`ℹ️ Workflow ${duplicatedWF.new_id} kept inactive (preserving original status)`);
           }
         } catch (activationError) {
-          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
-          // Continue with next workflow instead of failing completely
+          console.warn(`⚠️ Could not activate workflow ${duplicatedWF.new_id}: ${activationError.message}`);
         }
 
         // Save deployment record
@@ -848,6 +927,166 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
       workflow_id: req.body.workflowId,
       attempted_tag_ids: req.body.tagIds
     });
+  }
+});
+
+// Client Dashboard APIs
+app.get('/api/etf/client/dashboard', async (req, res) => {
+  try {
+    // In a real implementation, you'd get client ID from authentication
+    const clientId = req.query.client_id || 'demo-client';
+    
+    // Get client credentials
+    const credentials = await new Promise((resolve, reject) => {
+      etfDB.get(
+        'SELECT * FROM etf_client_credentials WHERE client_id = ?',
+        [clientId],
+        (err, row) => err ? reject(err) : resolve(row)
+      );
+    });
+
+    // Get client workflows
+    const workflows = await new Promise((resolve, reject) => {
+      etfDB.all(
+        'SELECT * FROM etf_deployments WHERE client_id = ?',
+        [clientId],
+        (err, rows) => err ? reject(err) : resolve(rows)
+      );
+    });
+
+    // Get workflow details from N8N
+    const workflowDetails = [];
+    for (const deployment of workflows) {
+      try {
+        const workflow = await n8nClient.getWorkflow(deployment.n8n_workflow_id);
+        workflowDetails.push({
+          id: workflow.id,
+          name: workflow.name,
+          active: workflow.active,
+          updatedAt: workflow.updatedAt
+        });
+      } catch (error) {
+        console.warn(`Could not fetch workflow ${deployment.n8n_workflow_id}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      credentials: credentials ? JSON.parse(credentials.credentials_data || '{}') : null,
+      workflows: workflowDetails
+    });
+  } catch (error) {
+    console.error('Client dashboard error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/etf/client/credentials', async (req, res) => {
+  try {
+    const { credentials } = req.body;
+    const clientId = req.query.client_id || 'demo-client';
+
+    // Save credentials to database
+    await new Promise((resolve, reject) => {
+      etfDB.run(
+        `INSERT OR REPLACE INTO etf_client_credentials (client_id, credentials_data, updated_at) 
+         VALUES (?, ?, CURRENT_TIMESTAMP)`,
+        [clientId, JSON.stringify(credentials)],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    // Update all client workflows with new credentials
+    const deployments = await new Promise((resolve, reject) => {
+      etfDB.all(
+        'SELECT n8n_workflow_id FROM etf_deployments WHERE client_id = ?',
+        [clientId],
+        (err, rows) => err ? reject(err) : resolve(rows)
+      );
+    });
+
+    // Update each workflow with new credentials
+    for (const deployment of deployments) {
+      try {
+        const workflow = await n8nClient.getWorkflow(deployment.n8n_workflow_id);
+        const updatedNodes = workflow.nodes.map(node => ({
+          ...node,
+          parameters: personalizeParameters(node.parameters, credentials, { name: clientId })
+        }));
+
+        await n8nClient.makeRequest('PUT', `/workflows/${deployment.n8n_workflow_id}`, {
+          ...workflow,
+          nodes: updatedNodes
+        });
+      } catch (error) {
+        console.warn(`Could not update workflow ${deployment.n8n_workflow_id}:`, error.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Credentials updated successfully' });
+  } catch (error) {
+    console.error('Update credentials error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/etf/client/workflow/:workflowId/:action', async (req, res) => {
+  try {
+    const { workflowId, action } = req.params;
+    
+    if (action === 'activate') {
+      await n8nClient.activateWorkflow(workflowId);
+    } else if (action === 'deactivate') {
+      await n8nClient.makeRequest('POST', `/workflows/${workflowId}/deactivate`);
+    }
+
+    res.json({ success: true, message: `Workflow ${action}d successfully` });
+  } catch (error) {
+    console.error(`Workflow ${action} error:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Workflow scanning and auto-placeholder conversion
+app.get('/api/etf/scan-workflow/:workflowId', async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const workflow = await n8nClient.getWorkflow(workflowId);
+    
+    const placeholders = extractPlaceholders(workflow);
+    const convertedWorkflow = convertToPlaceholders(workflow, placeholders);
+    
+    res.json({
+      success: true,
+      original_workflow: workflow,
+      detected_placeholders: placeholders,
+      converted_workflow: convertedWorkflow
+    });
+  } catch (error) {
+    console.error('Workflow scan error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/etf/auto-convert-placeholders/:workflowId', async (req, res) => {
+  try {
+    const { workflowId } = req.params;
+    const { conversionRules } = req.body;
+    
+    const workflow = await n8nClient.getWorkflow(workflowId);
+    const convertedWorkflow = autoConvertPlaceholders(workflow, conversionRules);
+    
+    // Update the workflow
+    await n8nClient.makeRequest('PUT', `/workflows/${workflowId}`, convertedWorkflow);
+    
+    res.json({
+      success: true,
+      message: 'Workflow converted to use placeholders',
+      converted_items: conversionRules.length
+    });
+  } catch (error) {
+    console.error('Auto-convert error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -1940,6 +2179,116 @@ app.use((err, req, res, next) => {
 // ETF Helper Functions
 // ========================================
 
+function extractPlaceholders(workflow) {
+  const placeholders = new Set();
+  const commonPatterns = [
+    /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, // Email addresses
+    /\b\d{3}-\d{3}-\d{4}\b/g, // Phone numbers
+    /\bhttps?:\/\/[^\s]+/g, // URLs
+    /\bapi[_-]?key[_-]?\w*/gi, // API keys
+    /\b[A-Z][a-zA-Z\s]+(Clinic|Gym|Center|Company|Corp|LLC|Inc)\b/g, // Business names
+  ];
+
+  function scanObject(obj, path = '') {
+    if (typeof obj === 'string') {
+      // Check for hardcoded values that should be placeholders
+      commonPatterns.forEach((pattern, index) => {
+        const matches = obj.match(pattern);
+        if (matches) {
+          matches.forEach(match => {
+            let placeholderName;
+            switch (index) {
+              case 0: placeholderName = '{{CLIENT_EMAIL}}'; break;
+              case 1: placeholderName = '{{CLIENT_PHONE}}'; break;
+              case 2: placeholderName = '{{CLIENT_WEBHOOK_URL}}'; break;
+              case 3: placeholderName = '{{CLIENT_API_KEY}}'; break;
+              case 4: placeholderName = '{{BUSINESS_NAME}}'; break;
+              default: placeholderName = '{{CLIENT_DATA}}';
+            }
+            placeholders.add({
+              path: path,
+              original: match,
+              placeholder: placeholderName,
+              pattern: pattern.source
+            });
+          });
+        }
+      });
+    } else if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        scanObject(item, `${path}[${index}]`);
+      });
+    } else if (typeof obj === 'object' && obj !== null) {
+      Object.entries(obj).forEach(([key, value]) => {
+        scanObject(value, path ? `${path}.${key}` : key);
+      });
+    }
+  }
+
+  // Scan workflow nodes for hardcoded values
+  if (workflow.nodes) {
+    workflow.nodes.forEach((node, index) => {
+      scanObject(node, `nodes[${index}]`);
+    });
+  }
+
+  return Array.from(placeholders);
+}
+
+function convertToPlaceholders(workflow, placeholders) {
+  const convertedWorkflow = JSON.parse(JSON.stringify(workflow));
+
+  function replaceInObject(obj) {
+    if (typeof obj === 'string') {
+      let result = obj;
+      placeholders.forEach(placeholder => {
+        const regex = new RegExp(placeholder.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        result = result.replace(regex, placeholder.placeholder);
+      });
+      return result;
+    } else if (Array.isArray(obj)) {
+      return obj.map(replaceInObject);
+    } else if (typeof obj === 'object' && obj !== null) {
+      const newObj = {};
+      Object.entries(obj).forEach(([key, value]) => {
+        newObj[key] = replaceInObject(value);
+      });
+      return newObj;
+    }
+    return obj;
+  }
+
+  convertedWorkflow.nodes = replaceInObject(convertedWorkflow.nodes);
+  return convertedWorkflow;
+}
+
+function autoConvertPlaceholders(workflow, conversionRules) {
+  const convertedWorkflow = JSON.parse(JSON.stringify(workflow));
+
+  function replaceInObject(obj) {
+    if (typeof obj === 'string') {
+      let result = obj;
+      conversionRules.forEach(rule => {
+        const regex = new RegExp(rule.find, 'g');
+        result = result.replace(regex, rule.replace);
+      });
+      return result;
+    } else if (Array.isArray(obj)) {
+      return obj.map(replaceInObject);
+    } else if (typeof obj === 'object' && obj !== null) {
+      const newObj = {};
+      Object.entries(obj).forEach(([key, value]) => {
+        newObj[key] = replaceInObject(value);
+      });
+      return newObj;
+    }
+    return obj;
+  }
+
+  convertedWorkflow.nodes = replaceInObject(convertedWorkflow.nodes);
+  return convertedWorkflow;
+}
+
 function extractTaskforceType(workflowName, workflowTags = []) {
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
@@ -2010,7 +2359,7 @@ function analyzeWorkflowConfig(workflow) {
   return [...standardFields, ...customFields];
 }
 
-function personalizeWorkflowNodes(nodes, configData, clientData) {
+function personalizeWorkflowNodes(nodes, configData, clientData, workflowMappings = {}) {
   if (!Array.isArray(nodes)) {
     return [];
   }
@@ -2023,7 +2372,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
       type: node.type,
       typeVersion: node.typeVersion || 1,
       position: node.position || [0, 0],
-      parameters: personalizeParameters(node.parameters || {}, configData, clientData)
+      parameters: personalizeParameters(node.parameters || {}, configData, clientData, workflowMappings)
     };
 
     // Add optional fields if they exist and are allowed (exclude read-only fields)
@@ -2043,7 +2392,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
   });
 }
 
-function personalizeParameters(parameters, configData, clientData) {
+function personalizeParameters(parameters, configData, clientData, workflowMappings = {}) {
   const substitutions = {
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
@@ -2052,7 +2401,11 @@ function personalizeParameters(parameters, configData, clientData) {
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || ''
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
+    // Add API credentials placeholders
+    '{{CLIENT_API_KEY}}': configData.client_api_key || '',
+    '{{CLIENT_DATABASE_URL}}': configData.client_database_url || '',
+    '{{CLIENT_WEBHOOK_URL}}': configData.client_webhook_url || ''
   };
 
   function replaceInObject(obj) {

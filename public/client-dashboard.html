@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Dashboard - ETF Management</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .credential-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .workflow-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .workflow-item {
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .workflow-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-active { background: #4CAF50; color: white; }
+        .status-inactive { background: #f44336; color: white; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Client Dashboard</h1>
+        <p>Manage your automation credentials and workflows</p>
+
+        <!-- Credentials Section -->
+        <div class="credential-form">
+            <h2>API Credentials & Settings</h2>
+            <form id="credentialsForm">
+                <div class="form-group">
+                    <label for="apiKey">Your API Key:</label>
+                    <input type="password" id="apiKey" name="api_key" placeholder="Enter your API key">
+                </div>
+                <div class="form-group">
+                    <label for="databaseUrl">Database URL:</label>
+                    <input type="text" id="databaseUrl" name="database_url" placeholder="Your database connection string">
+                </div>
+                <div class="form-group">
+                    <label for="webhookUrl">Webhook URL:</label>
+                    <input type="text" id="webhookUrl" name="webhook_url" placeholder="Your webhook endpoint">
+                </div>
+                <div class="form-group">
+                    <label for="businessHours">Business Hours:</label>
+                    <textarea id="businessHours" name="business_hours" rows="3" placeholder="Mon-Fri: 8AM-6PM, Sat: 9AM-3PM"></textarea>
+                </div>
+                <button type="submit" class="btn">Update Credentials</button>
+            </form>
+        </div>
+
+        <!-- Workflows Section -->
+        <div class="workflow-list">
+            <h2>Your Workflows</h2>
+            <div id="workflowsList">
+                <!-- Workflows will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load client credentials and workflows
+        async function loadClientData() {
+            try {
+                const response = await fetch('/api/etf/client/dashboard');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Populate form with existing credentials
+                    if (data.credentials) {
+                        document.getElementById('apiKey').value = data.credentials.api_key || '';
+                        document.getElementById('databaseUrl').value = data.credentials.database_url || '';
+                        document.getElementById('webhookUrl').value = data.credentials.webhook_url || '';
+                        document.getElementById('businessHours').value = data.credentials.business_hours || '';
+                    }
+                    
+                    // Display workflows
+                    displayWorkflows(data.workflows || []);
+                }
+            } catch (error) {
+                console.error('Failed to load client data:', error);
+            }
+        }
+
+        function displayWorkflows(workflows) {
+            const container = document.getElementById('workflowsList');
+            if (workflows.length === 0) {
+                container.innerHTML = '<p>No workflows found. Contact support to set up your automation.</p>';
+                return;
+            }
+
+            container.innerHTML = workflows.map(workflow => `
+                <div class="workflow-item">
+                    <h3>${workflow.name}</h3>
+                    <span class="workflow-status status-${workflow.active ? 'active' : 'inactive'}">
+                        ${workflow.active ? 'Active' : 'Inactive'}
+                    </span>
+                    <p>Last updated: ${new Date(workflow.updatedAt).toLocaleDateString()}</p>
+                    <button onclick="toggleWorkflow('${workflow.id}', ${!workflow.active})" class="btn btn-sm">
+                        ${workflow.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Update credentials
+        document.getElementById('credentialsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const credentials = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/etf/client/credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credentials })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Credentials updated successfully!');
+                } else {
+                    alert('Failed to update credentials: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error updating credentials: ' + error.message);
+            }
+        });
+
+        // Toggle workflow activation
+        async function toggleWorkflow(workflowId, activate) {
+            try {
+                const endpoint = activate ? 'activate' : 'deactivate';
+                const response = await fetch(`/api/etf/client/workflow/${workflowId}/${endpoint}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    loadClientData(); // Refresh the display
+                } else {
+                    alert('Failed to update workflow: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error updating workflow: ' + error.message);
+            }
+        }
+
+        // Load data on page load
+        loadClientData();
+    </script>
+</body>
+</html>
