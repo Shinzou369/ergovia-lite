@@ -1,0 +1,92 @@
+
+# How to Add Tags to n8n Workflows: A Guide for Claude
+
+This guide explains the correct API workflow for adding tags to an n8n workflow.
+
+## Understanding the Process
+
+Tagging a workflow in n8n is a three-step process:
+
+1.  **Find the ID of the tag** you want to use. If the tag doesn't exist, you'll need to create it first.
+2.  **Get the ID of the workflow** you want to tag.
+3.  **Use the `PUT /workflows/{id}/tags` endpoint** to assign the tag(s) to the workflow.
+
+## Step-by-Step Instructions
+
+### Step 1: Get the Tag ID
+
+First, you need the ID of the tag you want to assign. You can get a list of all available tags and their IDs by making a `GET` request to the `/tags` endpoint.
+
+**API Call:**
+
+```
+GET /api/v1/tags
+```
+
+**Example Response:**
+
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+    "name": "Important",
+    "createdAt": "2025-07-29T10:00:00.000Z",
+    "updatedAt": "2025-07-29T10:00:00.000Z"
+  },
+  {
+    "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+    "name": "Testing",
+    "createdAt": "2025-07-29T10:05:00.000Z",
+    "updatedAt": "2025-07-29T10:05:00.000Z"
+  }
+]
+```
+
+From this response, you can identify the `id` of the tag you want to use. For example, the ID for the "Important" tag is `a1b2c3d4-e5f6-7890-1234-567890abcdef`.
+
+### Step 2: Get the Workflow ID
+
+Next, you need the ID of the workflow you want to tag. You can find this in the n8n editor URL or by listing workflows via the API.
+
+### Step 3: Assign the Tag to the Workflow
+
+Finally, use the `PUT /workflows/{id}/tags` endpoint to add the tag. The body of your request should be a JSON object containing an array of the tag IDs you want to assign.
+
+**API Call:**
+
+```
+PUT /api/v1/workflows/{workflow_id}/tags
+```
+
+**Parameters:**
+
+*   `workflow_id`: The ID of the workflow you want to tag.
+
+**Request Body:**
+
+```json
+{
+  "tagIds": [
+    "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+  ]
+}
+```
+
+**Example using cURL:**
+
+```bash
+curl -X PUT \
+  https://n8n-app-gvq5.onrender.com/api/v1/workflows/YOUR_WORKFLOW_ID/tags \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_API_KEY' \
+  -d '{
+    "tagIds": ["a1b2c3d4-e5f6-7890-1234-567890abcdef"]
+  }'
+```
+
+## Key Takeaways
+
+*   You **cannot** add a tag by name directly. You must use the tag's ID.
+*   The `PUT` request **overwrites** any existing tags on the workflow. If you want to add a tag to a workflow that already has tags, you must include the IDs of the existing tags in the `tagIds` array as well.
+*   To remove all tags from a workflow, send an empty array: `{"tagIds": []}`.
+
