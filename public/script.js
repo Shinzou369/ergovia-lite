@@ -70,14 +70,7 @@ function initializeWebsiteCards() {
 
 // === MEMORY + TRAINING SETUP ===
 let customTraining = "You are TaskAI, a helpful assistant for marketing and productivity tasks.";
-let currentThread = 0;
 let threads = [];
-let isStreaming = false;
-let abortController = null;
-let currentModel = 'gpt-3.5-turbo';
-let modelConfig = {};
-let systemMessage = '';
-const maxTokens = 1500;
 let currentThreadId = null;
 let conversation = [];
 

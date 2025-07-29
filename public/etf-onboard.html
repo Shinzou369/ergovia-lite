@@ -656,47 +656,19 @@
 
     <script>
         // Initialize Lucide icons
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Check authentication first
-            try {
-                const response = await fetch('/api/auth/status');
-                const data = await response.json();
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            updateProgress();
 
-                if (!data.authenticated) {
-                    document.body.innerHTML = `
-                        <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px;">
-                            <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 500px;">
-                                <h1>🔐 Authentication Required</h1>
-                                <p style="margin: 20px 0; color: #666;">You must be logged in to access ETF onboarding and create automated workflows.</p>
-                                <button onclick="window.location.href='/login?redirect=/etf-onboard'" 
-                                        style="background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                                    Login to Continue
-                                </button>
-                                <br><br>
-                                <a href="/" style="color: #666; text-decoration: none;">← Back to Home</a>
-                            </div>
-                        </div>
-                    `;
-                    return;
+            // Auto-select taskforce type from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskforceType = urlParams.get('type');
+            if (taskforceType) {
+                const taskforceSelect = document.getElementById('taskforceType');
+                if (taskforceSelect) {
+                    taskforceSelect.value = taskforceType;
+                    updateProgress();
                 }
-
-                // User is authenticated, proceed with onboarding
-                lucide.createIcons();
-                updateProgress();
-
-                // Auto-select taskforce type from URL parameter
-                const urlParams = new URLSearchParams(window.location.search);
-                const taskforceType = urlParams.get('type');
-                if (taskforceType) {
-                    const taskforceSelect = document.getElementById('taskforceType');
-                    if (taskforceSelect) {
-                        taskforceSelect.value = taskforceType;
-                        updateProgress();
-                    }
-                }
-            } catch (error) {
-                console.error('Authentication check failed:', error);
-                window.location.href = '/login';
             }
         });
 

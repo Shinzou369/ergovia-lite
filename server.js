@@ -85,12 +85,12 @@ class N8NApiClient {
       const tagsResponse = await this.makeRequest('GET', '/tags');
       const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
       const existingTag = tags.find(tag => tag.name === tagName);
-
+      
       if (existingTag) {
         console.log(`✅ Tag "${tagName}" already exists`);
         return existingTag;
       }
-
+      
       // Tag doesn't exist, create it
       console.log(`🔄 Creating new tag: "${tagName}"`);
       return await this.makeRequest('POST', '/tags', { name: tagName });
@@ -104,7 +104,7 @@ class N8NApiClient {
     // N8N API requires array of tag objects: [{"id": "tagId1"}, {"id": "tagId2"}]
     // First, we need to get the actual tag objects from N8N
     const tagObjects = [];
-
+    
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagName;
       if (typeof tag === 'string') {
@@ -114,13 +114,13 @@ class N8NApiClient {
       } else {
         tagName = String(tag);
       }
-
+      
       // Get the tag with its ID from N8N
       try {
         const tagsResponse = await this.makeRequest('GET', '/tags');
         const allTags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
         const existingTag = allTags.find(t => t.name === tagName);
-
+        
         if (existingTag && existingTag.id) {
           tagObjects.push({ id: existingTag.id });
           console.log(`✅ Found tag "${tagName}" with ID: ${existingTag.id}`);
@@ -142,7 +142,7 @@ class N8NApiClient {
     try {
       const workflow = await this.getWorkflow(workflowId);
       const nodes = workflow.nodes || [];
-
+      
       // Check for trigger, poller, or webhook nodes
       const hasTriggerNode = nodes.some(node => {
         const nodeType = node.type?.toLowerCase() || '';
@@ -155,7 +155,7 @@ class N8NApiClient {
           nodeType.includes('interval')
         );
       });
-
+      
       return hasTriggerNode;
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
@@ -218,16 +218,6 @@ function initETFDatabase() {
       status TEXT DEFAULT 'active',
       config_data TEXT,
       deployed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(client_id) REFERENCES etf_clients(id)
-    )
-  `);
-
-  // Client credentials table
-  etfDB.run(`
-    CREATE TABLE IF NOT EXISTS etf_client_credentials (
-      client_id TEXT PRIMARY KEY,
-      credentials_data TEXT,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(client_id) REFERENCES etf_clients(id)
     )
   `);
@@ -411,23 +401,23 @@ app.use((req, res, next) => {
 app.use(express.static('public'));
 
 // Taskforce onboarding routes - redirect to ETF onboard with type
-app.get('/taskforce/pet-clinic', (req, res) => {
-  res.redirect('/etf-onboard?type=pet-clinic');
+app.get('/taskforce/pet-clinic/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=dental');
 });
 
-app.get('/taskforce/gym', (req, res) => {
+app.get('/taskforce/gym/onboard', (req, res) => {
   res.redirect('/etf-onboard?type=gym');
 });
 
-app.get('/taskforce/contractors', (req, res) => {
+app.get('/taskforce/contractors/onboard', (req, res) => {
   res.redirect('/etf-onboard?type=contractors');
 });
 
-app.get('/taskforce/tutoring', (req, res) => {
+app.get('/taskforce/tutoring/onboard', (req, res) => {
   res.redirect('/etf-onboard?type=tutoring');
 });
 
-app.get('/taskforce/massage', (req, res) => {
+app.get('/taskforce/massage/onboard', (req, res) => {
   res.redirect('/etf-onboard?type=massage');
 });
 
@@ -435,28 +425,14 @@ app.get('/taskforce/massage', (req, res) => {
 // ETF Routes
 // ========================================
 
-// ETF Onboarding page - requires authentication
+// ETF Onboarding page
 app.get('/etf-onboard', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.redirect('/login?redirect=/etf-onboard');
-  }
   res.sendFile(path.join(__dirname, 'public', 'etf-onboard.html'));
 });
 
-// ETF Admin dashboard - requires authentication
+// ETF Admin dashboard
 app.get('/etf-admin', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.redirect('/login?redirect=/etf-admin');
-  }
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
-});
-
-// Client Dashboard - requires authentication
-app.get('/client-dashboard', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.redirect('/login?redirect=/client-dashboard');
-  }
-  res.sendFile(path.join(__dirname, 'public', 'client-dashboard.html'));
 });
 
 // Get available templates from n8n
@@ -483,7 +459,7 @@ app.get('/api/etf/templates', async (req, res) => {
         id: workflow.id,
         name: workflow.name,
         description: `ETF automation workflow: ${workflow.name}`,
-        taskforce_type: 'pet-clinic', // Pet clinics are categorized as pet-clinic
+        taskforce_type: 'dental', // Pet clinics are categorized as dental
         tags: workflow.tags || [],
         active: workflow.active,
         config_fields: analyzeWorkflowConfig(workflow),
@@ -499,8 +475,8 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client - requires authentication
-app.post('/api/etf/deploy', requireAuth, async (req, res) => {
+// Deploy ETF workflow for client
+app.post('/api/etf/deploy', async (req, res) => {
   try {
     let { client_data, config_data, template_id } = req.body;
 
@@ -531,13 +507,11 @@ app.post('/api/etf/deploy', requireAuth, async (req, res) => {
 
     const duplicatedWorkflows = [];
     const client_id = uuidv4();
-    const workflowMappings = {}; // Track original -> new workflow ID mappings
 
-    // First pass: Create all workflows and build mapping
-    console.log('🔄 Phase 1: Creating workflow copies...');
+    // Duplicate each PET workflow
     for (const petWorkflow of petWorkflows) {
       try {
-        console.log(`🚀 Creating workflow copy: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
+        console.log(`🚀 Duplicating workflow: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
 
         // Get the template workflow from N8N
         const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
@@ -556,108 +530,59 @@ app.post('/api/etf/deploy', requireAuth, async (req, res) => {
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
-        // Store mapping for second pass
-        workflowMappings[petWorkflow.id] = newWorkflow.id;
+        // Add tag to the workflow using the correct API format
+        try {
+          const tagName = `PET[${client_data.name}]`;
+          
+          // Ensure tag exists first
+          await n8nClient.createTag(tagName);
+          
+          // Apply tag using the working format (array of tag name strings)
+          await n8nClient.updateWorkflowTags(newWorkflow.id, [{ name: tagName }]);
+          console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
+        } catch (tagError) {
+          console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
+          // Continue - workflow creation succeeded even if tagging failed
+        }
+
+        // Check if workflow can be activated before attempting activation
+        try {
+          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
+          if (canActivate) {
+            await n8nClient.activateWorkflow(newWorkflow.id);
+            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+          } else {
+            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+          }
+        } catch (activationError) {
+          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
+          // Continue with next workflow instead of failing completely
+        }
+
+        // Save deployment record
+        const deployment_id = uuidv4();
+        await new Promise((resolve, reject) => {
+          etfDB.run(
+            `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [deployment_id, client_id, petWorkflow.id, newWorkflow.id, newWorkflow.name, 
+             'general', JSON.stringify(config_data)],
+            (err) => err ? reject(err) : resolve()
+          );
+        });
 
         duplicatedWorkflows.push({
           original_id: petWorkflow.id,
           original_name: petWorkflow.name,
           new_id: newWorkflow.id,
           new_name: newWorkflow.name,
-          original_active: originalWorkflow.active
+          deployment_id: deployment_id
         });
 
       } catch (workflowError) {
-        console.error(`❌ Failed to create workflow ${petWorkflow.name}:`, workflowError.message);
+        console.error(`❌ Failed to duplicate workflow ${petWorkflow.name}:`, workflowError.message);
+        // Continue with other workflows instead of failing completely
       }
-    }
-
-    // Second pass: Update workflow connections and apply tags
-    console.log('🔄 Phase 2: Updating connections and applying tags...');
-    for (const duplicatedWF of duplicatedWorkflows) {
-      
-       
-
-        try {
-          // Get the original workflow to update connections
-          const originalWorkflow = await n8nClient.getWorkflow(duplicatedWF.original_id);
-          const updatedWorkflow = await n8nClient.getWorkflow(duplicatedWF.new_id);
-
-          // Update workflow connections with new IDs
-          const updatedNodes = personalizeWorkflowNodes(
-            originalWorkflow.nodes || [], 
-            config_data, 
-            client_data, 
-            workflowMappings
-          );
-
-          // Update the workflow with corrected connections
-          const workflowUpdate = {
-            name: updatedWorkflow.name,
-            nodes: updatedNodes,
-            connections: originalWorkflow.connections || {},
-            settings: originalWorkflow.settings || {},
-            staticData: originalWorkflow.staticData || {}
-          };
-
-          await n8nClient.makeRequest('PUT', `/workflows/${duplicatedWF.new_id}`, workflowUpdate);
-          console.log(`✅ Updated connections for workflow ${duplicatedWF.new_id}`);
-
-          // Add tag to the workflow using the correct API format
-          try {
-            const tagName = `PET[${client_data.name}]`;
-
-            // Ensure tag exists first
-            await n8nClient.createTag(tagName);
-
-            // Apply tag using the working format (array of tag name strings)
-            await n8nClient.updateWorkflowTags(duplicatedWF.new_id, [{ name: tagName }]);
-            console.log(`✅ Tag "${tagName}" added to workflow ${duplicatedWF.new_id}`);
-          } catch (tagError) {
-            console.warn(`⚠️ Could not add tag to workflow ${duplicatedWF.new_id}: ${tagError.message}`);
-          }
-
-          // Preserve activation status from original workflow
-          try {
-            if (duplicatedWF.original_active) {
-              const canActivate = await n8nClient.canActivateWorkflow(duplicatedWF.new_id);
-              if (canActivate) {
-                await n8nClient.activateWorkflow(duplicatedWF.new_id);
-                console.log(`✅ Workflow ${duplicatedWF.new_id} activated (preserving original status)`);
-              } else {
-                console.log(`ℹ️ Workflow ${duplicatedWF.new_id} skipped activation (no trigger node)`);
-              }
-            } else {
-              console.log(`ℹ️ Workflow ${duplicatedWF.new_id} kept inactive (preserving original status)`);
-            }
-          } catch (activationError) {
-            console.warn(`⚠️ Could not activate workflow ${duplicatedWF.new_id}: ${activationError.message}`);
-          }
-
-          // Save deployment record
-          const deployment_id = uuidv4();
-          await new Promise((resolve, reject) => {
-            etfDB.run(
-              `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
-               VALUES (?, ?, ?, ?, ?, ?, ?)`,
-              [deployment_id, client_id, petWorkflow.id, newWorkflow.id, newWorkflow.name, 
-               'general', JSON.stringify(config_data)],
-              (err) => err ? reject(err) : resolve()
-            );
-          });
-
-          duplicatedWorkflows.push({
-            original_id: petWorkflow.id,
-            original_name: petWorkflow.name,
-            new_id: newWorkflow.id,
-            new_name: newWorkflow.name,
-            deployment_id: deployment_id
-          });
-
-        } catch (workflowError) {
-          console.error(`❌ Failed to duplicate workflow ${petWorkflow.name}:`, workflowError.message);
-          // Continue with other workflows instead of failing completely
-        }
     }
 
     // Insert client record (only once for all workflows)
@@ -804,7 +729,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
-
+    
     if (!tagName) {
       return res.status(400).json({
         success: false,
@@ -813,10 +738,10 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
     }
 
     console.log(`🧪 Testing tag creation for: "${tagName}"`);
-
+    
     // Test the createTag method
     const result = await n8nClient.createTag(tagName);
-
+    
     res.json({
       success: true,
       message: `Tag "${tagName}" created successfully`,
@@ -837,10 +762,10 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
-
+    
     const tagsResponse = await n8nClient.makeRequest('GET', '/tags');
     const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
-
+    
     res.json({
       success: true,
       total_tags: tags.length,
@@ -860,7 +785,7 @@ app.get('/api/etf/list-tags', async (req, res) => {
 app.post('/api/etf/test-apply-tags', async (req, res) => {
   try {
     const { workflowId, tags } = req.body;
-
+    
     if (!workflowId || !tags) {
       return res.status(400).json({
         success: false,
@@ -869,10 +794,10 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
     }
 
     console.log(`🧪 Testing tag application to workflow ${workflowId}:`, tags);
-
+    
     // Test the updateWorkflowTags method
     const result = await n8nClient.updateWorkflowTags(workflowId, tags);
-
+    
     res.json({
       success: true,
       message: `Tags applied to workflow ${workflowId}`,
@@ -895,7 +820,7 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
 app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
   try {
     const { workflowId, tagIds } = req.body;
-
+    
     if (!workflowId || !tagIds || !Array.isArray(tagIds)) {
       return res.status(400).json({
         success: false,
@@ -904,10 +829,10 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
     }
 
     console.log(`🧪 Testing direct N8N API format for workflow ${workflowId}:`, tagIds);
-
+    
     // Test direct N8N API call with correct format
     const result = await n8nClient.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
-
+    
     res.json({
       success: true,
       message: `Tags applied directly to workflow ${workflowId}`,
@@ -926,171 +851,11 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
   }
 });
 
-// Client Dashboard APIs - requires authentication
-app.get('/api/etf/client/dashboard', requireAuth, async (req, res) => {
-  try {
-    // In a real implementation, you'd get client ID from authentication
-    const clientId = req.query.client_id || 'demo-client';
-
-    // Get client credentials
-    const credentials = await new Promise((resolve, reject) => {
-      etfDB.get(
-        'SELECT * FROM etf_client_credentials WHERE client_id = ?',
-        [clientId],
-        (err, row) => err ? reject(err) : resolve(row)
-      );
-    });
-
-    // Get client workflows
-    const workflows = await new Promise((resolve, reject) => {
-      etfDB.all(
-        'SELECT * FROM etf_deployments WHERE client_id = ?',
-        [clientId],
-        (err, rows) => err ? reject(err) : resolve(rows)
-      );
-    });
-
-    // Get workflow details from N8N
-    const workflowDetails = [];
-    for (const deployment of workflows) {
-      try {
-        const workflow = await n8nClient.getWorkflow(deployment.n8n_workflow_id);
-        workflowDetails.push({
-          id: workflow.id,
-          name: workflow.name,
-          active: workflow.active,
-          updatedAt: workflow.updatedAt
-        });
-      } catch (error) {
-        console.warn(`Could not fetch workflow ${deployment.n8n_workflow_id}`);
-      }
-    }
-
-    res.json({
-      success: true,
-      credentials: credentials ? JSON.parse(credentials.credentials_data || '{}') : null,
-      workflows: workflowDetails
-    });
-  } catch (error) {
-    console.error('Client dashboard error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/etf/client/credentials', requireAuth, async (req, res) => {
-  try {
-    const { credentials } = req.body;
-    const clientId = req.query.client_id || 'demo-client';
-
-    // Save credentials to database
-    await new Promise((resolve, reject) => {
-      etfDB.run(
-        `INSERT OR REPLACE INTO etf_client_credentials (client_id, credentials_data, updated_at) 
-         VALUES (?, ?, CURRENT_TIMESTAMP)`,
-        [clientId, JSON.stringify(credentials)],
-        (err) => err ? reject(err) : resolve()
-      );
-    });
-
-    // Update all client workflows with new credentials
-    const deployments = await new Promise((resolve, reject) => {
-      etfDB.all(
-        'SELECT n8n_workflow_id FROM etf_deployments WHERE client_id = ?',
-        [clientId],
-        (err, rows) => err ? reject(err) : resolve(rows)
-      );
-    });
-
-    // Update each workflow with new credentials
-    for (const deployment of deployments) {
-      try {
-        const workflow = await n8nClient.getWorkflow(deployment.n8n_workflow_id);
-        const updatedNodes = workflow.nodes.map(node => ({
-          ...node,
-          parameters: personalizeParameters(node.parameters, credentials, { name: clientId })
-        }));
-
-        await n8nClient.makeRequest('PUT', `/workflows/${deployment.n8n_workflow_id}`, {
-          ...workflow,
-          nodes: updatedNodes
-        });
-      } catch (error) {
-        console.warn(`Could not update workflow ${deployment.n8n_workflow_id}:`, error.message);
-      }
-    }
-
-    res.json({ success: true, message: 'Credentials updated successfully' });
-  } catch (error) {
-    console.error('Update credentials error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/etf/client/workflow/:workflowId/:action', requireAuth, async (req, res) => {
-  try {
-    const { workflowId, action } = req.params;
-
-    if (action === 'activate') {
-      await n8nClient.activateWorkflow(workflowId);
-    } else if (action === 'deactivate') {
-      await n8nClient.makeRequest('POST', `/workflows/${workflowId}/deactivate`);
-    }
-
-    res.json({ success: true, message: `Workflow ${action}d successfully` });
-  } catch (error) {
-    console.error(`Workflow ${action} error:`, error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Workflow scanning and auto-placeholder conversion
-app.get('/api/etf/scan-workflow/:workflowId', async (req, res) => {
-  try {
-    const { workflowId } = req.params;
-    const workflow = await n8nClient.getWorkflow(workflowId);
-
-    const placeholders = extractPlaceholders(workflow);
-    const convertedWorkflow = convertToPlaceholders(workflow, placeholders);
-
-    res.json({
-      success: true,
-      original_workflow: workflow,
-      detected_placeholders: placeholders,
-      converted_workflow: convertedWorkflow
-    });
-  } catch (error) {
-    console.error('Workflow scan error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/etf/auto-convert-placeholders/:workflowId', async (req, res) => {
-  try {
-    const { workflowId } = req.params;
-    const { conversionRules } = req.body;
-
-    const workflow = await n8nClient.getWorkflow(workflowId);
-    const convertedWorkflow = autoConvertPlaceholders(workflow, conversionRules);
-
-    // Update the workflow
-    await n8nClient.makeRequest('PUT', `/workflows/${workflowId}`, convertedWorkflow);
-
-    res.json({
-      success: true,
-      message: 'Workflow converted to use placeholders',
-      converted_items: conversionRules.length
-    });
-  } catch (error) {
-    console.error('Auto-convert error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 // Test endpoint to try both tag formats
 app.post('/api/etf/test-both-formats', async (req, res) => {
   try {
     const { workflowId } = req.body;
-
+    
     if (!workflowId) {
       return res.status(400).json({
         success: false,
@@ -1164,7 +929,7 @@ app.post('/api/etf/test-both-formats', async (req, res) => {
     }
 
     const successCount = testResults.tests.filter(t => t.status === 'success').length;
-
+    
     res.json({
       success: successCount > 0,
       message: `${successCount}/${testResults.tests.length} tag formats worked`,
@@ -1936,13 +1701,13 @@ app.post("/api/complete-signup", (req, res) => {
   const { firstName, lastName } = req.body;
   const sanitizedFirstName = sanitizeUserInput(firstName);
   const sanitizedLastName = sanitizeUserInput(lastName);
-
+  
   const validationErrors = validateUserData({
     email: req.user.emails?.[0]?.value,
     preferredFirstName: sanitizedFirstName,
     preferredLastName: sanitizedLastName
   });
-
+  
   if (validationErrors.length > 0) {
     return res.status(400).json({ 
       error: "Validation failed", 
@@ -2175,116 +1940,6 @@ app.use((err, req, res, next) => {
 // ETF Helper Functions
 // ========================================
 
-function extractPlaceholders(workflow) {
-  const placeholders = new Set();
-  const commonPatterns = [
-    /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, // Email addresses
-    /\b\d{3}-\d{3}-\d{4}\b/g, // Phone numbers
-    /\bhttps?:\/\/[^\s]+/g, // URLs
-    /\bapi[_-]?key[_-]?\w*/gi, // API keys
-    /\b[A-Z][a-zA-Z\s]+(Clinic|Gym|Center|Company|Corp|LLC|Inc)\b/g, // Business names
-  ];
-
-  function scanObject(obj, path = '') {
-    if (typeof obj === 'string') {
-      // Check for hardcoded values that should be placeholders
-      commonPatterns.forEach((pattern, index) => {
-        const matches = obj.match(pattern);
-        if (matches) {
-          matches.forEach(match => {
-            let placeholderName;
-            switch (index) {
-              case 0: placeholderName = '{{CLIENT_EMAIL}}'; break;
-              case 1: placeholderName = '{{CLIENT_PHONE}}'; break;
-              case 2: placeholderName = '{{CLIENT_WEBHOOK_URL}}'; break;
-              case 3: placeholderName = '{{CLIENT_API_KEY}}'; break;
-              case 4: placeholderName = '{{BUSINESS_NAME}}'; break;
-              default: placeholderName = '{{CLIENT_DATA}}';
-            }
-            placeholders.add({
-              path: path,
-              original: match,
-              placeholder: placeholderName,
-              pattern: pattern.source
-            });
-          });
-        }
-      });
-    } else if (Array.isArray(obj)) {
-      obj.forEach((item, index) => {
-        scanObject(item, `${path}[${index}]`);
-      });
-    } else if (typeof obj === 'object' && obj !== null) {
-      Object.entries(obj).forEach(([key, value]) => {
-        scanObject(value, path ? `${path}.${key}` : key);
-      });
-    }
-  }
-
-  // Scan workflow nodes for hardcoded values
-  if (workflow.nodes) {
-    workflow.nodes.forEach((node, index) => {
-      scanObject(node, `nodes[${index}]`);
-    });
-  }
-
-  return Array.from(placeholders);
-}
-
-function convertToPlaceholders(workflow, placeholders) {
-  const convertedWorkflow = JSON.parse(JSON.stringify(workflow));
-
-  function replaceInObject(obj) {
-    if (typeof obj === 'string') {
-      let result = obj;
-      placeholders.forEach(placeholder => {
-        const regex = new RegExp(placeholder.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        result = result.replace(regex, placeholder.placeholder);
-      });
-      return result;
-    } else if (Array.isArray(obj)) {
-      return obj.map(replaceInObject);
-    } else if (typeof obj === 'object' && obj !== null) {
-      const newObj = {};
-      Object.entries(obj).forEach(([key, value]) => {
-        newObj[key] = replaceInObject(value);
-      });
-      return newObj;
-    }
-    return obj;
-  }
-
-  convertedWorkflow.nodes = replaceInObject(convertedWorkflow.nodes);
-  return convertedWorkflow;
-}
-
-function autoConvertPlaceholders(workflow, conversionRules) {
-  const convertedWorkflow = JSON.parse(JSON.stringify(workflow));
-
-  function replaceInObject(obj) {
-    if (typeof obj === 'string') {
-      let result = obj;
-      conversionRules.forEach(rule => {
-        const regex = new RegExp(rule.find, 'g');
-        result = result.replace(regex, rule.replace);
-      });
-      return result;
-    } else if (Array.isArray(obj)) {
-      return obj.map(replaceInObject);
-    } else if (typeof obj === 'object' && obj !== null) {
-      const newObj = {};
-      Object.entries(obj).forEach(([key, value]) => {
-        newObj[key] = replaceInObject(value);
-      });
-      return newObj;
-    }
-    return obj;
-  }
-
-  convertedWorkflow.nodes = replaceInObject(convertedWorkflow.nodes);
-  return convertedWorkflow;
-}
-
 function extractTaskforceType(workflowName, workflowTags = []) {
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
@@ -2297,7 +1952,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   }).join(' ') : '';
 
   // Check tags first for more accurate classification
-  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'pet-clinic';
+  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'dental';
   if (tags.includes('dental') || tags.includes('clinic')) return 'dental';
   if (tags.includes('gym') || tags.includes('fitness') || tags.includes('workout')) return 'gym';
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
@@ -2334,7 +1989,7 @@ function analyzeWorkflowConfig(workflow) {
     }
 
     // Check for specific pet clinic tags
-    if (tag.includes('veterinary') || tag.includes('pet') || tag.includes('animal')) {
+    if (tag.includes('veterinary') || tag.includes('pet') || tag.includes('clinic')) {
       customFields.push(
         { key: 'clinic_hours', label: 'Clinic Hours', type: 'textarea', placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM' },
         { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Vaccinations, Surgery, Dental Care, Emergency' },
@@ -2355,7 +2010,7 @@ function analyzeWorkflowConfig(workflow) {
   return [...standardFields, ...customFields];
 }
 
-function personalizeWorkflowNodes(nodes, configData, clientData, workflowMappings = {}) {
+function personalizeWorkflowNodes(nodes, configData, clientData) {
   if (!Array.isArray(nodes)) {
     return [];
   }
@@ -2368,7 +2023,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData, workflowMapping
       type: node.type,
       typeVersion: node.typeVersion || 1,
       position: node.position || [0, 0],
-      parameters: personalizeParameters(node.parameters || {}, configData, clientData, workflowMappings)
+      parameters: personalizeParameters(node.parameters || {}, configData, clientData)
     };
 
     // Add optional fields if they exist and are allowed (exclude read-only fields)
@@ -2388,7 +2043,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData, workflowMapping
   });
 }
 
-function personalizeParameters(parameters, configData, clientData, workflowMappings = {}) {
+function personalizeParameters(parameters, configData, clientData) {
   const substitutions = {
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
@@ -2397,11 +2052,7 @@ function personalizeParameters(parameters, configData, clientData, workflowMappi
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
-    // Add API credentials placeholders
-    '{{CLIENT_API_KEY}}': configData.client_api_key || '',
-    '{{CLIENT_DATABASE_URL}}': configData.client_database_url || '',
-    '{{CLIENT_WEBHOOK_URL}}': configData.client_webhook_url || ''
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || ''
   };
 
   function replaceInObject(obj) {
