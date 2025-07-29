@@ -101,7 +101,7 @@ class N8NApiClient {
   }
 
   async updateWorkflowTags(workflowId, tags) {
-    // N8N API requires tagIds array format: { "tagIds": ["id1", "id2"] }
+    // N8N API requires direct array format: ["id1", "id2"]
     // First, we need to get the actual tag IDs from N8N
     const tagIds = [];
     
@@ -133,8 +133,8 @@ class N8NApiClient {
     }
 
     console.log(`🏷️ Applying tag IDs to workflow ${workflowId}:`, tagIds);
-    // Use the correct N8N API format with tagIds array
-    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
+    // Send tag IDs as direct array (not wrapped in object)
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagIds);
   }
 
   // Helper method to check if workflow can be activated
