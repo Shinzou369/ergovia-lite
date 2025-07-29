@@ -222,6 +222,21 @@ function initETFDatabase() {
     )
   `);
 
+  // Client credentials table
+  etfDB.run(`
+    CREATE TABLE IF NOT EXISTS etf_client_credentials (
+      id TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL,
+      credential_type TEXT NOT NULL,
+      credential_name TEXT NOT NULL,
+      api_key TEXT,
+      api_secret TEXT,
+      endpoint TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(client_id) REFERENCES etf_clients(id)
+    )
+  `);
+
   console.log('ETF Database initialized');
   return etfDB;
 }
@@ -522,8 +537,9 @@ app.post('/api/etf/deploy', async (req, res) => {
           nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
           connections: originalWorkflow.connections || {},
           settings: originalWorkflow.settings || {},
-          staticData: originalWorkflow.staticData || {}
-          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, tags, etc.
+          staticData: originalWorkflow.staticData || {},
+          active: originalWorkflow.active || false // Preserve original active state
+          // Explicitly exclude: id, versionId, createdAt, updatedAt, tags, etc.
         };
 
         // Create new workflow first
@@ -545,18 +561,22 @@ app.post('/api/etf/deploy', async (req, res) => {
           // Continue - workflow creation succeeded even if tagging failed
         }
 
-        // Check if workflow can be activated before attempting activation
-        try {
-          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
-          if (canActivate) {
-            await n8nClient.activateWorkflow(newWorkflow.id);
-            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-          } else {
-            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+        // Only attempt activation if original was active and workflow can be activated
+        if (originalWorkflow.active) {
+          try {
+            const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
+            if (canActivate) {
+              await n8nClient.activateWorkflow(newWorkflow.id);
+              console.log(`✅ Workflow ${newWorkflow.id} activated successfully (matching template state)`);
+            } else {
+              console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+            }
+          } catch (activationError) {
+            console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
+            // Continue with next workflow instead of failing completely
           }
-        } catch (activationError) {
-          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
-          // Continue with next workflow instead of failing completely
+        } else {
+          console.log(`ℹ️ Workflow ${newWorkflow.id} kept inactive (matching template state)`);
         }
 
         // Save deployment record
@@ -576,7 +596,9 @@ app.post('/api/etf/deploy', async (req, res) => {
           original_name: petWorkflow.name,
           new_id: newWorkflow.id,
           new_name: newWorkflow.name,
-          deployment_id: deployment_id
+          deployment_id: deployment_id,
+          original_active: originalWorkflow.active,
+          new_active: originalWorkflow.active
         });
 
       } catch (workflowError) {
@@ -603,6 +625,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     res.json({
       success: true,
       client_id: client_id,
+      client_control_panel_url: `/client-control-panel?client_id=${client_id}`,
       duplicated_workflows: duplicatedWorkflows,
       total_duplicated: duplicatedWorkflows.length,
       message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}`
@@ -632,6 +655,77 @@ app.post('/api/etf/deploy', async (req, res) => {
       details: error.message,
       success: false 
     });
+  }
+});
+
+// Client control panel route
+app.get('/client-control-panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client-control-panel.html'));
+});
+
+// API endpoints for client credentials management
+app.post('/api/etf/client/credentials', async (req, res) => {
+  try {
+    const { client_id, credential_type, credential_name, api_key, api_secret, endpoint } = req.body;
+    
+    // In a production system, you'd encrypt these credentials
+    const credential_id = uuidv4();
+    
+    await new Promise((resolve, reject) => {
+      etfDB.run(
+        `INSERT INTO etf_client_credentials (id, client_id, credential_type, credential_name, api_key, api_secret, endpoint, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [credential_id, client_id, credential_type, credential_name, api_key, api_secret, endpoint, new Date().toISOString()],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    res.json({ success: true, credential_id });
+  } catch (error) {
+    console.error('Error saving credentials:', error);
+    res.status(500).json({ error: 'Failed to save credentials' });
+  }
+});
+
+app.get('/api/etf/client/:client_id/credentials', async (req, res) => {
+  try {
+    const { client_id } = req.params;
+    
+    etfDB.all(
+      'SELECT id, credential_type, credential_name, endpoint, created_at FROM etf_client_credentials WHERE client_id = ?',
+      [client_id],
+      (err, rows) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ error: 'Failed to fetch credentials' });
+        }
+        res.json(rows);
+      }
+    );
+  } catch (error) {
+    console.error('Error fetching credentials:', error);
+    res.status(500).json({ error: 'Failed to fetch credentials' });
+  }
+});
+
+app.get('/api/etf/client/:client_id/workflows', async (req, res) => {
+  try {
+    const { client_id } = req.params;
+    
+    etfDB.all(
+      'SELECT * FROM etf_deployments WHERE client_id = ?',
+      [client_id],
+      (err, rows) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ error: 'Failed to fetch workflows' });
+        }
+        res.json(rows);
+      }
+    );
+  } catch (error) {
+    console.error('Error fetching workflows:', error);
+    res.status(500).json({ error: 'Failed to fetch workflows' });
   }
 });
 
@@ -2043,16 +2137,46 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
   });
 }
 
-function personalizeParameters(parameters, configData, clientData) {
+function personalizeParameters(parameters, configData, clientData, clientCredentials = {}) {
   const substitutions = {
+    // Basic client information
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
     '{{CLIENT_COMPANY}}': clientData.company || clientData.name || '',
     '{{CLIENT_PHONE}}': clientData.phone || '',
+    
+    // Business configuration
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || ''
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
+    '{{BUSINESS_HOURS}}': configData.business_hours || 'Mon-Fri: 9AM-6PM',
+    '{{SERVICES_OFFERED}}': configData.services_offered || '',
+    '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || clientData.phone || '',
+    
+    // API Credentials (these would be populated from the client's saved credentials)
+    '{{SMTP_USERNAME}}': clientCredentials.email?.api_key || 'SMTP_USERNAME_PLACEHOLDER',
+    '{{SMTP_PASSWORD}}': clientCredentials.email?.api_secret || 'SMTP_PASSWORD_PLACEHOLDER',
+    '{{SMTP_HOST}}': clientCredentials.email?.endpoint || 'smtp.gmail.com',
+    '{{TWILIO_SID}}': clientCredentials.sms?.api_key || 'TWILIO_SID_PLACEHOLDER',
+    '{{TWILIO_TOKEN}}': clientCredentials.sms?.api_secret || 'TWILIO_TOKEN_PLACEHOLDER',
+    '{{CALENDAR_API_KEY}}': clientCredentials.calendar?.api_key || 'CALENDAR_API_KEY_PLACEHOLDER',
+    '{{CRM_API_KEY}}': clientCredentials.crm?.api_key || 'CRM_API_KEY_PLACEHOLDER',
+    '{{CRM_ENDPOINT}}': clientCredentials.crm?.endpoint || 'CRM_ENDPOINT_PLACEHOLDER',
+    '{{PAYMENT_API_KEY}}': clientCredentials.payment?.api_key || 'PAYMENT_API_KEY_PLACEHOLDER',
+    
+    // Webhook URLs (dynamically generated)
+    '{{WEBHOOK_URL}}': `${N8N_BASE_URL}/webhook/${clientData.name.toLowerCase().replace(/\s+/g, '-')}`,
+    '{{CLIENT_ID}}': clientData.client_id || '',
+    
+    // Date/Time placeholders
+    '{{CURRENT_DATE}}': new Date().toISOString().split('T')[0],
+    '{{CURRENT_DATETIME}}': new Date().toISOString(),
+    
+    // System placeholders
+    '{{SYSTEM_EMAIL}}': process.env.SYSTEM_EMAIL || 'noreply@ergovia-ai.com',
+    '{{SUPPORT_URL}}': 'https://ergovia-ai.com/support',
+    '{{CLIENT_PORTAL_URL}}': `https://ergovia-ai.com/client-control-panel?client_id=${clientData.client_id || ''}`
   };
 
   function replaceInObject(obj) {
@@ -2062,10 +2186,21 @@ function personalizeParameters(parameters, configData, clientData) {
 
     if (typeof obj === 'string') {
       let result = obj;
+      
+      // First, handle all standard placeholders
       Object.entries(substitutions).forEach(([placeholder, value]) => {
         const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
-        result = result.replace(regex, value);
+        result = result.replace(regex, value || '');
       });
+      
+      // Handle dynamic credential placeholders like {{CREDENTIAL:email:api_key}}
+      result = result.replace(/\{\{CREDENTIAL:([^:]+):([^}]+)\}\}/g, (match, credType, credField) => {
+        if (clientCredentials[credType] && clientCredentials[credType][credField]) {
+          return clientCredentials[credType][credField];
+        }
+        return `${credType.toUpperCase()}_${credField.toUpperCase()}_PLACEHOLDER`;
+      });
+      
       return result;
     } else if (Array.isArray(obj)) {
       return obj.map(replaceInObject);
