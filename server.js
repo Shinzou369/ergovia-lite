@@ -411,23 +411,23 @@ app.use((req, res, next) => {
 app.use(express.static('public'));
 
 // Taskforce onboarding routes - redirect to ETF onboard with type
-app.get('/taskforce/pet-clinic/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=dental');
+app.get('/taskforce/pet-clinic', (req, res) => {
+  res.redirect('/etf-onboard?type=pet-clinic');
 });
 
-app.get('/taskforce/gym/onboard', (req, res) => {
+app.get('/taskforce/gym', (req, res) => {
   res.redirect('/etf-onboard?type=gym');
 });
 
-app.get('/taskforce/contractors/onboard', (req, res) => {
+app.get('/taskforce/contractors', (req, res) => {
   res.redirect('/etf-onboard?type=contractors');
 });
 
-app.get('/taskforce/tutoring/onboard', (req, res) => {
+app.get('/taskforce/tutoring', (req, res) => {
   res.redirect('/etf-onboard?type=tutoring');
 });
 
-app.get('/taskforce/massage/onboard', (req, res) => {
+app.get('/taskforce/massage', (req, res) => {
   res.redirect('/etf-onboard?type=massage');
 });
 
@@ -483,7 +483,7 @@ app.get('/api/etf/templates', async (req, res) => {
         id: workflow.id,
         name: workflow.name,
         description: `ETF automation workflow: ${workflow.name}`,
-        taskforce_type: 'dental', // Pet clinics are categorized as dental
+        taskforce_type: 'pet-clinic', // Pet clinics are categorized as pet-clinic
         tags: workflow.tags || [],
         active: workflow.active,
         config_fields: analyzeWorkflowConfig(workflow),
@@ -2315,7 +2315,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   }).join(' ') : '';
 
   // Check tags first for more accurate classification
-  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'dental';
+  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'pet-clinic';
   if (tags.includes('dental') || tags.includes('clinic')) return 'dental';
   if (tags.includes('gym') || tags.includes('fitness') || tags.includes('workout')) return 'gym';
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
@@ -2352,7 +2352,7 @@ function analyzeWorkflowConfig(workflow) {
     }
 
     // Check for specific pet clinic tags
-    if (tag.includes('veterinary') || tag.includes('pet') || tag.includes('clinic')) {
+    if (tag.includes('veterinary') || tag.includes('pet') || tag.includes('animal')) {
       customFields.push(
         { key: 'clinic_hours', label: 'Clinic Hours', type: 'textarea', placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM' },
         { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Vaccinations, Surgery, Dental Care, Emergency' },
