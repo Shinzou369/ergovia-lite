@@ -101,9 +101,9 @@ class N8NApiClient {
   }
 
   async updateWorkflowTags(workflowId, tags) {
-    // N8N expects an array of tag objects with both 'id' and 'name' properties
-    // First, we need to get the actual tag objects with their IDs from N8N
-    const tagObjects = [];
+    // N8N API requires tagIds array format: { "tagIds": ["id1", "id2"] }
+    // First, we need to get the actual tag IDs from N8N
+    const tagIds = [];
     
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagName;
@@ -121,22 +121,20 @@ class N8NApiClient {
         const allTags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
         const existingTag = allTags.find(t => t.name === tagName);
         
-        if (existingTag && existingTag.id && existingTag.name) {
-          tagObjects.push({
-            id: existingTag.id,
-            name: existingTag.name
-          });
+        if (existingTag && existingTag.id) {
+          tagIds.push(existingTag.id);
           console.log(`✅ Found tag "${tagName}" with ID: ${existingTag.id}`);
         } else {
-          console.warn(`⚠️ Tag "${tagName}" not found or missing ID/name`);
+          console.warn(`⚠️ Tag "${tagName}" not found or missing ID`);
         }
       } catch (error) {
         console.error(`❌ Error getting tag "${tagName}":`, error.message);
       }
     }
 
-    console.log(`🏷️ Applying tag objects to workflow ${workflowId}:`, tagObjects);
-    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagObjects);
+    console.log(`🏷️ Applying tag IDs to workflow ${workflowId}:`, tagIds);
+    // Use the correct N8N API format with tagIds array
+    return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
   }
 
   // Helper method to check if workflow can be activated
@@ -810,6 +808,41 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
       error: error.message,
       workflow_id: req.body.workflowId,
       attempted_tags: req.body.tags
+    });
+  }
+});
+
+// Test endpoint using direct N8N API format
+app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
+  try {
+    const { workflowId, tagIds } = req.body;
+    
+    if (!workflowId || !tagIds || !Array.isArray(tagIds)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Workflow ID and tagIds array are required'
+      });
+    }
+
+    console.log(`🧪 Testing direct N8N API format for workflow ${workflowId}:`, tagIds);
+    
+    // Test direct N8N API call with correct format
+    const result = await n8nClient.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
+    
+    res.json({
+      success: true,
+      message: `Tags applied directly to workflow ${workflowId}`,
+      result: result,
+      applied_tag_ids: tagIds,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Direct N8N API test error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      workflow_id: req.body.workflowId,
+      attempted_tag_ids: req.body.tagIds
     });
   }
 });
