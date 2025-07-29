@@ -85,12 +85,12 @@ class N8NApiClient {
       const tagsResponse = await this.makeRequest('GET', '/tags');
       const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
       const existingTag = tags.find(tag => tag.name === tagName);
-      
+
       if (existingTag) {
         console.log(`✅ Tag "${tagName}" already exists`);
         return existingTag;
       }
-      
+
       // Tag doesn't exist, create it
       console.log(`🔄 Creating new tag: "${tagName}"`);
       return await this.makeRequest('POST', '/tags', { name: tagName });
@@ -104,7 +104,7 @@ class N8NApiClient {
     // N8N API requires array of tag objects: [{"id": "tagId1"}, {"id": "tagId2"}]
     // First, we need to get the actual tag objects from N8N
     const tagObjects = [];
-    
+
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagName;
       if (typeof tag === 'string') {
@@ -114,13 +114,13 @@ class N8NApiClient {
       } else {
         tagName = String(tag);
       }
-      
+
       // Get the tag with its ID from N8N
       try {
         const tagsResponse = await this.makeRequest('GET', '/tags');
         const allTags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
         const existingTag = allTags.find(t => t.name === tagName);
-        
+
         if (existingTag && existingTag.id) {
           tagObjects.push({ id: existingTag.id });
           console.log(`✅ Found tag "${tagName}" with ID: ${existingTag.id}`);
@@ -142,7 +142,7 @@ class N8NApiClient {
     try {
       const workflow = await this.getWorkflow(workflowId);
       const nodes = workflow.nodes || [];
-      
+
       // Check for trigger, poller, or webhook nodes
       const hasTriggerNode = nodes.some(node => {
         const nodeType = node.type?.toLowerCase() || '';
@@ -155,7 +155,7 @@ class N8NApiClient {
           nodeType.includes('interval')
         );
       });
-      
+
       return hasTriggerNode;
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
@@ -576,25 +576,8 @@ app.post('/api/etf/deploy', requireAuth, async (req, res) => {
     // Second pass: Update workflow connections and apply tags
     console.log('🔄 Phase 2: Updating connections and applying tags...');
     for (const duplicatedWF of duplicatedWorkflows) {
-      try {
-        console.log(`🚀 Duplicating workflow: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
-
-        // Get the template workflow from N8N
-        const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
-
-        // Create clean workflow data - exclude ALL read-only properties including tags
-        const personalizedWorkflow = {
-          name: `[${client_data.name}] ${originalWorkflow.name}`,
-          nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
-          connections: originalWorkflow.connections || {},
-          settings: originalWorkflow.settings || {},
-          staticData: originalWorkflow.staticData || {}
-          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, tags, etc.
-        };
-
-        // Create new workflow first
-        const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-        console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
+      
+       
 
         try {
           // Get the original workflow to update connections
@@ -624,10 +607,10 @@ app.post('/api/etf/deploy', requireAuth, async (req, res) => {
           // Add tag to the workflow using the correct API format
           try {
             const tagName = `PET[${client_data.name}]`;
-            
+
             // Ensure tag exists first
             await n8nClient.createTag(tagName);
-            
+
             // Apply tag using the working format (array of tag name strings)
             await n8nClient.updateWorkflowTags(duplicatedWF.new_id, [{ name: tagName }]);
             console.log(`✅ Tag "${tagName}" added to workflow ${duplicatedWF.new_id}`);
@@ -822,7 +805,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
-    
+
     if (!tagName) {
       return res.status(400).json({
         success: false,
@@ -831,10 +814,10 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
     }
 
     console.log(`🧪 Testing tag creation for: "${tagName}"`);
-    
+
     // Test the createTag method
     const result = await n8nClient.createTag(tagName);
-    
+
     res.json({
       success: true,
       message: `Tag "${tagName}" created successfully`,
@@ -855,10 +838,10 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
-    
+
     const tagsResponse = await n8nClient.makeRequest('GET', '/tags');
     const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
-    
+
     res.json({
       success: true,
       total_tags: tags.length,
@@ -878,7 +861,7 @@ app.get('/api/etf/list-tags', async (req, res) => {
 app.post('/api/etf/test-apply-tags', async (req, res) => {
   try {
     const { workflowId, tags } = req.body;
-    
+
     if (!workflowId || !tags) {
       return res.status(400).json({
         success: false,
@@ -887,10 +870,10 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
     }
 
     console.log(`🧪 Testing tag application to workflow ${workflowId}:`, tags);
-    
+
     // Test the updateWorkflowTags method
     const result = await n8nClient.updateWorkflowTags(workflowId, tags);
-    
+
     res.json({
       success: true,
       message: `Tags applied to workflow ${workflowId}`,
@@ -913,7 +896,7 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
 app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
   try {
     const { workflowId, tagIds } = req.body;
-    
+
     if (!workflowId || !tagIds || !Array.isArray(tagIds)) {
       return res.status(400).json({
         success: false,
@@ -922,10 +905,10 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
     }
 
     console.log(`🧪 Testing direct N8N API format for workflow ${workflowId}:`, tagIds);
-    
+
     // Test direct N8N API call with correct format
     const result = await n8nClient.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
-    
+
     res.json({
       success: true,
       message: `Tags applied directly to workflow ${workflowId}`,
@@ -949,7 +932,7 @@ app.get('/api/etf/client/dashboard', requireAuth, async (req, res) => {
   try {
     // In a real implementation, you'd get client ID from authentication
     const clientId = req.query.client_id || 'demo-client';
-    
+
     // Get client credentials
     const credentials = await new Promise((resolve, reject) => {
       etfDB.get(
@@ -1047,7 +1030,7 @@ app.post('/api/etf/client/credentials', requireAuth, async (req, res) => {
 app.post('/api/etf/client/workflow/:workflowId/:action', requireAuth, async (req, res) => {
   try {
     const { workflowId, action } = req.params;
-    
+
     if (action === 'activate') {
       await n8nClient.activateWorkflow(workflowId);
     } else if (action === 'deactivate') {
@@ -1066,10 +1049,10 @@ app.get('/api/etf/scan-workflow/:workflowId', async (req, res) => {
   try {
     const { workflowId } = req.params;
     const workflow = await n8nClient.getWorkflow(workflowId);
-    
+
     const placeholders = extractPlaceholders(workflow);
     const convertedWorkflow = convertToPlaceholders(workflow, placeholders);
-    
+
     res.json({
       success: true,
       original_workflow: workflow,
@@ -1086,13 +1069,13 @@ app.post('/api/etf/auto-convert-placeholders/:workflowId', async (req, res) => {
   try {
     const { workflowId } = req.params;
     const { conversionRules } = req.body;
-    
+
     const workflow = await n8nClient.getWorkflow(workflowId);
     const convertedWorkflow = autoConvertPlaceholders(workflow, conversionRules);
-    
+
     // Update the workflow
     await n8nClient.makeRequest('PUT', `/workflows/${workflowId}`, convertedWorkflow);
-    
+
     res.json({
       success: true,
       message: 'Workflow converted to use placeholders',
@@ -1108,7 +1091,7 @@ app.post('/api/etf/auto-convert-placeholders/:workflowId', async (req, res) => {
 app.post('/api/etf/test-both-formats', async (req, res) => {
   try {
     const { workflowId } = req.body;
-    
+
     if (!workflowId) {
       return res.status(400).json({
         success: false,
@@ -1182,7 +1165,7 @@ app.post('/api/etf/test-both-formats', async (req, res) => {
     }
 
     const successCount = testResults.tests.filter(t => t.status === 'success').length;
-    
+
     res.json({
       success: successCount > 0,
       message: `${successCount}/${testResults.tests.length} tag formats worked`,
@@ -1954,13 +1937,13 @@ app.post("/api/complete-signup", (req, res) => {
   const { firstName, lastName } = req.body;
   const sanitizedFirstName = sanitizeUserInput(firstName);
   const sanitizedLastName = sanitizeUserInput(lastName);
-  
+
   const validationErrors = validateUserData({
     email: req.user.emails?.[0]?.value,
     preferredFirstName: sanitizedFirstName,
     preferredLastName: sanitizedLastName
   });
-  
+
   if (validationErrors.length > 0) {
     return res.status(400).json({ 
       error: "Validation failed", 
