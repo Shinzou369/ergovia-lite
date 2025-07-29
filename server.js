@@ -447,10 +447,10 @@ app.get('/api/etf/templates', async (req, res) => {
         // Check if workflow has "PET" tag (case insensitive)
         const hasPetTag = Array.isArray(workflowTags) && workflowTags.some(tag => {
           if (typeof tag === 'string') {
-            return tag.toLowerCase().includes('pet');
+            return tag.toLowerCase() === 'pet';
           } else if (tag && typeof tag === 'object' && tag.name) {
             // Handle N8N tag objects with name property
-            return tag.name.toLowerCase().includes('pet');
+            return tag.name.toLowerCase() === 'pet';
           }
           return false;
         });
@@ -489,10 +489,10 @@ app.post('/api/etf/deploy', async (req, res) => {
         const workflowTags = workflow.tags || [];
         return Array.isArray(workflowTags) && workflowTags.some(tag => {
           if (typeof tag === 'string') {
-            return tag.toLowerCase().includes('pet');
+            return tag.toLowerCase() === 'pet';
           } else if (tag && typeof tag === 'object' && tag.name) {
             // Handle N8N tag objects with name property
-            return tag.name.toLowerCase().includes('pet');
+            return tag.name.toLowerCase() === 'pet';
           }
           return false;
         });
@@ -692,10 +692,10 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
         tags: workflow.tags || [],
         hasPetTag: Array.isArray(workflow.tags) && workflow.tags.some(tag => {
           if (typeof tag === 'string') {
-            return tag.toLowerCase().includes('pet');
+            return tag.toLowerCase() === 'pet';
           } else if (tag && typeof tag === 'object' && tag.name) {
             // Handle N8N tag objects with name property
-            return tag.name.toLowerCase().includes('pet');
+            return tag.name.toLowerCase() === 'pet';
           }
           return false;
         })
