@@ -735,7 +735,7 @@ async function submitPrompt(promptText) {
     const selectedModel = selectModel(promptText);
 
     try {
-      const response = await getGPTResponse(selectedModel);
+      const response = await getGPTResponse(selectedModel, conversation);tedModel);
 
       // Check if response indicates an error
       if (response.startsWith("Sorry, there was an error:") || response.startsWith("Sorry, I'm unable to process")) {

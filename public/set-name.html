@@ -143,6 +143,9 @@
           placeholder="Enter your preferred name"
           maxlength="30"
           autocomplete="given-name"
+          required
+          pattern="^[a-zA-Z\s]{1,30}$"
+          title="Please enter a valid name (letters and spaces only, max 30 characters)"
         >
         <div class="name-validation" id="name-validation">
           2-30 characters, letters only

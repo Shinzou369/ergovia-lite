@@ -1593,7 +1593,7 @@ function loadUsers() {
   return {};
 }
 
-function saveUsers(users) {
+function saveUsers() {
   try {
     fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
   } catch (err) {
@@ -1838,7 +1838,7 @@ function loadTokenUsage() {
     }
   } catch (err) {
     console.error('Error loading token usage:', err);
-  }```text
+  }
   return {};
 }
 
