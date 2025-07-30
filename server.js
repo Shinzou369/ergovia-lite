@@ -85,12 +85,12 @@ class N8NApiClient {
       const tagsResponse = await this.makeRequest('GET', '/tags');
       const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
       const existingTag = tags.find(tag => tag.name === tagName);
-      
+
       if (existingTag) {
         console.log(`✅ Tag "${tagName}" already exists`);
         return existingTag;
       }
-      
+
       // Tag doesn't exist, create it
       console.log(`🔄 Creating new tag: "${tagName}"`);
       return await this.makeRequest('POST', '/tags', { name: tagName });
@@ -104,7 +104,7 @@ class N8NApiClient {
     // N8N API requires array of tag objects: [{"id": "tagId1"}, {"id": "tagId2"}]
     // First, we need to get the actual tag objects from N8N
     const tagObjects = [];
-    
+
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagName;
       if (typeof tag === 'string') {
@@ -114,13 +114,13 @@ class N8NApiClient {
       } else {
         tagName = String(tag);
       }
-      
+
       // Get the tag with its ID from N8N
       try {
         const tagsResponse = await this.makeRequest('GET', '/tags');
         const allTags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
         const existingTag = allTags.find(t => t.name === tagName);
-        
+
         if (existingTag && existingTag.id) {
           tagObjects.push({ id: existingTag.id });
           console.log(`✅ Found tag "${tagName}" with ID: ${existingTag.id}`);
@@ -142,7 +142,7 @@ class N8NApiClient {
     try {
       const workflow = await this.getWorkflow(workflowId);
       const nodes = workflow.nodes || [];
-      
+
       // Check for trigger, poller, or webhook nodes
       const hasTriggerNode = nodes.some(node => {
         const nodeType = node.type?.toLowerCase() || '';
@@ -155,7 +155,7 @@ class N8NApiClient {
           nodeType.includes('interval')
         );
       });
-      
+
       return hasTriggerNode;
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
@@ -533,10 +533,10 @@ app.post('/api/etf/deploy', async (req, res) => {
         // Add tag to the workflow using the correct API format
         try {
           const tagName = `PET[${client_data.name}]`;
-          
+
           // Ensure tag exists first
           await n8nClient.createTag(tagName);
-          
+
           // Apply tag using the working format (array of tag name strings)
           await n8nClient.updateWorkflowTags(newWorkflow.id, [{ name: tagName }]);
           console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
@@ -729,7 +729,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
-    
+
     if (!tagName) {
       return res.status(400).json({
         success: false,
@@ -738,10 +738,10 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
     }
 
     console.log(`🧪 Testing tag creation for: "${tagName}"`);
-    
+
     // Test the createTag method
     const result = await n8nClient.createTag(tagName);
-    
+
     res.json({
       success: true,
       message: `Tag "${tagName}" created successfully`,
@@ -762,10 +762,10 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
-    
+
     const tagsResponse = await n8nClient.makeRequest('GET', '/tags');
     const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
-    
+
     res.json({
       success: true,
       total_tags: tags.length,
@@ -781,25 +781,53 @@ app.get('/api/etf/list-tags', async (req, res) => {
   }
 });
 
+// Test Telegram credentials endpoint
+app.post('/api/etf/test-telegram-credentials', async (req, res) => {
+  try {
+    const { bot_token, chat_id } = req.body;
+
+    if (!bot_token || !chat_id) {
+      return res.status(400).json({ error: 'Bot token and chat ID are required' });
+    }
+
+    // Test the credentials by sending a test message
+    const testUrl = `https://api.telegram.org/bot${bot_token}/sendMessage`;
+    const testResponse = await fetch(testUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chat_id,
+        text: '🧪 ETF Credential Test - Your Telegram bot is working correctly!'
+      })
+    });
+
+    const testResult = await testResponse.json();
+
+    if (testResult.ok) {
+      res.json({ 
+        success: true, 
+        message: 'Credentials validated successfully!',
+        bot_info: testResult.result 
+      });
+    } else {
+      res.status(400).json({ 
+        success: false, 
+        error: 'Invalid credentials or chat ID',
+        details: testResult.description 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Telegram credential test failed:', error);
+    res.status(500).json({ error: 'Failed to test credentials' });
+  }
+});
+
 // Create Telegram credentials in N8N
 app.post('/api/etf/create-telegram-credentials', async (req, res) => {
   try {
     const { telegram_bot_token, credential_name } = req.body;
 
-    if (!telegram_bot_token) {
-      return res.status(400).json({
-        success: false,
-        error: 'telegram_bot_token is required'
-      });
-    }
-
-    // Basic format validation
-    if (!/^\d+:[A-Za-z0-9_-]{35}$/.test(telegram_bot_token)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid bot token format'
-      });
-    }
+    console.log('🔑 Creating Telegram credentials in N8N...');
 
     const credentialData = {
       name: credential_name || `Telegram Bot - ${new Date().toISOString().split('T')[0]}`,
@@ -809,27 +837,38 @@ app.post('/api/etf/create-telegram-credentials', async (req, res) => {
       }
     };
 
-    console.log('🔑 Creating Telegram credentials in N8N...');
+    console.log('Making N8N API request: POST', `${N8N_BASE_URL}/api/v1/credentials`);
 
-    // Create credentials using N8N API
-    const credential = await n8nClient.makeRequest('POST', '/credentials', credentialData);
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      },
+      body: JSON.stringify(credentialData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ N8N credential creation failed:', response.status, errorText);
+      throw new Error(`N8N API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Telegram credentials created successfully:', result.id);
 
     res.json({
       success: true,
-      message: 'Telegram credentials created successfully',
-      credential: {
-        id: credential.id,
-        name: credential.name,
-        type: credential.type
-      }
+      credential_id: result.id,
+      credential_name: result.name
     });
 
   } catch (error) {
-    console.error('Telegram credentials creation error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create Telegram credentials',
-      details: error.message
+    console.error('❌ Failed to create Telegram credentials:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create credentials',
+      details: error.message 
     });
   }
 });
@@ -864,7 +903,7 @@ app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
     // Test the bot token by making a call to Telegram API
     try {
       const response = await axios.get(`https://api.telegram.org/bot${telegram_bot_token}/getMe`);
-      
+
       if (!response.data.ok) {
         return res.status(400).json({
           success: false,
@@ -873,7 +912,7 @@ app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
       }
 
       const botInfo = response.data.result;
-      
+
       res.json({
         success: true,
         message: 'Telegram credentials validated successfully',
@@ -906,7 +945,7 @@ app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
 app.post('/api/etf/test-personalize-telegram', async (req, res) => {
   try {
     const workflowId = 'N0r2q9lHBESKEnwA'; // The Telegram workflow ID
-    
+
     // Sample client data for Pet Clinic
     const clientData = {
       name: 'Happy Paws Veterinary Clinic',
@@ -931,10 +970,10 @@ app.post('/api/etf/test-personalize-telegram', async (req, res) => {
     };
 
     console.log(`🧪 Testing personalization of Telegram workflow ${workflowId}`);
-    
+
     // Get the original workflow
     const originalWorkflow = await n8nClient.getWorkflow(workflowId);
-    
+
     // Personalize the workflow nodes
     const personalizedNodes = personalizeWorkflowNodes(
       originalWorkflow.nodes || [], 
@@ -1018,7 +1057,7 @@ app.post('/api/etf/test-personalize-telegram', async (req, res) => {
 app.post('/api/etf/test-apply-tags', async (req, res) => {
   try {
     const { workflowId, tags } = req.body;
-    
+
     if (!workflowId || !tags) {
       return res.status(400).json({
         success: false,
@@ -1027,10 +1066,10 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
     }
 
     console.log(`🧪 Testing tag application to workflow ${workflowId}:`, tags);
-    
+
     // Test the updateWorkflowTags method
     const result = await n8nClient.updateWorkflowTags(workflowId, tags);
-    
+
     res.json({
       success: true,
       message: `Tags applied to workflow ${workflowId}`,
@@ -1053,7 +1092,7 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
 app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
   try {
     const { workflowId, tagIds } = req.body;
-    
+
     if (!workflowId || !tagIds || !Array.isArray(tagIds)) {
       return res.status(400).json({
         success: false,
@@ -1062,10 +1101,10 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
     }
 
     console.log(`🧪 Testing direct N8N API format for workflow ${workflowId}:`, tagIds);
-    
+
     // Test direct N8N API call with correct format
     const result = await n8nClient.makeRequest('PUT', `/workflows/${workflowId}/tags`, { tagIds });
-    
+
     res.json({
       success: true,
       message: `Tags applied directly to workflow ${workflowId}`,
@@ -1088,7 +1127,7 @@ app.post('/api/etf/test-direct-n8n-format', async (req, res) => {
 app.post('/api/etf/test-both-formats', async (req, res) => {
   try {
     const { workflowId } = req.body;
-    
+
     if (!workflowId) {
       return res.status(400).json({
         success: false,
@@ -1162,7 +1201,7 @@ app.post('/api/etf/test-both-formats', async (req, res) => {
     }
 
     const successCount = testResults.tests.filter(t => t.status === 'success').length;
-    
+
     res.json({
       success: successCount > 0,
       message: `${successCount}/${testResults.tests.length} tag formats worked`,
@@ -1799,7 +1838,7 @@ function loadTokenUsage() {
     }
   } catch (err) {
     console.error('Error loading token usage:', err);
-  }
+  }```text
   return {};
 }
 
@@ -1934,13 +1973,13 @@ app.post("/api/complete-signup", (req, res) => {
   const { firstName, lastName } = req.body;
   const sanitizedFirstName = sanitizeUserInput(firstName);
   const sanitizedLastName = sanitizeUserInput(lastName);
-  
+
   const validationErrors = validateUserData({
     email: req.user.emails?.[0]?.value,
     preferredFirstName: sanitizedFirstName,
     preferredLastName: sanitizedLastName
   });
-  
+
   if (validationErrors.length > 0) {
     return res.status(400).json({ 
       error: "Validation failed", 
@@ -2173,6 +2212,10 @@ app.use((err, req, res, next) => {
 // ETF Helper Functions
 // ========================================
 
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters for regex
+}
+
 function extractTaskforceType(workflowName, workflowTags = []) {
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
@@ -2245,86 +2288,66 @@ function analyzeWorkflowConfig(workflow) {
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
   if (!Array.isArray(nodes)) {
-    return [];
+    console.warn('⚠️ Nodes is not an array:', typeof nodes);
+    return nodes;
   }
 
-  return nodes.map(node => {
-    // Create clean node object with only essential fields
-    const personalizedNode = {
-      id: node.id,
-      name: node.name,
-      type: node.type,
-      typeVersion: node.typeVersion || 1,
-      position: node.position || [0, 0],
-      parameters: personalizeParameters(node.parameters || {}, configData, clientData)
-    };
+  const placeholders = {
+    // Telegram credentials
+    '{{TELEGRAM_BOT_TOKEN}}': configData.telegram_bot_token || '',
+    '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
 
-    // Add optional fields if they exist and are allowed (exclude read-only fields)
-    if (node.credentials) personalizedNode.credentials = node.credentials;
-    if (node.webhookId) personalizedNode.webhookId = node.webhookId;
-    if (node.disabled !== undefined) personalizedNode.disabled = node.disabled;
-    if (node.continueOnFail !== undefined) personalizedNode.continueOnFail = node.continueOnFail;
-    if (node.alwaysOutputData !== undefined) personalizedNode.alwaysOutputData = node.alwaysOutputData;
-    if (node.executeOnce !== undefined) personalizedNode.executeOnce = node.executeOnce;
-    if (node.retryOnFail !== undefined) personalizedNode.retryOnFail = node.retryOnFail;
-    if (node.maxTries !== undefined) personalizedNode.maxTries = node.maxTries;
-    if (node.waitBetweenTries !== undefined) personalizedNode.waitBetweenTries = node.waitBetweenTries;
-    if (node.notes) personalizedNode.notes = node.notes;
-    if (node.notesInFlow !== undefined) personalizedNode.notesInFlow = node.notesInFlow;
+    // Pet Clinic specific placeholders
+    '{{PET_CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
+    '{{CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
+    '{{CLINIC_ADDRESS}}': configData.clinic_address || `${configData.business_name} Address` || '',  
+    '{{CLINIC_HOURS}}': configData.clinic_hours || 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only',
+    '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || '',
+    '{{SERVICES_OFFERED}}': configData.services_offered || 'Vaccinations, Surgery, Dental Care, Emergency Services',
 
-    return personalizedNode;
-  });
-}
-
-function personalizeParameters(parameters, configData, clientData) {
-  const substitutions = {
+    // Client information
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
-    '{{CLIENT_COMPANY}}': clientData.company || clientData.name || '',
     '{{CLIENT_PHONE}}': clientData.phone || '',
+
+    // Business information (general)
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
     '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
-    // Telegram-specific placeholders
-    '{{TELEGRAM_BOT_TOKEN}}': configData.telegram_bot_token || '',
-    '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
-    '{{PET_CLINIC_NAME}}': configData.pet_clinic_name || configData.business_name || clientData.name || '',
-    '{{CLINIC_NAME}}': configData.pet_clinic_name || configData.business_name || clientData.name || '',
-    '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
-    '{{CLINIC_HOURS}}': configData.clinic_hours || 'Mon-Fri: 8AM-6PM',
-    '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || clientData.phone || '',
-    '{{SERVICES_OFFERED}}': configData.services_offered || 'Veterinary Services',
-    '{{CLINIC_PHONE}}': configData.clinic_phone || configData.business_phone || clientData.phone || '',
-    '{{CLINIC_PHONE_NUMBER}}': configData.clinic_phone || configData.business_phone || clientData.phone || '',
-    '{{CLINIC_EMAIL}}': configData.clinic_email || configData.business_email || clientData.email || ''
+
+    // Additional common placeholders for pet clinics
+    '{{VET_NAME}}': clientData.name || '',
+    '{{VETERINARIAN}}': clientData.name || '',
+    '{{PRACTICE_NAME}}': configData.business_name || clientData.name || '',
+    '{{CONTACT_EMAIL}}': clientData.email || '',
+    '{{PHONE_NUMBER}}': clientData.phone || ''
   };
 
-  function replaceInObject(obj) {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
+  console.log('🔄 Personalizing workflow with placeholders:', Object.keys(placeholders).length);
 
-    if (typeof obj === 'string') {
-      let result = obj;
-      Object.entries(substitutions).forEach(([placeholder, value]) => {
-        const regex = new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g');
-        result = result.replace(regex, value);
-      });
-      return result;
-    } else if (Array.isArray(obj)) {
-      return obj.map(replaceInObject);
-    } else if (typeof obj === 'object') {
-      const newObj = {};
-      Object.entries(obj).forEach(([key, value]) => {
-        newObj[key] = replaceInObject(value);
-      });
-      return newObj;
-    }
-    return obj;
-  }
+  return nodes.map(node => {
+    try {
+      let nodeStr = JSON.stringify(node);
 
-  return replaceInObject(parameters || {});
+      // Replace all placeholders
+      Object.entries(placeholders).forEach(([placeholder, value]) => {
+        if (value) {
+          const regex = new RegExp(escapeRegExp(placeholder), 'g');
+          const matches = nodeStr.match(regex);
+          if (matches && matches.length > 0) {
+            console.log(`  ✅ Replacing ${matches.length} instances of ${placeholder} with "${value}"`);
+            nodeStr = nodeStr.replace(regex, value);
+          }
+        }
+      });
+
+      return JSON.parse(nodeStr);
+    } catch (error) {
+      console.error('❌ Error personalizing node:', node.name, error);
+      return node; // Return original node if parsing fails
+    }
+  });
 }
 
 function extractWebhookUrl(nodes) {

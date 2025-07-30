@@ -707,6 +707,55 @@
                     </div>
                 </div>
 
+                <!-- Telegram Credentials Section -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="message-circle"></i>
+                        </div>
+                        <h2 class="section-title">Telegram Bot Credentials</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telegramBotToken">Telegram Bot Token <span class="required">*</span></label>
+                        <input type="text" id="telegramBotToken" name="telegram_bot_token" required 
+                               placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                        <div class="form-help">
+                            Get your bot token from @BotFather on Telegram. Format: numbers:letters (35 characters after colon)
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telegramChatId">Telegram Chat ID <span class="required">*</span></label>
+                        <input type="text" id="telegramChatId" name="telegram_chat_id" required 
+                               placeholder="-1001234567890">
+                        <div class="form-help">
+                            Your chat ID where the bot will send messages. Negative for groups, positive for individual chats.
+                        </div>
+                    </div>
+
+                    <details style="margin-top: 15px;">
+                        <summary>How to get your Telegram credentials</summary>
+                        <div class="credential-help">
+                            <h4>Getting Your Bot Token:</h4>
+                            <ol>
+                                <li>Open Telegram and search for <code>@BotFather</code></li>
+                                <li>Send <code>/newbot</code> command</li>
+                                <li>Follow the prompts to name your bot</li>
+                                <li>Copy the bot token provided</li>
+                            </ol>
+
+                            <h4>Getting Your Chat ID:</h4>
+                            <ol>
+                                <li>Add your bot to the group/channel where you want notifications</li>
+                                <li>Send a message in that chat</li>
+                                <li>Visit: <code>https://api.telegram.org/bot[BOT_TOKEN]/getUpdates</code></li>
+                                <li>Look for the "chat":{"id": value in the response</li>
+                            </ol>
+                        </div>
+                    </details>
+                </div>
+
                 <button type="submit" class="submit-btn" id="submitBtn">
                     <i data-lucide="play"></i>
                     <span>Run Workflow</span>
@@ -780,6 +829,27 @@
             return errors;
         }
 
+        // Test Telegram credentials
+        async function testTelegramCredentials(botToken, chatId) {
+            try {
+                const response = await fetch('/api/etf/test-telegram-credentials', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        bot_token: botToken,
+                        chat_id: chatId
+                    })
+                });
+
+                const result = await response.json();
+                return { success: response.ok, data: result };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
         // Form submission
         document.getElementById('etfOnboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -789,8 +859,8 @@
             const originalBtnContent = submitBtn.innerHTML;
 
             // Validate credentials before submission
-            const telegramBotToken = document.getElementById('telegram_bot_token').value;
-            const telegramChatId = document.getElementById('telegram_chat_id').value;
+            const telegramBotToken = document.getElementById('telegramBotToken').value;
+            const telegramChatId = document.getElementById('telegramChatId').value;
 
             const validationErrors = validateTelegramCredentials(telegramBotToken, telegramChatId);
             if (validationErrors.length > 0) {
@@ -807,7 +877,7 @@
             const formData = new FormData(this);
             const clientData = Object.fromEntries(formData.entries());
 
-            // Prepare deployment data with specific workflow ID
+            // Prepare deployment data with Telegram credentials
             const deploymentData = {
                 client_data: {
                     name: clientData.business_name,
@@ -817,9 +887,21 @@
                 config_data: {
                     business_name: clientData.business_name,
                     business_email: clientData.email,
-                    business_phone: clientData.phone
+                    business_phone: clientData.phone,
+                    telegram_bot_token: telegramBotToken,
+                    telegram_chat_id: telegramChatId,
+                    clinic_name: clientData.business_name,
+                    clinic_address: `${clientData.business_name} Address`, // You can add address field if needed
+                    clinic_hours: "Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only",
+                    emergency_contact: clientData.phone,
+                    services_offered: "Vaccinations, Surgery, Dental Care, Emergency Services",
+                    support_email: clientData.email
                 },
-                template_id: null // Will auto-select first PET CLINIC workflow
+                template_id: null, // Will auto-select PET workflows
+                credentials: {
+                    telegram_bot_token: telegramBotToken,
+                    telegram_chat_id: telegramChatId
+                }
             };
 
             try {
