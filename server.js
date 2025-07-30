@@ -781,6 +781,59 @@ app.get('/api/etf/list-tags', async (req, res) => {
   }
 });
 
+// Create Telegram credentials in N8N
+app.post('/api/etf/create-telegram-credentials', async (req, res) => {
+  try {
+    const { telegram_bot_token, credential_name } = req.body;
+
+    if (!telegram_bot_token) {
+      return res.status(400).json({
+        success: false,
+        error: 'telegram_bot_token is required'
+      });
+    }
+
+    // Basic format validation
+    if (!/^\d+:[A-Za-z0-9_-]{35}$/.test(telegram_bot_token)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid bot token format'
+      });
+    }
+
+    const credentialData = {
+      name: credential_name || `Telegram Bot - ${new Date().toISOString().split('T')[0]}`,
+      type: "telegramApi",
+      data: {
+        accessToken: telegram_bot_token
+      }
+    };
+
+    console.log('🔑 Creating Telegram credentials in N8N...');
+
+    // Create credentials using N8N API
+    const credential = await n8nClient.makeRequest('POST', '/credentials', credentialData);
+
+    res.json({
+      success: true,
+      message: 'Telegram credentials created successfully',
+      credential: {
+        id: credential.id,
+        name: credential.name,
+        type: credential.type
+      }
+    });
+
+  } catch (error) {
+    console.error('Telegram credentials creation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create Telegram credentials',
+      details: error.message
+    });
+  }
+});
+
 // Validate Telegram credentials
 app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
   try {
