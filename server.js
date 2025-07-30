@@ -781,6 +781,74 @@ app.get('/api/etf/list-tags', async (req, res) => {
   }
 });
 
+// Validate Telegram credentials
+app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
+  try {
+    const { telegram_bot_token, telegram_chat_id } = req.body;
+
+    if (!telegram_bot_token || !telegram_chat_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both telegram_bot_token and telegram_chat_id are required'
+      });
+    }
+
+    // Basic format validation
+    if (!/^\d+:[A-Za-z0-9_-]{35}$/.test(telegram_bot_token)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid bot token format'
+      });
+    }
+
+    if (!/^-?\d+$/.test(telegram_chat_id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid chat ID format'
+      });
+    }
+
+    // Test the bot token by making a call to Telegram API
+    try {
+      const response = await axios.get(`https://api.telegram.org/bot${telegram_bot_token}/getMe`);
+      
+      if (!response.data.ok) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid bot token - Telegram API rejected it'
+        });
+      }
+
+      const botInfo = response.data.result;
+      
+      res.json({
+        success: true,
+        message: 'Telegram credentials validated successfully',
+        bot_info: {
+          name: botInfo.first_name,
+          username: botInfo.username,
+          can_join_groups: botInfo.can_join_groups,
+          can_read_all_group_messages: botInfo.can_read_all_group_messages
+        }
+      });
+
+    } catch (telegramError) {
+      console.error('Telegram API validation error:', telegramError.message);
+      res.status(400).json({
+        success: false,
+        error: 'Failed to validate bot token with Telegram API'
+      });
+    }
+
+  } catch (error) {
+    console.error('Credential validation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during validation'
+    });
+  }
+});
+
 // Test endpoint to personalize the Telegram workflow
 app.post('/api/etf/test-personalize-telegram', async (req, res) => {
   try {

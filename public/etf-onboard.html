@@ -556,6 +556,69 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--border-light);
         }
+
+        .form-help {
+                font-size: 0.9em;
+                color: #666;
+                margin-top: 5px;
+            }
+
+            .form-section {
+                margin: 30px 0;
+                padding: 20px;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background-color: #f9f9f9;
+            }
+
+            .form-section h3 {
+                margin-top: 0;
+                color: #333;
+                border-bottom: 2px solid #007bff;
+                padding-bottom: 10px;
+            }
+
+            .credential-help {
+                background: white;
+                padding: 15px;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+
+            .credential-help h4 {
+                color: #007bff;
+                margin-top: 15px;
+                margin-bottom: 10px;
+            }
+
+            .credential-help ol {
+                margin-left: 20px;
+            }
+
+            .credential-help code {
+                background: #f4f4f4;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-size: 0.9em;
+            }
+
+            details summary {
+                cursor: pointer;
+                padding: 10px;
+                background: #e9ecef;
+                border-radius: 5px;
+                font-weight: bold;
+                color: #495057;
+            }
+
+            details[open] summary {
+                border-radius: 5px 5px 0 0;
+            }
+
+            .required {
+                color: #dc3545;
+            }
     </style>
 </head>
 <body>
@@ -700,6 +763,23 @@
             });
         });
 
+        // Validate Telegram credentials
+        function validateTelegramCredentials(botToken, chatId) {
+            const errors = [];
+
+            // Validate bot token format
+            if (!botToken || !/^\d+:[A-Za-z0-9_-]{35}$/.test(botToken)) {
+                errors.push('Invalid Telegram Bot Token format. Should be: numbers:letters (35 characters after colon)');
+            }
+
+            // Validate chat ID format
+            if (!chatId || (!/^-?\d+$/.test(chatId))) {
+                errors.push('Invalid Telegram Chat ID format. Should be a number (negative for groups)');
+            }
+
+            return errors;
+        }
+
         // Form submission
         document.getElementById('etfOnboardingForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -707,6 +787,16 @@
             const submitBtn = document.getElementById('submitBtn');
             const resultDiv = document.getElementById('result');
             const originalBtnContent = submitBtn.innerHTML;
+
+            // Validate credentials before submission
+            const telegramBotToken = document.getElementById('telegram_bot_token').value;
+            const telegramChatId = document.getElementById('telegram_chat_id').value;
+
+            const validationErrors = validateTelegramCredentials(telegramBotToken, telegramChatId);
+            if (validationErrors.length > 0) {
+                alert('Please fix the following issues:\n\n' + validationErrors.join('\n'));
+                return;
+            }
 
             // Show loading state
             submitBtn.disabled = true;
@@ -870,6 +960,7 @@
             const step = document.querySelector('.step.active');
             const inputs = step.querySelectorAll('input[required], select[required], textarea[required]');
 
+            ```text
             for (let input of inputs) {
                 if (!input.value.trim()) {
                     input.classList.add('error');
