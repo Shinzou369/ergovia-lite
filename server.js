@@ -781,6 +781,118 @@ app.get('/api/etf/list-tags', async (req, res) => {
   }
 });
 
+// Test endpoint to personalize the Telegram workflow
+app.post('/api/etf/test-personalize-telegram', async (req, res) => {
+  try {
+    const workflowId = 'N0r2q9lHBESKEnwA'; // The Telegram workflow ID
+    
+    // Sample client data for Pet Clinic
+    const clientData = {
+      name: 'Happy Paws Veterinary Clinic',
+      email: 'info@happypaws.com',
+      phone: '+1-555-123-4567'
+    };
+
+    // Sample configuration data with Telegram credentials
+    const configData = {
+      business_name: 'Happy Paws Veterinary Clinic',
+      business_email: 'info@happypaws.com',
+      business_phone: '+1-555-123-4567',
+      pet_clinic_name: 'Happy Paws Veterinary Clinic',
+      clinic_address: '123 Pet Street, Animal City, AC 12345',
+      clinic_hours: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only',
+      emergency_contact: '+1-555-EMERGENCY',
+      services_offered: 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming',
+      telegram_bot_token: 'YOUR_BOT_TOKEN_HERE',
+      telegram_chat_id: 'YOUR_CHAT_ID_HERE',
+      clinic_phone: '+1-555-123-4567',
+      clinic_email: 'info@happypaws.com'
+    };
+
+    console.log(`🧪 Testing personalization of Telegram workflow ${workflowId}`);
+    
+    // Get the original workflow
+    const originalWorkflow = await n8nClient.getWorkflow(workflowId);
+    
+    // Personalize the workflow nodes
+    const personalizedNodes = personalizeWorkflowNodes(
+      originalWorkflow.nodes || [], 
+      configData, 
+      clientData
+    );
+
+    // Create personalized workflow data
+    const personalizedWorkflow = {
+      name: `[${clientData.name}] ${originalWorkflow.name}`,
+      nodes: personalizedNodes,
+      connections: originalWorkflow.connections || {},
+      settings: originalWorkflow.settings || {},
+      staticData: originalWorkflow.staticData || {}
+    };
+
+    // Create the new workflow
+    const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+    console.log(`✅ Personalized workflow created with ID: ${newWorkflow.id}`);
+
+    // Add tag to identify it as a personalized Pet Clinic workflow
+    try {
+      const tagName = `PET[${clientData.name}]`;
+      await n8nClient.createTag(tagName);
+      await n8nClient.updateWorkflowTags(newWorkflow.id, [{ name: tagName }]);
+      console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
+    } catch (tagError) {
+      console.warn(`⚠️ Could not add tag: ${tagError.message}`);
+    }
+
+    // Try to activate the workflow
+    try {
+      const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
+      if (canActivate) {
+        await n8nClient.activateWorkflow(newWorkflow.id);
+        console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+      } else {
+        console.log(`ℹ️ Workflow ${newWorkflow.id} cannot be activated (no trigger node)`);
+      }
+    } catch (activationError) {
+      console.warn(`⚠️ Could not activate workflow: ${activationError.message}`);
+    }
+
+    res.json({
+      success: true,
+      message: `Telegram workflow personalized for ${clientData.name}`,
+      original_workflow: {
+        id: workflowId,
+        name: originalWorkflow.name
+      },
+      personalized_workflow: {
+        id: newWorkflow.id,
+        name: newWorkflow.name,
+        url: `${N8N_BASE_URL}/workflow/${newWorkflow.id}`
+      },
+      personalization_applied: {
+        client_data: clientData,
+        config_data: configData,
+        placeholders_replaced: Object.keys(personalizeParameters({}, configData, clientData)).length
+      },
+      next_steps: [
+        'Update Telegram Bot Token with your actual bot token',
+        'Set the correct Telegram Chat ID',
+        'Review and test the workflow in N8N',
+        'Activate the workflow when ready'
+      ],
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Telegram workflow personalization error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'Check server logs for full error details'
+    });
+  }
+});
+
 // Test endpoint for applying tags to workflows
 app.post('/api/etf/test-apply-tags', async (req, res) => {
   try {
@@ -2052,7 +2164,17 @@ function personalizeParameters(parameters, configData, clientData) {
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || ''
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
+    // Telegram-specific placeholders
+    '{{TELEGRAM_BOT_TOKEN}}': configData.telegram_bot_token || '',
+    '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
+    '{{PET_CLINIC_NAME}}': configData.pet_clinic_name || configData.business_name || clientData.name || '',
+    '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
+    '{{CLINIC_HOURS}}': configData.clinic_hours || 'Mon-Fri: 8AM-6PM',
+    '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || clientData.phone || '',
+    '{{SERVICES_OFFERED}}': configData.services_offered || 'Veterinary Services',
+    '{{CLINIC_PHONE}}': configData.clinic_phone || configData.business_phone || clientData.phone || '',
+    '{{CLINIC_EMAIL}}': configData.clinic_email || configData.business_email || clientData.email || ''
   };
 
   function replaceInObject(obj) {
