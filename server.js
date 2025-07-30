@@ -2169,11 +2169,13 @@ function personalizeParameters(parameters, configData, clientData) {
     '{{TELEGRAM_BOT_TOKEN}}': configData.telegram_bot_token || '',
     '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
     '{{PET_CLINIC_NAME}}': configData.pet_clinic_name || configData.business_name || clientData.name || '',
+    '{{CLINIC_NAME}}': configData.pet_clinic_name || configData.business_name || clientData.name || '',
     '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
     '{{CLINIC_HOURS}}': configData.clinic_hours || 'Mon-Fri: 8AM-6PM',
     '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || clientData.phone || '',
     '{{SERVICES_OFFERED}}': configData.services_offered || 'Veterinary Services',
     '{{CLINIC_PHONE}}': configData.clinic_phone || configData.business_phone || clientData.phone || '',
+    '{{CLINIC_PHONE_NUMBER}}': configData.clinic_phone || configData.business_phone || clientData.phone || '',
     '{{CLINIC_EMAIL}}': configData.clinic_email || configData.business_email || clientData.email || ''
   };
 
