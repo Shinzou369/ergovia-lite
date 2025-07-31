@@ -36,66 +36,12 @@ const taskforceTypes = {
             { key: 'hitl_queue_sheet_name', label: 'Review Queue Sheet Name', type: 'text', placeholder: 'Sheet6' },
             { key: 'confidence_threshold', label: 'AI Confidence Threshold', type: 'number', placeholder: '95' }
         ]
-    },
-    'dental': {
-        name: 'Dental Office Taskforce',
-        icon: '🦷',
-        description: 'AI dental assistant for appointment scheduling and patient care',
-        serviceFields: [
-            { key: 'office_hours', label: 'Office Hours', type: 'text', placeholder: 'Mon-Fri: 8AM-5PM' },
-            { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Cleanings, Fillings, Root Canals, Cosmetic Dentistry' },
-            { key: 'dentist_name', label: 'Head Dentist', type: 'text', placeholder: 'Dr. Johnson' },
-            { key: 'insurance_accepted', label: 'Insurance Accepted', type: 'textarea', placeholder: 'Delta Dental, Blue Cross, Aetna' }
-        ]
-    },
-    'gym': {
-        name: 'Gym & Fitness Center Taskforce',
-        icon: '🏋️',
-        description: 'AI fitness assistant for membership management and class scheduling',
-        serviceFields: [
-            { key: 'gym_hours', label: 'Gym Hours', type: 'text', placeholder: '24/7 or Mon-Sun: 5AM-11PM' },
-            { key: 'membership_types', label: 'Membership Types', type: 'textarea', placeholder: 'Basic, Premium, VIP memberships' },
-            { key: 'class_schedule', label: 'Class Schedule', type: 'textarea', placeholder: 'Yoga, Spin, CrossFit, etc.' },
-            { key: 'personal_training', label: 'Personal Training', type: 'text', placeholder: 'Available with certified trainers' }
-        ]
-    },
-    'contractors': {
-        name: 'Local Contractors Taskforce',
-        icon: '🔧',
-        description: 'AI assistant for tradespeople and service appointments',
-        serviceFields: [
-            { key: 'service_area', label: 'Service Area', type: 'text', placeholder: 'City, State (radius)' },
-            { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Plumbing, Electrical, HVAC, Handyman' },
-            { key: 'emergency_services', label: 'Emergency Services', type: 'text', placeholder: '24/7 Emergency available' },
-            { key: 'license_info', label: 'License Information', type: 'text', placeholder: 'Licensed and Insured' }
-        ]
-    },
-    'tutoring': {
-        name: 'Tutoring & Review Centers Taskforce',
-        icon: '📚',
-        description: 'AI academic coordinator for class scheduling and parent communication',
-        serviceFields: [
-            { key: 'subjects_offered', label: 'Subjects Offered', type: 'textarea', placeholder: 'Math, Science, English, SAT/ACT Prep' },
-            { key: 'grade_levels', label: 'Grade Levels', type: 'text', placeholder: 'K-12, College Prep' },
-            { key: 'session_types', label: 'Session Types', type: 'text', placeholder: 'Individual, Group, Online' },
-            { key: 'pricing_structure', label: 'Pricing Structure', type: 'textarea', placeholder: 'Individual: $50/hr, Group: $30/hr' }
-        ]
-    },
-    'massage': {
-        name: 'Massage Therapy Clinic Taskforce',
-        icon: '💆',
-        description: 'AI receptionist for session booking and customer service',
-        serviceFields: [
-            { key: 'clinic_hours', label: 'Clinic Hours', type: 'text', placeholder: 'Mon-Sat: 9AM-8PM' },
-            { key: 'massage_types', label: 'Massage Types', type: 'textarea', placeholder: 'Swedish, Deep Tissue, Hot Stone, Prenatal' },
-            { key: 'therapist_info', label: 'Therapist Information', type: 'text', placeholder: 'Licensed Massage Therapists' },
-            { key: 'session_lengths', label: 'Session Lengths', type: 'text', placeholder: '30min, 60min, 90min sessions' }
-        ]
     }
 };
 
 // Initialize onboarding
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Taskforce onboard script loaded');
     detectTaskforceType();
     updateProgress();
     
@@ -105,6 +51,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     loadTaskforceOptions();
+    
+    // Add demo button with delay
+    setTimeout(function() {
+        addDemoButton();
+    }, 2000);
 });
 
 function detectTaskforceType() {
@@ -114,6 +65,8 @@ function detectTaskforceType() {
     if (taskforceParam && taskforceTypes[taskforceParam]) {
         selectedTaskforce = taskforceParam;
         console.log('Auto-selected taskforce:', selectedTaskforce);
+    } else {
+        selectedTaskforce = 'pet-clinic'; // Default
     }
 }
 
@@ -121,16 +74,16 @@ function loadTaskforceOptions() {
     const container = document.getElementById('taskforceOptions');
     if (!container) return;
     
-    Object.entries(taskforceTypes).forEach(([key, taskforce]) => {
+    Object.entries(taskforceTypes).forEach(function(entry) {
+        const key = entry[0];
+        const taskforce = entry[1];
         const card = document.createElement('div');
         card.className = 'taskforce-card';
-        card.onclick = () => selectTaskforce(key);
+        card.onclick = function() { selectTaskforce(key); };
         
-        card.innerHTML = `
-            <span class="taskforce-icon">${taskforce.icon}</span>
-            <h3>${taskforce.name}</h3>
-            <p>${taskforce.description}</p>
-        `;
+        card.innerHTML = '<span class="taskforce-icon">' + taskforce.icon + '</span>' +
+                        '<h3>' + taskforce.name + '</h3>' +
+                        '<p>' + taskforce.description + '</p>';
         
         container.appendChild(card);
     });
@@ -139,13 +92,13 @@ function loadTaskforceOptions() {
 function selectTaskforce(taskforceKey) {
     selectedTaskforce = taskforceKey;
     
-    document.querySelectorAll('.taskforce-card').forEach(card => {
+    document.querySelectorAll('.taskforce-card').forEach(function(card) {
         card.classList.remove('selected');
     });
     
     // Find and select the clicked card
     const cards = document.querySelectorAll('.taskforce-card');
-    cards.forEach(card => {
+    cards.forEach(function(card) {
         if (card.onclick && card.onclick.toString().includes(taskforceKey)) {
             card.classList.add('selected');
         }
@@ -160,32 +113,21 @@ function selectTaskforce(taskforceKey) {
 function loadServiceConfig(taskforceType) {
     const taskforce = taskforceTypes[taskforceType];
     const container = document.getElementById('serviceConfig');
-    if (!container) return;
+    if (!container || !taskforce) return;
     
-    let html = `
-        <div class="form-section">
-            <h3>${taskforce.name} Configuration</h3>
-    `;
+    let html = '<div class="form-section"><h3>' + taskforce.name + ' Configuration</h3>';
     
-    taskforce.serviceFields.forEach(field => {
+    taskforce.serviceFields.forEach(function(field) {
         if (field.type === 'textarea') {
-            html += `
-                <div class="form-group full-width">
-                    <label for="${field.key}">${field.label}</label>
-                    <textarea id="${field.key}" name="${field.key}" rows="3" 
-                              placeholder="${field.placeholder}"></textarea>
-                </div>
-            `;
+            html += '<div class="form-group full-width">' +
+                   '<label for="' + field.key + '">' + field.label + '</label>' +
+                   '<textarea id="' + field.key + '" name="' + field.key + '" rows="3" ' +
+                   'placeholder="' + field.placeholder + '"></textarea></div>';
         } else {
-            html += `
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="${field.key}">${field.label}</label>
-                        <input type="${field.type}" id="${field.key}" name="${field.key}" 
-                               placeholder="${field.placeholder}">
-                    </div>
-                </div>
-            `;
+            html += '<div class="form-row"><div class="form-group">' +
+                   '<label for="' + field.key + '">' + field.label + '</label>' +
+                   '<input type="' + field.type + '" id="' + field.key + '" name="' + field.key + '" ' +
+                   'placeholder="' + field.placeholder + '"></div></div>';
         }
     });
     
@@ -197,15 +139,15 @@ function nextStep() {
     if (currentStep < totalSteps) {
         collectStepData();
         
-        const currentStepEl = document.getElementById(`step${currentStep}`);
+        const currentStepEl = document.getElementById('step' + currentStep);
         if (currentStepEl) currentStepEl.classList.remove('active');
         
         currentStep++;
         
-        const nextStepEl = document.getElementById(`step${currentStep}`);
+        const nextStepEl = document.getElementById('step' + currentStep);
         if (nextStepEl) nextStepEl.classList.add('active');
         
-        const dotEl = document.getElementById(`dot${currentStep - 1}`);
+        const dotEl = document.getElementById('dot' + (currentStep - 1));
         if (dotEl) dotEl.classList.add('completed');
         
         updateProgress();
@@ -218,15 +160,15 @@ function nextStep() {
 
 function prevStep() {
     if (currentStep > 1) {
-        const currentStepEl = document.getElementById(`step${currentStep}`);
+        const currentStepEl = document.getElementById('step' + currentStep);
         if (currentStepEl) currentStepEl.classList.remove('active');
         
-        const dotEl = document.getElementById(`dot${currentStep - 1}`);
+        const dotEl = document.getElementById('dot' + (currentStep - 1));
         if (dotEl) dotEl.classList.remove('completed');
         
         currentStep--;
         
-        const prevStepEl = document.getElementById(`step${currentStep}`);
+        const prevStepEl = document.getElementById('step' + currentStep);
         if (prevStepEl) prevStepEl.classList.add('active');
         
         updateProgress();
@@ -236,7 +178,7 @@ function prevStep() {
 function updateProgress() {
     const progress = (currentStep - 1) / (totalSteps - 1) * 100;
     const progressFill = document.getElementById('progressFill');
-    if (progressFill) progressFill.style.width = `${progress}%`;
+    if (progressFill) progressFill.style.width = progress + '%';
 }
 
 function collectStepData() {
@@ -253,7 +195,7 @@ function collectStepData() {
         // Collect service configuration
         const taskforce = taskforceTypes[selectedTaskforce];
         if (taskforce) {
-            taskforce.serviceFields.forEach(field => {
+            taskforce.serviceFields.forEach(function(field) {
                 const value = getElementValue(field.key);
                 if (value) {
                     configData[field.key] = value;
@@ -274,7 +216,7 @@ function collectStepData() {
             'stripe_secret_key', 'paypal_client_id'
         ];
         
-        integrationFields.forEach(field => {
+        integrationFields.forEach(function(field) {
             const value = getElementValue(field);
             if (value) {
                 configData[field] = value;
@@ -288,6 +230,16 @@ function getElementValue(id) {
     return element ? element.value : '';
 }
 
+function setElementValue(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.value = value;
+        console.log('Set ' + id + ' to: ' + value);
+    } else {
+        console.log('Element not found: ' + id);
+    }
+}
+
 function populateReviewData() {
     const container = document.getElementById('reviewData');
     if (!container) return;
@@ -295,54 +247,50 @@ function populateReviewData() {
     const taskforce = taskforceTypes[selectedTaskforce];
     if (!taskforce) return;
     
-    let html = `
-        <div class="form-section">
-            <h3>Selected Taskforce</h3>
-            <p><strong>${taskforce.name}</strong> - ${taskforce.description}</p>
-        </div>
-        
-        <div class="form-section">
-            <h3>Business Information</h3>
-            <p><strong>Business Name:</strong> ${clientData.name || 'Not provided'}</p>
-            <p><strong>Email:</strong> ${clientData.email || 'Not provided'}</p>
-            <p><strong>Phone:</strong> ${clientData.phone || 'Not provided'}</p>
-            ${clientData.website_url ? `<p><strong>Website:</strong> ${clientData.website_url}</p>` : ''}
-        </div>
-        
-        <div class="form-section">
-            <h3>Service Configuration</h3>
-    `;
+    let html = '<div class="form-section">' +
+              '<h3>Selected Taskforce</h3>' +
+              '<p><strong>' + taskforce.name + '</strong> - ' + taskforce.description + '</p>' +
+              '</div>' +
+              '<div class="form-section">' +
+              '<h3>Business Information</h3>' +
+              '<p><strong>Business Name:</strong> ' + (clientData.name || 'Not provided') + '</p>' +
+              '<p><strong>Email:</strong> ' + (clientData.email || 'Not provided') + '</p>' +
+              '<p><strong>Phone:</strong> ' + (clientData.phone || 'Not provided') + '</p>';
+              
+    if (clientData.website_url) {
+        html += '<p><strong>Website:</strong> ' + clientData.website_url + '</p>';
+    }
     
-    taskforce.serviceFields.forEach(field => {
+    html += '</div><div class="form-section"><h3>Service Configuration</h3>';
+    
+    taskforce.serviceFields.forEach(function(field) {
         if (configData[field.key]) {
-            html += `<p><strong>${field.label}:</strong> ${configData[field.key]}</p>`;
+            html += '<p><strong>' + field.label + ':</strong> ' + configData[field.key] + '</p>';
         }
     });
     
     html += '</div>';
     
-    const activeIntegrations = Object.keys(configData).filter(key => 
-        key.includes('token') || key.includes('key') || key.includes('id')
-    );
+    const activeIntegrations = Object.keys(configData).filter(function(key) {
+        return (key.includes('token') || key.includes('key') || key.includes('id')) && configData[key];
+    });
     
     if (activeIntegrations.length > 0) {
-        html += `
-            <div class="form-section">
-                <h3>Active Integrations</h3>
-                <p>${activeIntegrations.length} integration(s) configured</p>
-            </div>
-        `;
+        html += '<div class="form-section">' +
+               '<h3>Active Integrations</h3>' +
+               '<p>' + activeIntegrations.length + ' integration(s) configured</p>' +
+               '</div>';
     }
     
     container.innerHTML = html;
 }
 
 async function deployTaskforce() {
-    const currentStepEl = document.getElementById(`step${currentStep}`);
+    const currentStepEl = document.getElementById('step' + currentStep);
     if (currentStepEl) currentStepEl.classList.remove('active');
     
     currentStep = 5;
-    const deployStepEl = document.getElementById(`step${currentStep}`);
+    const deployStepEl = document.getElementById('step' + currentStep);
     if (deployStepEl) deployStepEl.classList.add('active');
     
     updateProgress();
@@ -373,12 +321,12 @@ async function deployTaskforce() {
         console.log('Deployment response:', result);
         
         if (response.ok && result.success) {
-            setTimeout(() => {
-                const deployStepEl = document.getElementById(`step${currentStep}`);
+            setTimeout(function() {
+                const deployStepEl = document.getElementById('step' + currentStep);
                 if (deployStepEl) deployStepEl.classList.remove('active');
                 
                 currentStep = 6;
-                const successStepEl = document.getElementById(`step${currentStep}`);
+                const successStepEl = document.getElementById('step' + currentStep);
                 if (successStepEl) successStepEl.classList.add('active');
                 
                 const dot5 = document.getElementById('dot5');
@@ -393,7 +341,7 @@ async function deployTaskforce() {
                         '<h3>Deployment Details</h3>' +
                         '<p><strong>Taskforce Type:</strong> Pet Clinic Taskforce</p>' +
                         '<p><strong>Client ID:</strong> ' + (result.client_id || 'Generated') + '</p>' +
-                        '<p><strong>Workflows Deployed:</strong> ' + (result.duplicated_workflows?.length || result.total_duplicated || 0) + '</p>' +
+                        '<p><strong>Workflows Deployed:</strong> ' + (result.duplicated_workflows ? result.duplicated_workflows.length : (result.total_duplicated || 0)) + '</p>' +
                         '<p><strong>Status:</strong> Active and Ready</p>' +
                         '<br><h4>Your AI assistant is now ready to:</h4>' +
                         '<ul style="text-align: left; margin: 10px 0;">' +
@@ -441,7 +389,7 @@ async function loadTaskforceTemplates(taskforceType) {
     try {
         const response = await fetch('/api/etf/templates');
         taskforceTemplates = await response.json();
-        console.log(`Loaded ${taskforceTemplates.length} templates for ${taskforceType}`);
+        console.log('Loaded ' + taskforceTemplates.length + ' templates for ' + taskforceType);
     } catch (error) {
         console.error('Error loading taskforce templates:', error);
         taskforceTemplates = [];
@@ -451,6 +399,8 @@ async function loadTaskforceTemplates(taskforceType) {
 // Auto-fill form with demo data for testing
 function fillDemoData() {
     try {
+        console.log('🎯 Filling demo data...');
+        
         // Business Information
         setElementValue('businessName', 'Demo Pet Clinic');
         setElementValue('businessEmail', 'demo@petclinic.com');
@@ -477,16 +427,11 @@ function fillDemoData() {
             setElementValue('confidence_threshold', '95');
         }
         
-        console.log('Demo data filled successfully');
+        console.log('✅ Demo data filled successfully');
+        alert('Demo data has been filled! You can now proceed through the steps.');
     } catch (error) {
-        console.error('Error filling demo data:', error);
-    }
-}
-
-function setElementValue(id, value) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.value = value;
+        console.error('❌ Error filling demo data:', error);
+        alert('Error filling demo data: ' + error.message);
     }
 }
 
@@ -495,42 +440,50 @@ function addDemoButton() {
     try {
         const step1 = document.getElementById('step1');
         if (step1 && !document.getElementById('demoButton')) {
+            console.log('Adding demo button...');
+            
             const demoBtn = document.createElement('button');
             demoBtn.id = 'demoButton';
             demoBtn.type = 'button';
             demoBtn.className = 'btn btn-secondary';
             demoBtn.textContent = '🎯 Fill Demo Data';
             demoBtn.onclick = fillDemoData;
-            demoBtn.style.cssText = `
-                margin: 20px 0;
-                padding: 12px 24px;
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-weight: bold;
-                cursor: pointer;
-                display: block;
-                width: 200px;
-            `;
+            demoBtn.style.cssText = 
+                'margin: 20px 0;' +
+                'padding: 12px 24px;' +
+                'background-color: #28a745;' +
+                'color: white;' +
+                'border: none;' +
+                'border-radius: 8px;' +
+                'font-weight: bold;' +
+                'cursor: pointer;' +
+                'display: block;' +
+                'width: 200px;' +
+                'font-size: 14px;';
             
             // Add hover effect
             demoBtn.onmouseover = function() {
-                this.style.backgroundColor = '#5a6268';
+                this.style.backgroundColor = '#218838';
             };
             demoBtn.onmouseout = function() {
-                this.style.backgroundColor = '#6c757d';
+                this.style.backgroundColor = '#28a745';
             };
             
-            step1.appendChild(demoBtn);
-            console.log('Demo button added successfully');
+            // Insert before the navigation section
+            const navigation = step1.querySelector('.navigation');
+            if (navigation) {
+                step1.insertBefore(demoBtn, navigation);
+            } else {
+                step1.appendChild(demoBtn);
+            }
+            
+            console.log('✅ Demo button added successfully');
+        } else if (document.getElementById('demoButton')) {
+            console.log('Demo button already exists');
+        } else {
+            console.log('Step1 element not found');
         }
     } catch (error) {
-        console.error('Error adding demo button:', error);
+        console.error('❌ Error adding demo button:', error);
     }
 }
-
-// Add demo button after DOM loads
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(addDemoButton, 1500); // Add after other initialization
-});
