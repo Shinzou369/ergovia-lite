@@ -412,9 +412,9 @@ app.use((req, res, next) => {
 // Serve static files
 app.use(express.static('public'));
 
-// Taskforce onboarding routes - redirect to ETF onboard with type
+// Taskforce onboarding routes
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=dental');
+  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
 });
 
 app.get('/taskforce/gym/onboard', (req, res) => {

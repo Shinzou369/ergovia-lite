@@ -142,7 +142,7 @@ tags.
     <div class="container">
         <div class="onboard-container">
             <div class="onboard-header">
-                <h1>🐾 Pet Clinic Taskforce Setup</h1>
+                <h1>🐾 PETETF Onboarding</h1>
                 <p>Get your AI veterinary assistant deployed in minutes</p>
             </div>
 
@@ -277,7 +277,7 @@ tags.
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">
-                    🚀 Deploy Pet Clinic AI Assistant
+                    🚀 Deploy PETETF Assistant
                 </button>
             </form>
 
@@ -294,7 +294,7 @@ tags.
 
             // Show loading state
             submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Deploying your AI assistant...';
+            submitBtn.textContent = '⏳ Deploying your PETETF assistant...';
             resultDiv.style.display = 'none';
 
             try {
@@ -336,10 +336,10 @@ tags.
                 if (response.ok) {
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
-                        <h3>🎉 Success! Your Pet Clinic AI Assistant has been deployed!</h3>
+                        <h3>🎉 Success! Your PETETF Assistant has been deployed!</h3>
                         <p><strong>Deployed Workflows:</strong> ${result.duplicated_workflows?.length || 0}</p>
                         <p><strong>Client ID:</strong> ${result.client_id}</p>
-                        <p>Your AI assistant is now ready to help with:</p>
+                        <p>Your PETETF assistant is now ready to help with:</p>
                         <ul>
                             <li>📞 24/7 customer inquiries and triage</li>
                             <li>📅 Appointment booking assistance</li>
@@ -361,14 +361,14 @@ tags.
                 resultDiv.className = 'result error';
                 resultDiv.innerHTML = `
                     <h3>❌ Deployment Error</h3>
-                    <p>There was an issue deploying your Pet Clinic AI Assistant:</p>
+                    <p>There was an issue deploying your PETETF Assistant:</p>
                     <p><em>${error.message}</em></p>
                     <p>Please try again or contact support if the issue persists.</p>
                 `;
             } finally {
                 // Reset button
                 submitBtn.disabled = false;
-                submitBtn.textContent = '🚀 Deploy Pet Clinic AI Assistant';
+                submitBtn.textContent = '🚀 Deploy PETETF Assistant';
                 resultDiv.style.display = 'block';
             }
         });
