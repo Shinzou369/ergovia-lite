@@ -41,7 +41,7 @@ const taskforceTypes = {
 
 // Initialize onboarding
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Taskforce onboard script loaded');
+    console.log('🚀 Taskforce onboard script loaded');
     detectTaskforceType();
     updateProgress();
     
@@ -52,10 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     loadTaskforceOptions();
     
-    // Add demo button with delay
-    setTimeout(function() {
-        addDemoButton();
-    }, 2000);
+    // Add demo button with delay to ensure DOM is ready
+    setTimeout(addDemoButton, 1000);
 });
 
 function detectTaskforceType() {
@@ -234,9 +232,9 @@ function setElementValue(id, value) {
     const element = document.getElementById(id);
     if (element) {
         element.value = value;
-        console.log('Set ' + id + ' to: ' + value);
+        console.log('✅ Set ' + id + ' to: ' + value);
     } else {
-        console.log('Element not found: ' + id);
+        console.log('❌ Element not found: ' + id);
     }
 }
 
@@ -428,62 +426,108 @@ function fillDemoData() {
         }
         
         console.log('✅ Demo data filled successfully');
-        alert('Demo data has been filled! You can now proceed through the steps.');
+        alert('✅ Demo data has been filled! You can now proceed through the steps.');
     } catch (error) {
         console.error('❌ Error filling demo data:', error);
-        alert('Error filling demo data: ' + error.message);
+        alert('❌ Error filling demo data: ' + error.message);
     }
 }
 
 // Add a button to fill demo data automatically
 function addDemoButton() {
     try {
+        console.log('🔍 Looking for step1 element...');
         const step1 = document.getElementById('step1');
-        if (step1 && !document.getElementById('demoButton')) {
-            console.log('Adding demo button...');
-            
-            const demoBtn = document.createElement('button');
-            demoBtn.id = 'demoButton';
-            demoBtn.type = 'button';
-            demoBtn.className = 'btn btn-secondary';
-            demoBtn.textContent = '🎯 Fill Demo Data';
-            demoBtn.onclick = fillDemoData;
-            demoBtn.style.cssText = 
-                'margin: 20px 0;' +
-                'padding: 12px 24px;' +
-                'background-color: #28a745;' +
-                'color: white;' +
-                'border: none;' +
-                'border-radius: 8px;' +
-                'font-weight: bold;' +
-                'cursor: pointer;' +
-                'display: block;' +
-                'width: 200px;' +
-                'font-size: 14px;';
-            
-            // Add hover effect
-            demoBtn.onmouseover = function() {
-                this.style.backgroundColor = '#218838';
-            };
-            demoBtn.onmouseout = function() {
-                this.style.backgroundColor = '#28a745';
-            };
-            
-            // Insert before the navigation section
+        
+        if (!step1) {
+            console.log('❌ Step1 element not found');
+            return;
+        }
+        
+        if (document.getElementById('demoButton')) {
+            console.log('✅ Demo button already exists');
+            return;
+        }
+        
+        console.log('✅ Step1 found, creating demo button...');
+        
+        const demoBtn = document.createElement('button');
+        demoBtn.id = 'demoButton';
+        demoBtn.type = 'button';
+        demoBtn.className = 'btn btn-secondary';
+        demoBtn.textContent = '🎯 Fill Demo Data';
+        demoBtn.onclick = fillDemoData;
+        
+        // Enhanced styling to make it more visible
+        demoBtn.style.cssText = 
+            'margin: 20px 0 !important;' +
+            'padding: 15px 30px !important;' +
+            'background-color: #28a745 !important;' +
+            'color: white !important;' +
+            'border: 2px solid #1e7e34 !important;' +
+            'border-radius: 8px !important;' +
+            'font-weight: bold !important;' +
+            'cursor: pointer !important;' +
+            'display: block !important;' +
+            'width: 250px !important;' +
+            'font-size: 16px !important;' +
+            'text-align: center !important;' +
+            'box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;' +
+            'transition: all 0.3s ease !important;';
+        
+        // Add hover effects
+        demoBtn.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#218838';
+            this.style.transform = 'translateY(-1px)';
+            this.style.boxShadow = '0 6px 12px rgba(0,0,0,0.3)';
+        });
+        
+        demoBtn.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#28a745';
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+        });
+        
+        // Find the form section and add button after it
+        const formSection = step1.querySelector('.form-section');
+        if (formSection) {
+            formSection.appendChild(demoBtn);
+            console.log('✅ Demo button added to form section');
+        } else {
+            // Fallback: add before navigation
             const navigation = step1.querySelector('.navigation');
             if (navigation) {
                 step1.insertBefore(demoBtn, navigation);
+                console.log('✅ Demo button added before navigation');
             } else {
                 step1.appendChild(demoBtn);
+                console.log('✅ Demo button added to end of step1');
             }
-            
-            console.log('✅ Demo button added successfully');
-        } else if (document.getElementById('demoButton')) {
-            console.log('Demo button already exists');
-        } else {
-            console.log('Step1 element not found');
         }
+        
+        console.log('🎉 Demo button successfully created and added!');
+        
     } catch (error) {
         console.error('❌ Error adding demo button:', error);
     }
 }
+
+// Global function for debugging
+window.debugDemoButton = function() {
+    console.log('🔍 Debug: Looking for demo button...');
+    const demoBtn = document.getElementById('demoButton');
+    const step1 = document.getElementById('step1');
+    
+    console.log('Demo button exists:', !!demoBtn);
+    console.log('Step1 exists:', !!step1);
+    
+    if (demoBtn) {
+        console.log('Demo button style:', demoBtn.style.cssText);
+        console.log('Demo button visible:', demoBtn.offsetWidth > 0 && demoBtn.offsetHeight > 0);
+    }
+    
+    if (!demoBtn) {
+        console.log('🔄 Attempting to add demo button manually...');
+        addDemoButton();
+    }
+};
