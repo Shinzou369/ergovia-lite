@@ -299,19 +299,24 @@ function populateReviewData() {
 }
 
 async function deployTaskforce() {
-    document.getElementById(`step${currentStep}`).classList.remove('active');
+    document.getElementById('step' + currentStep).classList.remove('active');
     currentStep = 5;
-    document.getElementById(`step${currentStep}`).classList.add('active');
+    document.getElementById('step' + currentStep).classList.add('active');
     updateProgress();
     
     try {
         const deploymentData = {
-            taskforce_type: selectedTaskforce,
-            name: clientData.name,
-            email: clientData.email,
-            phone: clientData.phone,
-            ...configData
+            client_data: {
+                name: clientData.name,
+                email: clientData.email,
+                phone: clientData.phone,
+                address: clientData.address
+            },
+            config_data: configData,
+            template_id: selectedTaskforce
         };
+        
+        console.log('Deploying with data:', deploymentData);
         
         const response = await fetch('/api/etf/deploy', {
             method: 'POST',
@@ -322,47 +327,43 @@ async function deployTaskforce() {
         });
         
         const result = await response.json();
+        console.log('Deployment response:', result);
         
-        if (response.ok) {
+        if (response.ok && result.success) {
             setTimeout(() => {
-                document.getElementById(`step${currentStep}`).classList.remove('active');
+                document.getElementById('step' + currentStep).classList.remove('active');
                 currentStep = 6;
-                document.getElementById(`step${currentStep}`).classList.add('active');
-                document.getElementById(`dot5`).classList.add('completed');
+                document.getElementById('step' + currentStep).classList.add('active');
+                document.getElementById('dot5').classList.add('completed');
                 updateProgress();
                 
-                const taskforceInfo = taskforceTypes[selectedTaskforce];
-                document.getElementById('deploymentDetails').innerHTML = `
-                    <div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">
-                        <h3>Deployment Details</h3>
-                        <p><strong>Taskforce Type:</strong> ${taskforceInfo.name}</p>
-                        <p><strong>Client ID:</strong> ${result.client_id}</p>
-                        <p><strong>Workflows Deployed:</strong> ${result.duplicated_workflows?.length || 0}</p>
-                        <p><strong>Status:</strong> Active and Ready</p>
-                        <br>
-                        <h4>Your AI assistant is now ready to:</h4>
-                        <ul style="text-align: left; margin: 10px 0;">
-                            <li>📞 Handle customer inquiries 24/7</li>
-                            <li>📅 Manage appointments and scheduling</li>
-                            <li>🚨 Detect and route emergencies</li>
-                            <li>💬 Provide multi-platform support</li>
-                        </ul>
-                    </div>
-                `;
+                document.getElementById('deploymentDetails').innerHTML = 
+                    '<div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">' +
+                    '<h3>Deployment Details</h3>' +
+                    '<p><strong>Taskforce Type:</strong> Pet Clinic Taskforce</p>' +
+                    '<p><strong>Client ID:</strong> ' + (result.client_id || 'Generated') + '</p>' +
+                    '<p><strong>Workflows Deployed:</strong> ' + (result.duplicated_workflows?.length || result.total_duplicated || 0) + '</p>' +
+                    '<p><strong>Status:</strong> Active and Ready</p>' +
+                    '<br><h4>Your AI assistant is now ready to:</h4>' +
+                    '<ul style="text-align: left; margin: 10px 0;">' +
+                    '<li>📞 Handle customer inquiries 24/7</li>' +
+                    '<li>📅 Manage appointments and scheduling</li>' +
+                    '<li>🚨 Detect and route emergencies</li>' +
+                    '<li>💬 Provide multi-platform support</li>' +
+                    '</ul></div>';
             }, 2000);
         } else {
-            throw new Error(result.error || 'Deployment failed');
+            throw new Error(result.error || result.details || 'Deployment failed');
         }
     } catch (error) {
         console.error('Deployment error:', error);
-        document.getElementById('deploymentDetails').innerHTML = `
-            <div style="color: #dc3545; padding: 20px;">
-                <h3>❌ Deployment Error</h3>
-                <p>There was an issue deploying your taskforce:</p>
-                <p><em>${error.message}</em></p>
-                <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
-            </div>
-        `;
+        document.getElementById('deploymentDetails').innerHTML = 
+            '<div style="color: #dc3545; padding: 20px;">' +
+            '<h3>❌ Deployment Error</h3>' +
+            '<p>There was an issue deploying your taskforce:</p>' +
+            '<p><em>' + error.message + '</em></p>' +
+            '<button class="btn btn-primary" onclick="location.reload()">Try Again</button>' +
+            '</div>';
     }
 }
 

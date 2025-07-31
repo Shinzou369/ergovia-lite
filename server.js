@@ -487,17 +487,30 @@ app.get('/api/etf/templates', async (req, res) => {
   }
 });
 
-// Deploy ETF workflow for client
+// Deploy ETF workflow for client (temporarily without auth for testing)
 app.post('/api/etf/deploy', async (req, res) => {
   try {
+    console.log('📋 ETF Deploy request received:', JSON.stringify(req.body, null, 2));
+    
     let { client_data, config_data, template_id } = req.body;
 
     // Validate required data
     if (!client_data || !client_data.name) {
+      console.error('❌ Validation failed: Missing client data');
       return res.status(400).json({
         success: false,
         error: 'Client data with name is required',
         details: 'Missing or invalid client_data.name'
+      });
+    }
+
+    // Check N8N configuration
+    if (!N8N_BASE_URL || !N8N_API_KEY) {
+      console.error('❌ N8N configuration missing');
+      return res.status(500).json({
+        success: false,
+        error: 'ETF service not configured',
+        details: 'N8N_BASE_URL or N8N_API_KEY not set'
       });
     }
 
@@ -509,6 +522,20 @@ app.post('/api/etf/deploy', async (req, res) => {
       clientName: client_data.name,
       configKeys: Object.keys(config_data).length
     });
+
+    // Test N8N connection first
+    try {
+      console.log('🔍 Testing N8N connection...');
+      const testResponse = await n8nClient.getWorkflows();
+      console.log('✅ N8N connection successful');
+    } catch (connectionError) {
+      console.error('❌ N8N connection failed:', connectionError.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Cannot connect to N8N service',
+        details: connectionError.message
+      });
+    }
 
     // Find ALL PET workflows for duplication
     console.log('🔍 Searching for ALL PET workflows to duplicate...');
