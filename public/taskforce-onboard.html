@@ -337,29 +337,13 @@
                 <div class="step-dot" id="dot2">2</div>
                 <div class="step-dot" id="dot3">3</div>
                 <div class="step-dot" id="dot4">4</div>
-                <div class="step-dot" id="dot5">5</div>
-                <div class="step-dot" id="dot6">✓</div>
+                <div class="step-dot" id="dot5">✓</div>
             </div>
         </div>
         
         <div class="form-container">
-            <!-- Step 1: Select Taskforce -->
+            <!-- Step 1: Business Information -->
             <div class="step active" id="step1">
-                <h2 class="step-title">Choose Your Taskforce</h2>
-                <p class="step-subtitle">Select the AI automation that best fits your business needs</p>
-                
-                <div class="taskforce-selector" id="taskforceOptions">
-                    <!-- Dynamic taskforce options will be loaded here -->
-                </div>
-                
-                <div class="navigation">
-                    <div></div>
-                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn1" disabled>Next</button>
-                </div>
-            </div>
-
-            <!-- Step 2: Business Information -->
-            <div class="step" id="step2">
                 <h2 class="step-title">Business Information</h2>
                 <p class="step-subtitle">Tell us about your business</p>
                 
@@ -397,13 +381,13 @@
                 </div>
 
                 <div class="navigation">
-                    <button class="btn btn-secondary" onclick="prevStep()">Previous</button>
-                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn2">Next</button>
+                    <div></div>
+                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn1">Next</button>
                 </div>
             </div>
 
-            <!-- Step 3: Service Configuration -->
-            <div class="step" id="step3">
+            <!-- Step 2: Service Configuration -->
+            <div class="step" id="step2">
                 <h2 class="step-title">Service Configuration</h2>
                 <p class="step-subtitle">Configure your specific service details</p>
                 
@@ -413,12 +397,12 @@
 
                 <div class="navigation">
                     <button class="btn btn-secondary" onclick="prevStep()">Previous</button>
-                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn3">Next</button>
+                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn2">Next</button>
                 </div>
             </div>
 
-            <!-- Step 4: Integration & Credentials -->
-            <div class="step" id="step4">
+            <!-- Step 3: Integration & Credentials -->
+            <div class="step" id="step3">
                 <h2 class="step-title">Integration Setup</h2>
                 <p class="step-subtitle">Connect your tools and platforms</p>
                 
@@ -567,12 +551,12 @@
 
                 <div class="navigation">
                     <button class="btn btn-secondary" onclick="prevStep()">Previous</button>
-                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn4">Next</button>
+                    <button class="btn btn-primary" onclick="nextStep()" id="nextBtn3">Next</button>
                 </div>
             </div>
 
-            <!-- Step 5: Review & Deploy -->
-            <div class="step" id="step5">
+            <!-- Step 4: Review & Deploy -->
+            <div class="step" id="step4">
                 <h2 class="step-title">Review & Deploy</h2>
                 <p class="step-subtitle">Review your configuration and deploy your taskforce</p>
                 
@@ -586,8 +570,8 @@
                 </div>
             </div>
 
-            <!-- Step 6: Deployment -->
-            <div class="step" id="step6">
+            <!-- Step 5: Deployment -->
+            <div class="step" id="step5">
                 <div class="loading">
                     <div class="spinner"></div>
                     <h3>Deploying Your Taskforce...</h3>
@@ -595,8 +579,8 @@
                 </div>
             </div>
 
-            <!-- Step 7: Success -->
-            <div class="step" id="step7">
+            <!-- Step 6: Success -->
+            <div class="step" id="step6">
                 <div class="success-message">
                     <span class="success-icon">🎉</span>
                     <h2>Taskforce Deployed Successfully!</h2>
@@ -918,9 +902,9 @@
                 if (response.ok) {
                     setTimeout(() => {
                         document.getElementById(`step${currentStep}`).classList.remove('active');
-                        currentStep = 7;
+                        currentStep = 6;
                         document.getElementById(`step${currentStep}`).classList.add('active');
-                        document.getElementById(`dot6`).classList.add('completed');
+                        document.getElementById(`dot5`).classList.add('completed');
                         updateProgress();
                         
                         const taskforceInfo = taskforceTypes[selectedTaskforce];

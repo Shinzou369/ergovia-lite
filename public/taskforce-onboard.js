@@ -3,7 +3,7 @@
 // This handles the client onboarding flow for taskforce-specific automation
 
 let currentStep = 1;
-let totalSteps = 7;
+let totalSteps = 6;
 let selectedTaskforce = null;
 let taskforceTemplates = [];
 let clientData = {};
@@ -84,8 +84,12 @@ const taskforceTypes = {
 // Initialize onboarding
 document.addEventListener('DOMContentLoaded', function() {
     detectTaskforceType();
-    loadTaskforceOptions();
     updateProgress();
+    
+    // Auto-load service config if taskforce is detected
+    if (selectedTaskforce) {
+        loadServiceConfig(selectedTaskforce);
+    }
 });
 
 function detectTaskforceType() {
@@ -94,9 +98,7 @@ function detectTaskforceType() {
     
     if (taskforceParam && taskforceTypes[taskforceParam]) {
         selectedTaskforce = taskforceParam;
-        setTimeout(() => {
-            selectTaskforce(taskforceParam);
-        }, 500);
+        console.log('Auto-selected taskforce:', selectedTaskforce);
     }
 }
 
@@ -174,7 +176,7 @@ function nextStep() {
         document.getElementById(`dot${currentStep - 1}`).classList.add('completed');
         updateProgress();
         
-        if (currentStep === 5) {
+        if (currentStep === 4) {
             populateReviewData();
         }
     }
@@ -196,7 +198,7 @@ function updateProgress() {
 }
 
 function collectStepData() {
-    if (currentStep === 2) {
+    if (currentStep === 1) {
         // Collect business information
         clientData = {
             name: document.getElementById('businessName').value,
@@ -205,7 +207,7 @@ function collectStepData() {
             website_url: document.getElementById('websiteUrl').value,
             address: document.getElementById('businessAddress').value
         };
-    } else if (currentStep === 3) {
+    } else if (currentStep === 2) {
         // Collect service configuration
         const taskforce = taskforceTypes[selectedTaskforce];
         taskforce.serviceFields.forEach(field => {
@@ -218,7 +220,7 @@ function collectStepData() {
         configData.business_email = clientData.email;
         configData.business_phone = clientData.phone;
         configData.website_url = clientData.website_url;
-    } else if (currentStep === 4) {
+    } else if (currentStep === 3) {
         // Collect integration data
         const integrationFields = [
             'facebook_page_token', 'facebook_page_id', 'whatsapp_token', 'whatsapp_phone_id',
@@ -285,7 +287,7 @@ function populateReviewData() {
 
 async function deployTaskforce() {
     document.getElementById(`step${currentStep}`).classList.remove('active');
-    currentStep = 6;
+    currentStep = 5;
     document.getElementById(`step${currentStep}`).classList.add('active');
     updateProgress();
     
@@ -311,9 +313,9 @@ async function deployTaskforce() {
         if (response.ok) {
             setTimeout(() => {
                 document.getElementById(`step${currentStep}`).classList.remove('active');
-                currentStep = 7;
+                currentStep = 6;
                 document.getElementById(`step${currentStep}`).classList.add('active');
-                document.getElementById(`dot6`).classList.add('completed');
+                document.getElementById(`dot5`).classList.add('completed');
                 updateProgress();
                 
                 const taskforceInfo = taskforceTypes[selectedTaskforce];
