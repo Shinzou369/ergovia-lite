@@ -2291,30 +2291,73 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
   }
 
   const placeholders = {
-    // Telegram credentials
+    // Social Media & Communication Credentials
+    '{{FACEBOOK_PAGE_TOKEN}}': configData.facebook_page_token || '',
+    '{{FACEBOOK_PAGE_ID}}': configData.facebook_page_id || '',
+    '{{INSTAGRAM_ACCESS_TOKEN}}': configData.instagram_access_token || '',
+    '{{WHATSAPP_TOKEN}}': configData.whatsapp_token || '',
+    '{{WHATSAPP_PHONE_ID}}': configData.whatsapp_phone_id || '',
     '{{TELEGRAM_BOT_TOKEN}}': configData.telegram_bot_token || '',
     '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
-
-    // Pet Clinic specific placeholders
-    '{{PET_CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
+    '{{SLACK_BOT_TOKEN}}': configData.slack_bot_token || '',
+    '{{SLACK_CHANNEL}}': configData.slack_channel || '',
+    
+    // Email & SMS Credentials
+    '{{SENDGRID_API_KEY}}': configData.sendgrid_api_key || '',
+    '{{MAILGUN_API_KEY}}': configData.mailgun_api_key || '',
+    '{{MAILGUN_DOMAIN}}': configData.mailgun_domain || '',
+    '{{TWILIO_ACCOUNT_SID}}': configData.twilio_account_sid || '',
+    '{{TWILIO_AUTH_TOKEN}}': configData.twilio_auth_token || '',
+    '{{TWILIO_PHONE_NUMBER}}': configData.twilio_phone_number || '',
+    
+    // Booking & Calendar Integration
+    '{{CALENDLY_TOKEN}}': configData.calendly_token || '',
+    '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
+    '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
+    '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
+    '{{ZOOM_API_SECRET}}': configData.zoom_api_secret || '',
+    
+    // Payment & CRM Integration
+    '{{STRIPE_SECRET_KEY}}': configData.stripe_secret_key || '',
+    '{{PAYPAL_CLIENT_ID}}': configData.paypal_client_id || '',
+    '{{HUBSPOT_API_KEY}}': configData.hubspot_api_key || '',
+    '{{SALESFORCE_TOKEN}}': configData.salesforce_token || '',
+    
+    // Website & Analytics
+    '{{WEBSITE_URL}}': configData.website_url || '',
+    '{{BOOKING_URL}}': configData.booking_url || '',
+    '{{GOOGLE_ANALYTICS_ID}}': configData.google_analytics_id || '',
+    '{{GOOGLE_ADS_CUSTOMER_ID}}': configData.google_ads_customer_id || '',
+    
+    // Pet Clinic Specific Information
     '{{CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
-    '{{CLINIC_ADDRESS}}': configData.clinic_address || `${configData.business_name} Address` || '',  
+    '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
+    '{{CLINIC_PHONE}}': configData.clinic_phone || configData.business_phone || '',
+    '{{CLINIC_EMAIL}}': configData.clinic_email || configData.business_email || '',
     '{{CLINIC_HOURS}}': configData.clinic_hours || 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only',
+    '{{EMERGENCY_HOURS}}': configData.emergency_hours || '24/7 Emergency Line Available',
     '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || '',
-    '{{SERVICES_OFFERED}}': configData.services_offered || 'Vaccinations, Surgery, Dental Care, Emergency Services',
-
-    // Client information
+    '{{SERVICES_OFFERED}}': configData.services_offered || 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming',
+    '{{VETERINARIAN_NAME}}': configData.veterinarian_name || clientData.name || '',
+    '{{APPOINTMENT_TYPES}}': configData.appointment_types || 'Wellness Exam, Vaccination, Surgery, Emergency',
+    '{{PRICING_INFO}}': configData.pricing_info || 'Contact for pricing information',
+    
+    // Staff & Contact Information
+    '{{RECEPTIONIST_NAME}}': configData.receptionist_name || 'Front Desk',
+    '{{MANAGER_NAME}}': configData.manager_name || clientData.name || '',
+    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
+    '{{BILLING_EMAIL}}': configData.billing_email || clientData.email || '',
+    
+    // Client/Business Information
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
     '{{CLIENT_PHONE}}': clientData.phone || '',
-
-    // Business information (general)
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
-
-    // Additional common placeholders for pet clinics
+    
+    // Legacy placeholders for backward compatibility
+    '{{PET_CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
     '{{VET_NAME}}': clientData.name || '',
     '{{VETERINARIAN}}': clientData.name || '',
     '{{PRACTICE_NAME}}': configData.business_name || clientData.name || '',
