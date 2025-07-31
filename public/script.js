@@ -1,5 +1,5 @@
 
-// FIXED: Enhanced sidebar toggle with proper workspace expansion and hamburger animation
+// Enhanced sidebar toggle with proper workspace expansion and hamburger animation
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
   const btn = document.querySelector(".toggle-btn");
@@ -14,7 +14,7 @@ function toggleSidebar() {
   // Toggle sidebar hidden state
   sidebar.classList.toggle("hidden");
 
-  // FIXED: Correct animation logic - hamburger when visible, cross when hidden
+  // Correct animation logic - hamburger when visible, cross when hidden
   if (sidebar.classList.contains("hidden")) {
     // Sidebar is hidden, show hamburger lines (≡)
     btn.classList.remove("active");
@@ -23,7 +23,7 @@ function toggleSidebar() {
     btn.classList.add("active");
   }
 
-  // FIXED: Properly expand workspace when sidebar is hidden
+  // Properly expand workspace when sidebar is hidden
   if (workspace) {
     workspace.classList.toggle("expanded", sidebar.classList.contains("hidden"));
   }
@@ -37,7 +37,7 @@ function toggleSidebar() {
   document.body.classList.toggle("sidebar-hidden", sidebar.classList.contains("hidden"));
 }
 
-// FIXED: Add missing toggleTheme function
+// Toggle theme function with proper icon updates
 function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -57,7 +57,7 @@ function toggleTheme() {
   }
 }
 
-// NEW: Website card interaction functionality
+// Website card interaction functionality
 function initializeWebsiteCards() {
   const websiteCards = document.querySelectorAll(".website-card");
 
@@ -65,9 +65,14 @@ function initializeWebsiteCards() {
     card.addEventListener("click", function(e) {
       // Check if this is the taskforce main link
       if (this.classList.contains("taskforce-main-link")) {
-        e.preventDefault(); // Prevent default navigation
-        // Allow direct access to taskforce page
-        window.location.href = '/taskforce.html';
+        e.preventDefault();
+        // Get the href from onclick attribute or use default
+        const href = this.getAttribute('onclick');
+        if (href && href.includes('taskforce.html')) {
+          window.location.href = '/taskforce.html';
+        } else if (href && href.includes('token-dashboard.html')) {
+          window.location.href = '/token-dashboard.html';
+        }
         return;
       }
 
@@ -79,30 +84,24 @@ function initializeWebsiteCards() {
 
       // Get website info
       const websiteId = this.dataset.website;
-      const websiteName = this.querySelector(".website-name").textContent;
-
-      // Add a message to show which website was selected
-      addMessage(`Switched to ${websiteName}`, "system");
-
-      console.log(`Selected website: ${websiteName} (ID: ${websiteId})`);
+      const websiteName = this.querySelector(".website-name");
+      
+      if (websiteName) {
+        addMessage(`Switched to ${websiteName.textContent}`, "system");
+        console.log(`Selected website: ${websiteName.textContent} (ID: ${websiteId})`);
+      }
     });
   });
 }
 
-// === MEMORY + TRAINING SETUP ===
+// Application state management
 let customTraining = "You are TaskAI, a helpful assistant for marketing and productivity tasks.";
 let threads = [];
 let currentThreadId = null;
 let conversation = [];
-
-// === LOGIN GATING SETUP ===
 let isUserLoggedIn = false;
 let authCheckInProgress = false;
-
-// === TOKEN COUNTER SETUP ===
 let tokenCounter = null;
-
-// === USER-SCOPED THREAD MANAGEMENT ===
 async function loadUserThreads() {
   if (!isUserLoggedIn) {
     threads = [];
@@ -355,7 +354,7 @@ function formatMarkdown(text) {
   }
 }
 
-// ENHANCED: Message display with system message support and syntax highlighting
+// Message display with system message support and syntax highlighting
 function addMessage(content, type = "gpt", model = null, tokens = null) {
   const box = document.getElementById("output-box");
   if (!box) {
@@ -443,7 +442,7 @@ function addMessage(content, type = "gpt", model = null, tokens = null) {
   smoothScrollToBottom();
 }
 
-// === MODEL SELECTOR ===
+// Model selection based on prompt keywords
 function selectModel(prompt) {
   const lower = prompt.toLowerCase();
   if (lower.includes("complex")) return "gpt-4-turbo";
@@ -453,7 +452,7 @@ function selectModel(prompt) {
   return "gpt-3.5-turbo"; // default
 }
 
-// === ENHANCED ERROR HANDLING ===
+// Error handling and user notifications
 function showErrorMessage(message, type = 'error') {
   const errorDiv = document.createElement('div');
   errorDiv.className = `error-notification ${type}`;
@@ -615,7 +614,7 @@ function getErrorMessage(error, response) {
   return "An unexpected error occurred. Please try again or contact support if the problem persists.";
 }
 
-// === ENHANCED GPT API CALL WITH COMPREHENSIVE ERROR HANDLING ===
+// GPT API call with comprehensive error handling
 async function getGPTResponse(model) {
   const maxRetries = 2;
   let retryCount = 0;
@@ -701,8 +700,7 @@ async function getGPTResponse(model) {
   return "Sorry, I'm unable to process your request right now. Please try again later or contact support if the problem persists.";
 }
 
-// === MAIN CHAT SUBMISSION FLOW ===
-// Enhanced submit flow with modern animations and feedback
+// Main chat submission flow with animations and feedback
 async function submitPrompt(promptText) {
   if (!promptText.trim()) return;
 
@@ -846,7 +844,7 @@ async function submitPrompt(promptText) {
   }
 }
 
-// Enhanced copy button with modern styling
+// Copy functionality for messages
 function addCopyButton(messageElement) {
   const copyBtn = document.createElement("button");
   copyBtn.className = "copy-btn";
