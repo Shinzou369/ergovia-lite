@@ -952,7 +952,8 @@ function handleTokenUsageClick() {
   } else {
     showLoginModal();
   }
-}// Lemon Squeezy payment is handled by redirecting to the checkout URL
+}// Lemon Squeezy payment```python
+ is handled by redirecting to the checkout URL
 
 // === LOGIN MODAL FUNCTIONS ===
 function showLoginModal() {
@@ -1494,14 +1495,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clear-chat")?.addEventListener("click", newChat);
 
   // Removed renderMessages() function to prevent conflicts with addMessage()
-
-// Removed duplicate addMessage function - using the enhanced version above
-  // Periodic check disabled to prevent content flicker
-          // setInterval(() => {
-          //   if (document.querySelector('.hero-section') && typeof enforceCorrectHeroContent === 'function') {
-          //      enforceCorrectHeroContent();
-          //   }
-          // }, 10000);
 });
 
 // Handle enter key in prompt input
@@ -1550,3 +1543,8 @@ function sanitizeHTML(html) {
     div.textContent = html;
     return div.innerHTML;
 }
+
+// Chat functionality
+// NOTE: API endpoints should use environment variables in production
+// Avoid hardcoding sensitive configuration in client-side code
+class ChatManager {
