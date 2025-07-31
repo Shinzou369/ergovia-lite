@@ -63,13 +63,25 @@ class N8NApiClient {
       const response = await axios(config);
       return response.data;
     } catch (error) {
-      console.error('N8N API Error Details:', {
+      const errorDetails = {
         url: `${this.baseURL}/api/v1${endpoint}`,
         method,
         error: error.response?.data || error.message,
-        status: error.response?.status
-      });
-      throw new Error(`N8N API Error: ${error.response?.status || error.message}`);
+        status: error.response?.status,
+        timestamp: new Date().toISOString()
+      };
+      console.error('N8N API Error Details:', errorDetails);
+      
+      // Provide more specific error messages based on status codes
+      if (error.response?.status === 401) {
+        throw new Error('N8N API Authentication failed - check API key');
+      } else if (error.response?.status === 404) {
+        throw new Error('N8N API endpoint not found');
+      } else if (error.response?.status >= 500) {
+        throw new Error('N8N API server error - service may be unavailable');
+      } else {
+        throw new Error(`N8N API Error: ${error.response?.status || error.message}`);
+      }
     }
   }
 
@@ -1234,7 +1246,7 @@ function requirePremium(req, res, next) {
   // Get user ID from authenticated user (Google OAuth uses 'id' field)
   const userId = req.user.id;
   const userEmail = req.user.emails?.[0]?.value;
-  const users = readUsersFileSync();
+  const users = loadUsers();
 
   // Try to find user by Google ID first, then by email
   let userRecord = users[userId];
@@ -1285,14 +1297,7 @@ function requirePremium(req, res, next) {
   next();
 }
 
-function readUsersFileSync() {
-  try {
-    const data = fs.readFileSync('users.json', 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return {};
-  }
-}
+
 
 app.get('/api/taskforce/clients', requireAuth, (req, res) => {
   const userId = req.user.googleId;
@@ -1593,7 +1598,7 @@ function loadUsers() {
   return {};
 }
 
-function saveUsers() {
+function saveUsers(users) {
   try {
     fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
   } catch (err) {
@@ -2287,9 +2292,20 @@ function analyzeWorkflowConfig(workflow) {
 }
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
+  // Validate input parameters
   if (!Array.isArray(nodes)) {
     console.warn('⚠️ Nodes is not an array:', typeof nodes);
-    return nodes;
+    return nodes || [];
+  }
+  
+  if (!configData || typeof configData !== 'object') {
+    console.warn('⚠️ Invalid configData provided');
+    configData = {};
+  }
+  
+  if (!clientData || typeof clientData !== 'object') {
+    console.warn('⚠️ Invalid clientData provided');
+    clientData = {};
   }
 
   const placeholders = {
@@ -2367,12 +2383,3 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
 });
 
-async function readUsersFile() {
-  try {
-    const data = await fs.promises.readFile('users.json', 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading users file:', error);
-    return {};
-  }
-}
