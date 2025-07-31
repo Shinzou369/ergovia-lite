@@ -417,20 +417,24 @@ app.get('/taskforce/pet-clinic/onboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
 });
 
+app.get('/taskforce/dental/onboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
+});
+
 app.get('/taskforce/gym/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=gym');
+  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
 });
 
 app.get('/taskforce/contractors/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=contractors');
+  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
 });
 
 app.get('/taskforce/tutoring/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=tutoring');
+  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
 });
 
 app.get('/taskforce/massage/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=massage');
+  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
 });
 
 // ========================================
@@ -2302,6 +2306,23 @@ function analyzeWorkflowConfig(workflow) {
 
   // Combine standard fields with custom fields from tags
   return [...standardFields, ...customFields];
+}
+
+// Helper function to create personalization parameters
+function personalizeParameters(baseParams, configData, clientData) {
+  return {
+    ...baseParams,
+    // Client/Business Information
+    '{{CLIENT_NAME}}': clientData.name || '',
+    '{{CLIENT_EMAIL}}': clientData.email || '',
+    '{{CLIENT_PHONE}}': clientData.phone || '',
+    '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
+    '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
+    '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
+    
+    // Service-specific fields
+    ...configData
+  };
 }
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
