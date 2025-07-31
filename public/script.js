@@ -1,6 +1,4 @@
-I have identified that the changes consist of replacing identical blocks of code with themselves multiple times, which suggests a problem of duplicate function definitions in the original file. I will produce the complete code with the duplicate function definitions removed.
-```
-```replit_final_file
+
 // FIXED: Enhanced sidebar toggle with proper workspace expansion and hamburger animation
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
@@ -37,6 +35,26 @@ function toggleSidebar() {
 
   // Add body class to handle workspace adjustment
   document.body.classList.toggle("sidebar-hidden", sidebar.classList.contains("hidden"));
+}
+
+// FIXED: Add missing toggleTheme function
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  
+  // Update theme icon
+  const themeIcon = document.getElementById('theme-icon');
+  if (themeIcon) {
+    const iconName = newTheme === 'dark' ? 'sun' : 'moon';
+    themeIcon.setAttribute('data-lucide', iconName);
+    // Re-initialize Lucide icons to update the display
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
 }
 
 // NEW: Website card interaction functionality
@@ -244,7 +262,7 @@ function updateUI() {
   if (!isUserLoggedIn) {
     if (outputBox) outputBox.innerHTML = "";
     if (threadsList) threadsList.innerHTML = "";
-    // Website cards should remain visible - they're handled separately
+    // Website cards should remain visible - they are handled separately
     return;
   }
 
@@ -735,84 +753,84 @@ async function submitPrompt(promptText) {
 
   conversation.push({ role: "user", content: promptText });
 
-    const selectedModel = selectModel(promptText);
+  const selectedModel = selectModel(promptText);
 
-    try {
-      const response = await getGPTResponse(selectedModel);
+  try {
+    const response = await getGPTResponse(selectedModel);
 
-      // Check if response indicates an error
-      if (response.startsWith("Sorry, there was an error:") || response.startsWith("Sorry, I'm unable to process")) {
-        hideTypingIndicator();
-        addMessage(response, "gpt", selectedModel);
-        return;
-      }
-
-      // Hide typing indicator and add the GPT response
+    // Check if response indicates an error
+    if (response.startsWith("Sorry, there was an error:") || response.startsWith("Sorry, I'm unable to process")) {
       hideTypingIndicator();
       addMessage(response, "gpt", selectedModel);
+      return;
+    }
 
-      // Increment token usage counter and ensure it's synced
-      if (tokenCounter) {
-        await tokenCounter.incrementUsage();
-        // Always refresh from backend to ensure sync across browsers
-        await tokenCounter.refreshUsage();
-      }
+    // Hide typing indicator and add the GPT response
+    hideTypingIndicator();
+    addMessage(response, "gpt", selectedModel);
 
-      conversation.push({ role: "assistant", content: response });
+    // Increment token usage counter and ensure it's synced
+    if (tokenCounter) {
+      await tokenCounter.incrementUsage();
+      // Always refresh from backend to ensure sync across browsers
+      await tokenCounter.refreshUsage();
+    }
 
-      // Update the current thread's conversation
-      const currentThread = threads.find((t) => t.id === currentThreadId);
-      if (currentThread) {
-        currentThread.conversation = [...conversation]; // Save updated conversation to thread
-      }
+    conversation.push({ role: "assistant", content: response });
 
-      // Generate creative thread title using the AI's response (with error handling)
-      if (currentThread && currentThread.title === "New Chat") {
-        try {
-          const titlePrompt = `Based on this conversation: "${promptText}", generate a creative and concise title (max 4 words).`;
-          conversation.push({ role: "user", content: titlePrompt });
-          const titleResponse = await getGPTResponse("gpt-3.5-turbo");
-          conversation.pop(); // Remove the title prompt from conversation
-          currentThread.conversation = [...conversation]; // Update thread after removing title prompt
+    // Update the current thread's conversation
+    const currentThread = threads.find((t) => t.id === currentThreadId);
+    if (currentThread) {
+      currentThread.conversation = [...conversation]; // Save updated conversation to thread
+    }
 
-          if (titleResponse && !titleResponse.startsWith("Sorry")) {
-            currentThread.title = titleResponse.replace(/["']/g, "").slice(0, 40);
-          } else {
-            // Fallback title based on user input
-            currentThread.title = promptText.slice(0, 30) + (promptText.length > 30 ? "..." : "");
-          }
-        } catch (titleError) {
-          console.warn("Failed to generate thread title:", titleError);
+    // Generate creative thread title using the AI's response (with error handling)
+    if (currentThread && currentThread.title === "New Chat") {
+      try {
+        const titlePrompt = `Based on this conversation: "${promptText}", generate a creative and concise title (max 4 words).`;
+        conversation.push({ role: "user", content: titlePrompt });
+        const titleResponse = await getGPTResponse("gpt-3.5-turbo");
+        conversation.pop(); // Remove the title prompt from conversation
+        currentThread.conversation = [...conversation]; // Update thread after removing title prompt
+
+        if (titleResponse && !titleResponse.startsWith("Sorry")) {
+          currentThread.title = titleResponse.replace(/["']/g, "").slice(0, 40);
+        } else {
+          // Fallback title based on user input
           currentThread.title = promptText.slice(0, 30) + (promptText.length > 30 ? "..." : "");
         }
+      } catch (titleError) {
+        console.warn("Failed to generate thread title:", titleError);
+        currentThread.title = promptText.slice(0, 30) + (promptText.length > 30 ? "..." : "");
       }
+    }
 
-      // Save threads to server with error handling
-      try {
-        await saveUserThreads();
-        updateUI();
-      } catch (storageError) {
-        console.warn("Failed to save to server:", storageError);
-        showErrorMessage("Unable to save conversation to server. Your chat may not be persistent.", "warning");
-      }
+    // Save threads to server with error handling
+    try {
+      await saveUserThreads();
+      updateUI();
+    } catch (storageError) {
+      console.warn("Failed to save to server:", storageError);
+      showErrorMessage("Unable to save conversation to server. Your chat may not be persistent.", "warning");
+    }
 
   } catch (err) {
-      console.error("Submit error:", err);
-      hideTypingIndicator();
+    console.error("Submit error:", err);
+    hideTypingIndicator();
 
-      // More specific error handling
-      let errorMessage = "Sorry, there was an unexpected error. Please try again.";
+    // More specific error handling
+    let errorMessage = "Sorry, there was an unexpected error. Please try again.";
 
-      if (err.message.includes("Failed to fetch")) {
-        errorMessage = "Unable to connect to the AI service. Please check your internet connection and try again.";
-      } else if (err.message.includes("timeout")) {
-        errorMessage = "The request timed out. Please try again with a shorter message.";
-      } else if (err.message.includes("rate limit")) {
-        errorMessage = "Too many requests. Please wait a moment before trying again.";
-      }
+    if (err.message.includes("Failed to fetch")) {
+      errorMessage = "Unable to connect to the AI service. Please check your internet connection and try again.";
+    } else if (err.message.includes("timeout")) {
+      errorMessage = "The request timed out. Please try again with a shorter message.";
+    } else if (err.message.includes("rate limit")) {
+      errorMessage = "Too many requests. Please wait a moment before trying again.";
+    }
 
-      addMessage(errorMessage, "gpt");
-      showErrorMessage("Failed to get AI response. " + errorMessage, "error");
+    addMessage(errorMessage, "gpt");
+    showErrorMessage("Failed to get AI response. " + errorMessage, "error");
 
   } finally {
     // Enhanced button state restoration
@@ -950,9 +968,159 @@ function hidePaymentModal() {
 
 // Handle Token Usage button click - check if user is logged in
 function handleTokenUsageClick() {
-  if (typeofisUserLoggedIn !== 'undefined' && isUserLoggedIn) {
+  if (typeof isUserLoggedIn !== 'undefined' && isUserLoggedIn) {
     window.location.href = '/token-dashboard.html';
   } else {
     showLoginModal();
   }
-}// Lemon Squeezy payment
+}
+
+// Lemon Squeezy payment
+function redirectToLemonSqueezy() {
+  window.location.href = 'https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d';
+}
+
+// Copy message function
+async function copyMessage(messageId) {
+  const messageElement = document.getElementById(messageId);
+  if (messageElement) {
+    try {
+      const content = messageElement.textContent || messageElement.innerText;
+      await navigator.clipboard.writeText(content);
+      
+      // Find and update copy button
+      const copyBtn = messageElement.querySelector('.copy-btn');
+      if (copyBtn) {
+        const originalHTML = copyBtn.innerHTML;
+        copyBtn.innerHTML = '✓';
+        copyBtn.style.background = '#10b981';
+        copyBtn.style.color = 'white';
+        
+        setTimeout(() => {
+          copyBtn.innerHTML = originalHTML;
+          copyBtn.style.background = '';
+          copyBtn.style.color = '';
+          lucide.createIcons();
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
+  }
+}
+
+// Typing indicator functions
+function showTypingIndicator() {
+  const outputBox = document.getElementById("output-box");
+  if (!outputBox) return;
+
+  // Remove existing typing indicator
+  hideTypingIndicator();
+
+  const typingDiv = document.createElement("div");
+  typingDiv.className = "message gpt typing-indicator";
+  typingDiv.id = "typing-indicator";
+  typingDiv.innerHTML = `
+    <div class="message-bubble">
+      <div class="typing-animation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  `;
+
+  outputBox.appendChild(typingDiv);
+  smoothScrollToBottom();
+}
+
+function hideTypingIndicator() {
+  const typingIndicator = document.getElementById("typing-indicator");
+  if (typingIndicator) {
+    typingIndicator.remove();
+  }
+}
+
+// New chat function
+async function newChat() {
+  await createNewThread();
+  updateUI();
+}
+
+// Show login modal function
+function showLoginModal() {
+  // This function should be implemented in auth.js
+  if (typeof window.showLoginModal === 'function') {
+    window.showLoginModal();
+  } else {
+    window.location.href = '/login.html';
+  }
+}
+
+// Initialize everything when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize Lucide icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+
+  // Initialize website cards
+  initializeWebsiteCards();
+
+  // Set up prompt input event listeners
+  const promptInput = document.getElementById('prompt-input');
+  if (promptInput) {
+    // Handle Enter key to submit
+    promptInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const text = this.value.trim();
+        if (text) {
+          submitPrompt(text);
+        }
+      }
+    });
+
+    // Character counter
+    const charCounter = document.getElementById('char-counter');
+    if (charCounter) {
+      promptInput.addEventListener('input', function() {
+        const length = this.value.length;
+        charCounter.textContent = `${length}/1000`;
+        
+        if (length > 1000) {
+          charCounter.style.color = 'var(--error-color)';
+        } else {
+          charCounter.style.color = 'var(--text-muted)';
+        }
+      });
+    }
+  }
+
+  // Set up submit button
+  const submitBtn = document.getElementById('submit-btn');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', function() {
+      const promptInput = document.getElementById('prompt-input');
+      if (promptInput) {
+        const text = promptInput.value.trim();
+        if (text) {
+          submitPrompt(text);
+        }
+      }
+    });
+  }
+
+  // Set up quick chat buttons
+  const quickButtons = document.querySelectorAll('.quick-btn');
+  quickButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const text = this.querySelector('.btn-text').textContent.trim();
+      if (text) {
+        submitPrompt(text);
+      }
+    });
+  });
+
+  console.log('ERGOVIA-AI script initialized successfully');
+});
