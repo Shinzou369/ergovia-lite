@@ -450,30 +450,36 @@ async function loadTaskforceTemplates(taskforceType) {
 
 // Auto-fill form with demo data for testing
 function fillDemoData() {
-    // Business Information
-    setElementValue('businessName', 'Demo Pet Clinic');
-    setElementValue('businessEmail', 'demo@petclinic.com');
-    setElementValue('businessPhone', '(555) 123-4567');
-    setElementValue('websiteUrl', 'https://demopetclinic.com');
-    setElementValue('businessAddress', '123 Main Street, Demo City, DC 12345');
-    
-    // Service Configuration (if pet-clinic is selected)
-    if (selectedTaskforce === 'pet-clinic') {
-        setElementValue('clinic_name', 'Demo Pet Clinic');
-        setElementValue('clinic_location', 'Downtown Demo City');
-        setElementValue('clinic_hours', 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM');
-        setElementValue('emergency_hours', '24/7 Emergency Line Available');
-        setElementValue('services_offered', 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming');
-        setElementValue('head_veterinarian', 'Dr. Demo Smith');
-        setElementValue('clinic_phone', '(555) 123-4567');
-        setElementValue('appointment_types', 'Wellness Exam, Vaccination, Surgery, Emergency');
-        setElementValue('pricing_info', 'Exam: $75, Vaccination: $45, Surgery: $200+');
-        setElementValue('on_call_staff_name', 'Dr. Demo Johnson');
-        setElementValue('on_call_phone', '(555) 987-6543');
-        setElementValue('response_greeting', 'Hello! Welcome to Demo Pet Clinic');
-        setElementValue('faq_sheet_name', 'INFO');
-        setElementValue('hitl_queue_sheet_name', 'Sheet6');
-        setElementValue('confidence_threshold', '95');
+    try {
+        // Business Information
+        setElementValue('businessName', 'Demo Pet Clinic');
+        setElementValue('businessEmail', 'demo@petclinic.com');
+        setElementValue('businessPhone', '(555) 123-4567');
+        setElementValue('websiteUrl', 'https://demopetclinic.com');
+        setElementValue('businessAddress', '123 Main Street, Demo City, DC 12345');
+        
+        // Service Configuration (if pet-clinic is selected)
+        if (selectedTaskforce === 'pet-clinic') {
+            setElementValue('clinic_name', 'Demo Pet Clinic');
+            setElementValue('clinic_location', 'Downtown Demo City');
+            setElementValue('clinic_hours', 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM');
+            setElementValue('emergency_hours', '24/7 Emergency Line Available');
+            setElementValue('services_offered', 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming');
+            setElementValue('head_veterinarian', 'Dr. Demo Smith');
+            setElementValue('clinic_phone', '(555) 123-4567');
+            setElementValue('appointment_types', 'Wellness Exam, Vaccination, Surgery, Emergency');
+            setElementValue('pricing_info', 'Exam: $75, Vaccination: $45, Surgery: $200+');
+            setElementValue('on_call_staff_name', 'Dr. Demo Johnson');
+            setElementValue('on_call_phone', '(555) 987-6543');
+            setElementValue('response_greeting', 'Hello! Welcome to Demo Pet Clinic');
+            setElementValue('faq_sheet_name', 'INFO');
+            setElementValue('hitl_queue_sheet_name', 'Sheet6');
+            setElementValue('confidence_threshold', '95');
+        }
+        
+        console.log('Demo data filled successfully');
+    } catch (error) {
+        console.error('Error filling demo data:', error);
     }
 }
 
@@ -486,19 +492,45 @@ function setElementValue(id, value) {
 
 // Add a button to fill demo data automatically
 function addDemoButton() {
-    const step1 = document.getElementById('step1');
-    if (step1) {
-        const demoBtn = document.createElement('button');
-        demoBtn.type = 'button';
-        demoBtn.className = 'btn btn-secondary';
-        demoBtn.textContent = 'Fill Demo Data';
-        demoBtn.onclick = fillDemoData;
-        demoBtn.style.marginTop = '20px';
-        step1.appendChild(demoBtn);
+    try {
+        const step1 = document.getElementById('step1');
+        if (step1 && !document.getElementById('demoButton')) {
+            const demoBtn = document.createElement('button');
+            demoBtn.id = 'demoButton';
+            demoBtn.type = 'button';
+            demoBtn.className = 'btn btn-secondary';
+            demoBtn.textContent = '🎯 Fill Demo Data';
+            demoBtn.onclick = fillDemoData;
+            demoBtn.style.cssText = `
+                margin: 20px 0;
+                padding: 12px 24px;
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+                display: block;
+                width: 200px;
+            `;
+            
+            // Add hover effect
+            demoBtn.onmouseover = function() {
+                this.style.backgroundColor = '#5a6268';
+            };
+            demoBtn.onmouseout = function() {
+                this.style.backgroundColor = '#6c757d';
+            };
+            
+            step1.appendChild(demoBtn);
+            console.log('Demo button added successfully');
+        }
+    } catch (error) {
+        console.error('Error adding demo button:', error);
     }
 }
 
 // Add demo button after DOM loads
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(addDemoButton, 1000); // Add after other initialization
+    setTimeout(addDemoButton, 1500); // Add after other initialization
 });
