@@ -1426,6 +1426,21 @@ app.get('/api/etf/list-google-credentials', async (req, res) => {
   }
 });
 
+// Google OAuth test callback endpoint
+app.get('/auth/google/oauth-test-callback', (req, res) => {
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    return res.redirect(`/test-google-oauth?error=${encodeURIComponent(error)}`);
+  }
+  
+  if (code) {
+    return res.redirect(`/test-google-oauth?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`);
+  }
+  
+  res.redirect('/test-google-oauth?error=no_code_received');
+});
+
 // Test Google credential access
 app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
   try {
