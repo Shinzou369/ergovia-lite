@@ -492,6 +492,24 @@ app.post('/api/etf/deploy', async (req, res) => {
   try {
     let { client_data, config_data, template_id } = req.body;
 
+    // Validate required data
+    if (!client_data || !client_data.name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Client data with name is required',
+        details: 'Missing or invalid client_data.name'
+      });
+    }
+
+    if (!config_data) {
+      config_data = {}; // Provide default empty config
+    }
+
+    console.log('📋 Processing deployment request:', {
+      clientName: client_data.name,
+      configKeys: Object.keys(config_data).length
+    });
+
     // Find ALL PET workflows for duplication
     console.log('🔍 Searching for ALL PET workflows to duplicate...');
 
@@ -526,7 +544,20 @@ app.post('/api/etf/deploy', async (req, res) => {
         console.log(`🚀 Duplicating workflow: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
 
         // Get the template workflow from N8N
+        console.log(`📥 Fetching workflow details for: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
         const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
+        console.log(`📋 Received workflow data:`, {
+          id: originalWorkflow?.id,
+          name: originalWorkflow?.name,
+          hasNodes: Array.isArray(originalWorkflow?.nodes),
+          nodeCount: originalWorkflow?.nodes?.length || 0
+        });
+
+        // Validate original workflow data
+        if (!originalWorkflow || !originalWorkflow.name) {
+          console.error(`❌ Invalid workflow data for ${petWorkflow.name}:`, originalWorkflow);
+          throw new Error(`Invalid workflow data received from N8N for workflow ${petWorkflow.id}`);
+        }
 
         // Create clean workflow data - exclude ALL read-only properties including tags
         const personalizedWorkflow = {
