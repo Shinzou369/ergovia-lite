@@ -494,24 +494,6 @@ app.post('/api/etf/deploy', async (req, res) => {
     
     let { client_data, config_data, template_id } = req.body;
 
-    // Handle direct form submission format (flat structure)
-    if (!client_data && req.body.name) {
-      client_data = {
-        name: req.body.name || req.body.business_name,
-        email: req.body.email || req.body.business_email,
-        phone: req.body.phone || req.body.business_phone,
-        address: req.body.business_address,
-        taskforce_type: req.body.taskforce_type || 'pet-clinic'
-      };
-      
-      // Move all other fields to config_data
-      config_data = { ...req.body };
-      delete config_data.name;
-      delete config_data.email;
-      delete config_data.phone;
-      delete config_data.business_address;
-    }
-
     // Validate required data
     if (!client_data || !client_data.name) {
       console.error('❌ Validation failed: Missing client data');
