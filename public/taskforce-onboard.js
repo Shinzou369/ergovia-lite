@@ -24,40 +24,50 @@ const taskforceTypes = {
             { key: 'head_veterinarian', label: 'Head Veterinarian', type: 'text', placeholder: 'Dr. Smith', required: true },
             { key: 'clinic_phone', label: 'Clinic Phone', type: 'tel', placeholder: '(555) 123-4567', required: true },
             { key: 'appointment_types', label: 'Appointment Types', type: 'textarea', placeholder: 'Wellness Exam, Vaccination, Surgery, Emergency', required: true },
-            { key: 'pricing_info', label: 'Pricing Information', type: 'textarea', placeholder: 'Exam: $75, Vaccination: $45, etc.' }
+            { key: 'pricing_info', label: 'Pricing Information', type: 'textarea', placeholder: 'Exam: $75, Vaccination: $45, etc.' },
+            { key: 'booking_system_url', label: 'Online Booking URL', type: 'url', placeholder: 'https://your-booking-system.com' },
+            { key: 'booking_phone', label: 'Booking Phone', type: 'tel', placeholder: '(555) 123-4567' },
+            { key: 'on_call_staff_name', label: 'On-Call Staff Name', type: 'text', placeholder: 'Dr. Johnson', required: true },
+            { key: 'on_call_phone', label: 'On-Call Phone', type: 'tel', placeholder: '(555) 987-6543', required: true },
+            { key: 'staff_slack_channel', label: 'Slack Channel ID', type: 'text', placeholder: 'C1234567890' },
+            { key: 'response_greeting', label: 'Welcome Message', type: 'text', placeholder: 'Hello! Welcome to Happy Paws Clinic' },
+            { key: 'leads_sheet_id', label: 'Google Sheets ID', type: 'text', placeholder: '1YLIQeQ79ki6ZSHy4ik31KDby4SIHAIEK_47u_lWOeNs' },
+            { key: 'faq_sheet_name', label: 'FAQ Sheet Name', type: 'text', placeholder: 'INFO' },
+            { key: 'hitl_queue_sheet_name', label: 'Review Queue Sheet Name', type: 'text', placeholder: 'Sheet6' },
+            { key: 'confidence_threshold', label: 'AI Confidence Threshold', type: 'number', placeholder: '95' }
         ]
     },
     'dental': {
         name: 'Dental Office Taskforce',
         icon: '🦷',
-        description: 'AI front desk agent for appointment management and patient care',
+        description: 'AI dental assistant for appointment scheduling and patient care',
         serviceFields: [
-            { key: 'practice_name', label: 'Practice Name', type: 'text', required: true },
-            { key: 'dentist_name', label: 'Lead Dentist', type: 'text', required: true },
-            { key: 'office_hours', label: 'Office Hours', type: 'text', required: true },
-            { key: 'services_offered', label: 'Services Offered', type: 'textarea', required: true }
+            { key: 'office_hours', label: 'Office Hours', type: 'text', placeholder: 'Mon-Fri: 8AM-5PM' },
+            { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Cleanings, Fillings, Root Canals, Cosmetic Dentistry' },
+            { key: 'dentist_name', label: 'Head Dentist', type: 'text', placeholder: 'Dr. Johnson' },
+            { key: 'insurance_accepted', label: 'Insurance Accepted', type: 'textarea', placeholder: 'Delta Dental, Blue Cross, Aetna' }
         ]
     },
     'gym': {
-        name: 'Gym & Fitness Center Taskforce', 
+        name: 'Gym & Fitness Center Taskforce',
         icon: '🏋️',
-        description: 'AI membership manager for lead generation and client engagement',
+        description: 'AI fitness assistant for membership management and class scheduling',
         serviceFields: [
-            { key: 'gym_name', label: 'Gym Name', type: 'text', required: true },
-            { key: 'membership_types', label: 'Membership Types', type: 'textarea', required: true },
-            { key: 'operating_hours', label: 'Operating Hours', type: 'text', required: true },
-            { key: 'facilities', label: 'Facilities & Equipment', type: 'textarea', required: true }
+            { key: 'gym_hours', label: 'Gym Hours', type: 'text', placeholder: '24/7 or Mon-Sun: 5AM-11PM' },
+            { key: 'membership_types', label: 'Membership Types', type: 'textarea', placeholder: 'Basic, Premium, VIP memberships' },
+            { key: 'class_schedule', label: 'Class Schedule', type: 'textarea', placeholder: 'Yoga, Spin, CrossFit, etc.' },
+            { key: 'personal_training', label: 'Personal Training', type: 'text', placeholder: 'Available with certified trainers' }
         ]
     },
     'contractors': {
         name: 'Local Contractors Taskforce',
-        icon: '🔧', 
-        description: 'AI office assistant for tradespeople and service appointments',
+        icon: '🔧',
+        description: 'AI assistant for tradespeople and service appointments',
         serviceFields: [
-            { key: 'company_name', label: 'Company Name', type: 'text', required: true },
-            { key: 'services_provided', label: 'Services Provided', type: 'textarea', required: true },
-            { key: 'service_area', label: 'Service Area', type: 'text', required: true },
-            { key: 'emergency_services', label: 'Emergency Services', type: 'text', required: false }
+            { key: 'service_area', label: 'Service Area', type: 'text', placeholder: 'City, State (radius)' },
+            { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Plumbing, Electrical, HVAC, Handyman' },
+            { key: 'emergency_services', label: 'Emergency Services', type: 'text', placeholder: '24/7 Emergency available' },
+            { key: 'license_info', label: 'License Information', type: 'text', placeholder: 'Licensed and Insured' }
         ]
     },
     'tutoring': {
@@ -65,10 +75,10 @@ const taskforceTypes = {
         icon: '📚',
         description: 'AI academic coordinator for class scheduling and parent communication',
         serviceFields: [
-            { key: 'center_name', label: 'Center Name', type: 'text', required: true },
-            { key: 'subjects_offered', label: 'Subjects Offered', type: 'textarea', required: true },
-            { key: 'age_groups', label: 'Age Groups Served', type: 'text', required: true },
-            { key: 'session_types', label: 'Session Types', type: 'textarea', required: true }
+            { key: 'subjects_offered', label: 'Subjects Offered', type: 'textarea', placeholder: 'Math, Science, English, SAT/ACT Prep' },
+            { key: 'grade_levels', label: 'Grade Levels', type: 'text', placeholder: 'K-12, College Prep' },
+            { key: 'session_types', label: 'Session Types', type: 'text', placeholder: 'Individual, Group, Online' },
+            { key: 'pricing_structure', label: 'Pricing Structure', type: 'textarea', placeholder: 'Individual: $50/hr, Group: $30/hr' }
         ]
     },
     'massage': {
@@ -76,10 +86,10 @@ const taskforceTypes = {
         icon: '💆',
         description: 'AI receptionist for session booking and customer service',
         serviceFields: [
-            { key: 'clinic_name', label: 'Clinic Name', type: 'text', required: true },
-            { key: 'therapist_names', label: 'Therapist Names', type: 'textarea', required: true },
-            { key: 'massage_types', label: 'Massage Types', type: 'textarea', required: true },
-            { key: 'operating_hours', label: 'Operating Hours', type: 'text', required: true }
+            { key: 'clinic_hours', label: 'Clinic Hours', type: 'text', placeholder: 'Mon-Sat: 9AM-8PM' },
+            { key: 'massage_types', label: 'Massage Types', type: 'textarea', placeholder: 'Swedish, Deep Tissue, Hot Stone, Prenatal' },
+            { key: 'therapist_info', label: 'Therapist Information', type: 'text', placeholder: 'Licensed Massage Therapists' },
+            { key: 'session_lengths', label: 'Session Lengths', type: 'text', placeholder: '30min, 60min, 90min sessions' }
         ]
     }
 };
@@ -87,7 +97,6 @@ const taskforceTypes = {
 // Initialize onboarding
 document.addEventListener('DOMContentLoaded', function() {
     detectTaskforceType();
-    loadTaskforceOptions();
     updateProgress();
     
     // Auto-load service config if taskforce is detected
@@ -100,317 +109,283 @@ function detectTaskforceType() {
     const urlParams = new URLSearchParams(window.location.search);
     const taskforceParam = urlParams.get('type');
     
-    // Check URL parameter first
     if (taskforceParam && taskforceTypes[taskforceParam]) {
         selectedTaskforce = taskforceParam;
-        return;
-    }
-    
-    // Check URL path for taskforce type
-    const path = window.location.pathname;
-    if (path.includes('/pet-clinic/')) {
-        selectedTaskforce = 'pet-clinic';
-    } else if (path.includes('/dental/')) {
-        selectedTaskforce = 'dental';
-    } else if (path.includes('/gym/')) {
-        selectedTaskforce = 'gym';
-    } else if (path.includes('/contractors/')) {
-        selectedTaskforce = 'contractors';
-    } else if (path.includes('/tutoring/')) {
-        selectedTaskforce = 'tutoring';
-    } else if (path.includes('/massage/')) {
-        selectedTaskforce = 'massage';
-    } else {
-        // Default fallback
-        selectedTaskforce = 'pet-clinic';
+        console.log('Auto-selected taskforce:', selectedTaskforce);
     }
 }
 
 function loadTaskforceOptions() {
-    const taskforceSelect = document.getElementById('taskforceSelect');
-    if (!taskforceSelect) return;
-    
-    taskforceSelect.innerHTML = '';
+    const container = document.getElementById('taskforceOptions');
     
     Object.entries(taskforceTypes).forEach(([key, taskforce]) => {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = taskforce.name;
-        option.selected = key === selectedTaskforce;
-        taskforceSelect.appendChild(option);
+        const card = document.createElement('div');
+        card.className = 'taskforce-card';
+        card.onclick = () => selectTaskforce(key);
+        
+        card.innerHTML = `
+            <span class="taskforce-icon">${taskforce.icon}</span>
+            <h3>${taskforce.name}</h3>
+            <p>${taskforce.description}</p>
+        `;
+        
+        container.appendChild(card);
     });
+}
+
+function selectTaskforce(taskforceKey) {
+    selectedTaskforce = taskforceKey;
+    
+    document.querySelectorAll('.taskforce-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event?.target?.closest('.taskforce-card')?.classList.add('selected');
+    
+    document.getElementById('nextBtn1').disabled = false;
+    loadServiceConfig(taskforceKey);
 }
 
 function loadServiceConfig(taskforceType) {
-    const configContainer = document.getElementById('serviceConfigFields');
-    if (!configContainer) return;
-    
     const taskforce = taskforceTypes[taskforceType];
-    if (!taskforce) return;
+    const container = document.getElementById('serviceConfig');
     
-    configContainer.innerHTML = '';
+    let html = `
+        <div class="form-section">
+            <h3>${taskforce.name} Configuration</h3>
+    `;
     
     taskforce.serviceFields.forEach(field => {
-        const fieldContainer = document.createElement('div');
-        fieldContainer.className = 'form-group';
-        
-        const label = document.createElement('label');
-        label.textContent = field.label + (field.required ? ' *' : '');
-        label.htmlFor = field.key;
-        
-        let input;
         if (field.type === 'textarea') {
-            input = document.createElement('textarea');
-            input.rows = 3;
+            html += `
+                <div class="form-group full-width">
+                    <label for="${field.key}">${field.label}</label>
+                    <textarea id="${field.key}" name="${field.key}" rows="3" 
+                              placeholder="${field.placeholder}"></textarea>
+                </div>
+            `;
         } else {
-            input = document.createElement('input');
-            input.type = field.type;
-        }
-        
-        input.id = field.key;
-        input.name = field.key;
-        input.placeholder = field.placeholder || '';
-        input.required = field.required || false;
-        input.className = 'form-control';
-        
-        fieldContainer.appendChild(label);
-        fieldContainer.appendChild(input);
-        configContainer.appendChild(fieldContainer);
-    });
-}
-
-function updateProgress() {
-    // Update progress bar
-    const progressBar = document.querySelector('.progress-fill');
-    if (progressBar) {
-        const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
-        progressBar.style.width = progressPercent + '%';
-    }
-    
-    // Update progress dots
-    for (let i = 1; i <= totalSteps; i++) {
-        const dot = document.getElementById('dot' + i);
-        if (dot) {
-            dot.classList.remove('active', 'completed');
-            if (i < currentStep) {
-                dot.classList.add('completed');
-            } else if (i === currentStep) {
-                dot.classList.add('active');
-            }
-        }
-    }
-}
-
-function validateCurrentStep() {
-    const currentStepElement = document.getElementById('step' + currentStep);
-    if (!currentStepElement) return true;
-    
-    const requiredFields = currentStepElement.querySelectorAll('input[required], textarea[required], select[required]');
-    let isValid = true;
-    
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            field.classList.add('error');
-            isValid = false;
-        } else {
-            field.classList.remove('error');
+            html += `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="${field.key}">${field.label}</label>
+                        <input type="${field.type}" id="${field.key}" name="${field.key}" 
+                               placeholder="${field.placeholder}">
+                    </div>
+                </div>
+            `;
         }
     });
     
-    if (!isValid) {
-        alert('Please fill in all required fields before continuing.');
-    }
-    
-    return isValid;
-}
-
-function collectStepData() {
-    const currentStepElement = document.getElementById('step' + currentStep);
-    if (!currentStepElement) return;
-    
-    const formData = new FormData();
-    const inputs = currentStepElement.querySelectorAll('input, textarea, select');
-    
-    inputs.forEach(input => {
-        if (input.name) {
-            if (currentStep === 2) {
-                clientData[input.name] = input.value;
-            } else if (currentStep === 3) {
-                configData[input.name] = input.value;
-            }
-        }
-    });
+    html += '</div>';
+    container.innerHTML = html;
 }
 
 function nextStep() {
-    if (validateCurrentStep()) {
+    if (currentStep < totalSteps) {
         collectStepData();
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        currentStep++;
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        document.getElementById(`dot${currentStep - 1}`).classList.add('completed');
+        updateProgress();
         
-        document.getElementById('step' + currentStep).classList.remove('active');
-        
-        if (currentStep < totalSteps) {
-            currentStep++;
-            document.getElementById('step' + currentStep).classList.add('active');
-            updateProgress();
-            
-            // Special handling for review step
-            if (currentStep === 4) {
-                populateReviewStep();
-            }
+        if (currentStep === 4) {
+            populateReviewData();
         }
     }
 }
 
 function prevStep() {
     if (currentStep > 1) {
-        document.getElementById('step' + currentStep).classList.remove('active');
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        document.getElementById(`dot${currentStep - 1}`).classList.remove('completed');
         currentStep--;
-        document.getElementById('step' + currentStep).classList.add('active');
+        document.getElementById(`step${currentStep}`).classList.add('active');
         updateProgress();
     }
 }
 
-function populateReviewStep() {
-    const reviewContainer = document.getElementById('reviewDetails');
-    if (!reviewContainer) return;
-    
+function updateProgress() {
+    const progress = (currentStep - 1) / (totalSteps - 1) * 100;
+    document.getElementById('progressFill').style.width = `${progress}%`;
+}
+
+function collectStepData() {
+    if (currentStep === 1) {
+        // Collect business information
+        clientData = {
+            name: document.getElementById('businessName').value,
+            email: document.getElementById('businessEmail').value,
+            phone: document.getElementById('businessPhone').value,
+            website_url: document.getElementById('websiteUrl').value,
+            address: document.getElementById('businessAddress').value
+        };
+    } else if (currentStep === 2) {
+        // Collect service configuration
+        const taskforce = taskforceTypes[selectedTaskforce];
+        taskforce.serviceFields.forEach(field => {
+            const element = document.getElementById(field.key);
+            if (element) {
+                configData[field.key] = element.value;
+            }
+        });
+        configData.business_name = clientData.name;
+        configData.business_email = clientData.email;
+        configData.business_phone = clientData.phone;
+        configData.website_url = clientData.website_url;
+    } else if (currentStep === 3) {
+        // Collect integration data
+        const integrationFields = [
+            'facebook_page_token', 'facebook_page_id', 'whatsapp_token', 'whatsapp_phone_id',
+            'telegram_bot_token', 'telegram_chat_id', 'sendgrid_api_key', 'twilio_account_sid',
+            'twilio_auth_token', 'twilio_phone_number', 'calendly_token', 'booking_url',
+            'google_calendar_id', 'google_sheets_id', 'hubspot_api_key', 'google_analytics_id',
+            'stripe_secret_key', 'paypal_client_id'
+        ];
+        
+        integrationFields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element && element.value) {
+                configData[field] = element.value;
+            }
+        });
+    }
+}
+
+function populateReviewData() {
+    const container = document.getElementById('reviewData');
     const taskforce = taskforceTypes[selectedTaskforce];
     
-    let reviewHTML = `
-        <div class="review-section">
-            <h4>Selected Taskforce</h4>
-            <p><strong>${taskforce.name}</strong></p>
-            <p>${taskforce.description}</p>
+    let html = `
+        <div class="form-section">
+            <h3>Selected Taskforce</h3>
+            <p><strong>${taskforce.name}</strong> - ${taskforce.description}</p>
         </div>
         
-        <div class="review-section">
-            <h4>Business Information</h4>
-            <p><strong>Name:</strong> ${clientData.business_name || 'Not provided'}</p>
-            <p><strong>Email:</strong> ${clientData.business_email || 'Not provided'}</p>
-            <p><strong>Phone:</strong> ${clientData.business_phone || 'Not provided'}</p>
+        <div class="form-section">
+            <h3>Business Information</h3>
+            <p><strong>Business Name:</strong> ${clientData.name}</p>
+            <p><strong>Email:</strong> ${clientData.email}</p>
+            <p><strong>Phone:</strong> ${clientData.phone}</p>
+            ${clientData.website_url ? `<p><strong>Website:</strong> ${clientData.website_url}</p>` : ''}
         </div>
         
-        <div class="review-section">
-            <h4>Service Configuration</h4>
+        <div class="form-section">
+            <h3>Service Configuration</h3>
     `;
     
-    Object.entries(configData).forEach(([key, value]) => {
-        if (value) {
-            const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            reviewHTML += `<p><strong>${label}:</strong> ${value}</p>`;
+    taskforce.serviceFields.forEach(field => {
+        if (configData[field.key]) {
+            html += `<p><strong>${field.label}:</strong> ${configData[field.key]}</p>`;
         }
     });
     
-    reviewHTML += '</div>';
-    reviewContainer.innerHTML = reviewHTML;
+    html += '</div>';
+    
+    const activeIntegrations = Object.keys(configData).filter(key => 
+        key.includes('token') || key.includes('key') || key.includes('id')
+    );
+    
+    if (activeIntegrations.length > 0) {
+        html += `
+            <div class="form-section">
+                <h3>Active Integrations</h3>
+                <p>${activeIntegrations.length} integration(s) configured</p>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
 }
 
 async function deployTaskforce() {
-    // Move to deployment step
-    document.getElementById('step4').classList.remove('active');
+    document.getElementById(`step${currentStep}`).classList.remove('active');
     currentStep = 5;
-    document.getElementById('step5').classList.add('active');
+    document.getElementById(`step${currentStep}`).classList.add('active');
     updateProgress();
     
     try {
         const deploymentData = {
-            client_data: {
-                name: clientData.business_name,
-                email: clientData.business_email,
-                phone: clientData.business_phone
-            },
-            config_data: configData,
-            taskforce_type: selectedTaskforce
+            taskforce_type: selectedTaskforce,
+            name: clientData.name,
+            email: clientData.email,
+            phone: clientData.phone,
+            ...configData
         };
         
         const response = await fetch('/api/etf/deploy', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(deploymentData)
         });
         
         const result = await response.json();
         
-        if (result.success) {
-            // Move to success step
-            document.getElementById('step5').classList.remove('active');
-            currentStep = 6;
-            document.getElementById('step6').classList.add('active');
-            updateProgress();
-            
-            // Show deployment details
-            const detailsContainer = document.getElementById('deploymentDetails');
-            if (detailsContainer) {
-                detailsContainer.innerHTML = `
-                    <div class="deployment-success">
-                        <h4>Deployment Details</h4>
+        if (response.ok) {
+            setTimeout(() => {
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                currentStep = 6;
+                document.getElementById(`step${currentStep}`).classList.add('active');
+                document.getElementById(`dot5`).classList.add('completed');
+                updateProgress();
+                
+                const taskforceInfo = taskforceTypes[selectedTaskforce];
+                document.getElementById('deploymentDetails').innerHTML = `
+                    <div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">
+                        <h3>Deployment Details</h3>
+                        <p><strong>Taskforce Type:</strong> ${taskforceInfo.name}</p>
                         <p><strong>Client ID:</strong> ${result.client_id}</p>
-                        <p><strong>Workflows Created:</strong> ${result.total_duplicated}</p>
-                        <div class="workflow-list">
-                            ${result.duplicated_workflows.map(workflow => `
-                                <div class="workflow-item">
-                                    <strong>${workflow.new_name}</strong>
-                                    <small>ID: ${workflow.new_id}</small>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <p class="success-message">${result.message}</p>
+                        <p><strong>Workflows Deployed:</strong> ${result.duplicated_workflows?.length || 0}</p>
+                        <p><strong>Status:</strong> Active and Ready</p>
+                        <br>
+                        <h4>Your AI assistant is now ready to:</h4>
+                        <ul style="text-align: left; margin: 10px 0;">
+                            <li>📞 Handle customer inquiries 24/7</li>
+                            <li>📅 Manage appointments and scheduling</li>
+                            <li>🚨 Detect and route emergencies</li>
+                            <li>💬 Provide multi-platform support</li>
+                        </ul>
                     </div>
                 `;
-            }
+            }, 2000);
         } else {
             throw new Error(result.error || 'Deployment failed');
         }
     } catch (error) {
         console.error('Deployment error:', error);
-        
-        // Show error message
-        const errorContainer = document.getElementById('step5');
-        if (errorContainer) {
-            errorContainer.innerHTML = `
-                <div class="error-message">
-                    <h3>Deployment Failed</h3>
-                    <p>There was an error deploying your taskforce: ${error.message}</p>
-                    <button class="btn btn-secondary" onclick="retryDeployment()">Try Again</button>
-                    <button class="btn btn-secondary" onclick="prevStep()">Go Back</button>
-                </div>
-            `;
-        }
-    }
-}
-
-function retryDeployment() {
-    // Reset to deployment step
-    const step5 = document.getElementById('step5');
-    if (step5) {
-        step5.innerHTML = `
-            <div class="loading">
-                <div class="spinner"></div>
-                <h3>Deploying Your Taskforce...</h3>
-                <p>Creating your personalized AI automation workflow...</p>
+        document.getElementById('deploymentDetails').innerHTML = `
+            <div style="color: #dc3545; padding: 20px;">
+                <h3>❌ Deployment Error</h3>
+                <p>There was an issue deploying your taskforce:</p>
+                <p><em>${error.message}</em></p>
+                <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
             </div>
         `;
     }
+}
+
+function toggleAdvanced() {
+    const content = document.getElementById('advancedIntegrations');
+    const btn = document.querySelector('.toggle-btn');
     
-    // Retry deployment
-    setTimeout(deployTaskforce, 1000);
-}
-
-// Handle taskforce selection change
-function onTaskforceSelect() {
-    const select = document.getElementById('taskforceSelect');
-    if (select) {
-        selectedTaskforce = select.value;
-        loadServiceConfig(selectedTaskforce);
+    if (content.classList.contains('show')) {
+        content.classList.remove('show');
+        btn.textContent = '+ Show Advanced Integrations (Optional)';
+    } else {
+        content.classList.add('show');
+        btn.textContent = '- Hide Advanced Integrations';
     }
 }
 
-// Add event listeners when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    const taskforceSelect = document.getElementById('taskforceSelect');
-    if (taskforceSelect) {
-        taskforceSelect.addEventListener('change', onTaskforceSelect);
+async function loadTaskforceTemplates(taskforceType) {
+    try {
+        const response = await fetch(`/api/etf/templates`);
+        taskforceTemplates = await response.json();
+        console.log(`Loaded ${taskforceTemplates.length} templates for ${taskforceType}`);
+    } catch (error) {
+        console.error('Error loading taskforce templates:', error);
+        taskforceTemplates = [];
     }
-});
+}
