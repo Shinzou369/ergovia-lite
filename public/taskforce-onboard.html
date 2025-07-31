@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -314,7 +313,7 @@
             .form-row {
                 grid-template-columns: 1fr;
             }
-            
+
             .taskforce-selector {
                 grid-template-columns: 1fr;
             }
@@ -327,7 +326,7 @@
             <h1>🚀 Taskforce Setup</h1>
             <p>Deploy your personalized AI automation in minutes</p>
         </div>
-        
+
         <div class="progress-container">
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
@@ -340,13 +339,13 @@
                 <div class="step-dot" id="dot5">✓</div>
             </div>
         </div>
-        
+
         <div class="form-container">
             <!-- Step 1: Business Information -->
             <div class="step active" id="step1">
                 <h2 class="step-title">Business Information</h2>
                 <p class="step-subtitle">Tell us about your business</p>
-                
+
                 <div class="form-section">
                     <h3>Basic Information</h3>
                     <div class="form-row">
@@ -390,7 +389,7 @@
             <div class="step" id="step2">
                 <h2 class="step-title">Service Configuration</h2>
                 <p class="step-subtitle">Configure your specific service details</p>
-                
+
                 <div id="serviceConfig">
                     <!-- Pet Clinic Specific Configuration -->
                     <div class="form-section">
@@ -537,7 +536,7 @@
             <div class="step" id="step3">
                 <h2 class="step-title">Integration Setup</h2>
                 <p class="step-subtitle">Connect your tools and platforms</p>
-                
+
                 <!-- Communication Platforms -->
                 <div class="form-section">
                     <h3>Communication Platforms</h3>
@@ -691,7 +690,7 @@
             <div class="step" id="step4">
                 <h2 class="step-title">Review & Deploy</h2>
                 <p class="step-subtitle">Review your configuration and deploy your taskforce</p>
-                
+
                 <div id="reviewData">
                     <!-- Review data will be populated here -->
                 </div>
@@ -814,7 +813,7 @@
         function detectTaskforceType() {
             const urlParams = new URLSearchParams(window.location.search);
             const taskforceParam = urlParams.get('type');
-            
+
             if (taskforceParam && taskforceTypes[taskforceParam]) {
                 selectedTaskforce = taskforceParam;
                 setTimeout(() => {
@@ -825,30 +824,30 @@
 
         function loadTaskforceOptions() {
             const container = document.getElementById('taskforceOptions');
-            
+
             Object.entries(taskforceTypes).forEach(([key, taskforce]) => {
                 const card = document.createElement('div');
                 card.className = 'taskforce-card';
                 card.onclick = () => selectTaskforce(key);
-                
+
                 card.innerHTML = `
                     <span class="taskforce-icon">${taskforce.icon}</span>
                     <h3>${taskforce.name}</h3>
                     <p>${taskforce.description}</p>
                 `;
-                
+
                 container.appendChild(card);
             });
         }
 
         function selectTaskforce(taskforceKey) {
             selectedTaskforce = taskforceKey;
-            
+
             document.querySelectorAll('.taskforce-card').forEach(card => {
                 card.classList.remove('selected');
             });
             event?.target?.closest('.taskforce-card')?.classList.add('selected');
-            
+
             document.getElementById('nextBtn1').disabled = false;
             loadServiceConfig(taskforceKey);
         }
@@ -856,12 +855,12 @@
         function loadServiceConfig(taskforceType) {
             const taskforce = taskforceTypes[taskforceType];
             const container = document.getElementById('serviceConfig');
-            
+
             let html = `
                 <div class="form-section">
                     <h3>${taskforce.name} Configuration</h3>
             `;
-            
+
             taskforce.serviceFields.forEach(field => {
                 if (field.type === 'textarea') {
                     html += `
@@ -883,7 +882,7 @@
                     `;
                 }
             });
-            
+
             html += '</div>';
             container.innerHTML = html;
         }
@@ -896,7 +895,7 @@
                 document.getElementById(`step${currentStep}`).classList.add('active');
                 document.getElementById(`dot${currentStep - 1}`).classList.add('completed');
                 updateProgress();
-                
+
                 if (currentStep === 5) {
                     populateReviewData();
                 }
@@ -950,7 +949,7 @@
                     'google_calendar_id', 'google_sheets_id', 'hubspot_api_key', 'google_analytics_id',
                     'stripe_secret_key', 'paypal_client_id'
                 ];
-                
+
                 integrationFields.forEach(field => {
                     const element = document.getElementById(field);
                     if (element && element.value) {
@@ -963,13 +962,13 @@
         function populateReviewData() {
             const container = document.getElementById('reviewData');
             const taskforce = taskforceTypes[selectedTaskforce];
-            
+
             let html = `
                 <div class="form-section">
                     <h3>Selected Taskforce</h3>
                     <p><strong>${taskforce.name}</strong> - ${taskforce.description}</p>
                 </div>
-                
+
                 <div class="form-section">
                     <h3>Business Information</h3>
                     <p><strong>Business Name:</strong> ${clientData.name}</p>
@@ -977,23 +976,23 @@
                     <p><strong>Phone:</strong> ${clientData.phone}</p>
                     ${clientData.website_url ? `<p><strong>Website:</strong> ${clientData.website_url}</p>` : ''}
                 </div>
-                
+
                 <div class="form-section">
                     <h3>Service Configuration</h3>
             `;
-            
+
             taskforce.serviceFields.forEach(field => {
                 if (configData[field.key]) {
                     html += `<p><strong>${field.label}:</strong> ${configData[field.key]}</p>`;
                 }
             });
-            
+
             html += '</div>';
-            
+
             const activeIntegrations = Object.keys(configData).filter(key => 
                 key.includes('token') || key.includes('key') || key.includes('id')
             );
-            
+
             if (activeIntegrations.length > 0) {
                 html += `
                     <div class="form-section">
@@ -1002,7 +1001,7 @@
                     </div>
                 `;
             }
-            
+
             container.innerHTML = html;
         }
 
@@ -1011,7 +1010,7 @@
             currentStep = 6;
             document.getElementById(`step${currentStep}`).classList.add('active');
             updateProgress();
-            
+
             try {
                 const deploymentData = {
                     taskforce_type: selectedTaskforce,
@@ -1020,7 +1019,7 @@
                     phone: clientData.phone,
                     ...configData
                 };
-                
+
                 const response = await fetch('/api/etf/deploy', {
                     method: 'POST',
                     headers: {
@@ -1028,17 +1027,23 @@
                     },
                     body: JSON.stringify(deploymentData)
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (response.ok) {
-                    setTimeout(() => {
-                        document.getElementById(`step${currentStep}`).classList.remove('active');
-                        currentStep = 6;
-                        document.getElementById(`step${currentStep}`).classList.add('active');
-                        document.getElementById(`dot5`).classList.add('completed');
-                        updateProgress();
-                        
+                setTimeout(() => {
+                    document.getElementById(`step${currentStep}`).classList.remove('active');
+                    currentStep = 6;
+                    const step6 = document.getElementById(`step${currentStep}`);
+                    if (step6) {
+                        step6.classList.add('active');
+                    }
+                    const dot5 = document.getElementById(`dot5`);
+                    if (dot5) {
+                        dot5.classList.add('completed');
+                    }
+                    updateProgress();
+
                         const taskforceInfo = taskforceTypes[selectedTaskforce];
                         document.getElementById('deploymentDetails').innerHTML = `
                             <div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">
@@ -1077,7 +1082,7 @@
         function toggleAdvanced() {
             const content = document.getElementById('advancedIntegrations');
             const btn = document.querySelector('.toggle-btn');
-            
+
             if (content.classList.contains('show')) {
                 content.classList.remove('show');
                 btn.textContent = '+ Show Advanced Integrations (Optional)';
