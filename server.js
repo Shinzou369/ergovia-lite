@@ -71,7 +71,7 @@ class N8NApiClient {
         timestamp: new Date().toISOString()
       };
       console.error('N8N API Error Details:', errorDetails);
-      
+
       // Provide more specific error messages based on status codes
       if (error.response?.status === 401) {
         throw new Error('N8N API Authentication failed - check API key');
@@ -1796,24 +1796,6 @@ app.get("/api/auth/status", (req, res) => {
   });
 });
 
-// Get user profile
-app.get('/api/user/profile', requireAuth, async (req, res) => {
-  try {
-    const userId = req.session.user.googleId;
-    const users = await readUsersFile();
-    const user = users[userId];
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({ user });
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).json({ error: 'Failed to fetch user profile' });
-  }
-});
-
 // Get user threads
 app.get('/api/threads', requireAuth, async (req, res) => {
   if (!req.isAuthenticated()) {
@@ -1856,7 +1838,7 @@ function saveTokenUsage(tokenUsage) {
 }
 
 function getUserTokenUsage(userId) {
-  const tokenUsage = loadTokenUsage();
+  const tokenUsage = loadUsage();
   return tokenUsage[userId] || { tokens: 0, prompts: 0 };
 }
 
@@ -2297,12 +2279,12 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     console.warn('⚠️ Nodes is not an array:', typeof nodes);
     return nodes || [];
   }
-  
+
   if (!configData || typeof configData !== 'object') {
     console.warn('⚠️ Invalid configData provided');
     configData = {};
   }
-  
+
   if (!clientData || typeof clientData !== 'object') {
     console.warn('⚠️ Invalid clientData provided');
     clientData = {};
@@ -2382,4 +2364,3 @@ console.log(`Server is running on port ${port}`);
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
 });
-

@@ -1,4 +1,3 @@
-
 // Enhanced sidebar toggle with proper workspace expansion and hamburger animation
 function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
@@ -37,26 +36,6 @@ function toggleSidebar() {
   document.body.classList.toggle("sidebar-hidden", sidebar.classList.contains("hidden"));
 }
 
-// Toggle theme function with proper icon updates
-function toggleTheme() {
-  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-  
-  // Update theme icon
-  const themeIcon = document.getElementById('theme-icon');
-  if (themeIcon) {
-    const iconName = newTheme === 'dark' ? 'sun' : 'moon';
-    themeIcon.setAttribute('data-lucide', iconName);
-    // Re-initialize Lucide icons to update the display
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
-  }
-}
-
 // Website card interaction functionality
 function initializeWebsiteCards() {
   const websiteCards = document.querySelectorAll(".website-card");
@@ -85,7 +64,7 @@ function initializeWebsiteCards() {
       // Get website info
       const websiteId = this.dataset.website;
       const websiteName = this.querySelector(".website-name");
-      
+
       if (websiteName) {
         addMessage(`Switched to ${websiteName.textContent}`, "system");
         console.log(`Selected website: ${websiteName.textContent} (ID: ${websiteId})`);
@@ -974,7 +953,7 @@ function handleTokenUsageClick() {
 }
 
 // Lemon Squeezy payment
-function redirectToLemonSqueezy() {
+function redirectTosqueeze() {
   window.location.href = 'https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d';
 }
 
@@ -985,7 +964,7 @@ async function copyMessage(messageId) {
     try {
       const content = messageElement.textContent || messageElement.innerText;
       await navigator.clipboard.writeText(content);
-      
+
       // Find and update copy button
       const copyBtn = messageElement.querySelector('.copy-btn');
       if (copyBtn) {
@@ -993,7 +972,7 @@ async function copyMessage(messageId) {
         copyBtn.innerHTML = '✓';
         copyBtn.style.background = '#10b981';
         copyBtn.style.color = 'white';
-        
+
         setTimeout(() => {
           copyBtn.innerHTML = originalHTML;
           copyBtn.style.background = '';
@@ -1085,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
       promptInput.addEventListener('input', function() {
         const length = this.value.length;
         charCounter.textContent = `${length}/1000`;
-        
+
         if (length > 1000) {
           charCounter.style.color = 'var(--error-color)';
         } else {

@@ -878,7 +878,7 @@ i {
   font-size: 1.3rem;
   line-height: 1.8;
   color: rgba(255, 255, 255, 0.95);
-  font-style: italic,
+  font-style: italic;
   font-weight: 300;
   margin: 0 0 20px 0;
   opacity: 0;
@@ -1999,7 +1999,7 @@ i {
 }
 
 .code-copy-btn:hover {
-  background: ```text rgba(255, 255, 255, 0.2) !important;```text
+  background: rgba(255, 255, 255, 0.2) !important;
   color: white !important;
 }
 
