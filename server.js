@@ -1287,6 +1287,196 @@ app.post('/api/etf/test-both-formats', async (req, res) => {
   }
 });
 
+// Create Google credentials in N8N
+app.post('/api/etf/create-google-credential', async (req, res) => {
+  try {
+    const { name, type, data } = req.body;
+
+    if (!name || !type || !data) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name, type, and data are required'
+      });
+    }
+
+    console.log('🔑 Creating Google credential:', { name, type });
+
+    // Validate Google credential types
+    const validGoogleTypes = [
+      'googleSheetsOAuth2Api',
+      'googleDriveOAuth2Api', 
+      'googleCalendarOAuth2Api',
+      'googleApi'
+    ];
+
+    if (!validGoogleTypes.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid Google credential type. Valid types: ${validGoogleTypes.join(', ')}`
+      });
+    }
+
+    // Create credential data structure
+    const credentialData = {
+      name: name,
+      type: type,
+      data: data
+    };
+
+    console.log('Making N8N API request: POST', `${N8N_BASE_URL}/api/v1/credentials`);
+
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      },
+      body: JSON.stringify(credentialData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ N8N credential creation failed:', response.status, errorText);
+      
+      let errorMessage = `N8N API error: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch (e) {
+        errorMessage = errorText || errorMessage;
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log('✅ Google credential created successfully:', result.id);
+
+    res.json({
+      success: true,
+      credential: {
+        id: result.id,
+        name: result.name,
+        type: result.type,
+        createdAt: result.createdAt || new Date().toISOString()
+      },
+      message: `Google credential "${name}" created successfully`
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to create Google credential:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create credential',
+      details: error.message 
+    });
+  }
+});
+
+// List all Google credentials
+app.get('/api/etf/list-google-credentials', async (req, res) => {
+  try {
+    console.log('📋 Listing Google credentials...');
+
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const credentials = Array.isArray(result) ? result : (result.data || []);
+
+    // Filter for Google-related credentials
+    const googleCredentials = credentials.filter(cred => {
+      const type = cred.type?.toLowerCase() || '';
+      return type.includes('google') || 
+             type.includes('sheets') || 
+             type.includes('drive') || 
+             type.includes('calendar');
+    });
+
+    console.log(`✅ Found ${googleCredentials.length} Google credentials`);
+
+    res.json({
+      success: true,
+      total: googleCredentials.length,
+      credentials: googleCredentials.map(cred => ({
+        id: cred.id,
+        name: cred.name,
+        type: cred.type,
+        createdAt: cred.createdAt,
+        updatedAt: cred.updatedAt
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to list Google credentials:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to list credentials',
+      details: error.message 
+    });
+  }
+});
+
+// Test Google credential access
+app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
+  try {
+    const { credentialId } = req.params;
+
+    if (!credentialId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Credential ID is required'
+      });
+    }
+
+    console.log('🧪 Testing Google credential:', credentialId);
+
+    // Get credential details
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials/${credentialId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`N8N API error: ${response.status}`);
+    }
+
+    const credential = await response.json();
+
+    res.json({
+      success: true,
+      credential: {
+        id: credential.id,
+        name: credential.name,
+        type: credential.type,
+        createdAt: credential.createdAt
+      },
+      message: `Credential ${credential.name} is accessible`,
+      test_status: 'accessible'
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to test Google credential:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to test credential',
+      details: error.message 
+    });
+  }
+});
+
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
   if (!req.session.user) {
