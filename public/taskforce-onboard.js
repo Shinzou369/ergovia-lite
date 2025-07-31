@@ -103,6 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedTaskforce) {
         loadServiceConfig(selectedTaskforce);
     }
+    
+    loadTaskforceOptions();
 });
 
 function detectTaskforceType() {
@@ -117,6 +119,7 @@ function detectTaskforceType() {
 
 function loadTaskforceOptions() {
     const container = document.getElementById('taskforceOptions');
+    if (!container) return;
     
     Object.entries(taskforceTypes).forEach(([key, taskforce]) => {
         const card = document.createElement('div');
@@ -139,15 +142,25 @@ function selectTaskforce(taskforceKey) {
     document.querySelectorAll('.taskforce-card').forEach(card => {
         card.classList.remove('selected');
     });
-    event?.target?.closest('.taskforce-card')?.classList.add('selected');
     
-    document.getElementById('nextBtn1').disabled = false;
+    // Find and select the clicked card
+    const cards = document.querySelectorAll('.taskforce-card');
+    cards.forEach(card => {
+        if (card.onclick && card.onclick.toString().includes(taskforceKey)) {
+            card.classList.add('selected');
+        }
+    });
+    
+    const nextBtn = document.getElementById('nextBtn1');
+    if (nextBtn) nextBtn.disabled = false;
+    
     loadServiceConfig(taskforceKey);
 }
 
 function loadServiceConfig(taskforceType) {
     const taskforce = taskforceTypes[taskforceType];
     const container = document.getElementById('serviceConfig');
+    if (!container) return;
     
     let html = `
         <div class="form-section">
@@ -183,10 +196,18 @@ function loadServiceConfig(taskforceType) {
 function nextStep() {
     if (currentStep < totalSteps) {
         collectStepData();
-        document.getElementById(`step${currentStep}`).classList.remove('active');
+        
+        const currentStepEl = document.getElementById(`step${currentStep}`);
+        if (currentStepEl) currentStepEl.classList.remove('active');
+        
         currentStep++;
-        document.getElementById(`step${currentStep}`).classList.add('active');
-        document.getElementById(`dot${currentStep - 1}`).classList.add('completed');
+        
+        const nextStepEl = document.getElementById(`step${currentStep}`);
+        if (nextStepEl) nextStepEl.classList.add('active');
+        
+        const dotEl = document.getElementById(`dot${currentStep - 1}`);
+        if (dotEl) dotEl.classList.add('completed');
+        
         updateProgress();
         
         if (currentStep === 4) {
@@ -197,38 +218,48 @@ function nextStep() {
 
 function prevStep() {
     if (currentStep > 1) {
-        document.getElementById(`step${currentStep}`).classList.remove('active');
-        document.getElementById(`dot${currentStep - 1}`).classList.remove('completed');
+        const currentStepEl = document.getElementById(`step${currentStep}`);
+        if (currentStepEl) currentStepEl.classList.remove('active');
+        
+        const dotEl = document.getElementById(`dot${currentStep - 1}`);
+        if (dotEl) dotEl.classList.remove('completed');
+        
         currentStep--;
-        document.getElementById(`step${currentStep}`).classList.add('active');
+        
+        const prevStepEl = document.getElementById(`step${currentStep}`);
+        if (prevStepEl) prevStepEl.classList.add('active');
+        
         updateProgress();
     }
 }
 
 function updateProgress() {
     const progress = (currentStep - 1) / (totalSteps - 1) * 100;
-    document.getElementById('progressFill').style.width = `${progress}%`;
+    const progressFill = document.getElementById('progressFill');
+    if (progressFill) progressFill.style.width = `${progress}%`;
 }
 
 function collectStepData() {
     if (currentStep === 1) {
         // Collect business information
         clientData = {
-            name: document.getElementById('businessName').value,
-            email: document.getElementById('businessEmail').value,
-            phone: document.getElementById('businessPhone').value,
-            website_url: document.getElementById('websiteUrl').value,
-            address: document.getElementById('businessAddress').value
+            name: getElementValue('businessName'),
+            email: getElementValue('businessEmail'),
+            phone: getElementValue('businessPhone'),
+            website_url: getElementValue('websiteUrl'),
+            address: getElementValue('businessAddress')
         };
     } else if (currentStep === 2) {
         // Collect service configuration
         const taskforce = taskforceTypes[selectedTaskforce];
-        taskforce.serviceFields.forEach(field => {
-            const element = document.getElementById(field.key);
-            if (element) {
-                configData[field.key] = element.value;
-            }
-        });
+        if (taskforce) {
+            taskforce.serviceFields.forEach(field => {
+                const value = getElementValue(field.key);
+                if (value) {
+                    configData[field.key] = value;
+                }
+            });
+        }
         configData.business_name = clientData.name;
         configData.business_email = clientData.email;
         configData.business_phone = clientData.phone;
@@ -244,17 +275,25 @@ function collectStepData() {
         ];
         
         integrationFields.forEach(field => {
-            const element = document.getElementById(field);
-            if (element && element.value) {
-                configData[field] = element.value;
+            const value = getElementValue(field);
+            if (value) {
+                configData[field] = value;
             }
         });
     }
 }
 
+function getElementValue(id) {
+    const element = document.getElementById(id);
+    return element ? element.value : '';
+}
+
 function populateReviewData() {
     const container = document.getElementById('reviewData');
+    if (!container) return;
+    
     const taskforce = taskforceTypes[selectedTaskforce];
+    if (!taskforce) return;
     
     let html = `
         <div class="form-section">
@@ -264,9 +303,9 @@ function populateReviewData() {
         
         <div class="form-section">
             <h3>Business Information</h3>
-            <p><strong>Business Name:</strong> ${clientData.name}</p>
-            <p><strong>Email:</strong> ${clientData.email}</p>
-            <p><strong>Phone:</strong> ${clientData.phone}</p>
+            <p><strong>Business Name:</strong> ${clientData.name || 'Not provided'}</p>
+            <p><strong>Email:</strong> ${clientData.email || 'Not provided'}</p>
+            <p><strong>Phone:</strong> ${clientData.phone || 'Not provided'}</p>
             ${clientData.website_url ? `<p><strong>Website:</strong> ${clientData.website_url}</p>` : ''}
         </div>
         
@@ -299,9 +338,13 @@ function populateReviewData() {
 }
 
 async function deployTaskforce() {
-    document.getElementById('step' + currentStep).classList.remove('active');
+    const currentStepEl = document.getElementById(`step${currentStep}`);
+    if (currentStepEl) currentStepEl.classList.remove('active');
+    
     currentStep = 5;
-    document.getElementById('step' + currentStep).classList.add('active');
+    const deployStepEl = document.getElementById(`step${currentStep}`);
+    if (deployStepEl) deployStepEl.classList.add('active');
+    
     updateProgress();
     
     try {
@@ -331,39 +374,51 @@ async function deployTaskforce() {
         
         if (response.ok && result.success) {
             setTimeout(() => {
-                document.getElementById('step' + currentStep).classList.remove('active');
+                const deployStepEl = document.getElementById(`step${currentStep}`);
+                if (deployStepEl) deployStepEl.classList.remove('active');
+                
                 currentStep = 6;
-                document.getElementById('step' + currentStep).classList.add('active');
-                document.getElementById('dot5').classList.add('completed');
+                const successStepEl = document.getElementById(`step${currentStep}`);
+                if (successStepEl) successStepEl.classList.add('active');
+                
+                const dot5 = document.getElementById('dot5');
+                if (dot5) dot5.classList.add('completed');
+                
                 updateProgress();
                 
-                document.getElementById('deploymentDetails').innerHTML = 
-                    '<div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">' +
-                    '<h3>Deployment Details</h3>' +
-                    '<p><strong>Taskforce Type:</strong> Pet Clinic Taskforce</p>' +
-                    '<p><strong>Client ID:</strong> ' + (result.client_id || 'Generated') + '</p>' +
-                    '<p><strong>Workflows Deployed:</strong> ' + (result.duplicated_workflows?.length || result.total_duplicated || 0) + '</p>' +
-                    '<p><strong>Status:</strong> Active and Ready</p>' +
-                    '<br><h4>Your AI assistant is now ready to:</h4>' +
-                    '<ul style="text-align: left; margin: 10px 0;">' +
-                    '<li>📞 Handle customer inquiries 24/7</li>' +
-                    '<li>📅 Manage appointments and scheduling</li>' +
-                    '<li>🚨 Detect and route emergencies</li>' +
-                    '<li>💬 Provide multi-platform support</li>' +
-                    '</ul></div>';
+                const deploymentDetails = document.getElementById('deploymentDetails');
+                if (deploymentDetails) {
+                    deploymentDetails.innerHTML = 
+                        '<div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">' +
+                        '<h3>Deployment Details</h3>' +
+                        '<p><strong>Taskforce Type:</strong> Pet Clinic Taskforce</p>' +
+                        '<p><strong>Client ID:</strong> ' + (result.client_id || 'Generated') + '</p>' +
+                        '<p><strong>Workflows Deployed:</strong> ' + (result.duplicated_workflows?.length || result.total_duplicated || 0) + '</p>' +
+                        '<p><strong>Status:</strong> Active and Ready</p>' +
+                        '<br><h4>Your AI assistant is now ready to:</h4>' +
+                        '<ul style="text-align: left; margin: 10px 0;">' +
+                        '<li>📞 Handle customer inquiries 24/7</li>' +
+                        '<li>📅 Manage appointments and scheduling</li>' +
+                        '<li>🚨 Detect and route emergencies</li>' +
+                        '<li>💬 Provide multi-platform support</li>' +
+                        '</ul></div>';
+                }
             }, 2000);
         } else {
             throw new Error(result.error || result.details || 'Deployment failed');
         }
     } catch (error) {
         console.error('Deployment error:', error);
-        document.getElementById('deploymentDetails').innerHTML = 
-            '<div style="color: #dc3545; padding: 20px;">' +
-            '<h3>❌ Deployment Error</h3>' +
-            '<p>There was an issue deploying your taskforce:</p>' +
-            '<p><em>' + error.message + '</em></p>' +
-            '<button class="btn btn-primary" onclick="location.reload()">Try Again</button>' +
-            '</div>';
+        const deploymentDetails = document.getElementById('deploymentDetails');
+        if (deploymentDetails) {
+            deploymentDetails.innerHTML = 
+                '<div style="color: #dc3545; padding: 20px;">' +
+                '<h3>❌ Deployment Error</h3>' +
+                '<p>There was an issue deploying your taskforce:</p>' +
+                '<p><em>' + error.message + '</em></p>' +
+                '<button class="btn btn-primary" onclick="location.reload()">Try Again</button>' +
+                '</div>';
+        }
     }
 }
 
@@ -371,18 +426,20 @@ function toggleAdvanced() {
     const content = document.getElementById('advancedIntegrations');
     const btn = document.querySelector('.toggle-btn');
     
-    if (content.classList.contains('show')) {
-        content.classList.remove('show');
-        btn.textContent = '+ Show Advanced Integrations (Optional)';
-    } else {
-        content.classList.add('show');
-        btn.textContent = '- Hide Advanced Integrations';
+    if (content && btn) {
+        if (content.classList.contains('show')) {
+            content.classList.remove('show');
+            btn.textContent = '+ Show Advanced Integrations (Optional)';
+        } else {
+            content.classList.add('show');
+            btn.textContent = '- Hide Advanced Integrations';
+        }
     }
 }
 
 async function loadTaskforceTemplates(taskforceType) {
     try {
-        const response = await fetch(`/api/etf/templates`);
+        const response = await fetch('/api/etf/templates');
         taskforceTemplates = await response.json();
         console.log(`Loaded ${taskforceTemplates.length} templates for ${taskforceType}`);
     } catch (error) {
@@ -390,3 +447,58 @@ async function loadTaskforceTemplates(taskforceType) {
         taskforceTemplates = [];
     }
 }
+
+// Auto-fill form with demo data for testing
+function fillDemoData() {
+    // Business Information
+    setElementValue('businessName', 'Demo Pet Clinic');
+    setElementValue('businessEmail', 'demo@petclinic.com');
+    setElementValue('businessPhone', '(555) 123-4567');
+    setElementValue('websiteUrl', 'https://demopetclinic.com');
+    setElementValue('businessAddress', '123 Main Street, Demo City, DC 12345');
+    
+    // Service Configuration (if pet-clinic is selected)
+    if (selectedTaskforce === 'pet-clinic') {
+        setElementValue('clinic_name', 'Demo Pet Clinic');
+        setElementValue('clinic_location', 'Downtown Demo City');
+        setElementValue('clinic_hours', 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM');
+        setElementValue('emergency_hours', '24/7 Emergency Line Available');
+        setElementValue('services_offered', 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming');
+        setElementValue('head_veterinarian', 'Dr. Demo Smith');
+        setElementValue('clinic_phone', '(555) 123-4567');
+        setElementValue('appointment_types', 'Wellness Exam, Vaccination, Surgery, Emergency');
+        setElementValue('pricing_info', 'Exam: $75, Vaccination: $45, Surgery: $200+');
+        setElementValue('on_call_staff_name', 'Dr. Demo Johnson');
+        setElementValue('on_call_phone', '(555) 987-6543');
+        setElementValue('response_greeting', 'Hello! Welcome to Demo Pet Clinic');
+        setElementValue('faq_sheet_name', 'INFO');
+        setElementValue('hitl_queue_sheet_name', 'Sheet6');
+        setElementValue('confidence_threshold', '95');
+    }
+}
+
+function setElementValue(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.value = value;
+    }
+}
+
+// Add a button to fill demo data automatically
+function addDemoButton() {
+    const step1 = document.getElementById('step1');
+    if (step1) {
+        const demoBtn = document.createElement('button');
+        demoBtn.type = 'button';
+        demoBtn.className = 'btn btn-secondary';
+        demoBtn.textContent = 'Fill Demo Data';
+        demoBtn.onclick = fillDemoData;
+        demoBtn.style.marginTop = '20px';
+        step1.appendChild(demoBtn);
+    }
+}
+
+// Add demo button after DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(addDemoButton, 1000); // Add after other initialization
+});
