@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -741,11 +740,11 @@
         function detectTaskforceType() {
             const urlParams = new URLSearchParams(window.location.search);
             const taskforceParam = urlParams.get('type');
-            
+
             if (taskforceParam) {
                 selectedTaskforce = taskforceParam;
             }
-            
+
             // Since we're on pet-clinic path, default to pet-clinic
             if (!selectedTaskforce) {
                 selectedTaskforce = 'pet-clinic';
@@ -755,25 +754,25 @@
         function nextStep() {
             if (validateCurrentStep()) {
                 collectStepData();
-                
+
                 document.getElementById('step' + currentStep).classList.remove('active');
-                
+
                 if (currentStep < totalSteps) {
                     currentStep++;
                     document.getElementById('step' + currentStep).classList.add('active');
-                    
+
                     // Update progress dots
                     if (currentStep > 1) {
                         document.getElementById('dot' + (currentStep - 1)).classList.add('completed');
                         document.getElementById('dot' + (currentStep - 1)).classList.remove('active');
                     }
-                    
+
                     if (currentStep <= 5) {
                         document.getElementById('dot' + currentStep).classList.add('active');
                     }
-                    
+
                     updateProgress();
-                    
+
                     if (currentStep === 4) {
                         populateReviewData();
                     }
@@ -785,12 +784,12 @@
             if (currentStep > 1) {
                 document.getElementById('step' + currentStep).classList.remove('active');
                 document.getElementById('dot' + currentStep).classList.remove('active');
-                
+
                 if (currentStep > 1) {
                     document.getElementById('dot' + (currentStep - 1)).classList.remove('completed');
                     document.getElementById('dot' + (currentStep - 1)).classList.add('active');
                 }
-                
+
                 currentStep--;
                 document.getElementById('step' + currentStep).classList.add('active');
                 updateProgress();
@@ -807,17 +806,17 @@
                 const name = document.getElementById('businessName').value.trim();
                 const email = document.getElementById('businessEmail').value.trim();
                 const phone = document.getElementById('businessPhone').value.trim();
-                
+
                 if (!name || !email || !phone) {
                     alert('Please fill in all required fields');
                     return false;
                 }
                 return true;
             }
-            
+
             if (currentStep === 2) {
                 const requiredFields = ['clinic_name', 'clinic_location', 'clinic_hours', 'services_offered', 'head_veterinarian', 'clinic_phone', 'appointment_types', 'on_call_staff_name', 'on_call_phone'];
-                
+
                 for (let fieldId of requiredFields) {
                     const field = document.getElementById(fieldId);
                     if (field && field.hasAttribute('required') && !field.value.trim()) {
@@ -828,7 +827,7 @@
                 }
                 return true;
             }
-            
+
             return true;
         }
 
@@ -850,20 +849,20 @@
                     'on_call_phone', 'staff_slack_channel', 'response_greeting', 'leads_sheet_id',
                     'faq_sheet_name', 'hitl_queue_sheet_name', 'confidence_threshold'
                 ];
-                
+
                 serviceFields.forEach(field => {
                     const element = document.getElementById(field);
                     if (element) {
                         configData[field] = element.value;
                     }
                 });
-                
+
                 configData.business_name = clientData.name;
                 configData.business_email = clientData.email;
                 configData.business_phone = clientData.phone;
                 configData.website_url = clientData.website_url;
                 configData.business_address = clientData.address;
-                
+
             } else if (currentStep === 3) {
                 // Collect integration data
                 const integrationFields = [
@@ -873,7 +872,7 @@
                     'googleCalendarId', 'googleSheetsId', 'hubspotApiKey', 'googleAnalyticsId',
                     'stripeSecretKey', 'paypalClientId'
                 ];
-                
+
                 integrationFields.forEach(field => {
                     const element = document.getElementById(field);
                     if (element && element.value) {
@@ -885,12 +884,12 @@
 
         function populateReviewData() {
             const container = document.getElementById('reviewData');
-            
+
             let html = '<div class="form-section">';
             html += '<h3>Selected Taskforce</h3>';
             html += '<p><strong>Pet Clinic Taskforce</strong> - AI veterinary assistant for appointment management and patient care</p>';
             html += '</div>';
-            
+
             html += '<div class="form-section">';
             html += '<h3>Business Information</h3>';
             html += '<p><strong>Business Name:</strong> ' + clientData.name + '</p>';
@@ -900,7 +899,7 @@
                 html += '<p><strong>Website:</strong> ' + clientData.website_url + '</p>';
             }
             html += '</div>';
-            
+
             html += '<div class="form-section">';
             html += '<h3>Service Configuration</h3>';
             if (configData.clinic_name) html += '<p><strong>Clinic Name:</strong> ' + configData.clinic_name + '</p>';
@@ -908,19 +907,19 @@
             if (configData.clinic_hours) html += '<p><strong>Hours:</strong> ' + configData.clinic_hours + '</p>';
             if (configData.services_offered) html += '<p><strong>Services:</strong> ' + configData.services_offered + '</p>';
             html += '</div>';
-            
+
             const activeIntegrations = Object.keys(configData).filter(key => 
                 (key.includes('token') || key.includes('key') || key.includes('id')) && 
                 configData[key] && configData[key].trim() !== ''
             );
-            
+
             if (activeIntegrations.length > 0) {
                 html += '<div class="form-section">';
                 html += '<h3>Active Integrations</h3>';
                 html += '<p>' + activeIntegrations.length + ' integration(s) configured</p>';
                 html += '</div>';
             }
-            
+
             container.innerHTML = html;
         }
 
@@ -929,7 +928,7 @@
             currentStep = 5;
             document.getElementById('step' + currentStep).classList.add('active');
             updateProgress();
-            
+
             try {
                 const deploymentData = {
                     taskforce_type: selectedTaskforce,
@@ -938,7 +937,7 @@
                     phone: clientData.phone,
                     ...configData
                 };
-                
+
                 const response = await fetch('/api/etf/deploy', {
                     method: 'POST',
                     headers: {
@@ -946,9 +945,9 @@
                     },
                     body: JSON.stringify(deploymentData)
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (response.ok) {
                     setTimeout(() => {
                         document.getElementById('step' + currentStep).classList.remove('active');
@@ -956,7 +955,7 @@
                         document.getElementById('step' + currentStep).classList.add('active');
                         document.getElementById('dot5').classList.add('completed');
                         updateProgress();
-                        
+
                         document.getElementById('deploymentDetails').innerHTML = 
                             '<div style="margin: 30px 0; padding: 30px; background: #f8f9fa; border-radius: 10px; text-align: left;">' +
                             '<h3>Deployment Details</h3>' +
@@ -990,7 +989,7 @@
         function toggleAdvanced() {
             const content = document.getElementById('advancedIntegrations');
             const btn = document.querySelector('.toggle-btn');
-            
+
             if (content.classList.contains('show')) {
                 content.classList.remove('show');
                 btn.textContent = '+ Show Advanced Integrations (Optional)';
