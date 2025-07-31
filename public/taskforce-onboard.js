@@ -16,12 +16,25 @@ const taskforceTypes = {
         icon: '🐾',
         description: 'AI veterinary assistant for appointment management and patient care',
         serviceFields: [
-            { key: 'clinic_hours', label: 'Clinic Hours', type: 'text', placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM' },
+            { key: 'clinic_name', label: 'Clinic Name', type: 'text', placeholder: 'Happy Paws Veterinary Clinic', required: true },
+            { key: 'clinic_location', label: 'Clinic Location', type: 'text', placeholder: 'Downtown Springfield', required: true },
+            { key: 'clinic_hours', label: 'Clinic Hours', type: 'text', placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM', required: true },
             { key: 'emergency_hours', label: 'Emergency Hours', type: 'text', placeholder: '24/7 Emergency Line Available' },
-            { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming' },
-            { key: 'veterinarian_name', label: 'Head Veterinarian', type: 'text', placeholder: 'Dr. Smith' },
-            { key: 'appointment_types', label: 'Appointment Types', type: 'textarea', placeholder: 'Wellness Exam, Vaccination, Surgery, Emergency' },
-            { key: 'pricing_info', label: 'Pricing Information', type: 'textarea', placeholder: 'Exam: $75, Vaccination: $45, etc.' }
+            { key: 'services_offered', label: 'Services Offered', type: 'textarea', placeholder: 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming', required: true },
+            { key: 'head_veterinarian', label: 'Head Veterinarian', type: 'text', placeholder: 'Dr. Smith', required: true },
+            { key: 'clinic_phone', label: 'Clinic Phone', type: 'tel', placeholder: '(555) 123-4567', required: true },
+            { key: 'appointment_types', label: 'Appointment Types', type: 'textarea', placeholder: 'Wellness Exam, Vaccination, Surgery, Emergency', required: true },
+            { key: 'pricing_info', label: 'Pricing Information', type: 'textarea', placeholder: 'Exam: $75, Vaccination: $45, etc.' },
+            { key: 'booking_system_url', label: 'Online Booking URL', type: 'url', placeholder: 'https://your-booking-system.com' },
+            { key: 'booking_phone', label: 'Booking Phone', type: 'tel', placeholder: '(555) 123-4567' },
+            { key: 'on_call_staff_name', label: 'On-Call Staff Name', type: 'text', placeholder: 'Dr. Johnson', required: true },
+            { key: 'on_call_phone', label: 'On-Call Phone', type: 'tel', placeholder: '(555) 987-6543', required: true },
+            { key: 'staff_slack_channel', label: 'Slack Channel ID', type: 'text', placeholder: 'C1234567890' },
+            { key: 'response_greeting', label: 'Welcome Message', type: 'text', placeholder: 'Hello! Welcome to Happy Paws Clinic' },
+            { key: 'leads_sheet_id', label: 'Google Sheets ID', type: 'text', placeholder: '1YLIQeQ79ki6ZSHy4ik31KDby4SIHAIEK_47u_lWOeNs' },
+            { key: 'faq_sheet_name', label: 'FAQ Sheet Name', type: 'text', placeholder: 'INFO' },
+            { key: 'hitl_queue_sheet_name', label: 'Review Queue Sheet Name', type: 'text', placeholder: 'Sheet6' },
+            { key: 'confidence_threshold', label: 'AI Confidence Threshold', type: 'number', placeholder: '95' }
         ]
     },
     'dental': {

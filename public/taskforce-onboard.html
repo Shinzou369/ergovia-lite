@@ -392,7 +392,139 @@
                 <p class="step-subtitle">Configure your specific service details</p>
                 
                 <div id="serviceConfig">
-                    <!-- Dynamic service configuration will be loaded here -->
+                    <!-- Pet Clinic Specific Configuration -->
+                    <div class="form-section">
+                        <h3>🐾 Pet Clinic Configuration</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="clinic_name">Clinic Name *</label>
+                                <input type="text" id="clinic_name" name="clinic_name" required 
+                                       placeholder="Happy Paws Veterinary Clinic">
+                            </div>
+                            <div class="form-group">
+                                <label for="clinic_location">Clinic Location *</label>
+                                <input type="text" id="clinic_location" name="clinic_location" required 
+                                       placeholder="Downtown Springfield">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="clinic_hours">Clinic Hours *</label>
+                                <input type="text" id="clinic_hours" name="clinic_hours" required 
+                                       placeholder="Mon-Fri: 8AM-6PM, Sat: 9AM-3PM">
+                            </div>
+                            <div class="form-group">
+                                <label for="emergency_hours">Emergency Hours</label>
+                                <input type="text" id="emergency_hours" name="emergency_hours" 
+                                       placeholder="24/7 Emergency Line Available">
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="services_offered">Services Offered *</label>
+                            <textarea id="services_offered" name="services_offered" rows="3" required
+                                      placeholder="Vaccinations, Surgery, Dental Care, Emergency Services, Grooming"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="head_veterinarian">Head Veterinarian *</label>
+                                <input type="text" id="head_veterinarian" name="head_veterinarian" required 
+                                       placeholder="Dr. Smith">
+                            </div>
+                            <div class="form-group">
+                                <label for="clinic_phone">Clinic Phone *</label>
+                                <input type="tel" id="clinic_phone" name="clinic_phone" required 
+                                       placeholder="(555) 123-4567">
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="appointment_types">Appointment Types *</label>
+                            <textarea id="appointment_types" name="appointment_types" rows="2" required
+                                      placeholder="Wellness Exam, Vaccination, Surgery, Emergency"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="pricing_info">Pricing Information</label>
+                            <textarea id="pricing_info" name="pricing_info" rows="2"
+                                      placeholder="Exam: $75, Vaccination: $45, Surgery: varies"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Booking & Scheduling Configuration -->
+                    <div class="form-section">
+                        <h3>📅 Booking & Scheduling</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="booking_system_url">Online Booking URL</label>
+                                <input type="url" id="booking_system_url" name="booking_system_url" 
+                                       placeholder="https://your-booking-system.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="booking_phone">Booking Phone</label>
+                                <input type="tel" id="booking_phone" name="booking_phone" 
+                                       placeholder="(555) 123-4567">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Staff & Communication Configuration -->
+                    <div class="form-section">
+                        <h3>👥 Staff & Communication</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="on_call_staff_name">On-Call Staff Name *</label>
+                                <input type="text" id="on_call_staff_name" name="on_call_staff_name" required 
+                                       placeholder="Dr. Johnson">
+                            </div>
+                            <div class="form-group">
+                                <label for="on_call_phone">On-Call Phone *</label>
+                                <input type="tel" id="on_call_phone" name="on_call_phone" required 
+                                       placeholder="(555) 987-6543">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="staff_slack_channel">Slack Channel ID (Optional)</label>
+                                <input type="text" id="staff_slack_channel" name="staff_slack_channel" 
+                                       placeholder="C1234567890">
+                                <small>Your Slack channel ID for emergency alerts</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="response_greeting">Welcome Message</label>
+                                <input type="text" id="response_greeting" name="response_greeting" 
+                                       placeholder="Hello! Welcome to Happy Paws Clinic">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Storage Configuration -->
+                    <div class="form-section">
+                        <h3>📊 Data & Records</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="leads_sheet_id">Google Sheets ID for Customer Data</label>
+                                <input type="text" id="leads_sheet_id" name="leads_sheet_id" 
+                                       placeholder="1YLIQeQ79ki6ZSHy4ik31KDby4SIHAIEK_47u_lWOeNs">
+                                <small>Google Sheets document ID for storing customer inquiries</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="faq_sheet_name">FAQ Sheet Name</label>
+                                <input type="text" id="faq_sheet_name" name="faq_sheet_name" 
+                                       placeholder="FAQ" value="INFO">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="hitl_queue_sheet_name">Review Queue Sheet Name</label>
+                                <input type="text" id="hitl_queue_sheet_name" name="hitl_queue_sheet_name" 
+                                       placeholder="HITL_Queue" value="Sheet6">
+                            </div>
+                            <div class="form-group">
+                                <label for="confidence_threshold">AI Confidence Threshold</label>
+                                <input type="number" id="confidence_threshold" name="confidence_threshold" 
+                                       placeholder="95" value="95" min="50" max="100">
+                                <small>Minimum confidence % before human review (50-100)</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="navigation">
