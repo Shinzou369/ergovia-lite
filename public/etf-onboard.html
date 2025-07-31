@@ -1042,7 +1042,6 @@
             const step = document.querySelector('.step.active');
             const inputs = step.querySelectorAll('input[required], select[required], textarea[required]');
 
-            ```text
             for (let input of inputs) {
                 if (!input.value.trim()) {
                     input.classList.add('error');
