@@ -452,6 +452,16 @@ app.get('/test-credential-integration', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'test-credential-integration.html'));
 });
 
+// Seamless Credential Flow Demo
+app.get('/seamless-credential-flow', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'seamless-credential-flow.html'));
+});
+
+// Credential Design Documentation
+app.get('/credential-design-doc', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'credential-design-doc.html'));
+});
+
 // Get available templates from n8n
 app.get('/api/etf/templates', async (req, res) => {
   try {
