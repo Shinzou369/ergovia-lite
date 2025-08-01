@@ -2810,12 +2810,12 @@ app.post('/api/auth/google-n8n-oauth', (req, res) => {
     req.session.n8nOAuthState = state;
     req.session.save();
 
-    // Get the correct base URL for the current environment
-    const baseUrl = req.protocol + '://' + req.get('host');
+    // Use ergovia-ai.com for production OAuth redirect
+    const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(baseUrl)}/api/auth/google-n8n-callback&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive')}&` +
       `access_type=offline&` +
@@ -2847,8 +2847,8 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
       return res.redirect('/etf-onboard?error=invalid_state');
     }
 
-    // Get the correct base URL for the current environment
-    const baseUrl = req.protocol + '://' + req.get('host');
+    // Use the same redirect URI as in the OAuth initiation
+    const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
     
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -2860,7 +2860,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
         code: code,
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${baseUrl}/api/auth/google-n8n-callback`,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code'
       })
     });
