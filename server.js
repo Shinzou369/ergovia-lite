@@ -2799,6 +2799,150 @@ app.use((err, req, res, next) => {
 });
 
 // ========================================
+// Google OAuth for n8n Credentials
+// ========================================
+
+app.post('/api/auth/google-n8n-oauth', requireAuth, (req, res) => {
+  try {
+    const state = crypto.randomBytes(32).toString('hex');
+    
+    // Store state in session for verification
+    req.session.n8nOAuthState = state;
+    req.session.save();
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
+      `redirect_uri=${encodeURIComponent(process.env.BASE_URL || 'http://localhost:3000')}/api/auth/google-n8n-callback&` +
+      `response_type=code&` +
+      `scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive')}&` +
+      `access_type=offline&` +
+      `prompt=consent&` +
+      `state=${state}`;
+
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Error initiating Google OAuth for n8n:', error);
+    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
+  }
+});
+
+app.get('/api/auth/google-n8n-callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      console.error('Google OAuth error:', error);
+      return res.redirect('/etf-onboard.html?error=oauth_denied');
+    }
+
+    if (!code || !state) {
+      return res.redirect('/etf-onboard.html?error=missing_params');
+    }
+
+    // Verify state parameter
+    if (state !== req.session.n8nOAuthState) {
+      return res.redirect('/etf-onboard.html?error=invalid_state');
+    }
+
+    // Exchange authorization code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code: code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: `${process.env.BASE_URL || 'http://localhost:3000'}/api/auth/google-n8n-callback`,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenData.access_token) {
+      throw new Error('Failed to obtain access token');
+    }
+
+    // Get user info from Google
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`
+      }
+    });
+
+    const userInfo = await userInfoResponse.json();
+
+    // Create n8n credential
+    const credentialResult = await createN8NCredential(req.session.userEmail, tokenData, userInfo);
+
+    if (credentialResult.success) {
+      // Clear OAuth state
+      delete req.session.n8nOAuthState;
+      req.session.save();
+
+      res.redirect('/etf-onboard.html?google_connected=true');
+    } else {
+      throw new Error('Failed to create n8n credential');
+    }
+
+  } catch (error) {
+    console.error('Error in Google OAuth callback:', error);
+    res.redirect('/etf-onboard.html?error=oauth_failed');
+  }
+});
+
+async function createN8NCredential(userEmail, tokenData, userInfo) {
+  try {
+    if (!process.env.N8N_BASE_URL || !process.env.N8N_API_KEY) {
+      throw new Error('N8N configuration missing');
+    }
+
+    const credentialData = {
+      name: `Google OAuth - ${userInfo.name} (${userEmail})`,
+      type: 'googleOAuth2Api',
+      data: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || '',
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive'
+      }
+    };
+
+    const response = await fetch(`${process.env.N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': process.env.N8N_API_KEY
+      },
+      body: JSON.stringify(credentialData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.id) {
+      // Store credential ID in user's record for future reference
+      const users = JSON.parse(fs.readFileSync('./users.json', 'utf8'));
+      if (users[userEmail]) {
+        users[userEmail].n8nGoogleCredentialId = result.id;
+        fs.writeFileSync('./users.json', JSON.stringify(users, null, 2));
+      }
+
+      console.log(`Successfully created n8n Google credential for ${userEmail}:`, result.id);
+      return { success: true, credentialId: result.id };
+    } else {
+      throw new Error(`N8N API error: ${result.message || 'Unknown error'}`);
+    }
+
+  } catch (error) {
+    console.error('Error creating n8n credential:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ========================================
 // ETF Helper Functions
 // ========================================
 

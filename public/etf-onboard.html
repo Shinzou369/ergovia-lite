@@ -619,6 +619,48 @@
             .required {
                 color: #dc3545;
             }
+
+            .google-connection-section {
+                margin-top: 20px;
+                padding: 15px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+
+            .google-connection-section h3 {
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+
+            .google-connection-section p {
+                margin-bottom: 15px;
+            }
+
+            #connect-google-btn {
+                background-color: #4285F4;
+                color: white;
+                padding: 10px 15px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+            }
+
+            #connect-google-btn img {
+                margin-right: 8px;
+            }
+
+            .connection-status {
+                margin-top: 10px;
+                padding: 10px;
+                border-radius: 5px;
+                display: none;
+            }
+
+            .status-text {
+                font-weight: bold;
+            }
     </style>
 </head>
 <body>
@@ -756,6 +798,27 @@
                     </details>
                 </div>
 
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="cloud"></i>
+                        </div>
+                        <h2 class="section-title">N8N Credentials</h2>
+                    </div>
+
+                    <div class="google-connection-section">
+                        <h3>Connect Google Account for Automation</h3>
+                        <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
+                        <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDEyLjU2VjE0LjI2SDE3LjkyQzE3LjY2IDE1LjMgMTYuOTQgMTYuMTEgMTUuOTQgMTYuNjFWMTkuNTNIMTkuMzJDMjEuMzMgMTcuNyAyMi41NiAxNS4yIDIyLjU2IDEyLjI1WiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuLjIxIDEzLjY0IDE3LjU2IDEyIDE3LjU2QzkuMDQgMTcuNTYgNi41NyAxNS42OSA1LjY5IDEzLjA5SDIuMThWMTYuMDRDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS42OSAxMy4wOUM1LjQxIDEyLjI5IDUuMjYgMTEuNDQgNS4yNiAxMC41OUM1LjI2IDkuNzQgNS40MSA4Ljg5IDUuNjkgOC4wOVY1LjA1SDIuMThDMS4yOCA2Ljg1IDAuNzQgOC44OSAwLjc0IDEwLjU5QzAuNzQgMTIuMjkgMS4yOCAxNC4zMyAyLjE4IDE2LjEzTDUuNjkgMTMuMDlaIiBmaWxsPSIjRkJCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDQuMDQgMi44NSAyLjE4IDYuNTVMNS42OSA5LjU5QzYuNTcgNi45OSA5LjA0IDUuMTIgMTIgNS4xMlY0Ljc0SDEyWiIgZmlsbD0iI0VBNDMzNSIvPgo8L3N2Zz4K" alt="Google" style="width: 20px; margin-right: 8px;">
+                            Connect Google Account
+                        </button>
+                        <div id="google-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ Google account connected successfully</span>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="submit-btn" id="submitBtn">
                     <i data-lucide="play"></i>
                     <span>Run Workflow</span>
@@ -767,20 +830,70 @@
     </div>
 
     <script>
-        // Initialize Lucide icons
-        document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons();
-            updateProgress();
+        // Onboarding logic
+        let currentStep = 1;
+        const totalSteps = 4;
 
-            // Auto-select taskforce type from URL parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const taskforceType = urlParams.get('type');
-            if (taskforceType) {
-                const taskforceSelect = document.getElementById('taskforceType');
-                if (taskforceSelect) {
-                    taskforceSelect.value = taskforceType;
-                    updateProgress();
+        async function connectGoogleForN8N() {
+            const btn = document.getElementById('connect-google-btn');
+            const status = document.getElementById('google-status');
+
+            btn.disabled = true;
+            btn.textContent = 'Connecting...';
+
+            try {
+                // Initiate Google OAuth flow for n8n credentials
+                const response = await fetch('/api/auth/google-n8n-oauth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.authUrl) {
+                    // Redirect to Google OAuth
+                    window.location.href = data.authUrl;
+                } else {
+                    throw new Error('Failed to initiate OAuth flow');
                 }
+            } catch (error) {
+                console.error('Google OAuth error:', error);
+                btn.disabled = false;
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3dmZyI+CjxwYXRoIGQ9Ik0yMi41NiAxMi4yNUMyMi41NiAxMS40NyAyMi40OSAxMC43MiAyMi4zNiAxMEgxMlYxNC4yNkgxMi41NlYxNC4yNkgxNy45MkMxNy42NiAxNS4zIDE2Ljk0IDE2LjExIDE1Ljk0IDE2LjYxVjE5LjUzSDE5LjMyQzIxLjMzIDE3LjcgMjIuNTYgMTUuMiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTEyIDIyQzE1LjA0IDIyIDE3LjU2IDIwLjkyIDE5LjMyIDE5LjUzTDE1Ljk0IDE2LjYxQzE0Ljk0IDE3LjIxIDEzLjY0IDE3LjU2IDEyIDE3LjU2QzkuMDQgMTcuNTYgNi41NyAxNS42OSA1LjY5IDEzLjA5SDIuMThWMTYuMDRDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS42OSAxMy4wOUM1LjQxIDEyLjI5IDUuMjYgMTEuNDQgNS4yNiAxMC41OUM1LjI2IDkuNzQgNS40MSA4Ljg5IDUuNjkgOC4wOVY1LjA1SDIuMThDMS4yOCA2Ljg1IDAuNzQgOC44OSAwLjc0IDEwLjU5QzAuNzQgMTIuMjkgMS4yOCAxNC4zMyAyLjE4IDE2LjEzTDUuNjkgMTMuMDlaIiBmaWxsPSIjRkJCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDQuMDQgMi44NSAyLjE4IDYuNTVMNS42OSA5LjU5QzYuNTcgNi45OSA5LjA0IDUuMTIgMTIgNS4xMlY0Ljc0SDEyWiIgZmlsbD0iI0VBNDMzNSIvPgo8L3N2Zz4K" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                alert('Failed to connect Google account. Please try again.');
+            }
+        }
+
+        // Check for success/error parameters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const btn = document.getElementById('connect-google-btn');
+            const status = document.getElementById('google-status');
+
+            if (urlParams.get('google_connected') === 'true') {
+                btn.style.display = 'none';
+                status.style.display = 'block';
+                status.innerHTML = '<span class="status-text" style="color: #4CAF50;">✓ Google account connected successfully for automation</span>';
+            } else if (urlParams.get('error')) {
+                const error = urlParams.get('error');
+                let errorMessage = 'Failed to connect Google account.';
+
+                switch (error) {
+                    case 'oauth_denied':
+                        errorMessage = 'Google OAuth access was denied.';
+                        break;
+                    case 'invalid_state':
+                        errorMessage = 'Security validation failed. Please try again.';
+                        break;
+                    case 'oauth_failed':
+                        errorMessage = 'OAuth process failed. Please try again.';
+                        break;
+                }
+
+                status.style.display = 'block';
+                status.innerHTML = `<span class="status-text" style="color: #f44336;">✗ ${errorMessage}</span>`;
             }
         });
 
