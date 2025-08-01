@@ -447,6 +447,11 @@ app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
 });
 
+// Credential Integration Test page
+app.get('/test-credential-integration', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'test-credential-integration.html'));
+});
+
 // Get available templates from n8n
 app.get('/api/etf/templates', async (req, res) => {
   try {
