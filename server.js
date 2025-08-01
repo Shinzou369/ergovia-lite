@@ -2802,7 +2802,7 @@ app.use((err, req, res, next) => {
 // Google OAuth for n8n Credentials
 // ========================================
 
-app.post('/api/auth/google-n8n-oauth', requireAuth, (req, res) => {
+app.post('/api/auth/google-n8n-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
     
@@ -2810,9 +2810,12 @@ app.post('/api/auth/google-n8n-oauth', requireAuth, (req, res) => {
     req.session.n8nOAuthState = state;
     req.session.save();
 
+    // Get the correct base URL for the current environment
+    const baseUrl = req.protocol + '://' + req.get('host');
+
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(process.env.BASE_URL || 'http://localhost:3000')}/api/auth/google-n8n-callback&` +
+      `redirect_uri=${encodeURIComponent(baseUrl)}/api/auth/google-n8n-callback&` +
       `response_type=code&` +
       `scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive')}&` +
       `access_type=offline&` +
@@ -2832,18 +2835,21 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
 
     if (error) {
       console.error('Google OAuth error:', error);
-      return res.redirect('/etf-onboard.html?error=oauth_denied');
+      return res.redirect('/etf-onboard?error=oauth_denied');
     }
 
     if (!code || !state) {
-      return res.redirect('/etf-onboard.html?error=missing_params');
+      return res.redirect('/etf-onboard?error=missing_params');
     }
 
     // Verify state parameter
     if (state !== req.session.n8nOAuthState) {
-      return res.redirect('/etf-onboard.html?error=invalid_state');
+      return res.redirect('/etf-onboard?error=invalid_state');
     }
 
+    // Get the correct base URL for the current environment
+    const baseUrl = req.protocol + '://' + req.get('host');
+    
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -2854,7 +2860,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
         code: code,
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${process.env.BASE_URL || 'http://localhost:3000'}/api/auth/google-n8n-callback`,
+        redirect_uri: `${baseUrl}/api/auth/google-n8n-callback`,
         grant_type: 'authorization_code'
       })
     });
@@ -2862,6 +2868,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
     const tokenData = await tokenResponse.json();
 
     if (!tokenData.access_token) {
+      console.error('Token exchange failed:', tokenData);
       throw new Error('Failed to obtain access token');
     }
 
@@ -2875,27 +2882,27 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
     const userInfo = await userInfoResponse.json();
 
     // Create n8n credential
-    const credentialResult = await createN8NCredential(req.session.userEmail, tokenData, userInfo);
+    const credentialResult = await createN8NCredential(userInfo.email, tokenData, userInfo);
 
     if (credentialResult.success) {
       // Clear OAuth state
       delete req.session.n8nOAuthState;
       req.session.save();
 
-      res.redirect('/etf-onboard.html?google_connected=true');
+      res.redirect('/etf-onboard?google_connected=true');
     } else {
       throw new Error('Failed to create n8n credential');
     }
 
   } catch (error) {
     console.error('Error in Google OAuth callback:', error);
-    res.redirect('/etf-onboard.html?error=oauth_failed');
+    res.redirect('/etf-onboard?error=oauth_failed');
   }
 });
 
 async function createN8NCredential(userEmail, tokenData, userInfo) {
   try {
-    if (!process.env.N8N_BASE_URL || !process.env.N8N_API_KEY) {
+    if (!N8N_BASE_URL || !N8N_API_KEY) {
       throw new Error('N8N configuration missing');
     }
 
@@ -2911,11 +2918,13 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
       }
     };
 
-    const response = await fetch(`${process.env.N8N_BASE_URL}/api/v1/credentials`, {
+    console.log('Creating n8n credential for:', userEmail);
+
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-N8N-API-KEY': process.env.N8N_API_KEY
+        'X-N8N-API-KEY': N8N_API_KEY
       },
       body: JSON.stringify(credentialData)
     });
@@ -2923,17 +2932,25 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
     const result = await response.json();
 
     if (response.ok && result.id) {
-      // Store credential ID in user's record for future reference
-      const users = JSON.parse(fs.readFileSync('./users.json', 'utf8'));
-      if (users[userEmail]) {
-        users[userEmail].n8nGoogleCredentialId = result.id;
-        fs.writeFileSync('./users.json', JSON.stringify(users, null, 2));
+      // Try to store credential ID in user's record
+      try {
+        if (fs.existsSync('./users.json')) {
+          const users = JSON.parse(fs.readFileSync('./users.json', 'utf8'));
+          const userKey = Object.keys(users).find(key => users[key].email === userEmail);
+          if (userKey) {
+            users[userKey].n8nGoogleCredentialId = result.id;
+            fs.writeFileSync('./users.json', JSON.stringify(users, null, 2));
+          }
+        }
+      } catch (fileError) {
+        console.warn('Could not save credential ID to user record:', fileError.message);
       }
 
       console.log(`Successfully created n8n Google credential for ${userEmail}:`, result.id);
       return { success: true, credentialId: result.id };
     } else {
-      throw new Error(`N8N API error: ${result.message || 'Unknown error'}`);
+      console.error('N8N API response error:', result);
+      throw new Error(`N8N API error: ${result.message || JSON.stringify(result)}`);
     }
 
   } catch (error) {
