@@ -498,7 +498,7 @@ app.get('/api/etf/templates', async (req, res) => {
 app.post('/api/etf/deploy', async (req, res) => {
   try {
     console.log('📋 ETF Deploy request received:', JSON.stringify(req.body, null, 2));
-    
+
     let { client_data, config_data, template_id } = req.body;
 
     // Validate required data
@@ -882,8 +882,7 @@ app.post('/api/etf/test-telegram-credentials', async (req, res) => {
 
     if (testResult.ok) {
       res.json({ 
-        success: true, 
-        message: 'Credentials validated successfully!',
+        success: true,        message: 'Credentials validated successfully!',
         bot_info: testResult.result 
       });
     } else {
@@ -1344,7 +1343,7 @@ app.post('/api/etf/create-google-credential', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ N8N credential creation failed:', response.status, errorText);
-      
+
       let errorMessage = `N8N API error: ${response.status}`;
       try {
         const errorJson = JSON.parse(errorText);
@@ -1352,7 +1351,7 @@ app.post('/api/etf/create-google-credential', async (req, res) => {
       } catch (e) {
         errorMessage = errorText || errorMessage;
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -1436,15 +1435,15 @@ app.get('/api/etf/list-google-credentials', async (req, res) => {
 // Google OAuth test callback endpoint
 app.get('/auth/google/oauth-test-callback', (req, res) => {
   const { code, state, error } = req.query;
-  
+
   if (error) {
     return res.redirect(`/test-google-oauth?error=${encodeURIComponent(error)}`);
   }
-  
+
   if (code) {
     return res.redirect(`/test-google-oauth?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`);
   }
-  
+
   res.redirect('/test-google-oauth?error=no_code_received');
 });
 
@@ -2041,7 +2040,7 @@ app.get("/api/credentials", (req, res) => {
 
   // Load user's credentials from secure storage
   const userCredentials = loadUserCredentials(userEmail);
-  
+
   // Return credential status without sensitive data
   const credentialStatus = {};
   Object.keys(userCredentials).forEach(service => {
@@ -2113,7 +2112,7 @@ app.post("/api/credentials/:service/test", (req, res) => {
       .then(isValid => {
         // Update credential validity
         updateCredentialValidity(userEmail, service, isValid);
-        
+
         res.json({ 
           success: true, 
           isValid,
@@ -2157,7 +2156,7 @@ app.get("/api/credentials/:service/oauth/callback", (req, res) => {
   // This would handle OAuth callbacks for different services
   const { service } = req.params;
   const { code, state } = req.query;
-  
+
   if (!req.isAuthenticated()) {
     return res.redirect('/login?error=not_authenticated');
   }
@@ -2178,7 +2177,7 @@ function loadUserCredentials(userEmail) {
   // In production, this would load from secure database
   const fs = require('fs');
   const path = './user_credentials.json';
-  
+
   try {
     if (fs.existsSync(path)) {
       const data = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -2187,14 +2186,14 @@ function loadUserCredentials(userEmail) {
   } catch (error) {
     console.error('Error loading credentials:', error);
   }
-  
+
   return {};
 }
 
 function saveUserCredential(userEmail, service, credential) {
   const fs = require('fs');
   const path = './user_credentials.json';
-  
+
   let data = {};
   try {
     if (fs.existsSync(path)) {
@@ -2203,13 +2202,13 @@ function saveUserCredential(userEmail, service, credential) {
   } catch (error) {
     console.error('Error reading credentials file:', error);
   }
-  
+
   if (!data[userEmail]) {
     data[userEmail] = {};
   }
-  
+
   data[userEmail][service] = credential;
-  
+
   try {
     fs.writeFileSync(path, JSON.stringify(data, null, 2));
   } catch (error) {
@@ -2226,7 +2225,7 @@ function getUserCredential(userEmail, service) {
 function deleteUserCredential(userEmail, service) {
   const fs = require('fs');
   const path = './user_credentials.json';
-  
+
   try {
     if (fs.existsSync(path)) {
       const data = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -2247,11 +2246,11 @@ function encryptCredential(value) {
   const algorithm = 'aes-256-cbc';
   const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long';
   const iv = crypto.randomBytes(16);
-  
+
   const cipher = crypto.createCipher(algorithm, key);
   let encrypted = cipher.update(value, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   return `${iv.toString('hex')}:${encrypted}`;
 }
 
@@ -2260,14 +2259,14 @@ function decryptCredential(encryptedValue) {
   const crypto = require('crypto');
   const algorithm = 'aes-256-cbc';
   const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long';
-  
+
   const [ivHex, encrypted] = encryptedValue.split(':');
   const iv = Buffer.from(ivHex, 'hex');
-  
+
   const decipher = crypto.createDecipher(algorithm, key);
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
@@ -2279,12 +2278,12 @@ async function testCredentialConnection(service, credential) {
     slack: () => testSlackCredential(credential),
     // Add more services as needed
   };
-  
+
   const testFunction = testPromises[service];
   if (!testFunction) {
     throw new Error(`No test function for service: ${service}`);
   }
-  
+
   return await testFunction();
 }
 
@@ -2316,11 +2315,11 @@ function updateCredentialValidity(userEmail, service, isValid) {
   if (credentials[service]) {
     credentials[service].isValid = isValid;
     credentials[service].lastTested = new Date().toISOString();
-    
+
     // Save back to storage
     const fs = require('fs');
     const path = './user_credentials.json';
-    
+
     let data = {};
     try {
       if (fs.existsSync(path)) {
@@ -2329,9 +2328,9 @@ function updateCredentialValidity(userEmail, service, isValid) {
     } catch (error) {
       console.error('Error reading credentials file:', error);
     }
-    
+
     data[userEmail] = credentials;
-    
+
     try {
       fs.writeFileSync(path, JSON.stringify(data, null, 2));
     } catch (error) {
@@ -2352,7 +2351,7 @@ async function handleOAuthCallback(service, code, userEmail) {
         connectedAt: new Date().toISOString(),
         isValid: true
       };
-      
+
       saveUserCredential(userEmail, service, credential);
       resolve(credential);
     }, 1000);
@@ -2805,7 +2804,7 @@ app.use((err, req, res, next) => {
 app.post('/api/auth/google-n8n-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
-    
+
     // Store state in session for verification
     req.session.n8nOAuthState = state;
     req.session.save();
@@ -2849,7 +2848,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
 
     // Use the same redirect URI as in the OAuth initiation
     const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
-    
+
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -3055,6 +3054,11 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
   }
 
   const placeholders = {
+    // Google OAuth for n8n Credentials
+    '{{GOOGLE_CREDENTIAL_ID}}': configData.google_credential_id || '',
+    '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
+    '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
+    '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
     // Social Media & Communication Credentials
     '{{FACEBOOK_PAGE_TOKEN}}': configData.facebook_page_token || '',
     '{{FACEBOOK_PAGE_ID}}': configData.facebook_page_id || '',
@@ -3065,7 +3069,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
     '{{SLACK_BOT_TOKEN}}': configData.slack_bot_token || '',
     '{{SLACK_CHANNEL}}': configData.slack_channel || '',
-    
+
     // Email & SMS Credentials
     '{{SENDGRID_API_KEY}}': configData.sendgrid_api_key || '',
     '{{MAILGUN_API_KEY}}': configData.mailgun_api_key || '',
@@ -3073,26 +3077,26 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{TWILIO_ACCOUNT_SID}}': configData.twilio_account_sid || '',
     '{{TWILIO_AUTH_TOKEN}}': configData.twilio_auth_token || '',
     '{{TWILIO_PHONE_NUMBER}}': configData.twilio_phone_number || '',
-    
+
     // Booking & Calendar Integration
     '{{CALENDLY_TOKEN}}': configData.calendly_token || '',
     '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
     '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
     '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
     '{{ZOOM_API_SECRET}}': configData.zoom_api_secret || '',
-    
+
     // Payment & CRM Integration
     '{{STRIPE_SECRET_KEY}}': configData.stripe_secret_key || '',
     '{{PAYPAL_CLIENT_ID}}': configData.paypal_client_id || '',
     '{{HUBSPOT_API_KEY}}': configData.hubspot_api_key || '',
     '{{SALESFORCE_TOKEN}}': configData.salesforce_token || '',
-    
+
     // Website & Analytics
     '{{WEBSITE_URL}}': configData.website_url || '',
     '{{BOOKING_URL}}': configData.booking_url || '',
     '{{GOOGLE_ANALYTICS_ID}}': configData.google_analytics_id || '',
     '{{GOOGLE_ADS_CUSTOMER_ID}}': configData.google_ads_customer_id || '',
-    
+
     // Pet Clinic Specific Information
     '{{CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
     '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
@@ -3105,13 +3109,13 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{VETERINARIAN_NAME}}': configData.veterinarian_name || clientData.name || '',
     '{{APPOINTMENT_TYPES}}': configData.appointment_types || 'Wellness Exam, Vaccination, Surgery, Emergency',
     '{{PRICING_INFO}}': configData.pricing_info || 'Contact for pricing information',
-    
+
     // Staff & Contact Information
     '{{RECEPTIONIST_NAME}}': configData.receptionist_name || 'Front Desk',
     '{{MANAGER_NAME}}': configData.manager_name || clientData.name || '',
     '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
     '{{BILLING_EMAIL}}': configData.billing_email || clientData.email || '',
-    
+
     // Client/Business Information
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
@@ -3119,7 +3123,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    
+
     // Legacy placeholders for backward compatibility
     '{{PET_CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
     '{{VET_NAME}}': clientData.name || '',
