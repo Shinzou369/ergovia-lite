@@ -412,9 +412,9 @@ app.use((req, res, next) => {
 // Serve static files
 app.use(express.static('public'));
 
-// Taskforce onboarding routes
+// Taskforce onboarding routes - redirect all to ETF onboarding
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'taskforce-onboard.html'));
+  res.redirect('/etf-onboard?type=dental');
 });
 
 app.get('/taskforce/gym/onboard', (req, res) => {
@@ -447,15 +447,7 @@ app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
 });
 
-// Credential Integration Test page
-app.get('/test-credential-integration', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'test-credential-integration.html'));
-});
-
-// Seamless Credential Flow Demo
-app.get('/seamless-credential-flow', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'seamless-credential-flow.html'));
-});
+// Credential routes removed - files deleted
 
 // Credential Design Documentation
 app.get('/credential-design-doc', (req, res) => {

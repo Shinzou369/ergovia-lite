@@ -415,12 +415,14 @@
       <header
         class="hero-section animate__animated animate__fadeInUp"
         id="hero-section"
+        role="banner"
+        aria-label="ERGOVIA-AI Introduction"
       >
         <!-- Main hero content that transitions out on hover -->
         <div class="hero-content" id="hero-main-content">
           <h1 class="hero-title">ERGOVIA-AI</h1>
           <p class="hero-subtitle">
-            Start your own  <strong>AI agency with Ergovia.</strong> 
+            Start your own <strong>AI agency with Ergovia.</strong> 
             Deploy ready-to-use automations that handle real business tasks—like messaging, bookings, follow-ups, and reminders—all fully branded under your name and running 24/7. 
           </p>
           <div class="hero-stats">
@@ -550,9 +552,12 @@
           <div class="prompt-container">
             <div class="prompt-box">
               <div class="input-wrapper">
+                <label for="prompt-input" class="sr-only">Enter your message</label>
                 <textarea
                   id="prompt-input"
                   placeholder="Ask Ergovia anything..."
+                  aria-label="Chat input"
+                  maxlength="1000"
                 ></textarea>
                 <div class="input-actions">
                   <button class="attachment-btn" title="Attach file">

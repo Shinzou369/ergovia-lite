@@ -1,691 +1,80 @@
-// Enhanced sidebar toggle with proper workspace expansion and hamburger animation
-function toggleSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const btn = document.querySelector(".toggle-btn");
-  const workspace = document.querySelector(".workspace");
-  const container = document.querySelector(".container");
-
-  if (!sidebar || !btn) {
-    console.warn("Sidebar or toggle button not found in the document.");
-    return;
-  }
-
-  // Toggle sidebar hidden state
-  sidebar.classList.toggle("hidden");
-
-  // Correct animation logic - hamburger when visible, cross when hidden
-  if (sidebar.classList.contains("hidden")) {
-    // Sidebar is hidden, show hamburger lines (≡)
-    btn.classList.remove("active");
-  } else {
-    // Sidebar is visible, show cross (×)
-    btn.classList.add("active");
-  }
-
-  // Properly expand workspace when sidebar is hidden
-  if (workspace) {
-    workspace.classList.toggle("expanded", sidebar.classList.contains("hidden"));
-  }
-
-  // Adjust container for sidebar state
-  if (container) {
-    container.classList.toggle("sidebar-collapsed", sidebar.classList.contains("hidden"));
-  }
-
-  // Add body class to handle workspace adjustment
-  document.body.classList.toggle("sidebar-hidden", sidebar.classList.contains("hidden"));
-}
-
-// Website card interaction functionality
-function initializeWebsiteCards() {
-  const websiteCards = document.querySelectorAll(".website-card");
-
-  websiteCards.forEach(card => {
-    card.addEventListener("click", function(e) {
-      // Check if this is the taskforce main link
-      if (this.classList.contains("taskforce-main-link")) {
-        e.preventDefault();
-        // Get the href from onclick attribute or use default
-        const href = this.getAttribute('onclick');
-        if (href && href.includes('taskforce.html')) {
-          window.location.href = '/taskforce.html';
-        } else if (href && href.includes('token-dashboard.html')) {
-          window.location.href = '/token-dashboard.html';
-        }
-        return;
-      }
-
-      // Remove active class from all cards
-      websiteCards.forEach(c => c.classList.remove("active"));
-
-      // Add active class to clicked card
-      this.classList.add("active");
-
-      // Get website info
-      const websiteId = this.dataset.website;
-      const websiteName = this.querySelector(".website-name");
-
-      if (websiteName) {
-        addMessage(`Switched to ${websiteName.textContent}`, "system");
-        console.log(`Selected website: ${websiteName.textContent} (ID: ${websiteId})`);
-      }
-    });
-  });
-}
-
-// Application state management
-let customTraining = "You are TaskAI, a helpful assistant for marketing and productivity tasks.";
-let threads = [];
-let currentThreadId = null;
+// Enhanced Ergovia-AI Chat Interface
 let conversation = [];
-let isUserLoggedIn = false;
-let authCheckInProgress = false;
-let tokenCounter = null;
-async function loadUserThreads() {
-  if (!isUserLoggedIn) {
-    threads = [];
-    currentThreadId = null;
-    conversation = [];
-    // Clear output box when user is not logged in
-    const outputBox = document.getElementById("output-box");
-    if (outputBox) {
-      outputBox.innerHTML = "";
-    }
-    // Hide token counter when not logged in
-    if (tokenCounter) {
-      tokenCounter.hidePopover();
-    }
-    return;
+let currentThreadId = null;
+let threads = [];
+let isTyping = false;
+
+// DOM Elements
+const outputBox = document.getElementById("output-box");
+const promptInput = document.getElementById("prompt-input");
+const submitBtn = document.getElementById("submit-btn");
+const charCounter = document.getElementById("char-counter");
+
+// Initialize the application
+document.addEventListener("DOMContentLoaded", function() {
+  initializeApp();
+  loadThreads();
+  setupEventListeners();
+  initializeQuickButtons();
+  initializeWebsiteCards(); // Add this line from the original code
+});
+
+function initializeApp() {
+  // Set initial focus on input
+  if (promptInput) {
+    promptInput.focus();
   }
 
-  try {
-    const response = await fetch('/api/threads');
-    if (response.ok) {
-      const data = await response.json();
-      threads = data.threads || [];
+  // Load saved conversation if exists
+  loadCurrentThread();
 
-      // If no threads exist, create a default one
-      if (threads.length === 0) {
-        await createNewThread();
-      } else {
-        // Load the first thread and display its messages
-        currentThreadId = threads[0].id;
-        conversation = [...threads[0].conversation]; // Create a copy
+  // Initialize character counter
+  updateCharCounter();
+}
 
-        // Clear output box and load this thread's messages
-        const outputBox = document.getElementById("output-box");
-        if (outputBox) {
-          outputBox.innerHTML = "";
+function setupEventListeners() {
+  // Submit button click
+  if (submitBtn) {
+    submitBtn.addEventListener("click", handleSubmit);
+  }
 
-          // Display messages from the current thread
-          conversation.forEach((msg) => {
-            if (msg.role === "user" || msg.role === "assistant") {
-              addMessage(msg.content, msg.role === "user" ? "user" : "gpt");
-            }
-          });
-        }
+  // Enter key to submit (Shift+Enter for new line)
+  if (promptInput) {
+    promptInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
       }
+    });
+
+    // Character counter update
+    promptInput.addEventListener("input", updateCharCounter);
+  }
+}
+
+function updateCharCounter() {
+  if (promptInput && charCounter) {
+    const currentLength = promptInput.value.length;
+    const maxLength = 1000;
+    charCounter.textContent = `${currentLength}/${maxLength}`;
+
+    if (currentLength > maxLength * 0.9) {
+      charCounter.style.color = "var(--text-warning)";
     } else {
-      console.error('Failed to load threads');
-      threads = [];
-      await createNewThread();
-    }
-  } catch (error) {
-    console.error('Error loading threads:', error);
-    threads = [];
-    await createNewThread();
-  }
-}
-
-async function saveUserThreads() {
-  if (!isUserLoggedIn || threads.length === 0) {
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/threads', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ threads })
-    });
-
-    if (!response.ok) {
-      console.error('Failed to save threads');
-    }
-  } catch (error) {
-    console.error('Error saving threads:', error);
-  }
-}
-
-async function createNewThread() {
-  const newThread = {
-    id: Date.now(),
-    title: "New Chat",
-    conversation: [{ role: "system", content: customTraining }],
-  };
-
-  threads.unshift(newThread);
-  currentThreadId = newThread.id;
-  conversation = [...newThread.conversation]; // Create a copy
-
-  // Clear the output box when creating new thread
-  const outputBox = document.getElementById("output-box");
-  if (outputBox) {
-    outputBox.innerHTML = "";
-  }
-
-  if (isUserLoggedIn) {
-    await saveUserThreads();
-  }
-}
-
-function clearUserData() {
-  threads = [];
-  currentThreadId = null;
-  conversation = [];
-
-  // Clear the output box
-  const outputBox = document.getElementById("output-box");
-  if (outputBox) {
-    outputBox.innerHTML = "";
-  }
-
-  // Hide any typing indicators
-  hideTypingIndicator();
-
-  // Clear any localStorage remnants
-  localStorage.removeItem("threads");
-  localStorage.removeItem("customTraining");
-}
-
-function switchThread(threadId) {
-  currentThreadId = threadId;
-  const thread = threads.find((t) => t.id === threadId);
-  if (thread) {
-    conversation = [...thread.conversation]; // Create a copy to avoid reference issues
-
-    // Always clear the output box first
-    const outputBox = document.getElementById("output-box");
-    if (outputBox) {
-      outputBox.innerHTML = "";
-    }
-
-    // Hide typing indicator if it exists
-    hideTypingIndicator();
-
-    // Re-render only this thread's messages (excluding system messages)
-    conversation.forEach((msg) => {
-      if (msg.role === "user" || msg.role === "assistant") {
-        addMessage(msg.content, msg.role === "user" ? "user" : "gpt");
-      }
-    });
-
-    // Update active thread in sidebar
-    document.querySelectorAll("#threads-list li").forEach((li) => {
-      li.classList.toggle(
-        "active",
-        li.dataset.threadId === threadId.toString(),
-      );
-    });
-  }
-}
-
-function updateUI() {
-  const outputBox = document.getElementById("output-box");
-  const threadsList = document.getElementById("threads-list");
-
-  // Only clear chat content if user is not logged in, but keep website cards visible
-  if (!isUserLoggedIn) {
-    if (outputBox) outputBox.innerHTML = "";
-    if (threadsList) threadsList.innerHTML = "";
-    // Website cards should remain visible - they are handled separately
-    return;
-  }
-
-  // Only update threads list - never touch the output box here
-  if (threadsList) {
-    threadsList.innerHTML = "";
-
-    // Update threads list
-    threads.forEach((thread) => {
-      const li = document.createElement("li");
-      const titleSpan = document.createElement("span");
-      titleSpan.textContent = thread.title;
-      titleSpan.onclick = () => switchThread(thread.id);
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "×";
-      deleteBtn.className = "delete-thread";
-      deleteBtn.onclick = async (e) => {
-        e.stopPropagation();
-        if (threads.length > 1) {
-          threads = threads.filter((t) => t.id !== thread.id);
-          if (currentThreadId === thread.id) {
-            // Switch to the first available thread and clear output for it
-            const nextThread = threads[0];
-            switchThread(nextThread.id);
-          }
-          await saveUserThreads();
-          updateUI();
-        }
-      };
-
-      li.appendChild(titleSpan);
-      li.appendChild(deleteBtn);
-      li.dataset.threadId = thread.id;
-      if (thread.id === currentThreadId) li.classList.add("active");
-      threadsList.appendChild(li);
-    });
-  }
-}
-
-// === UI HELPERS ===
-function formatMarkdown(text) {
-  if (!text) return '';
-
-  // Configure marked options
-  marked.setOptions({
-    highlight: function(code, lang) {
-      if (typeof hljs !== 'undefined') {
-        if (lang && hljs.getLanguage(lang)) {
-          try {
-            return hljs.highlight(code, { language: lang }).value;
-          } catch (err) {
-            console.warn('Syntax highlighting failed:', err);
-          }
-        }
-        return hljs.highlightAuto(code).value;
-      }
-      return code;
-    },
-    breaks: true,
-    gfm: true,
-    tables: true,
-    sanitize: false,
-    smartLists: true,
-    smartypants: true
-  });
-
-  try {
-    // Parse markdown
-    let html = marked.parse(text);
-
-    // Sanitize the HTML to prevent XSS attacks while preserving code highlighting
-    if (typeof DOMPurify !== 'undefined') {
-      html = DOMPurify.sanitize(html, {
-        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'strike', 'del', 'ins', 
-                       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-                       'ul', 'ol', 'li', 'blockquote', 
-                       'pre', 'code', 'span',
-                       'table', 'thead', 'tbody', 'tr', 'th', 'td',
-                       'a', 'img', 'hr'],
-        ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'title', 'class', 'id'],
-        ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
-      });
-    }
-
-    return html;
-  } catch (error) {
-    console.error('Markdown parsing failed:', error);
-    return text.replace(/\n/g, '<br>');
-  }
-}
-
-// Message display with system message support and syntax highlighting
-function addMessage(content, type = "gpt", model = null, tokens = null) {
-  const box = document.getElementById("output-box");
-  if (!box) {
-    console.warn("Output box not found in the document.");
-    return;
-  }
-
-  const messageId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  const msg = document.createElement("div");
-  msg.classList.add("message", type);
-  msg.id = messageId;
-
-  // Handle different message types
-  if (type === "gpt") {
-    // Create rich GPT message with model info and metadata
-    const modelDisplay = model ? model.replace('gpt-', 'GPT-').replace('deepseek-chat', 'DeepSeek') : 'GPT';
-    const tokensDisplay = tokens ? ` • ${tokens} tokens` : '';
-
-    msg.innerHTML = `
-      <div class="message-bubble">
-        <div class="message-content">
-          <div class="gpt-content">${formatMarkdown(content)}</div>
-        </div>
-        <div class="message-actions">
-          <button class="copy-btn" onclick="copyMessage('${messageId}')" title="Copy message">
-            <i data-lucide="copy"></i>
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Initialize syntax highlighting for code blocks
-    msg.querySelectorAll('pre code').forEach((block) => {
-      hljs.highlightElement(block);
-    });
-
-    // Add copy buttons to code blocks
-    addCodeBlockCopyButtons(msg);
-
-  } else if (type === "system") {
-    // System messages for website switching, etc.
-    msg.classList.add("system");
-    msg.innerHTML = `<em>🔄 ${content}</em>`;
-    msg.style.fontSize = "0.9rem";
-    msg.style.opacity = "0.8";
-    msg.style.fontStyle = "italic";
-    msg.style.textAlign = "center";
-    msg.style.background = "var(--bg-tertiary)";
-    msg.style.border = "1px solid var(--border-color)";
-    msg.style.color = "var(--text-muted)";
-    msg.style.margin = "8px auto";
-    msg.style.maxWidth = "60%";
-  } else {
-    // User messages
-    msg.innerHTML = `
-      <div class="message-content">
-        <div class="message-text">${content.replace(/\n/g, '<br>')}</div>
-        <button class="copy-btn" onclick="copyMessage('${messageId}')" title="Copy message">
-          <i data-lucide="copy"></i>
-        </button>
-      </div>
-    `;
-  }
-
-  // Add typing animation effect
-  if (type === "gpt") {
-    msg.style.opacity = "0";
-    msg.style.transform = "translateY(20px)";
-  }
-
-  box.appendChild(msg);
-
-  // Initialize Lucide icons immediately
-  lucide.createIcons();
-
-  // Animate message appearance
-  if (type === "gpt") {
-    setTimeout(() => {
-      msg.style.transition = "all 0.3s ease-out";
-      msg.style.opacity = "1";
-      msg.style.transform = "translateY(0)";
-    }, 50);
-  }
-
-  smoothScrollToBottom();
-}
-
-// Model selection based on prompt keywords
-function selectModel(prompt) {
-  const lower = prompt.toLowerCase();
-  if (lower.includes("complex")) return "gpt-4-turbo";
-  if (lower.includes("longer")) return "gpt-4";
-  if (lower.includes("deeper")) return "gpt-3.5-turbo";
-  if (lower.includes("quick")) return "deepseek-chat";
-  return "gpt-3.5-turbo"; // default
-}
-
-// Error handling and user notifications
-function showErrorMessage(message, type = 'error') {
-  const errorDiv = document.createElement('div');
-  errorDiv.className = `error-notification ${type}`;
-  errorDiv.innerHTML = `
-    <div class="error-content">
-      <i data-lucide="${type === 'error' ? 'alert-circle' : 'info'}"></i>
-      <span>${message}</span>
-      <button class="error-close" onclick="this.parentElement.parentElement.remove()">×</button>
-    </div>
-  `;
-
-  // Add styles if not already present
-  if (!document.querySelector('#error-styles')) {
-    const errorStyles = document.createElement('style');
-    errorStyles.id = 'error-styles';
-    errorStyles.textContent = `
-      .error-notification {
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-lg);
-        z-index: 10000;
-        max-width: 400px;
-        animation: slideInRight 0.3s ease-out;
-      }
-
-      .error-notification.error {
-        border-color: #ef4444;
-        background: linear-gradient(135deg, rgba(239, 68, 44, 0.1), var(--bg-secondary));
-      }
-
-      .error-notification.warning {
-        border-color: #f59e0b;
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), var(--bg-secondary));
-      }
-
-      .error-notification.info {
-        border-color: #3b82f6;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), var(--bg-secondary));
-      }
-
-      .error-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 16px;
-        color: var(--text-primary);
-      }
-
-      .error-content i {
-        flex-shrink: 0;
-        width: 20px;
-        height: 20px;
-      }
-
-      .error-content span {
-        flex: 1;
-        font-size: 0.9rem;
-        line-height: 1.4;
-      }
-
-      .error-close {
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        font-size: 20px;
-        cursor: pointer;
-        padding: 0;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        transition: var(--transition);
-      }
-
-      .error-close:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: var(--text-primary);
-      }
-
-      @keyframes slideInRight {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-
-      @media (max-width: 480px) {
-        .error-notification {
-          right: 10px;
-          left: 10px;
-          max-width: none;
-        }
-      }
-    `;
-    document.head.appendChild(errorStyles);
-  }
-
-  document.body.appendChild(errorDiv);
-
-  // Auto-remove after 5 seconds
-  setTimeout(() => {
-    if (errorDiv.parentElement) {
-      errorDiv.style.animation = 'slideInRight 0.3s ease-out reverse';
-      setTimeout(() => errorDiv.remove(), 300);
-    }
-  }, 5000);
-
-  // Initialize lucide icons for the error message
-  lucide.createIcons();
-}
-
-function checkNetworkConnection() {
-  return navigator.onLine;
-}
-
-function getErrorMessage(error, response) {
-  if (!checkNetworkConnection()) {
-    return "No internet connection. Please check your network and try again.";
-  }
-
-  if (response) {
-    switch (response.status) {
-      case 429:
-        return "Too many requests. Please wait a moment before trying again.";
-      case 401:
-        return "Authentication failed. Please log in again.";
-      case 403:
-        return "Access denied. Please check your permissions.";
-      case 500:
-        return "Server error. Our team has been notified. Please try again in a few minutes.";
-      case 503:
-        return "Service temporarily unavailable. Please try again later.";
-      default:
-        if (response.status >= 400 && response.status < 500) {
-          return "Client error. Please check your request and try again.";
-        }
-        return "Network error. Please check your connection and try again.";
+      charCounter.style.color = "var(--text-muted)";
     }
   }
-
-  if (error.name === 'TypeError' && error.message.includes('fetch')) {
-    return "Unable to connect to the server. Please check your internet connection.";
-  }
-
-  if (error.message.includes('timeout')) {
-    return "Request timed out. The AI might be busy. Please try again.";
-  }
-
-  return "An unexpected error occurred. Please try again or contact support if the problem persists.";
 }
 
-// GPT API call with comprehensive error handling
-async function getGPTResponse(model) {
-  const maxRetries = 2;
-  let retryCount = 0;
+async function handleSubmit() {
+  const prompt = promptInput?.value?.trim();
+  if (!prompt || isTyping) return;
 
-  while (retryCount <= maxRetries) {
-    try {
-      // Add timeout to fetch request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-      const response = await fetch('/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: conversation,
-          thread_id: currentThreadId
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          errorData = { error: 'Invalid response from server' };
-        }
-
-        const errorMessage = getErrorMessage(new Error(errorData.error), response);
-
-        // Show specific error to user
-        if (response.status === 429 && retryCount < maxRetries) {
-          showErrorMessage(`Rate limit exceeded. Retrying in ${(retryCount + 1) * 2} seconds...`, 'warning');
-          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
-          retryCount++;
-          continue;
-        }
-
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-
-      if (!data.message || !data.message.content) {
-        throw new Error("Invalid response format from AI service");
-      }
-
-      return data.message.content.trim();
-
-    } catch (error) {
-      console.error(`API call attempt ${retryCount + 1} failed:`, error);
-
-      if (error.name === 'AbortError') {
-        const timeoutError = "Request timed out. The AI service might be busy. Please try again.";
-        if (retryCount < maxRetries) {
-          showErrorMessage(`${timeoutError} Retrying...`, 'warning');
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        } else {
-          showErrorMessage(timeoutError, 'error');
-          return "Sorry, the request timed out. Please try again with a shorter message or try again later.";
-        }
-      }
-
-      if (retryCount < maxRetries && !error.message.includes('Authentication')) {
-        showErrorMessage(`Error occurred. Retrying... (${retryCount + 1}/${maxRetries})`, 'warning');
-        retryCount++;
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-      } else {
-        const userFriendlyError = getErrorMessage(error);
-        showErrorMessage(userFriendlyError, 'error');
-        return `Sorry, there was an error: ${userFriendlyError}`;
-      }
-    }
-  }
-
-  return "Sorry, I'm unable to process your request right now. Please try again later or contact support if the problem persists.";
+  await sendMessage(prompt);
 }
 
-// Main chat submission flow with animations and feedback
-async function submitPrompt(promptText) {
-  if (!promptText.trim()) return;
-
-  // Check if user is logged in before proceeding
-  if (!isUserLoggedIn) {
-    showLoginModal();
+async function sendMessage(promptText) {
+  if (!promptText?.trim() || isTyping) {
     return;
   }
 
@@ -725,7 +114,7 @@ async function submitPrompt(promptText) {
   // Add user message with animation
   addMessage(promptText, "user");
 
-  // Show typing indicator instead of "Thinking..."
+  // Show typing indicator
   showTypingIndicator();
 
   conversation.push({ role: "user", content: promptText });
@@ -733,282 +122,173 @@ async function submitPrompt(promptText) {
   const selectedModel = selectModel(promptText);
 
   try {
-    const response = await getGPTResponse(selectedModel);
+    const response = await getGPTResponse(selectedModel, conversation);
 
-    // Check if response indicates an error
-    if (response.startsWith("Sorry, there was an error:") || response.startsWith("Sorry, I'm unable to process")) {
+    if (response && response.message) {
       hideTypingIndicator();
-      addMessage(response, "gpt", selectedModel);
-      return;
+      addMessage(response.message.content, "assistant");
+      conversation.push(response.message);
+
+      // Save conversation to thread
+      saveCurrentThread();
+
+      // Update token usage
+      await updateTokenUsage();
+    } else {
+      throw new Error("Invalid response format");
     }
-
-    // Hide typing indicator and add the GPT response
-    hideTypingIndicator();
-    addMessage(response, "gpt", selectedModel);
-
-    // Increment token usage counter and ensure it's synced
-    if (tokenCounter) {
-      await tokenCounter.incrementUsage();
-      // Always refresh from backend to ensure sync across browsers
-      await tokenCounter.refreshUsage();
-    }
-
-    conversation.push({ role: "assistant", content: response });
-
-    // Update the current thread's conversation
-    const currentThread = threads.find((t) => t.id === currentThreadId);
-    if (currentThread) {
-      currentThread.conversation = [...conversation]; // Save updated conversation to thread
-    }
-
-    // Generate creative thread title using the AI's response (with error handling)
-    if (currentThread && currentThread.title === "New Chat") {
-      try {
-        const titlePrompt = `Based on this conversation: "${promptText}", generate a creative and concise title (max 4 words).`;
-        conversation.push({ role: "user", content: titlePrompt });
-        const titleResponse = await getGPTResponse("gpt-3.5-turbo");
-        conversation.pop(); // Remove the title prompt from conversation
-        currentThread.conversation = [...conversation]; // Update thread after removing title prompt
-
-        if (titleResponse && !titleResponse.startsWith("Sorry")) {
-          currentThread.title = titleResponse.replace(/["']/g, "").slice(0, 40);
-        } else {
-          // Fallback title based on user input
-          currentThread.title = promptText.slice(0, 30) + (promptText.length > 30 ? "..." : "");
-        }
-      } catch (titleError) {
-        console.warn("Failed to generate thread title:", titleError);
-        currentThread.title = promptText.slice(0, 30) + (promptText.length > 30 ? "..." : "");
-      }
-    }
-
-    // Save threads to server with error handling
-    try {
-      await saveUserThreads();
-      updateUI();
-    } catch (storageError) {
-      console.warn("Failed to save to server:", storageError);
-      showErrorMessage("Unable to save conversation to server. Your chat may not be persistent.", "warning");
-    }
-
-  } catch (err) {
-    console.error("Submit error:", err);
+  } catch (error) {
+    console.error("Chat error:", error);
     hideTypingIndicator();
 
-    // More specific error handling
-    let errorMessage = "Sorry, there was an unexpected error. Please try again.";
+    let errorMessage = "I'm having trouble connecting right now. Please try again.";
 
-    if (err.message.includes("Failed to fetch")) {
-      errorMessage = "Unable to connect to the AI service. Please check your internet connection and try again.";
-    } else if (err.message.includes("timeout")) {
-      errorMessage = "The request timed out. Please try again with a shorter message.";
-    } else if (err.message.includes("rate limit")) {
-      errorMessage = "Too many requests. Please wait a moment before trying again.";
+    if (error.message?.includes("403") || error.message?.includes("Premium")) {
+      errorMessage = "You've reached your usage limit. Please upgrade to continue chatting.";
+      showPaymentModal();
+    } else if (error.message?.includes("401")) {
+      errorMessage = "Please log in to continue using the chat.";
     }
 
-    addMessage(errorMessage, "gpt");
-    showErrorMessage("Failed to get AI response. " + errorMessage, "error");
-
+    addMessage(errorMessage, "error");
   } finally {
-    // Enhanced button state restoration
-    const submitBtn = document.getElementById("submit-btn");
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = '<span class="submit-icon"><i data-lucide="send"></i></span>';
-      submitBtn.style.transform = "scale(1)";
-      lucide.createIcons(); // Re-initialize icons
-    }
+    // Reset button state
+    isTyping = false;
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="submit-icon"><i data-lucide="send"></i></span>';
+    submitBtn.style.transform = "scale(1)";
 
-    hideTypingIndicator();
+    // Reinitialize icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   }
 }
 
-// Copy functionality for messages
-function addCopyButton(messageElement) {
-  const copyBtn = document.createElement("button");
-  copyBtn.className = "copy-btn";
-  copyBtn.innerHTML = '<i data-lucide="copy"></i>';
-  copyBtn.title = "Copy message";
-  copyBtn.onclick = async () => {
-    try {
-      const content = messageElement.textContent;
-      await navigator.clipboard.writeText(content);
-      copyBtn.innerHTML = "✓";
-      copyBtn.style.background = "#10b981";
-      copyBtn.style.color = "white";
-      setTimeout(() => {
-        copyBtn.innerHTML = '<i data-lucide="copy"></i>';
-        lucide.createIcons();
-        copyBtn.style.background = "";
-        copyBtn.style.color = "";
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+// Model selection based on keywords
+function selectModel(prompt) {
+  const lower = prompt.toLowerCase();
+
+  // Load model configuration
+  const modelConfig = getModelConfig();
+
+  // Check for specific model triggers
+  for (const [model, triggers] of Object.entries(modelConfig.model_triggers || {})) {
+    if (triggers.some(trigger => lower.includes(trigger))) {
+      return model;
     }
+  }
+
+  // Default model
+  return modelConfig.default_model || "gpt-3.5-turbo";
+}
+
+function getModelConfig() {
+  // Try to load from localStorage or use defaults
+  try {
+    const saved = localStorage.getItem('modelConfig');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn("Failed to load model config:", e);
+  }
+
+  // Default configuration
+  return {
+    model_triggers: {
+      "gpt-4-turbo": ["complex", "detailed", "thorough", "comprehensive", "advanced"],
+      "gpt-4": ["longer", "extensive", "elaborate", "in-depth", "complete"],
+      "gpt-3.5-turbo": ["quick", "simple", "basic", "fast", "brief"],
+      "deepseek-chat": ["deeper", "creative", "deep", "innovative", "alternative"]
+    },
+    default_model: "gpt-3.5-turbo"
   };
-  messageElement.appendChild(copyBtn);
 }
 
-// Add copy buttons to code blocks
-function addCodeBlockCopyButtons(messageElement) {
-  const codeBlocks = messageElement.querySelectorAll('pre');
-  codeBlocks.forEach((pre) => {
-    const copyBtn = document.createElement("button");
-    copyBtn.className = "code-copy-btn";
-    copyBtn.innerHTML = '<i data-lucide="copy"></i>';
-    copyBtn.title = "Copy code";
-    copyBtn.style.cssText = `
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      padding: 4px 8px;
-      cursor: pointer;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 12px;
-      transition: all 0.2s ease;
-      opacity: 0;
-      z-index: 10;
-    `;
-
-    copyBtn.onclick = async (e) => {
-      e.stopPropagation();
-      try {
-        const code = pre.querySelector('code');
-        const text = code ? code.textContent : pre.textContent;
-        await navigator.clipboard.writeText(text);
-        copyBtn.innerHTML = "✓";
-        copyBtn.style.background = "#10b981";
-        copyBtn.style.color = "white";
-        setTimeout(() => {
-          copyBtn.innerHTML = '<i data-lucide="copy"></i>';
-          lucide.createIcons();
-          copyBtn.style.background = "rgba(255, 255, 255, 0.1)";
-          copyBtn.style.color = "rgba(255, 255, 255, 0.7)";
-        }, 2000);
-      } catch (err) {
-        console.error('Failed to copy code: ', err);
-      }
-    };
-
-    // Show/hide copy button on hover
-    pre.style.position = "relative";
-    pre.addEventListener('mouseenter', () => {
-      copyBtn.style.opacity = "1";
-    });
-    pre.addEventListener('mouseleave', () => {
-      copyBtn.style.opacity = "0";
-    });
-
-    pre.appendChild(copyBtn);
+async function getGPTResponse(model, messages) {
+  const response = await fetch('/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages: messages,
+      model: model,
+      thread_id: currentThreadId
+    })
   });
-}
 
-// Smooth scroll to bottom function
-function smoothScrollToBottom() {
-  const box = document.getElementById("output-box");
-  if (box) {
-    box.scrollTo({
-      top: box.scrollHeight,
-      behavior: 'smooth'
-    });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `HTTP ${response.status}`);
   }
+
+  return await response.json();
 }
 
-// Customer service function for FAB - link to contact page
-function openCustomerService() {
-  window.location.href = '/contact.html';
-}
-
-// Payment modal functions
-function showPaymentModal() {
-  const modal = document.getElementById('payment-modal');
-  if (modal) {
-    modal.style.display = 'flex';
-    setTimeout(() => {
-      modal.classList.add('show');
-    }, 10);
-  }
-}
-
-function hidePaymentModal() {
-  const modal = document.getElementById('payment-modal');
-  if (modal) {
-    modal.classList.remove('show');
-    setTimeout(() => {
-      modal.style.display = 'none';
-    }, 300);
-  }
-}
-
-// Handle Token Usage button click - check if user is logged in
-function handleTokenUsageClick() {
-  if (typeof isUserLoggedIn !== 'undefined' && isUserLoggedIn) {
-    window.location.href = '/token-dashboard.html';
-  } else {
-    showLoginModal();
-  }
-}
-
-// Lemon Squeezy payment
-function redirectTosqueeze() {
-  window.location.href = 'https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d';
-}
-
-// Copy message function
-async function copyMessage(messageId) {
-  const messageElement = document.getElementById(messageId);
-  if (messageElement) {
-    try {
-      const content = messageElement.textContent || messageElement.innerText;
-      await navigator.clipboard.writeText(content);
-
-      // Find and update copy button
-      const copyBtn = messageElement.querySelector('.copy-btn');
-      if (copyBtn) {
-        const originalHTML = copyBtn.innerHTML;
-        copyBtn.innerHTML = '✓';
-        copyBtn.style.background = '#10b981';
-        copyBtn.style.color = 'white';
-
-        setTimeout(() => {
-          copyBtn.innerHTML = originalHTML;
-          copyBtn.style.background = '';
-          copyBtn.style.color = '';
-          lucide.createIcons();
-        }, 2000);
-      }
-    } catch (err) {
-      console.error('Failed to copy message:', err);
-    }
-  }
-}
-
-// Typing indicator functions
-function showTypingIndicator() {
-  const outputBox = document.getElementById("output-box");
+function addMessage(content, role) {
   if (!outputBox) return;
 
-  // Remove existing typing indicator
-  hideTypingIndicator();
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `message ${role}-message animate__animated animate__fadeInUp`;
 
+  if (role === "user") {
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <div class="message-text">${escapeHtml(content)}</div>
+      </div>
+    `;
+  } else if (role === "assistant") {
+    const processedContent = processMarkdown(content);
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <div class="message-text">${processedContent}</div>
+        <div class="message-actions">
+          <button class="action-btn copy-btn" onclick="copyMessage(this)" title="Copy">
+            <i data-lucide="copy"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  } else if (role === "error") {
+    messageDiv.className = "message error-message";
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <div class="message-text error-text">
+          <i data-lucide="alert-circle"></i>
+          ${escapeHtml(content)}
+        </div>
+      </div>
+    `;
+  }
+
+  outputBox.appendChild(messageDiv);
+  outputBox.scrollTop = outputBox.scrollHeight;
+
+  // Initialize icons for new message
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+function showTypingIndicator() {
+  if (!outputBox) return;
+
+  isTyping = true;
   const typingDiv = document.createElement("div");
-  typingDiv.className = "message gpt typing-indicator";
+  typingDiv.className = "message assistant-message typing-indicator";
   typingDiv.id = "typing-indicator";
   typingDiv.innerHTML = `
-    <div class="message-bubble">
+    <div class="message-content">
       <div class="typing-animation">
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span>
       </div>
     </div>
   `;
 
   outputBox.appendChild(typingDiv);
-  smoothScrollToBottom();
+  outputBox.scrollTop = outputBox.scrollHeight;
 }
 
 function hideTypingIndicator() {
@@ -1016,88 +296,386 @@ function hideTypingIndicator() {
   if (typingIndicator) {
     typingIndicator.remove();
   }
+  isTyping = false;
 }
 
-// New chat function
-async function newChat() {
-  await createNewThread();
-  updateUI();
+function processMarkdown(content) {
+  if (typeof marked !== 'undefined') {
+    // Configure marked for security
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+      sanitize: false // We'll use DOMPurify instead
+    });
+
+    let html = marked.parse(content);
+
+    // Sanitize with DOMPurify if available
+    if (typeof DOMPurify !== 'undefined') {
+      html = DOMPurify.sanitize(html);
+    }
+
+    return html;
+  }
+
+  // Fallback: simple text processing
+  return escapeHtml(content).replace(/\n/g, '<br>');
 }
 
-// Show login modal function
-function showLoginModal() {
-  // This function should be implemented in auth.js
-  if (typeof window.showLoginModal === 'function') {
-    window.showLoginModal();
-  } else {
-    window.location.href = '/login.html';
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function copyMessage(button) {
+  const messageText = button.closest('.message-content').querySelector('.message-text');
+  const text = messageText.textContent || messageText.innerText;
+
+  navigator.clipboard.writeText(text).then(() => {
+    // Visual feedback
+    const icon = button.querySelector('i');
+    icon.setAttribute('data-lucide', 'check');
+    lucide.createIcons();
+
+    setTimeout(() => {
+      icon.setAttribute('data-lucide', 'copy');
+      lucide.createIcons();
+    }, 2000);
+  }).catch(err => {
+    console.error('Copy failed:', err);
+  });
+}
+
+// Thread management
+function newChat() {
+  // Save current thread if it has messages
+  if (conversation.length > 0) {
+    saveCurrentThread();
+  }
+
+  // Reset conversation
+  conversation = [];
+  currentThreadId = null;
+
+  // Clear output
+  if (outputBox) {
+    outputBox.innerHTML = '';
+  }
+
+  // Show hero section and quick chat again
+  const header = document.querySelector(".hero-section");
+  const quickChat = document.querySelector(".quick-chat");
+  const workspace = document.querySelector(".workspace");
+
+  if (header) {
+    header.classList.remove("fade-out");
+  }
+  if (quickChat) {
+    quickChat.classList.remove("fade-out");
+  }
+  if (workspace) {
+    workspace.classList.remove("no-quick-chat");
+  }
+
+  // Focus input
+  if (promptInput) {
+    promptInput.focus();
   }
 }
 
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize Lucide icons
+function loadThreads() {
+  try {
+    const saved = localStorage.getItem('chatThreads');
+    if (saved) {
+      threads = JSON.parse(saved);
+      updateThreadsList();
+    }
+  } catch (e) {
+    console.error('Failed to load threads:', e);
+    threads = [];
+  }
+}
+
+function saveCurrentThread() {
+  if (conversation.length === 0) return;
+
+  const thread = {
+    id: currentThreadId || Date.now(),
+    title: conversation[0]?.content?.substring(0, 50) + "..." || "New Chat",
+    messages: [...conversation],
+    timestamp: new Date().toISOString()
+  };
+
+  // Update or add thread
+  const existingIndex = threads.findIndex(t => t.id === thread.id);
+  if (existingIndex >= 0) {
+    threads[existingIndex] = thread;
+  } else {
+    threads.unshift(thread);
+  }
+
+  // Limit to 50 threads
+  if (threads.length > 50) {
+    threads = threads.slice(0, 50);
+  }
+
+  currentThreadId = thread.id;
+
+  // Save to localStorage
+  try {
+    localStorage.setItem('chatThreads', JSON.stringify(threads));
+    updateThreadsList();
+  } catch (e) {
+    console.error('Failed to save threads:', e);
+  }
+}
+
+function loadCurrentThread() {
+  // Load the most recent thread if no active conversation
+  if (conversation.length === 0 && threads.length > 0) {
+    const latestThread = threads[0];
+    conversation = [...latestThread.messages];
+    currentThreadId = latestThread.id;
+
+    // Display messages
+    conversation.forEach(msg => {
+      if (msg.role !== 'system') {
+        addMessage(msg.content, msg.role);
+      }
+    });
+  }
+}
+
+function updateThreadsList() {
+  const threadsList = document.getElementById('threads-list');
+  if (!threadsList) return;
+
+  threadsList.innerHTML = '';
+
+  threads.forEach(thread => {
+    const li = document.createElement('li');
+    li.className = 'thread-item';
+    if (thread.id === currentThreadId) {
+      li.classList.add('active');
+    }
+
+    li.innerHTML = `
+      <div class="thread-info" onclick="loadThread(${thread.id})">
+        <div class="thread-title">${escapeHtml(thread.title)}</div>
+        <div class="thread-time">${formatTime(thread.timestamp)}</div>
+      </div>
+      <button class="delete-thread" onclick="deleteThread(${thread.id})" title="Delete">
+        <i data-lucide="trash-2"></i>
+      </button>
+    `;
+
+    threadsList.appendChild(li);
+  });
+
+  // Initialize icons
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
+}
 
-  // Initialize website cards
-  initializeWebsiteCards();
+function loadThread(threadId) {
+  const thread = threads.find(t => t.id === threadId);
+  if (!thread) return;
 
-  // Set up prompt input event listeners
-  const promptInput = document.getElementById('prompt-input');
-  if (promptInput) {
-    // Handle Enter key to submit
-    promptInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const text = this.value.trim();
-        if (text) {
-          submitPrompt(text);
-        }
-      }
-    });
+  // Save current thread first
+  if (conversation.length > 0 && currentThreadId !== threadId) {
+    saveCurrentThread();
+  }
 
-    // Character counter
-    const charCounter = document.getElementById('char-counter');
-    if (charCounter) {
-      promptInput.addEventListener('input', function() {
-        const length = this.value.length;
-        charCounter.textContent = `${length}/1000`;
+  // Load selected thread
+  conversation = [...thread.messages];
+  currentThreadId = threadId;
 
-        if (length > 1000) {
-          charCounter.style.color = 'var(--error-color)';
-        } else {
-          charCounter.style.color = 'var(--text-muted)';
-        }
-      });
+  // Clear and display messages
+  if (outputBox) {
+    outputBox.innerHTML = '';
+  }
+
+  conversation.forEach(msg => {
+    if (msg.role !== 'system') {
+      addMessage(msg.content, msg.role);
     }
+  });
+
+  // Hide hero section
+  const header = document.querySelector(".hero-section");
+  const quickChat = document.querySelector(".quick-chat");
+
+  if (header && conversation.length > 0) {
+    header.classList.add("fade-out");
+  }
+  if (quickChat && conversation.length > 0) {
+    quickChat.classList.add("fade-out");
   }
 
-  // Set up submit button
-  const submitBtn = document.getElementById('submit-btn');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', function() {
-      const promptInput = document.getElementById('prompt-input');
-      if (promptInput) {
-        const text = promptInput.value.trim();
-        if (text) {
-          submitPrompt(text);
-        }
-      }
-    });
+  updateThreadsList();
+}
+
+function deleteThread(threadId) {
+  threads = threads.filter(t => t.id !== threadId);
+
+  // If deleting current thread, reset
+  if (currentThreadId === threadId) {
+    newChat();
   }
 
-  // Set up quick chat buttons
+  // Save and update
+  try {
+    localStorage.setItem('chatThreads', JSON.stringify(threads));
+    updateThreadsList();
+  } catch (e) {
+    console.error('Failed to save threads after deletion:', e);
+  }
+}
+
+function formatTime(timestamp) {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+
+  return date.toLocaleDateString();
+}
+
+// Quick buttons functionality
+function initializeQuickButtons() {
   const quickButtons = document.querySelectorAll('.quick-btn');
   quickButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const text = this.querySelector('.btn-text').textContent.trim();
-      if (text) {
-        submitPrompt(text);
+    button.addEventListener('click', () => {
+      const text = button.querySelector('.btn-text').textContent;
+      if (promptInput) {
+        promptInput.value = text;
+        handleSubmit();
       }
     });
   });
+}
 
-  console.log('ERGOVIA-AI script initialized successfully');
-});
+// Token usage tracking
+async function updateTokenUsage() {
+  try {
+    await fetch('/api/token-usage/increment-prompt', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to update token usage:', error);
+  }
+}
+
+// Payment modal functions
+function showPaymentModal() {
+  const modal = document.getElementById('payment-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+  }
+}
+
+function hidePaymentModal() {
+  const modal = document.getElementById('payment-modal');
+  if (modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 300);
+  }
+}
+
+// Customer service function
+function openCustomerService() {
+  // For now, redirect to contact page
+  window.location.href = '/contact.html';
+}
+
+// Token usage button handler
+function handleTokenUsageClick() {
+  window.location.href = '/token-dashboard.html';
+}
+
+// Theme toggle (if not in auth.js)
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+
+  // Update theme icon
+  const themeIcon = document.getElementById('theme-icon');
+  if (themeIcon) {
+    themeIcon.setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+}
+
+// Sidebar toggle
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const workspace = document.querySelector('.workspace');
+
+  if (sidebar && workspace) {
+    sidebar.classList.toggle('hidden');
+    workspace.classList.toggle('expanded', sidebar.classList.contains('hidden'));
+  }
+}
+
+// Website card interaction functionality
+function initializeWebsiteCards() {
+  const websiteCards = document.querySelectorAll(".website-card");
+
+  websiteCards.forEach(card => {
+    card.addEventListener("click", function(e) {
+      // Check if this is the taskforce main link
+      if (this.classList.contains("taskforce-main-link")) {
+        e.preventDefault();
+        // Get the href from onclick attribute or use default
+        const href = this.getAttribute('onclick');
+        if (href && href.includes('taskforce.html')) {
+          window.location.href = '/taskforce.html';
+        } else if (href && href.includes('token-dashboard.html')) {
+          window.location.href = '/token-dashboard.html';
+        }
+        return;
+      }
+
+      // Remove active class from all cards
+      websiteCards.forEach(c => c.classList.remove("active"));
+
+      // Add active class to clicked card
+      this.classList.add("active");
+
+      // Get website info
+      const websiteId = this.dataset.website;
+      const websiteName = this.querySelector(".website-name");
+
+      if (websiteName) {
+        addMessage(`Switched to ${websiteName.textContent}`, "system");
+        console.log(`Selected website: ${websiteName.textContent} (ID: ${websiteId})`);
+      }
+    });
+  });
+}
+
+// Export functions for global access
+window.sendMessage = sendMessage;
+window.newChat = newChat;
+window.loadThread = loadThread;
+window.deleteThread = deleteThread;
+window.showPaymentModal = showPaymentModal;
+window.hidePaymentModal = hidePaymentModal;
+window.toggleTheme = toggleTheme;
+window.toggleSidebar = toggleSidebar;
+window.openCustomerService = openCustomerService;
+window.handleTokenUsageClick = handleTokenUsageClick;
