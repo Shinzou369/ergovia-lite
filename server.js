@@ -2019,6 +2019,339 @@ app.get("/api/profile", (req, res) => {
   });
 });
 
+// Enhanced Credential Management API
+
+// Get all user credentials
+app.get("/api/credentials", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userEmail = req.user.emails?.[0]?.value;
+  if (!userEmail) {
+    return res.status(400).json({ error: "User email not found" });
+  }
+
+  // Load user's credentials from secure storage
+  const userCredentials = loadUserCredentials(userEmail);
+  
+  // Return credential status without sensitive data
+  const credentialStatus = {};
+  Object.keys(userCredentials).forEach(service => {
+    const cred = userCredentials[service];
+    credentialStatus[service] = {
+      status: cred.isValid ? 'connected' : 'needs-auth',
+      name: cred.name || null,
+      connectedAt: cred.connectedAt || null,
+      lastTested: cred.lastTested || null
+    };
+  });
+
+  res.json(credentialStatus);
+});
+
+// Save API key credential
+app.post("/api/credentials/:service/api-key", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const { service } = req.params;
+  const { apiKey, name } = req.body;
+  const userEmail = req.user.emails?.[0]?.value;
+
+  if (!apiKey) {
+    return res.status(400).json({ error: "API key is required" });
+  }
+
+  try {
+    // Encrypt and store the credential
+    const encryptedKey = encryptCredential(apiKey);
+    saveUserCredential(userEmail, service, {
+      type: 'api-key',
+      encryptedKey,
+      name: name || `${service} API`,
+      connectedAt: new Date().toISOString(),
+      isValid: true
+    });
+
+    res.json({ 
+      success: true, 
+      message: `${service} credential saved successfully`,
+      status: 'connected'
+    });
+  } catch (error) {
+    console.error('Error saving credential:', error);
+    res.status(500).json({ error: "Failed to save credential" });
+  }
+});
+
+// Test credential connection
+app.post("/api/credentials/:service/test", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const { service } = req.params;
+  const userEmail = req.user.emails?.[0]?.value;
+
+  try {
+    const credential = getUserCredential(userEmail, service);
+    if (!credential) {
+      return res.status(404).json({ error: "Credential not found" });
+    }
+
+    // Test the credential based on service type
+    testCredentialConnection(service, credential)
+      .then(isValid => {
+        // Update credential validity
+        updateCredentialValidity(userEmail, service, isValid);
+        
+        res.json({ 
+          success: true, 
+          isValid,
+          message: isValid ? 'Connection test successful' : 'Connection test failed',
+          testedAt: new Date().toISOString()
+        });
+      })
+      .catch(error => {
+        console.error('Credential test error:', error);
+        res.status(500).json({ error: "Test failed" });
+      });
+  } catch (error) {
+    console.error('Error testing credential:', error);
+    res.status(500).json({ error: "Failed to test credential" });
+  }
+});
+
+// Delete credential
+app.delete("/api/credentials/:service", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const { service } = req.params;
+  const userEmail = req.user.emails?.[0]?.value;
+
+  try {
+    deleteUserCredential(userEmail, service);
+    res.json({ 
+      success: true, 
+      message: `${service} credential deleted successfully` 
+    });
+  } catch (error) {
+    console.error('Error deleting credential:', error);
+    res.status(500).json({ error: "Failed to delete credential" });
+  }
+});
+
+// OAuth credential callback handler
+app.get("/api/credentials/:service/oauth/callback", (req, res) => {
+  // This would handle OAuth callbacks for different services
+  const { service } = req.params;
+  const { code, state } = req.query;
+  
+  if (!req.isAuthenticated()) {
+    return res.redirect('/login?error=not_authenticated');
+  }
+
+  // Handle OAuth token exchange based on service
+  handleOAuthCallback(service, code, req.user.emails?.[0]?.value)
+    .then(credential => {
+      res.redirect(`/workflow-builder?credential_added=${service}`);
+    })
+    .catch(error => {
+      console.error('OAuth callback error:', error);
+      res.redirect(`/workflow-builder?error=oauth_failed`);
+    });
+});
+
+// Helper functions for credential management
+function loadUserCredentials(userEmail) {
+  // In production, this would load from secure database
+  const fs = require('fs');
+  const path = './user_credentials.json';
+  
+  try {
+    if (fs.existsSync(path)) {
+      const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+      return data[userEmail] || {};
+    }
+  } catch (error) {
+    console.error('Error loading credentials:', error);
+  }
+  
+  return {};
+}
+
+function saveUserCredential(userEmail, service, credential) {
+  const fs = require('fs');
+  const path = './user_credentials.json';
+  
+  let data = {};
+  try {
+    if (fs.existsSync(path)) {
+      data = JSON.parse(fs.readFileSync(path, 'utf8'));
+    }
+  } catch (error) {
+    console.error('Error reading credentials file:', error);
+  }
+  
+  if (!data[userEmail]) {
+    data[userEmail] = {};
+  }
+  
+  data[userEmail][service] = credential;
+  
+  try {
+    fs.writeFileSync(path, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error('Error saving credentials:', error);
+    throw error;
+  }
+}
+
+function getUserCredential(userEmail, service) {
+  const credentials = loadUserCredentials(userEmail);
+  return credentials[service] || null;
+}
+
+function deleteUserCredential(userEmail, service) {
+  const fs = require('fs');
+  const path = './user_credentials.json';
+  
+  try {
+    if (fs.existsSync(path)) {
+      const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+      if (data[userEmail] && data[userEmail][service]) {
+        delete data[userEmail][service];
+        fs.writeFileSync(path, JSON.stringify(data, null, 2));
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting credential:', error);
+    throw error;
+  }
+}
+
+function encryptCredential(value) {
+  // In production, use proper encryption
+  const crypto = require('crypto');
+  const algorithm = 'aes-256-cbc';
+  const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long';
+  const iv = crypto.randomBytes(16);
+  
+  const cipher = crypto.createCipher(algorithm, key);
+  let encrypted = cipher.update(value, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  
+  return `${iv.toString('hex')}:${encrypted}`;
+}
+
+function decryptCredential(encryptedValue) {
+  // In production, use proper decryption
+  const crypto = require('crypto');
+  const algorithm = 'aes-256-cbc';
+  const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long';
+  
+  const [ivHex, encrypted] = encryptedValue.split(':');
+  const iv = Buffer.from(ivHex, 'hex');
+  
+  const decipher = crypto.createDecipher(algorithm, key);
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  
+  return decrypted;
+}
+
+async function testCredentialConnection(service, credential) {
+  // Mock credential testing - in production, make actual API calls
+  const testPromises = {
+    openai: () => testOpenAIKey(decryptCredential(credential.encryptedKey)),
+    google: () => testGoogleCredential(credential),
+    slack: () => testSlackCredential(credential),
+    // Add more services as needed
+  };
+  
+  const testFunction = testPromises[service];
+  if (!testFunction) {
+    throw new Error(`No test function for service: ${service}`);
+  }
+  
+  return await testFunction();
+}
+
+async function testOpenAIKey(apiKey) {
+  // Mock OpenAI test - in production, make actual API call
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(apiKey && apiKey.length > 10);
+    }, 1000);
+  });
+}
+
+async function testGoogleCredential(credential) {
+  // Mock Google test
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 500);
+  });
+}
+
+async function testSlackCredential(credential) {
+  // Mock Slack test
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(true), 750);
+  });
+}
+
+function updateCredentialValidity(userEmail, service, isValid) {
+  const credentials = loadUserCredentials(userEmail);
+  if (credentials[service]) {
+    credentials[service].isValid = isValid;
+    credentials[service].lastTested = new Date().toISOString();
+    
+    // Save back to storage
+    const fs = require('fs');
+    const path = './user_credentials.json';
+    
+    let data = {};
+    try {
+      if (fs.existsSync(path)) {
+        data = JSON.parse(fs.readFileSync(path, 'utf8'));
+      }
+    } catch (error) {
+      console.error('Error reading credentials file:', error);
+    }
+    
+    data[userEmail] = credentials;
+    
+    try {
+      fs.writeFileSync(path, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('Error updating credential:', error);
+    }
+  }
+}
+
+async function handleOAuthCallback(service, code, userEmail) {
+  // Mock OAuth handling - in production, exchange code for tokens
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const credential = {
+        type: 'oauth',
+        accessToken: 'mock_access_token',
+        refreshToken: 'mock_refresh_token',
+        name: `${service} Account`,
+        connectedAt: new Date().toISOString(),
+        isValid: true
+      };
+      
+      saveUserCredential(userEmail, service, credential);
+      resolve(credential);
+    }, 1000);
+  });
+}
+
 // Check authentication status endpoint
 app.get("/api/auth/status", (req, res) => {
   console.log('Auth status check - isAuthenticated:', req.isAuthenticated());

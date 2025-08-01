@@ -1,0 +1,634 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Builder - Enhanced Credentials</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .workflow-builder {
+            display: flex;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+
+        .node-palette {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .workflow-canvas {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(0,0,0,0.05) 1px, 
+                transparent 1px
+            ), linear-gradient(
+                90deg, 
+                rgba(0,0,0,0.05) 1px, 
+                transparent 1px
+            );
+            background-size: 20px 20px;
+            position: relative;
+        }
+
+        .properties-panel {
+            width: 350px;
+            background: white;
+            border-left: 1px solid #ddd;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .node-category {
+            margin-bottom: 20px;
+        }
+
+        .node-category h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .node-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .node-item:hover {
+            background: #f8f9fa;
+        }
+
+        .node-item.dragging {
+            opacity: 0.5;
+        }
+
+        .node-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+            border-radius: 4px;
+        }
+
+        .workflow-node {
+            position: absolute;
+            width: 200px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .workflow-node:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .workflow-node.selected {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .workflow-node.needs-auth {
+            border-color: #ffc107;
+            background: #fff9e6;
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .node-title {
+            font-weight: 500;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .node-status {
+            font-size: 12px;
+            color: #666;
+            margin: 0;
+        }
+
+        .credential-section {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .credential-section h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .credential-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .credential-dropdown {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .connect-btn {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .connect-btn:hover {
+            background: #0056b3;
+        }
+
+        .connect-btn.oauth {
+            background: #4285f4;
+        }
+
+        .connect-btn.oauth:hover {
+            background: #3367d6;
+        }
+
+        .credential-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .status-needs-auth {
+            background: #ffc107;
+        }
+
+        .inline-auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
+
+        .inline-auth-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 450px;
+            width: 90%;
+        }
+
+        .auth-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .service-logo {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+        }
+
+        .quick-setup {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .oauth-button {
+            width: 100%;
+            padding: 12px;
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .oauth-button:hover {
+            background: #3367d6;
+        }
+    </style>
+</head>
+<body>
+    <div class="workflow-builder">
+        <!-- Node Palette -->
+        <div class="node-palette">
+            <h2>Nodes</h2>
+            
+            <div class="node-category">
+                <h3>Data Sources</h3>
+                <div class="node-item" draggable="true" data-node-type="google-sheets">
+                    <img src="https://developers.google.com/sheets/api/images/sheets-icon.png" class="node-icon" alt="Google Sheets">
+                    <span>Google Sheets</span>
+                </div>
+                <div class="node-item" draggable="true" data-node-type="airtable">
+                    <img src="https://airtable.com/favicon.ico" class="node-icon" alt="Airtable">
+                    <span>Airtable</span>
+                </div>
+            </div>
+
+            <div class="node-category">
+                <h3>AI & Processing</h3>
+                <div class="node-item" draggable="true" data-node-type="openai">
+                    <img src="https://openai.com/favicon.ico" class="node-icon" alt="OpenAI">
+                    <span>OpenAI</span>
+                </div>
+                <div class="node-item" draggable="true" data-node-type="text-processor">
+                    <div class="node-icon" style="background: #6c757d; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">T</div>
+                    <span>Text Processor</span>
+                </div>
+            </div>
+
+            <div class="node-category">
+                <h3>Communication</h3>
+                <div class="node-item" draggable="true" data-node-type="slack">
+                    <img src="https://slack.com/favicon.ico" class="node-icon" alt="Slack">
+                    <span>Slack</span>
+                </div>
+                <div class="node-item" draggable="true" data-node-type="email">
+                    <div class="node-icon" style="background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">@</div>
+                    <span>Email</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-container">
+            <div class="workflow-canvas" id="workflowCanvas">
+                <!-- Workflow nodes will be added here -->
+            </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel" id="propertiesPanel">
+            <h3>Node Properties</h3>
+            <p>Select a node to configure its properties</p>
+        </div>
+    </div>
+
+    <!-- Inline Authentication Modal -->
+    <div class="inline-auth-modal" id="inlineAuthModal">
+        <div class="inline-auth-content">
+            <div class="auth-header">
+                <img id="authServiceLogo" src="" class="service-logo" alt="">
+                <div>
+                    <h3 id="authServiceName">Connect Service</h3>
+                    <p style="margin: 0; color: #666; font-size: 14px;">Authenticate to continue configuring this node</p>
+                </div>
+            </div>
+            
+            <div class="quick-setup">
+                <h4 style="margin: 0 0 8px 0; font-size: 14px;">Quick Setup</h4>
+                <p style="margin: 0; font-size: 12px; color: #666;">Click below to authenticate with your account</p>
+            </div>
+            
+            <button class="oauth-button" id="authButton">
+                <span>🔐</span>
+                <span id="authButtonText">Connect Account</span>
+            </button>
+            
+            <div style="text-align: center; margin-top: 16px;">
+                <button style="background: none; border: none; color: #666; font-size: 12px; cursor: pointer;" onclick="closeAuthModal()">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedNode = null;
+        let nodeCounter = 0;
+
+        const nodeTypes = {
+            'google-sheets': {
+                name: 'Google Sheets',
+                icon: 'https://developers.google.com/sheets/api/images/sheets-icon.png',
+                requiresAuth: true,
+                authType: 'oauth',
+                authService: 'google'
+            },
+            'openai': {
+                name: 'OpenAI',
+                icon: 'https://openai.com/favicon.ico',
+                requiresAuth: true,
+                authType: 'api-key',
+                authService: 'openai'
+            },
+            'slack': {
+                name: 'Slack',
+                icon: 'https://slack.com/favicon.ico',
+                requiresAuth: true,
+                authType: 'oauth',
+                authService: 'slack'
+            },
+            'airtable': {
+                name: 'Airtable',
+                icon: 'https://airtable.com/favicon.ico',
+                requiresAuth: true,
+                authType: 'api-key',
+                authService: 'airtable'
+            },
+            'text-processor': {
+                name: 'Text Processor',
+                icon: null,
+                requiresAuth: false
+            },
+            'email': {
+                name: 'Email',
+                icon: null,
+                requiresAuth: false
+            }
+        };
+
+        // Mock credential status
+        let credentials = {
+            google: { status: 'connected', name: 'Google Account' },
+            openai: { status: 'connected', name: 'OpenAI API' },
+            slack: { status: 'disconnected', name: null },
+            airtable: { status: 'disconnected', name: null }
+        };
+
+        // Drag and drop functionality
+        document.querySelectorAll('.node-item').forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+        });
+
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.nodeType);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        const canvas = document.getElementById('workflowCanvas');
+        canvas.addEventListener('dragover', handleDragOver);
+        canvas.addEventListener('drop', handleDrop);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const nodeType = e.dataTransfer.getData('text/plain');
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - 100; // Center the node
+            const y = e.clientY - rect.top - 50;
+            
+            createWorkflowNode(nodeType, x, y);
+        }
+
+        function createWorkflowNode(nodeType, x, y) {
+            const nodeConfig = nodeTypes[nodeType];
+            const nodeId = `node-${++nodeCounter}`;
+            
+            const node = document.createElement('div');
+            node.className = `workflow-node ${nodeConfig.requiresAuth && (!credentials[nodeConfig.authService] || credentials[nodeConfig.authService].status !== 'connected') ? 'needs-auth' : ''}`;
+            node.style.left = `${x}px`;
+            node.style.top = `${y}px`;
+            node.dataset.nodeId = nodeId;
+            node.dataset.nodeType = nodeType;
+            
+            const iconHtml = nodeConfig.icon 
+                ? `<img src="${nodeConfig.icon}" class="node-icon" alt="${nodeConfig.name}">`
+                : `<div class="node-icon" style="background: #6c757d; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px;">${nodeConfig.name[0]}</div>`;
+            
+            node.innerHTML = `
+                <div class="node-header">
+                    ${iconHtml}
+                    <div>
+                        <h4 class="node-title">${nodeConfig.name}</h4>
+                        <p class="node-status">${nodeConfig.requiresAuth ? 'Requires authentication' : 'Ready to configure'}</p>
+                    </div>
+                </div>
+            `;
+            
+            node.addEventListener('click', () => selectNode(node));
+            canvas.appendChild(node);
+            
+            // Auto-select the new node
+            selectNode(node);
+        }
+
+        function selectNode(node) {
+            // Remove selection from other nodes
+            document.querySelectorAll('.workflow-node.selected').forEach(n => n.classList.remove('selected'));
+            
+            // Select this node
+            node.classList.add('selected');
+            selectedNode = node;
+            
+            // Update properties panel
+            updatePropertiesPanel(node);
+        }
+
+        function updatePropertiesPanel(node) {
+            const nodeType = node.dataset.nodeType;
+            const nodeConfig = nodeTypes[nodeType];
+            const panel = document.getElementById('propertiesPanel');
+            
+            let credentialSection = '';
+            if (nodeConfig.requiresAuth) {
+                const cred = credentials[nodeConfig.authService];
+                const statusClass = cred?.status || 'disconnected';
+                
+                credentialSection = `
+                    <div class="credential-section">
+                        <h4>🔐 Authentication</h4>
+                        
+                        <div class="credential-status">
+                            <span class="status-indicator status-${statusClass}"></span>
+                            ${cred?.status === 'connected' 
+                                ? `Connected as: ${cred.name}`
+                                : `Not connected to ${nodeConfig.authService}`
+                            }
+                        </div>
+                        
+                        ${cred?.status !== 'connected' ? `
+                            <button class="connect-btn ${nodeConfig.authType}" onclick="showInlineAuth('${nodeConfig.authService}', '${nodeConfig.authType}', '${nodeConfig.name}', '${nodeConfig.icon}')">
+                                ${nodeConfig.authType === 'oauth' ? '🔗 Connect Account' : '🔑 Add API Key'}
+                            </button>
+                        ` : `
+                            <div style="margin-top: 8px;">
+                                <button class="connect-btn" style="background: #28a745; margin-right: 8px;" onclick="testCredential('${nodeConfig.authService}')">Test</button>
+                                <button class="connect-btn" style="background: #dc3545;" onclick="disconnectCredential('${nodeConfig.authService}')">Disconnect</button>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+            
+            panel.innerHTML = `
+                <h3>${nodeConfig.name} Configuration</h3>
+                
+                ${credentialSection}
+                
+                <div style="background: #f8f9fa; border-radius: 6px; padding: 16px;">
+                    <h4 style="margin: 0 0 12px 0; font-size: 14px;">Node Settings</h4>
+                    <p style="margin: 0; color: #666; font-size: 12px;">
+                        Additional configuration options will appear here once authentication is complete.
+                    </p>
+                </div>
+            `;
+        }
+
+        function showInlineAuth(service, authType, serviceName, serviceIcon) {
+            const modal = document.getElementById('inlineAuthModal');
+            const serviceLogo = document.getElementById('authServiceLogo');
+            const serviceNameEl = document.getElementById('authServiceName');
+            const authButton = document.getElementById('authButton');
+            const authButtonText = document.getElementById('authButtonText');
+            
+            serviceLogo.src = serviceIcon || '';
+            serviceLogo.style.display = serviceIcon ? 'block' : 'none';
+            serviceNameEl.textContent = `Connect ${serviceName}`;
+            
+            if (authType === 'oauth') {
+                authButtonText.textContent = `Sign in with ${serviceName}`;
+                authButton.onclick = () => handleOAuthFlow(service, serviceName);
+            } else {
+                authButtonText.textContent = `Add ${serviceName} API Key`;
+                authButton.onclick = () => handleApiKeyFlow(service, serviceName);
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function handleOAuthFlow(service, serviceName) {
+            closeAuthModal();
+            
+            // Simulate OAuth flow
+            alert(`Redirecting to ${serviceName} OAuth...`);
+            
+            setTimeout(() => {
+                credentials[service] = {
+                    status: 'connected',
+                    name: `${serviceName} Account`
+                };
+                
+                // Update the node appearance
+                if (selectedNode) {
+                    selectedNode.classList.remove('needs-auth');
+                    updatePropertiesPanel(selectedNode);
+                }
+                
+                alert(`Successfully connected to ${serviceName}!`);
+            }, 2000);
+        }
+
+        function handleApiKeyFlow(service, serviceName) {
+            closeAuthModal();
+            
+            const apiKey = prompt(`Enter your ${serviceName} API key:`);
+            if (apiKey) {
+                credentials[service] = {
+                    status: 'connected',
+                    name: `${serviceName} API`
+                };
+                
+                // Update the node appearance
+                if (selectedNode) {
+                    selectedNode.classList.remove('needs-auth');
+                    updatePropertiesPanel(selectedNode);
+                }
+                
+                alert(`Successfully saved ${serviceName} credentials!`);
+            }
+        }
+
+        function closeAuthModal() {
+            document.getElementById('inlineAuthModal').style.display = 'none';
+        }
+
+        function testCredential(service) {
+            alert(`Testing ${service} connection...`);
+            setTimeout(() => {
+                alert(`${service} connection test successful!`);
+            }, 1000);
+        }
+
+        function disconnectCredential(service) {
+            if (confirm(`Disconnect from ${service}?`)) {
+                credentials[service] = { status: 'disconnected', name: null };
+                
+                if (selectedNode) {
+                    selectedNode.classList.add('needs-auth');
+                    updatePropertiesPanel(selectedNode);
+                }
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('inlineAuthModal');
+            if (event.target === modal) {
+                closeAuthModal();
+            }
+        }
+    </script>
+</body>
+</html>
