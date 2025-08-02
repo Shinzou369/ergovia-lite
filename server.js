@@ -329,9 +329,7 @@ app.use(session({
     logFn: function() {} // Disable logging to avoid spam
   }),
   secret: process.env.SESSION_SECRET || (() => {
-    if (process.env.NODE_ENV !== 'development') {
-      console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
-    }
+    console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
     return 'ergovia-ai-stable-secret-key-2024-production';
   })(),
   resave: false,
@@ -476,22 +474,17 @@ app.get('/api/etf/templates', async (req, res) => {
           return false;
         });
         return hasPetTag; // No active status filter - include ALL PET workflows
-      }).map(workflow => {
-        const workflowAnalysis = analyzeWorkflowConfig(workflow);
-        return {
-          id: workflow.id,
-          name: workflow.name,
-          description: `ETF automation workflow: ${workflow.name}`,
-          taskforce_type: 'dental', // Pet clinics are categorized as dental
-          tags: workflow.tags || [],
-          active: workflow.active,
-          config_fields: workflowAnalysis.fields || [],
-          prompt_instructions: workflowAnalysis.promptInstructions || '',
-          credentials_required: workflowAnalysis.credentialsRequired || [],
-          created_at: workflow.createdAt,
-          updated_at: workflow.updatedAt
-        };
-      }) : [];
+      }).map(workflow => ({
+        id: workflow.id,
+        name: workflow.name,
+        description: `ETF automation workflow: ${workflow.name}`,
+        taskforce_type: 'dental', // Pet clinics are categorized as dental
+        tags: workflow.tags || [],
+        active: workflow.active,
+        config_fields: analyzeWorkflowConfig(workflow),
+        created_at: workflow.createdAt,
+        updated_at: workflow.updatedAt
+      })) : [];
 
     console.log(`Found ${templates.length} PET workflows (active and inactive)`);
     res.json(templates);
@@ -1608,29 +1601,7 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  console.log('🏥 Health check requested');
-  res.json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    port: process.env.PORT || 3000,
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// Debug endpoint
-app.get('/debug', (req, res) => {
-  console.log('🐛 Debug endpoint requested');
-  res.json({
-    message: 'Server is working!',
-    timestamp: new Date().toISOString(),
-    headers: req.headers,
-    env: {
-      PORT: process.env.PORT,
-      NODE_ENV: process.env.NODE_ENV,
-      REPL_SLUG: process.env.REPL_SLUG,
-      REPL_OWNER: process.env.REPL_OWNER
-    }
-  });
+  res.json({ status: 'ok' });
 });
 
 // Lemon Squeezy webhook endpoint
@@ -2991,233 +2962,6 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
 // ETF Helper Functions
 // ========================================
 
-function generatePromptInstructions(workflow) {
-  console.log('🔍 Analyzing workflow for automatic prompt instructions:', workflow.name);
-  
-  const instructions = [];
-  const configFields = [];
-  const credentials = [];
-  const nodes = workflow.nodes || [];
-  
-  // Track detected placeholders and services
-  const detectedPlaceholders = new Set();
-  const detectedServices = new Set();
-  
-  // Analyze each node for placeholders and credentials
-  nodes.forEach(node => {
-    const nodeStr = JSON.stringify(node);
-    
-    // Detect credential requirements
-    if (node.credentials) {
-      Object.keys(node.credentials).forEach(credType => {
-        if (credType.includes('telegram')) {
-          detectedServices.add('telegram');
-          credentials.push({
-            service: 'telegram',
-            type: 'bot_token',
-            label: 'Telegram Bot Token',
-            description: 'Create a bot with @BotFather on Telegram',
-            required: true
-          });
-          credentials.push({
-            service: 'telegram',
-            type: 'chat_id', 
-            label: 'Telegram Chat ID',
-            description: 'Your Telegram chat ID or group ID',
-            required: true
-          });
-        }
-        
-        if (credType.includes('google')) {
-          detectedServices.add('google');
-          credentials.push({
-            service: 'google',
-            type: 'oauth',
-            label: 'Google Account',
-            description: 'Connect your Google account for Calendar, Sheets, etc.',
-            required: true
-          });
-        }
-        
-        if (credType.includes('openai')) {
-          detectedServices.add('openai');
-          credentials.push({
-            service: 'openai',
-            type: 'api_key',
-            label: 'OpenAI API Key',
-            description: 'Get your API key from OpenAI platform',
-            required: true
-          });
-        }
-        
-        if (credType.includes('slack')) {
-          detectedServices.add('slack');
-          credentials.push({
-            service: 'slack',
-            type: 'bot_token',
-            label: 'Slack Bot Token',
-            description: 'Create a Slack app and get bot token',
-            required: true
-          });
-        }
-      });
-    }
-    
-    // Detect placeholder patterns in node parameters
-    const placeholderPatterns = [
-      /\{\{CLINIC_NAME\}\}/g,
-      /\{\{CLINIC_ADDRESS\}\}/g, 
-      /\{\{CLINIC_PHONE\}\}/g,
-      /\{\{CLINIC_EMAIL\}\}/g,
-      /\{\{CLINIC_HOURS\}\}/g,
-      /\{\{SERVICES_OFFERED\}\}/g,
-      /\{\{EMERGENCY_CONTACT\}\}/g,
-      /\{\{VETERINARIAN_NAME\}\}/g,
-      /\{\{TELEGRAM_BOT_TOKEN\}\}/g,
-      /\{\{TELEGRAM_CHAT_ID\}\}/g,
-      /\{\{BUSINESS_NAME\}\}/g,
-      /\{\{BUSINESS_EMAIL\}\}/g,
-      /\{\{BUSINESS_PHONE\}\}/g,
-      /\{\{WEBSITE_URL\}\}/g,
-      /\{\{BOOKING_URL\}\}/g
-    ];
-    
-    placeholderPatterns.forEach(pattern => {
-      const matches = nodeStr.match(pattern);
-      if (matches) {
-        matches.forEach(match => {
-          detectedPlaceholders.add(match);
-        });
-      }
-    });
-  });
-  
-  // Generate config fields based on detected placeholders
-  Array.from(detectedPlaceholders).forEach(placeholder => {
-    const key = placeholder.replace(/\{\{|\}\}/g, '').toLowerCase();
-    
-    switch (key) {
-      case 'clinic_name':
-        configFields.push({
-          key: 'clinic_name',
-          label: 'Clinic Name',
-          type: 'text',
-          required: true,
-          placeholder: 'Happy Paws Veterinary Clinic'
-        });
-        break;
-      case 'clinic_address':
-        configFields.push({
-          key: 'clinic_address',
-          label: 'Clinic Address',
-          type: 'textarea',
-          required: true,
-          placeholder: '123 Pet Street, Animal City, AC 12345'
-        });
-        break;
-      case 'clinic_hours':
-        configFields.push({
-          key: 'clinic_hours',
-          label: 'Clinic Hours',
-          type: 'textarea',
-          required: true,
-          placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only'
-        });
-        break;
-      case 'services_offered':
-        configFields.push({
-          key: 'services_offered',
-          label: 'Services Offered',
-          type: 'textarea',
-          required: true,
-          placeholder: 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming'
-        });
-        break;
-      case 'emergency_contact':
-        configFields.push({
-          key: 'emergency_contact',
-          label: 'Emergency Contact',
-          type: 'tel',
-          required: true,
-          placeholder: '+1-555-EMERGENCY'
-        });
-        break;
-      case 'veterinarian_name':
-        configFields.push({
-          key: 'veterinarian_name',
-          label: 'Veterinarian Name',
-          type: 'text',
-          required: true,
-          placeholder: 'Dr. Sarah Johnson'
-        });
-        break;
-      case 'telegram_bot_token':
-        configFields.push({
-          key: 'telegram_bot_token',
-          label: 'Telegram Bot Token',
-          type: 'password',
-          required: true,
-          placeholder: 'Your bot token from @BotFather'
-        });
-        break;
-      case 'telegram_chat_id':
-        configFields.push({
-          key: 'telegram_chat_id',
-          label: 'Telegram Chat ID',
-          type: 'text',
-          required: true,
-          placeholder: 'Your chat ID or group ID'
-        });
-        break;
-      case 'website_url':
-        configFields.push({
-          key: 'website_url',
-          label: 'Website URL',
-          type: 'url',
-          required: false,
-          placeholder: 'https://yourwebsite.com'
-        });
-        break;
-      case 'booking_url':
-        configFields.push({
-          key: 'booking_url',
-          label: 'Booking URL',
-          type: 'url',
-          required: false,
-          placeholder: 'https://booking.yourwebsite.com'
-        });
-        break;
-    }
-  });
-  
-  // Generate instructions based on detected services and placeholders
-  instructions.push('This workflow has been automatically analyzed. Please provide the following information:');
-  
-  if (detectedServices.has('telegram')) {
-    instructions.push('• Set up Telegram Bot: Create a bot with @BotFather and get your bot token and chat ID');
-  }
-  
-  if (detectedServices.has('google')) {
-    instructions.push('• Connect Google Account: You\'ll need to authorize access to Google services');
-  }
-  
-  if (detectedPlaceholders.size > 0) {
-    instructions.push(`• Configure ${detectedPlaceholders.size} business-specific fields detected in the workflow`);
-  }
-  
-  if (detectedServices.has('openai')) {
-    instructions.push('• Provide OpenAI API Key: Get your API key from platform.openai.com');
-  }
-  
-  console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
-  
-  return {
-    instructions: instructions.join('\n'),
-    configFields: configFields,
-    credentials: Array.from(new Map(credentials.map(c => [`${c.service}_${c.type}`, c])).values()) // Remove duplicates
-  };
-}
-
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters for regex
 }
@@ -3252,9 +2996,6 @@ function extractTaskforceType(workflowName, workflowTags = []) {
 }
 
 function analyzeWorkflowConfig(workflow) {
-  // Generate automatic prompt instructions based on workflow content
-  const promptInstructions = generatePromptInstructions(workflow);
-  
   // Extract tags from N8N workflow metadata
   const workflowTags = workflow.tags || [];
   const workflowNotes = workflow.notes || '';
@@ -3283,9 +3024,6 @@ function analyzeWorkflowConfig(workflow) {
     }
   });
 
-  // Get automatically detected fields from workflow analysis
-  const autoDetectedFields = promptInstructions.configFields || [];
-
   // Standard configuration fields for all ETF workflows
   const standardFields = [
     { key: 'business_name', label: 'Business Name', type: 'text', required: true },
@@ -3294,17 +3032,8 @@ function analyzeWorkflowConfig(workflow) {
     { key: 'support_email', label: 'Support Email', type: 'email', required: false }
   ];
 
-  // Combine all fields and remove duplicates
-  const allFields = [...standardFields, ...customFields, ...autoDetectedFields];
-  const uniqueFields = allFields.filter((field, index, self) => 
-    index === self.findIndex(f => f.key === field.key)
-  );
-
-  return {
-    fields: uniqueFields,
-    promptInstructions: promptInstructions.instructions,
-    credentialsRequired: promptInstructions.credentials
-  };
+  // Combine standard fields with custom fields from tags
+  return [...standardFields, ...customFields];
 }
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
@@ -3441,49 +3170,8 @@ function extractWebhookUrl(nodes) {
 
 // Start server
 const port = process.env.PORT || 3000;
+console.log(`Server is running on port ${port}`);
 
-const server = app.listen(port, '0.0.0.0', (err) => {
-  if (err) {
-    console.error('❌ Server failed to start:', err);
-    return;
-  }
-  
-  console.log(`🚀 Server is running on port ${port}`);
-  console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
-  console.log(`📍 Local URL: http://localhost:${port}`);
-  console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
-  
-  // Test basic route
-  console.log('🧪 Testing server health...');
-  setTimeout(() => {
-    const http = require('http');
-    const options = {
-      hostname: 'localhost',
-      port: port,
-      path: '/health',
-      method: 'GET'
-    };
-    
-    const req = http.request(options, (res) => {
-      console.log(`✅ Health check status: ${res.statusCode}`);
-    });
-    
-    req.on('error', (err) => {
-      console.log(`⚠️ Health check failed: ${err.message}`);
-    });
-    
-    req.end();
-  }, 1000);
-});
-
-server.on('error', (err) => {
-  console.error('❌ Server error:', err);
-});
-
-process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
 });
