@@ -879,6 +879,201 @@
                     </details>
                 </div>
 
+                <!-- Appointment Management Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="calendar-days"></i>
+                        </div>
+                        <h2 class="section-title">Appointment Management Setup</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="appointmentsSheetId">Appointments Google Sheet ID <span class="required">*</span></label>
+                            <input type="text" id="appointmentsSheetId" name="appointments_sheet_id" required 
+                                   placeholder="1BcDefGhIjKlMnOpQrStUvWxYz...">
+                            <div class="form-help">
+                                The Google Sheet where your appointments are stored. Copy the ID from the URL.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="masterSheetId">Master Tracking Sheet ID <span class="required">*</span></label>
+                            <input type="text" id="masterSheetId" name="master_sheet_id" required 
+                                   placeholder="1AbCdEfGhIjKlMnOpQrStUvWx...">
+                            <div class="form-help">
+                                Central sheet for logging all appointments from different sources.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clinicAddress">Clinic Address <span class="required">*</span></label>
+                            <textarea id="clinicAddress" name="clinic_address" required rows="2" 
+                                      placeholder="123 Main St, City, State 12345"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="cancellationPolicy">Cancellation Policy <span class="required">*</span></label>
+                            <select id="cancellationPolicy" name="cancellation_policy" required>
+                                <option value="">Select Policy</option>
+                                <option value="24-hour">24-hour</option>
+                                <option value="48-hour">48-hour</option>
+                                <option value="72-hour">72-hour</option>
+                                <option value="1-week">1-week</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="reminderInterval">Reminder Check Interval</label>
+                            <select id="reminderInterval" name="reminder_interval">
+                                <option value="1">Every Hour</option>
+                                <option value="2" selected>Every 2 Hours</option>
+                                <option value="4">Every 4 Hours</option>
+                                <option value="6">Every 6 Hours</option>
+                                <option value="12">Every 12 Hours</option>
+                                <option value="24">Daily</option>
+                            </select>
+                            <div class="form-help">
+                                How often to check for appointments needing reminders.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="timezone">Timezone <span class="required">*</span></label>
+                            <select id="timezone" name="timezone" required>
+                                <option value="">Select Timezone</option>
+                                <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                                <option value="America/Chicago">Central Time (CST/CDT)</option>
+                                <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                                <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                                <option value="America/Phoenix">Arizona Time (MST)</option>
+                                <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
+                                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <details style="margin-top: 15px;">
+                        <summary>How to get your Google Sheet IDs</summary>
+                        <div class="credential-help">
+                            <h4>Getting Sheet IDs:</h4>
+                            <ol>
+                                <li>Open your Google Sheet in a browser</li>
+                                <li>Look at the URL: <code>https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit</code></li>
+                                <li>Copy the long string between <code>/d/</code> and <code>/edit</code></li>
+                                <li>That's your Sheet ID!</li>
+                            </ol>
+
+                            <h4>Required Sheet Structure:</h4>
+                            <p><strong>Appointments Sheet</strong> should have columns:</p>
+                            <ul>
+                                <li>Date, Time, Customer Name, Customer Phone, etc.</li>
+                            </ul>
+                            <p><strong>Master Sheet</strong> will be automatically populated with:</p>
+                            <ul>
+                                <li>Date, Time, Customer Name, Email, Phone, Service, Pet Name, Notes, Status, Created</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- SMS Service Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="message-square"></i>
+                        </div>
+                        <h2 class="section-title">SMS Service Setup</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="twilioAccountSid">Twilio Account SID <span class="required">*</span></label>
+                        <input type="text" id="twilioAccountSid" name="twilio_account_sid" required 
+                               placeholder="AC1234567890abcdef1234567890abcdef">
+                        <div class="form-help">
+                            Your Twilio Account SID for sending SMS messages.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="twilioAuthToken">Twilio Auth Token <span class="required">*</span></label>
+                        <input type="password" id="twilioAuthToken" name="twilio_auth_token" required 
+                               placeholder="your_twilio_auth_token_here">
+                        <div class="form-help">
+                            Your Twilio Auth Token (kept secure).
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="twilioPhoneNumber">Twilio Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="twilioPhoneNumber" name="twilio_phone_number" required 
+                               placeholder="+15551234567">
+                        <div class="form-help">
+                            Your Twilio phone number in E.164 format (starting with +1).
+                        </div>
+                    </div>
+
+                    <details style="margin-top: 15px;">
+                        <summary>How to get your Twilio credentials</summary>
+                        <div class="credential-help">
+                            <h4>Setting up Twilio:</h4>
+                            <ol>
+                                <li>Sign up at <code>twilio.com</code></li>
+                                <li>Go to Console Dashboard</li>
+                                <li>Find your <strong>Account SID</strong> and <strong>Auth Token</strong></li>
+                                <li>Purchase a phone number in Phone Numbers > Manage > Buy a number</li>
+                                <li>Copy the phone number in E.164 format (+15551234567)</li>
+                            </ol>
+
+                            <h4>SMS Features:</h4>
+                            <ul>
+                                <li>✅ Instant appointment confirmations</li>
+                                <li>⏰ Automated reminder messages</li>
+                                <li>📱 Professional business messaging</li>
+                                <li>🔔 Cancellation policy notifications</li>
+                            </ul>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Calendly Integration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="calendar-check"></i>
+                        </div>
+                        <h2 class="section-title">Calendly Integration</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="calendlyApiKey">Calendly Personal Access Token <span class="required">*</span></label>
+                        <input type="password" id="calendlyApiKey" name="calendly_api_key" required 
+                               placeholder="your_calendly_personal_access_token">
+                        <div class="form-help">
+                            Personal Access Token from your Calendly developer settings.
+                        </div>
+                    </div>
+
+                    <details style="margin-top: 15px;">
+                        <summary>How to get your Calendly Personal Access Token</summary>
+                        <div class="credential-help">
+                            <h4>Getting Calendly API Access:</h4>
+                            <ol>
+                                <li>Log in to your Calendly account</li>
+                                <li>Go to <code>calendly.com/integrations/api_webhooks</code></li>
+                                <li>Click "Generate New Token"</li>
+                                <li>Copy the Personal Access Token</li>
+                                <li>Paste it in the field above</li>
+                            </ol>
+
+                            <h4>Webhook Setup:</h4>
+                            <p>The workflow will automatically set up webhooks to capture new appointments and trigger confirmations.</p>
+                        </div>
+                    </details>
+                </div>
+
                 <div class="form-section">
                     <div class="section-header">
                         <div class="section-icon">

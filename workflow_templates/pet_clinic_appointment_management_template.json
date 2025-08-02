@@ -1,0 +1,256 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "expression": "{{REMINDER_CHECK_INTERVAL}}"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        368
+      ],
+      "id": "92a88559-310f-41dd-a11e-04ee99a0d547"
+    },
+    {
+      "parameters": {
+        "documentId": "{{APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{APPOINTMENTS_SHEET_NAME}}",
+        "options": {}
+      },
+      "name": "Get Appointments from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        512,
+        368
+      ],
+      "id": "9111c3fc-2caf-47fb-8845-6f443806f342",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {},
+          "conditions": [
+            {
+              "id": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
+              "leftValue": "={{ $json.Date }}",
+              "rightValue": "={{ $now.setZone('{{TIMEZONE}}').plus({ days: 1 }).toFormat('yyyy-MM-dd') }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains",
+                "name": "filter.operator.contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Filter Tomorrow's Appointments",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        368
+      ],
+      "id": "430d96e8-8a66-43cc-91ee-7bee9482afaa"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json.customerPhoneNumber }}",
+        "message": "🏥 **{{CLINIC_NAME}} Appointment Reminder**\n\n📅 You have an appointment tomorrow at {{ $json.appointmentTime }}\n\n📍 Location: {{CLINIC_ADDRESS}}\n📞 Questions? Call {{BUSINESS_PHONE_NUMBER}}\n\n⚠️ Please note our {{CANCELLATION_POLICY}} cancellation policy.\n\nSee you soon! 🐾",
+        "options": {}
+      },
+      "name": "Send Reminder SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        944,
+        368
+      ],
+      "id": "69269521-b0e8-4750-980e-7374753b9223",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "events": [
+          "invitee.created"
+        ]
+      },
+      "name": "New Appointment Trigger",
+      "type": "n8n-nodes-base.calendlyTrigger",
+      "typeVersion": 1,
+      "position": [
+        304,
+        160
+      ],
+      "webhookId": "{{CALENDLY_WEBHOOK_ID}}",
+      "id": "812bec60-aa3d-448b-9e3b-c1ed352328c5",
+      "credentials": {
+        "calendlyApi": {
+          "id": "{{CALENDLY_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Calendly"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.body.payload.event.start_time_pretty }}",
+            "Time": "={{ new Date($json.body.payload.event.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: '{{TIMEZONE}}' }) }}",
+            "Customer Name": "={{ $json.body.payload.invitee.name }}",
+            "Customer Email": "={{ $json.body.payload.invitee.email }}",
+            "Customer Phone": "={{ $json.body.payload.questions_and_answers ? $json.body.payload.questions_and_answers.find(q => q.question.includes('phone') || q.question.includes('Phone'))?.answer : 'Not provided' }}",
+            "Service": "={{ $json.body.payload.event_type.name }}",
+            "Pet Name": "={{ $json.body.payload.questions_and_answers ? $json.body.payload.questions_and_answers.find(q => q.question.includes('pet') || q.question.includes('Pet'))?.answer : 'Not specified' }}",
+            "Notes": "={{ $json.body.payload.questions_and_answers ? $json.body.payload.questions_and_answers.map(q => q.question + ': ' + q.answer).join(' | ') : 'No additional notes' }}",
+            "Status": "Confirmed",
+            "Created": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "Log to Master Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        576,
+        160
+      ],
+      "id": "8c956ccd-ffdd-4704-ad9c-8593a4b6dc90",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json.body.payload.invitee.email.includes('@') ? $json.body.payload.questions_and_answers?.find(q => q.question.includes('phone') || q.question.includes('Phone'))?.answer || 'Phone not provided' : $json.body.payload.invitee.email }}",
+        "message": "🎉 **{{CLINIC_NAME}} - Appointment Confirmed!**\n\n📅 **Date & Time:** {{ new Date($json.body.payload.event.start_time).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: '{{TIMEZONE}}' }) }}\n\n🏥 **Service:** {{ $json.body.payload.event_type.name }}\n📍 **Location:** {{CLINIC_ADDRESS}}\n\n⚠️ **Important:** Please note our {{CANCELLATION_POLICY}} cancellation policy.\n\n📞 **Questions?** Call us at {{BUSINESS_PHONE_NUMBER}}\n💌 **Email:** {{BUSINESS_EMAIL}}\n\nWe look forward to seeing you and your pet! 🐾",
+        "options": {}
+      },
+      "name": "Send Confirmation SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        816,
+        160
+      ],
+      "id": "134ceb8f-5682-43c6-aff6-61d0b3d9326c",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Appointment Management Workflow\n\n**Features:**\n• 📅 Automatic appointment logging from Calendly\n• 📧 Instant confirmation messages\n• ⏰ Automated reminder system (runs every {{REMINDER_CHECK_INTERVAL}} hours)\n• 📊 Central appointment tracking\n\n**Customizable Settings:**\n• Clinic: {{CLINIC_NAME}}\n• Address: {{CLINIC_ADDRESS}}\n• Phone: {{BUSINESS_PHONE_NUMBER}}\n• Email: {{BUSINESS_EMAIL}}\n• Timezone: {{TIMEZONE}}\n• Cancellation Policy: {{CANCELLATION_POLICY}}\n\n**Sheet Configuration:**\n• Appointments Sheet: {{APPOINTMENTS_SHEET_ID}}\n• Master Hub: {{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "height": 400,
+        "width": 600,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        100,
+        50
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "Workflow Description"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Appointments from Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Appointments from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter Tomorrow's Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Tomorrow's Appointments": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Appointment Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log to Master Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Master Sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
