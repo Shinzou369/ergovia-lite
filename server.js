@@ -329,7 +329,9 @@ app.use(session({
     logFn: function() {} // Disable logging to avoid spam
   }),
   secret: process.env.SESSION_SECRET || (() => {
-    console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
+    }
     return 'ergovia-ai-stable-secret-key-2024-production';
   })(),
   resave: false,
@@ -3417,8 +3419,8 @@ function extractWebhookUrl(nodes) {
 
 // Start server
 const port = process.env.PORT || 3000;
-console.log(`Server is running on port ${port}`);
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`🚀 Server is running on port ${port}`);
+  console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
 });
