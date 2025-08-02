@@ -1932,8 +1932,7 @@ i {
 /* Secondary FAB for token counter */
 .fab-secondary {
   background: var(--ergovia-navy);
-  opacity: ```python
-0.9;
+  opacity: 0.9;
 }
 
 .fab-secondary:hover {
@@ -3670,68 +3669,3 @@ footer a[href*="linkedin"]:hover {
     font-weight: 600;
     margin-left: 8px;
   }
-
-/* Google OAuth Connection Styles */
-.google-connection-section {
-  margin: 20px 0;
-  padding: 20px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-}
-
-.google-connection-section h3 {
-  margin: 0 0 10px 0;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-}
-
-.google-connection-section p {
-  margin: 0 0 15px 0;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.secondary-btn {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  padding: 12px 20px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 200px;
-}
-
-.secondary-btn:hover:not(:disabled) {
-  background: var(--bg-primary);
-  border-color: var(--primary-color);
-  transform: translateY(-1px);
-}
-
-.secondary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.connection-status {
-  margin-top: 15px;
-  padding: 10px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-success, #e8f5e8);
-  border: 1px solid var(--success-color, #4CAF50);
-}
-
-.status-text {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-/* Token Dashboard Styles */
-.dashboard-container {
