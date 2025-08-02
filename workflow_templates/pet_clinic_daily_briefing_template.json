@@ -1,0 +1,167 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "{{GOOGLE_CALENDAR_ID}}",
+          "mode": "list",
+          "cachedResultName": "{{CLINIC_NAME}} Calendar"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $now.setZone('{{TIMEZONE}}').plus({ days: 0}).startOf('day').toISO() }}",
+          "timeMax": "={{ $now.setZone('{{TIMEZONE}}').plus({ days: 1 }).startOf('day').toISO() }}"
+        }
+      },
+      "name": "Get Today's Calendar Appointments",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        -60
+      ],
+      "id": "634e4786-6bd9-4768-8208-ec424ef828ca",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "{{GOOGLE_CALENDAR_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### Workflow: Daily Staff Briefing for {{CLINIC_NAME}}\n\n**Goal:** To prepare the entire team for the day's appointments.\n\n**How it works:**\n1. **Trigger:** Runs automatically every morning at {{BRIEFING_TIME}}\n2. **Get Today's Calendar Appointments:** Fetches all appointments for the current day from Google Calendar\n3. **Format Briefing:** Processes appointment data and formats into a briefing message\n4. **Send Briefing:** Sends the formatted briefing to the designated staff communication channel\n\n**Customizable Settings:**\n- Clinic Name: {{CLINIC_NAME}}\n- Briefing Time: {{BRIEFING_TIME}}\n- Timezone: {{TIMEZONE}}\n- Communication Channel: {{SLACK_CHANNEL_NAME}}",
+        "height": 400,
+        "width": 600,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1160,
+        -340
+      ],
+      "typeVersion": 1,
+      "id": "244813db-ca51-4b85-97fb-baa34eeae4d4",
+      "name": "Workflow Description"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "{{SLACK_CHANNEL_ID}}",
+          "mode": "list",
+          "cachedResultName": "{{SLACK_CHANNEL_NAME}}"
+        },
+        "text": "=🏥 **{{CLINIC_NAME}} - Daily Staff Briefing**\n📅 Date: {{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy') }}\n\n{{ $json.briefingMessage }}",
+        "otherOptions": {}
+      },
+      "name": "Send Briefing",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -60
+      ],
+      "id": "addeeec6-38fb-45f7-b7a7-fa9ab5c84a37",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "{{SLACK_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "{{BRIEFING_CRON_EXPRESSION}}"
+            }
+          ]
+        }
+      },
+      "name": "Daily Briefing Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -440,
+        -60
+      ],
+      "id": "6b2d330f-7b7d-4444-8ebf-72eb67515e4c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const events = $input.all().map((item) => item.json);\n\nlet briefingMessage = \"\";\n\nif (events.length === 0) {\n  briefingMessage = \"✅ **No appointments scheduled for today.**\\n\\n🎉 Great day to catch up on administrative tasks, deep cleaning, or staff training!\";\n} else {\n  const appointmentCount = events.length;\n  briefingMessage = `📋 **${appointmentCount} appointment${appointmentCount > 1 ? 's' : ''} scheduled for today:**\\n\\n`;\n  \n  briefingMessage += events\n    .sort((a, b) => new Date(a.start?.dateTime || a.start?.date) - new Date(b.start?.dateTime || b.start?.date))\n    .map((event, index) => {\n      const startTime = event.start?.dateTime || event.start?.date;\n      const endTime = event.end?.dateTime || event.end?.date;\n      const summary = event.summary || 'Appointment';\n      \n      let timeDisplay = '';\n      if (startTime.includes('T')) {\n        // Time-based event\n        const start = new Date(startTime).toLocaleTimeString('en-US', { \n          hour: 'numeric', \n          minute: '2-digit', \n          hour12: true,\n          timeZone: '{{TIMEZONE}}'\n        });\n        const end = new Date(endTime).toLocaleTimeString('en-US', { \n          hour: 'numeric', \n          minute: '2-digit', \n          hour12: true,\n          timeZone: '{{TIMEZONE}}'\n        });\n        timeDisplay = `${start} - ${end}`;\n      } else {\n        // All-day event\n        timeDisplay = 'All Day';\n      }\n      \n      let petInfo = '';\n      if (event.description) {\n        const petIdMatch = event.description.match(/Pet ID: (\\d+)/);\n        const petNameMatch = event.description.match(/Pet Name: ([^\\n]+)/);\n        const ownerMatch = event.description.match(/Owner: ([^\\n]+)/);\n        \n        if (petIdMatch || petNameMatch || ownerMatch) {\n          petInfo = ' - ';\n          if (petNameMatch) petInfo += `🐾 ${petNameMatch[1]}`;\n          if (ownerMatch) petInfo += ` (Owner: ${ownerMatch[1]})`;\n          if (petIdMatch) petInfo += ` [ID: ${petIdMatch[1]}]`;\n        }\n      }\n      \n      return `${index + 1}. **${timeDisplay}** - ${summary}${petInfo}`;\n    })\n    .join('\\n');\n    \n  briefingMessage += `\\n\\n💡 **Remember:**\\n• Check appointment notes for special requirements\\n• Ensure all necessary supplies are ready\\n• Review patient history before appointments`;\n}\n\nreturn { briefingMessage };"
+      },
+      "name": "Format Briefing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -60
+      ],
+      "id": "f55ffdbc-3df1-40f6-bb32-89ea5d1cec59"
+    },
+    {
+      "parameters": {
+        "content": "{{CLINIC_NAME}} - Daily Staff Briefing Workflow",
+        "height": 240,
+        "width": 1020
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -540,
+        -120
+      ],
+      "typeVersion": 1,
+      "id": "27de0a04-9c09-4237-8396-3b21f0807a1b",
+      "name": "Sticky Note"
+    }
+  ],
+  "connections": {
+    "Get Today's Calendar Appointments": {
+      "main": [
+        [
+          {
+            "node": "Format Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Briefing Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Today's Calendar Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Briefing": {
+      "main": [
+        [
+          {
+            "node": "Send Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
