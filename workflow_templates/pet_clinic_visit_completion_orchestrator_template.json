@@ -1,0 +1,327 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{VISIT_COMPLETE_WEBHOOK_PATH}}",
+        "options": {}
+      },
+      "name": "Visit Complete Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        100
+      ],
+      "id": "1f524f79-71c3-456b-b696-c25e5ed0e991",
+      "webhookId": "{{VISIT_COMPLETE_WEBHOOK_ID}}"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "{{CALENDAR_POLL_MODE}}"
+            }
+          ]
+        },
+        "calendarId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{GOOGLE_CALENDAR_ID}}",
+          "cachedResultName": "{{CLINIC_NAME}} Calendar"
+        },
+        "triggerOn": "eventEnded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -120
+      ],
+      "id": "1db8538f-b5b6-4a91-adbd-41785dbc7b1b",
+      "name": "Auto-Detect Visit End",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "{{GOOGLE_CALENDAR_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{APPOINTMENTS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Completed",
+            "Completion Time": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Updated By": "{{CLINIC_NAME}} Auto-System"
+          }
+        },
+        "options": {
+          "lookupColumn": "{{ $json.appointmentId || $json.id || 'A' }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "Update Appointment Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        120,
+        -40
+      ],
+      "id": "bed8135d-9b03-4a1d-8f2e-9dc8a239ffa5",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Visit Completed",
+            "Completion Time": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Post-Visit Processes": "Triggered",
+            "Last Updated": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}"
+          }
+        },
+        "options": {
+          "lookupColumn": "{{ $json.appointmentId || $json.id || 'A' }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "Update Master Hub",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        620,
+        180
+      ],
+      "id": "43105f9b-81f0-422b-b566-a833ff986f7b",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": "{{INVOICING_WORKFLOW_ID}}",
+        "source": "database",
+        "options": {
+          "loadStaticData": false
+        }
+      },
+      "name": "🧾 Trigger Invoicing (WF5)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        840,
+        20
+      ],
+      "id": "b661d271-0a3a-4796-bd1c-9c503f9e1752"
+    },
+    {
+      "parameters": {
+        "workflowId": "{{MEDICAL_RECORDS_WORKFLOW_ID}}",
+        "source": "database",
+        "options": {
+          "loadStaticData": false
+        }
+      },
+      "name": "📋 Trigger Medical Records (WF6)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1000,
+        180
+      ],
+      "id": "7d809836-d148-43eb-a2f6-926efbcb3214"
+    },
+    {
+      "parameters": {
+        "workflowId": "{{REVIEW_REQUEST_WORKFLOW_ID}}",
+        "source": "database",
+        "options": {
+          "loadStaticData": false
+        }
+      },
+      "name": "⭐ Trigger Review Request (WF7)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        20
+      ],
+      "id": "68c1b1f9-3047-4075-923b-b46e6ccbc9d1"
+    },
+    {
+      "parameters": {
+        "workflowId": "{{RETENTION_ENGINE_WORKFLOW_ID}}",
+        "source": "database",
+        "options": {
+          "loadStaticData": false
+        }
+      },
+      "name": "🔄 Trigger Retention Engine (WF8)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1420,
+        200
+      ],
+      "id": "a0157d9b-68dc-4f45-af8e-93247d9eeda0"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json.customerPhone || $json.phone }}",
+        "message": "🎉 **{{CLINIC_NAME}} - Visit Complete!**\n\nThank you for visiting us today! Your pet's visit has been completed.\n\n📋 **What happens next:**\n• Medical records will be updated\n• Invoice will be generated shortly\n• We'll send a review request soon\n\n📞 **Questions?** Call {{BUSINESS_PHONE_NUMBER}}\n💌 **Email:** {{BUSINESS_EMAIL}}\n\nThank you for trusting us with your pet's care! 🐾",
+        "options": {}
+      },
+      "name": "Send Visit Complete SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        340,
+        100
+      ],
+      "id": "visit-complete-sms-node",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Visit Completion & Workflow Orchestration (PET WF3)\n\n**🎯 Purpose:** Automatically handles post-visit processes when a pet appointment is completed\n\n**🚀 Triggers:**\n• Manual webhook: {{VISIT_COMPLETE_WEBHOOK_PATH}}\n• Auto-detection via Google Calendar when events end\n\n**⚡ Automated Actions:**\n• Updates appointment status to \"Completed\"\n• Sends completion SMS to pet owner\n• Triggers 4 downstream workflows:\n  - 🧾 WF5: Invoicing System\n  - 📋 WF6: Medical Records Update\n  - ⭐ WF7: Review Request System\n  - 🔄 WF8: Customer Retention Engine\n\n**📊 Integration:**\n• Appointments Sheet: {{APPOINTMENTS_SHEET_ID}}\n• Master Hub: {{MASTER_APPOINTMENTS_SHEET_ID}}\n• Calendar: {{GOOGLE_CALENDAR_ID}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Timezone: {{TIMEZONE}}\n• Poll Mode: {{CALENDAR_POLL_MODE}}",
+        "height": 400,
+        "width": 650,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -200,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF3 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "Visit Complete Webhook": {
+      "main": [
+        [
+          {
+            "node": "Update Appointment Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Detect Visit End": {
+      "main": [
+        [
+          {
+            "node": "Update Appointment Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Appointment Status": {
+      "main": [
+        [
+          {
+            "node": "Send Visit Complete SMS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Master Hub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Visit Complete SMS": {
+      "main": [
+        [
+          {
+            "node": "🧾 Trigger Invoicing (WF5)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Master Hub": {
+      "main": [
+        [
+          {
+            "node": "🧾 Trigger Invoicing (WF5)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧾 Trigger Invoicing (WF5)": {
+      "main": [
+        [
+          {
+            "node": "📋 Trigger Medical Records (WF6)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Trigger Medical Records (WF6)": {
+      "main": [
+        [
+          {
+            "node": "⭐ Trigger Review Request (WF7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⭐ Trigger Review Request (WF7)": {
+      "main": [
+        [
+          {
+            "node": "🔄 Trigger Retention Engine (WF8)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
