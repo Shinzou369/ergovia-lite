@@ -619,6 +619,129 @@
             .required {
                 color: #dc3545;
             }
+
+            .google-connection-section {
+                margin-top: 20px;
+                padding: 15px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+
+            .google-connection-section h3 {
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+
+            .google-connection-section p {
+                margin-bottom: 15px;
+            }
+
+            #connect-google-btn {
+                background-color: #4285F4;
+                color: white;
+                padding: 10px 15px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+            }
+
+            #connect-google-btn img {
+                margin-right: 8px;
+            }
+
+            .connection-status {
+                margin-top: 10px;
+                padding: 10px;
+                border-radius: 5px;
+                display: none;
+            }
+
+            .status-text {
+                font-weight: bold;
+            }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .instructions-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .instructions-section h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .credentials-list, .config-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .credentials-list li, .config-list li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .required {
+            color: #dc3545;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .credentials-count {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -756,6 +879,27 @@
                     </details>
                 </div>
 
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="cloud"></i>
+                        </div>
+                        <h2 class="section-title">N8N Credentials</h2>
+                    </div>
+
+                    <div class="google-connection-section">
+                        <h3>Connect Google Account for Automation</h3>
+                        <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
+                        <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwSDEyVjE0LjI2SDEyLjU2VjE0LjI2SDE3LjkyQzE3LjY2IDE1LjMgMTYuOTQgMTYuMTEgMTUuOTQgMTYuNjFWMTkuNTNIMTkuMzJDMjEuMzMgMTcuNyAyMi41NiAxNS4yIDIyLjU2IDEyLjI1WiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuLjIxIDEzLjY0IDE3LjU2IDEyIDE3LjU2QzkuMDQgMTcuNTYgNi41NyAxNS42OSA1LjY5IDEzLjA5SDIuMThWMTYuMDRDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNNS42OSAxMy4wOUM1LjQxIDEyLjI5IDUuMjYgMTEuNDQgNS4yNiAxMC41OUM1LjI2IDkuNzQgNS40MSA4Ljg5IDUuNjkgOC4wOVY1LjA1SDIuMThDMS4yOCA2Ljg1IDAuNzQgOC44OSAwLjc0IDEwLjU5QzAuNzQgMTIuMjkgMS4yOCAxNC4zMyAyLjE4IDE2LjEzTDUuNjkgMTMuMDlaIiBmaWxsPSIjRkJCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjNTkgMTIgMC41OUM3LjczIDAuNTkgNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNi41NyA2Ljk5IDkuMDQgNS4xMiAxMiA1LjEyVjQuNzRINDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;">
+                            Connect Google Account
+                        </button>
+                        <div id="google-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ Google account connected successfully</span>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="submit-btn" id="submitBtn">
                     <i data-lucide="play"></i>
                     <span>Run Workflow</span>
@@ -767,20 +911,70 @@
     </div>
 
     <script>
-        // Initialize Lucide icons
-        document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons();
-            updateProgress();
+        // Onboarding logic
+        let currentStep = 1;
+        const totalSteps = 4;
 
-            // Auto-select taskforce type from URL parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const taskforceType = urlParams.get('type');
-            if (taskforceType) {
-                const taskforceSelect = document.getElementById('taskforceType');
-                if (taskforceSelect) {
-                    taskforceSelect.value = taskforceType;
-                    updateProgress();
+        async function connectGoogleForN8N() {
+            const btn = document.getElementById('connect-google-btn');
+            const status = document.getElementById('google-status');
+
+            btn.disabled = true;
+            btn.textContent = 'Connecting...';
+
+            try {
+                // Initiate Google OAuth flow for n8n credentials
+                const response = await fetch('/api/auth/google-n8n-oauth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.authUrl) {
+                    // Redirect to Google OAuth
+                    window.location.href = data.authUrl;
+                } else {
+                    throw new Error('Failed to initiate OAuth flow');
                 }
+            } catch (error) {
+                console.error('Google OAuth error:', error);
+                btn.disabled = false;
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3dmZyI+CjxwYXRoIGQ9Ik0yMi4U2IgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBIMTJWMTQuMjZIMTIuNTZWMTQuMjZIMTcuOTJDMTcuNjYgMTUuMyAxNi45NCAxNi4xMSAxNS45NCAxNi42MVYxOS5NTNIMTkuMzJDMjEuMzMgMTcuNyAyMi41NiAxNS4yIDIyLjU2IDEyLjI1WiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQ.5NCAxNy4yMSAxMy42NCAxNy41NiAxMiAxNy41NkM5LjA0IDE3LjU2IDYuNTcgMTUuNjkgNS42OSAxMy4wOUgyLjE4VjE2LjA0QzQuMDQgMTkuNzQgNy43MyAyMiAxMiAyMloiIGZpbGw9IiMzNEE4NTMiLz4KPHBhdGggZD0iTTUuNjkgMTMuMDlDNS40MSAxMi4yOSA1LjI2IDExLjQ0IDUuMjYgMTAuNTlDNS4yNiA5Ljc0IDUuNDEgOC44OSA1LjY5IDguMDlWNS4wNUgyLjE4QzEuMjggNi44NSAwLjc0IDguODkgMC43NCAxMC41OUMwLjc0IDEyLjI5IDEuMjggMTQuMzMgMi4xOCAxNi4xM0w1LjY5IDEzLjA5WiIgZmlsbD0iI0ZCQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5Qzc.NzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNi41NyA2Ljk5IDkuMDQgNS4xMiAxMiA1LjEyVjQuNzRINDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                alert('Failed to connect Google account. Please try again.');
+            }
+        }
+
+        // Check for success/error parameters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const btn = document.getElementById('connect-google-btn');
+            const status = document.getElementById('google-status');
+
+            if (urlParams.get('google_connected') === 'true') {
+                btn.style.display = 'none';
+                status.style.display = 'block';
+                status.innerHTML = '<span class="status-text" style="color: #4CAF50;">✓ Google account connected successfully for automation</span>';
+            } else if (urlParams.get('error')) {
+                const error = urlParams.get('error');
+                let errorMessage = 'Failed to connect Google account.';
+
+                switch (error) {
+                    case 'oauth_denied':
+                        errorMessage = 'Google OAuth access was denied.';
+                        break;
+                    case 'invalid_state':
+                        errorMessage = 'Security validation failed. Please try again.';
+                        break;
+                    case 'oauth_failed':
+                        errorMessage = 'OAuth process failed. Please try again.';
+                        break;
+                }
+
+                status.style.display = 'block';
+                status.innerHTML = `<span class="status-text" style="color: #f44336;">✗ ${errorMessage}</span>`;
             }
         });
 
@@ -1074,6 +1268,133 @@
             });
 
             return isValid;
+        }
+
+        // Collect form data
+        function collectFormData() {
+            const businessName = document.getElementById('businessName').value;
+            const contactEmail = document.getElementById('contactEmail').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const telegramBotToken = document.getElementById('telegramBotToken').value;
+            const telegramChatId = document.getElementById('telegramChatId').value;
+
+            return {
+                clientData: {
+                    name: businessName,
+                    email: contactEmail,
+                    phone: phoneNumber
+                },
+                configData: {
+                    business_name: businessName,
+                    business_email: contactEmail,
+                    business_phone: phoneNumber,
+                    telegram_bot_token: telegramBotToken,
+                    telegram_chat_id: telegramChatId,
+                    clinic_name: businessName,
+                    clinic_address: `${businessName} Address`, // You can add address field if needed
+                    clinic_hours: "Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only",
+                    emergency_contact: phoneNumber,
+                    services_offered: "Vaccinations, Surgery, Dental Care, Emergency Services",
+                    support_email: contactEmail
+                }
+            };
+        }
+
+        // Deploy the ETF automation
+        async function deployETF() {
+          const deployButton = document.getElementById('submitBtn');
+          const originalText = deployButton.textContent;
+
+          deployButton.textContent = 'Deploying...';
+          deployButton.disabled = true;
+
+          try {
+            const formData = collectFormData();
+
+            // Include Google credentials if available
+            const googleCredentials = {};
+            const credentialId = localStorage.getItem('etf_google_credential_id');
+            if (credentialId) {
+              googleCredentials.credential_id = credentialId;
+              // Get tokens from session storage if available
+              const accessToken = sessionStorage.getItem('etf_google_access_token');
+              const refreshToken = sessionStorage.getItem('etf_google_refresh_token');
+              if (accessToken) googleCredentials.access_token = accessToken;
+              if (refreshToken) googleCredentials.refresh_token = refreshToken;
+            }
+
+            const response = await fetch('/api/etf/deploy', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                client_data: formData.clientData,
+                config_data: formData.configData,
+                google_credentials: Object.keys(googleCredentials).length > 0 ? googleCredentials : null
+              })
+            });
+
+            const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h3><i data-lucide="check-circle"></i> Success! Your workflow is deployed!</h3>
+                        <p><strong>Workflow Name:</strong> ${result.workflow_name}</p>
+                        <p><strong>Workflow ID:</strong> <code>${result.workflow_id}</code></p>
+                        ${result.webhook_url ? `<p><strong>Webhook URL:</strong> <code>${result.webhook_url}</code></p>` : ''}
+                        <p>🎉 Your personalized workflow is now active with your business information!</p>
+                        <p>The workflow has been duplicated from your N8N instance and customized with:</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li><strong>Business Name:</strong> ${formData.clientData.name}</li>
+                            <li><strong>Email:</strong> ${formData.clientData.email}</li>
+                            <li><strong>Phone:</strong> ${formData.clientData.phone}</li>
+                        </ul>
+                    `;
+
+                    // Reset form and progress
+                    document.getElementById('etfOnboardingForm').reset();
+                    updateProgress();
+
+                    // Animate result appearance
+                    setTimeout(() => {
+                        lucide.createIcons();
+                    }, 100);
+                } else {
+                    throw new Error(result.error || 'Deployment failed');
+                }
+
+            } catch (error) {
+                console.error('Deployment error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3><i data-lucide="alert-circle"></i> Deployment Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Don't worry! Here's what you can do:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Check your internet connection and try again</li>
+                        <li>Verify all required fields are filled correctly</li>
+                        <li>Contact our support team if the problem persists</li>
+                        <li>Email us at support@ergovia-ai.com for immediate assistance</li>
+                    </ul>
+                `;
+
+                setTimeout(() => {
+                    lucide.createIcons();
+                }, 100);
+            } finally {
+                // Reset button
+                deployButton.disabled = false;
+                deployButton.innerHTML = originalText;
+                resultDiv.style.display = 'block';
+
+                // Scroll to result
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Re-initialize icons
+                lucide.createIcons();
+            }
         }
     </script>
 </body>

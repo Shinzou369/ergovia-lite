@@ -329,7 +329,9 @@ app.use(session({
     logFn: function() {} // Disable logging to avoid spam
   }),
   secret: process.env.SESSION_SECRET || (() => {
-    console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
+    }
     return 'ergovia-ai-stable-secret-key-2024-production';
   })(),
   resave: false,
@@ -474,17 +476,22 @@ app.get('/api/etf/templates', async (req, res) => {
           return false;
         });
         return hasPetTag; // No active status filter - include ALL PET workflows
-      }).map(workflow => ({
-        id: workflow.id,
-        name: workflow.name,
-        description: `ETF automation workflow: ${workflow.name}`,
-        taskforce_type: 'dental', // Pet clinics are categorized as dental
-        tags: workflow.tags || [],
-        active: workflow.active,
-        config_fields: analyzeWorkflowConfig(workflow),
-        created_at: workflow.createdAt,
-        updated_at: workflow.updatedAt
-      })) : [];
+      }).map(workflow => {
+        const workflowAnalysis = analyzeWorkflowConfig(workflow);
+        return {
+          id: workflow.id,
+          name: workflow.name,
+          description: `ETF automation workflow: ${workflow.name}`,
+          taskforce_type: 'dental', // Pet clinics are categorized as dental
+          tags: workflow.tags || [],
+          active: workflow.active,
+          config_fields: workflowAnalysis.fields || [],
+          prompt_instructions: workflowAnalysis.promptInstructions || '',
+          credentials_required: workflowAnalysis.credentialsRequired || [],
+          created_at: workflow.createdAt,
+          updated_at: workflow.updatedAt
+        };
+      }) : [];
 
     console.log(`Found ${templates.length} PET workflows (active and inactive)`);
     res.json(templates);
@@ -498,7 +505,7 @@ app.get('/api/etf/templates', async (req, res) => {
 app.post('/api/etf/deploy', async (req, res) => {
   try {
     console.log('📋 ETF Deploy request received:', JSON.stringify(req.body, null, 2));
-    
+
     let { client_data, config_data, template_id } = req.body;
 
     // Validate required data
@@ -882,8 +889,7 @@ app.post('/api/etf/test-telegram-credentials', async (req, res) => {
 
     if (testResult.ok) {
       res.json({ 
-        success: true, 
-        message: 'Credentials validated successfully!',
+        success: true,        message: 'Credentials validated successfully!',
         bot_info: testResult.result 
       });
     } else {
@@ -1344,7 +1350,7 @@ app.post('/api/etf/create-google-credential', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ N8N credential creation failed:', response.status, errorText);
-      
+
       let errorMessage = `N8N API error: ${response.status}`;
       try {
         const errorJson = JSON.parse(errorText);
@@ -1352,7 +1358,7 @@ app.post('/api/etf/create-google-credential', async (req, res) => {
       } catch (e) {
         errorMessage = errorText || errorMessage;
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -1436,15 +1442,15 @@ app.get('/api/etf/list-google-credentials', async (req, res) => {
 // Google OAuth test callback endpoint
 app.get('/auth/google/oauth-test-callback', (req, res) => {
   const { code, state, error } = req.query;
-  
+
   if (error) {
     return res.redirect(`/test-google-oauth?error=${encodeURIComponent(error)}`);
   }
-  
+
   if (code) {
     return res.redirect(`/test-google-oauth?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`);
   }
-  
+
   res.redirect('/test-google-oauth?error=no_code_received');
 });
 
@@ -1602,7 +1608,29 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  console.log('🏥 Health check requested');
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 3000,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Debug endpoint
+app.get('/debug', (req, res) => {
+  console.log('🐛 Debug endpoint requested');
+  res.json({
+    message: 'Server is working!',
+    timestamp: new Date().toISOString(),
+    headers: req.headers,
+    env: {
+      PORT: process.env.PORT,
+      NODE_ENV: process.env.NODE_ENV,
+      REPL_SLUG: process.env.REPL_SLUG,
+      REPL_OWNER: process.env.REPL_OWNER
+    }
+  });
 });
 
 // Lemon Squeezy webhook endpoint
@@ -2041,7 +2069,7 @@ app.get("/api/credentials", (req, res) => {
 
   // Load user's credentials from secure storage
   const userCredentials = loadUserCredentials(userEmail);
-  
+
   // Return credential status without sensitive data
   const credentialStatus = {};
   Object.keys(userCredentials).forEach(service => {
@@ -2113,7 +2141,7 @@ app.post("/api/credentials/:service/test", (req, res) => {
       .then(isValid => {
         // Update credential validity
         updateCredentialValidity(userEmail, service, isValid);
-        
+
         res.json({ 
           success: true, 
           isValid,
@@ -2157,7 +2185,7 @@ app.get("/api/credentials/:service/oauth/callback", (req, res) => {
   // This would handle OAuth callbacks for different services
   const { service } = req.params;
   const { code, state } = req.query;
-  
+
   if (!req.isAuthenticated()) {
     return res.redirect('/login?error=not_authenticated');
   }
@@ -2178,7 +2206,7 @@ function loadUserCredentials(userEmail) {
   // In production, this would load from secure database
   const fs = require('fs');
   const path = './user_credentials.json';
-  
+
   try {
     if (fs.existsSync(path)) {
       const data = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -2187,14 +2215,14 @@ function loadUserCredentials(userEmail) {
   } catch (error) {
     console.error('Error loading credentials:', error);
   }
-  
+
   return {};
 }
 
 function saveUserCredential(userEmail, service, credential) {
   const fs = require('fs');
   const path = './user_credentials.json';
-  
+
   let data = {};
   try {
     if (fs.existsSync(path)) {
@@ -2203,13 +2231,13 @@ function saveUserCredential(userEmail, service, credential) {
   } catch (error) {
     console.error('Error reading credentials file:', error);
   }
-  
+
   if (!data[userEmail]) {
     data[userEmail] = {};
   }
-  
+
   data[userEmail][service] = credential;
-  
+
   try {
     fs.writeFileSync(path, JSON.stringify(data, null, 2));
   } catch (error) {
@@ -2226,7 +2254,7 @@ function getUserCredential(userEmail, service) {
 function deleteUserCredential(userEmail, service) {
   const fs = require('fs');
   const path = './user_credentials.json';
-  
+
   try {
     if (fs.existsSync(path)) {
       const data = JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -2247,11 +2275,11 @@ function encryptCredential(value) {
   const algorithm = 'aes-256-cbc';
   const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long';
   const iv = crypto.randomBytes(16);
-  
+
   const cipher = crypto.createCipher(algorithm, key);
   let encrypted = cipher.update(value, 'utf8', 'hex');
   encrypted += cipher.final('hex');
-  
+
   return `${iv.toString('hex')}:${encrypted}`;
 }
 
@@ -2260,14 +2288,14 @@ function decryptCredential(encryptedValue) {
   const crypto = require('crypto');
   const algorithm = 'aes-256-cbc';
   const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long';
-  
+
   const [ivHex, encrypted] = encryptedValue.split(':');
   const iv = Buffer.from(ivHex, 'hex');
-  
+
   const decipher = crypto.createDecipher(algorithm, key);
   let decrypted = decipher.update(encrypted, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
-  
+
   return decrypted;
 }
 
@@ -2279,12 +2307,12 @@ async function testCredentialConnection(service, credential) {
     slack: () => testSlackCredential(credential),
     // Add more services as needed
   };
-  
+
   const testFunction = testPromises[service];
   if (!testFunction) {
     throw new Error(`No test function for service: ${service}`);
   }
-  
+
   return await testFunction();
 }
 
@@ -2316,11 +2344,11 @@ function updateCredentialValidity(userEmail, service, isValid) {
   if (credentials[service]) {
     credentials[service].isValid = isValid;
     credentials[service].lastTested = new Date().toISOString();
-    
+
     // Save back to storage
     const fs = require('fs');
     const path = './user_credentials.json';
-    
+
     let data = {};
     try {
       if (fs.existsSync(path)) {
@@ -2329,9 +2357,9 @@ function updateCredentialValidity(userEmail, service, isValid) {
     } catch (error) {
       console.error('Error reading credentials file:', error);
     }
-    
+
     data[userEmail] = credentials;
-    
+
     try {
       fs.writeFileSync(path, JSON.stringify(data, null, 2));
     } catch (error) {
@@ -2352,7 +2380,7 @@ async function handleOAuthCallback(service, code, userEmail) {
         connectedAt: new Date().toISOString(),
         isValid: true
       };
-      
+
       saveUserCredential(userEmail, service, credential);
       resolve(credential);
     }, 1000);
@@ -2799,8 +2827,396 @@ app.use((err, req, res, next) => {
 });
 
 // ========================================
+// Google OAuth for n8n Credentials
+// ========================================
+
+app.post('/api/auth/google-n8n-oauth', (req, res) => {
+  try {
+    const state = crypto.randomBytes(32).toString('hex');
+
+    // Store state in session for verification
+    req.session.n8nOAuthState = state;
+    req.session.save();
+
+    // Use ergovia-ai.com for production OAuth redirect
+    const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `response_type=code&` +
+      `scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive')}&` +
+      `access_type=offline&` +
+      `prompt=consent&` +
+      `state=${state}`;
+
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Error initiating Google OAuth for n8n:', error);
+    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
+  }
+});
+
+app.get('/api/auth/google-n8n-callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      console.error('Google OAuth error:', error);
+      return res.redirect('/etf-onboard?error=oauth_denied');
+    }
+
+    if (!code || !state) {
+      return res.redirect('/etf-onboard?error=missing_params');
+    }
+
+    // Verify state parameter
+    if (state !== req.session.n8nOAuthState) {
+      return res.redirect('/etf-onboard?error=invalid_state');
+    }
+
+    // Use the same redirect URI as in the OAuth initiation
+    const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
+
+    // Exchange authorization code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code: code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenData.access_token) {
+      console.error('Token exchange failed:', tokenData);
+      throw new Error('Failed to obtain access token');
+    }
+
+    // Get user info from Google
+    const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`
+      }
+    });
+
+    const userInfo = await userInfoResponse.json();
+
+    // Create n8n credential
+    const credentialResult = await createN8NCredential(userInfo.email, tokenData, userInfo);
+
+    if (credentialResult.success) {
+      // Clear OAuth state
+      delete req.session.n8nOAuthState;
+      req.session.save();
+
+      res.redirect('/etf-onboard?google_connected=true');
+    } else {
+      throw new Error('Failed to create n8n credential');
+    }
+
+  } catch (error) {
+    console.error('Error in Google OAuth callback:', error);
+    res.redirect('/etf-onboard?error=oauth_failed');
+  }
+});
+
+async function createN8NCredential(userEmail, tokenData, userInfo) {
+  try {
+    if (!N8N_BASE_URL || !N8N_API_KEY) {
+      throw new Error('N8N configuration missing');
+    }
+
+    const credentialData = {
+      name: `Google OAuth - ${userInfo.name} (${userEmail})`,
+      type: 'googleOAuth2Api',
+      data: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || '',
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive'
+      }
+    };
+
+    console.log('Creating n8n credential for:', userEmail);
+
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      },
+      body: JSON.stringify(credentialData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.id) {
+      // Try to store credential ID in user's record
+      try {
+        if (fs.existsSync('./users.json')) {
+          const users = JSON.parse(fs.readFileSync('./users.json', 'utf8'));
+          const userKey = Object.keys(users).find(key => users[key].email === userEmail);
+          if (userKey) {
+            users[userKey].n8nGoogleCredentialId = result.id;
+            fs.writeFileSync('./users.json', JSON.stringify(users, null, 2));
+          }
+        }
+      } catch (fileError) {
+        console.warn('Could not save credential ID to user record:', fileError.message);
+      }
+
+      console.log(`Successfully created n8n Google credential for ${userEmail}:`, result.id);
+      return { success: true, credentialId: result.id };
+    } else {
+      console.error('N8N API response error:', result);
+      throw new Error(`N8N API error: ${result.message || JSON.stringify(result)}`);
+    }
+
+  } catch (error) {
+    console.error('Error creating n8n credential:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ========================================
 // ETF Helper Functions
 // ========================================
+
+function generatePromptInstructions(workflow) {
+  console.log('🔍 Analyzing workflow for automatic prompt instructions:', workflow.name);
+  
+  const instructions = [];
+  const configFields = [];
+  const credentials = [];
+  const nodes = workflow.nodes || [];
+  
+  // Track detected placeholders and services
+  const detectedPlaceholders = new Set();
+  const detectedServices = new Set();
+  
+  // Analyze each node for placeholders and credentials
+  nodes.forEach(node => {
+    const nodeStr = JSON.stringify(node);
+    
+    // Detect credential requirements
+    if (node.credentials) {
+      Object.keys(node.credentials).forEach(credType => {
+        if (credType.includes('telegram')) {
+          detectedServices.add('telegram');
+          credentials.push({
+            service: 'telegram',
+            type: 'bot_token',
+            label: 'Telegram Bot Token',
+            description: 'Create a bot with @BotFather on Telegram',
+            required: true
+          });
+          credentials.push({
+            service: 'telegram',
+            type: 'chat_id', 
+            label: 'Telegram Chat ID',
+            description: 'Your Telegram chat ID or group ID',
+            required: true
+          });
+        }
+        
+        if (credType.includes('google')) {
+          detectedServices.add('google');
+          credentials.push({
+            service: 'google',
+            type: 'oauth',
+            label: 'Google Account',
+            description: 'Connect your Google account for Calendar, Sheets, etc.',
+            required: true
+          });
+        }
+        
+        if (credType.includes('openai')) {
+          detectedServices.add('openai');
+          credentials.push({
+            service: 'openai',
+            type: 'api_key',
+            label: 'OpenAI API Key',
+            description: 'Get your API key from OpenAI platform',
+            required: true
+          });
+        }
+        
+        if (credType.includes('slack')) {
+          detectedServices.add('slack');
+          credentials.push({
+            service: 'slack',
+            type: 'bot_token',
+            label: 'Slack Bot Token',
+            description: 'Create a Slack app and get bot token',
+            required: true
+          });
+        }
+      });
+    }
+    
+    // Detect placeholder patterns in node parameters
+    const placeholderPatterns = [
+      /\{\{CLINIC_NAME\}\}/g,
+      /\{\{CLINIC_ADDRESS\}\}/g, 
+      /\{\{CLINIC_PHONE\}\}/g,
+      /\{\{CLINIC_EMAIL\}\}/g,
+      /\{\{CLINIC_HOURS\}\}/g,
+      /\{\{SERVICES_OFFERED\}\}/g,
+      /\{\{EMERGENCY_CONTACT\}\}/g,
+      /\{\{VETERINARIAN_NAME\}\}/g,
+      /\{\{TELEGRAM_BOT_TOKEN\}\}/g,
+      /\{\{TELEGRAM_CHAT_ID\}\}/g,
+      /\{\{BUSINESS_NAME\}\}/g,
+      /\{\{BUSINESS_EMAIL\}\}/g,
+      /\{\{BUSINESS_PHONE\}\}/g,
+      /\{\{WEBSITE_URL\}\}/g,
+      /\{\{BOOKING_URL\}\}/g
+    ];
+    
+    placeholderPatterns.forEach(pattern => {
+      const matches = nodeStr.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          detectedPlaceholders.add(match);
+        });
+      }
+    });
+  });
+  
+  // Generate config fields based on detected placeholders
+  Array.from(detectedPlaceholders).forEach(placeholder => {
+    const key = placeholder.replace(/\{\{|\}\}/g, '').toLowerCase();
+    
+    switch (key) {
+      case 'clinic_name':
+        configFields.push({
+          key: 'clinic_name',
+          label: 'Clinic Name',
+          type: 'text',
+          required: true,
+          placeholder: 'Happy Paws Veterinary Clinic'
+        });
+        break;
+      case 'clinic_address':
+        configFields.push({
+          key: 'clinic_address',
+          label: 'Clinic Address',
+          type: 'textarea',
+          required: true,
+          placeholder: '123 Pet Street, Animal City, AC 12345'
+        });
+        break;
+      case 'clinic_hours':
+        configFields.push({
+          key: 'clinic_hours',
+          label: 'Clinic Hours',
+          type: 'textarea',
+          required: true,
+          placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only'
+        });
+        break;
+      case 'services_offered':
+        configFields.push({
+          key: 'services_offered',
+          label: 'Services Offered',
+          type: 'textarea',
+          required: true,
+          placeholder: 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming'
+        });
+        break;
+      case 'emergency_contact':
+        configFields.push({
+          key: 'emergency_contact',
+          label: 'Emergency Contact',
+          type: 'tel',
+          required: true,
+          placeholder: '+1-555-EMERGENCY'
+        });
+        break;
+      case 'veterinarian_name':
+        configFields.push({
+          key: 'veterinarian_name',
+          label: 'Veterinarian Name',
+          type: 'text',
+          required: true,
+          placeholder: 'Dr. Sarah Johnson'
+        });
+        break;
+      case 'telegram_bot_token':
+        configFields.push({
+          key: 'telegram_bot_token',
+          label: 'Telegram Bot Token',
+          type: 'password',
+          required: true,
+          placeholder: 'Your bot token from @BotFather'
+        });
+        break;
+      case 'telegram_chat_id':
+        configFields.push({
+          key: 'telegram_chat_id',
+          label: 'Telegram Chat ID',
+          type: 'text',
+          required: true,
+          placeholder: 'Your chat ID or group ID'
+        });
+        break;
+      case 'website_url':
+        configFields.push({
+          key: 'website_url',
+          label: 'Website URL',
+          type: 'url',
+          required: false,
+          placeholder: 'https://yourwebsite.com'
+        });
+        break;
+      case 'booking_url':
+        configFields.push({
+          key: 'booking_url',
+          label: 'Booking URL',
+          type: 'url',
+          required: false,
+          placeholder: 'https://booking.yourwebsite.com'
+        });
+        break;
+    }
+  });
+  
+  // Generate instructions based on detected services and placeholders
+  instructions.push('This workflow has been automatically analyzed. Please provide the following information:');
+  
+  if (detectedServices.has('telegram')) {
+    instructions.push('• Set up Telegram Bot: Create a bot with @BotFather and get your bot token and chat ID');
+  }
+  
+  if (detectedServices.has('google')) {
+    instructions.push('• Connect Google Account: You\'ll need to authorize access to Google services');
+  }
+  
+  if (detectedPlaceholders.size > 0) {
+    instructions.push(`• Configure ${detectedPlaceholders.size} business-specific fields detected in the workflow`);
+  }
+  
+  if (detectedServices.has('openai')) {
+    instructions.push('• Provide OpenAI API Key: Get your API key from platform.openai.com');
+  }
+  
+  console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
+  
+  return {
+    instructions: instructions.join('\n'),
+    configFields: configFields,
+    credentials: Array.from(new Map(credentials.map(c => [`${c.service}_${c.type}`, c])).values()) // Remove duplicates
+  };
+}
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters for regex
@@ -2836,6 +3252,9 @@ function extractTaskforceType(workflowName, workflowTags = []) {
 }
 
 function analyzeWorkflowConfig(workflow) {
+  // Generate automatic prompt instructions based on workflow content
+  const promptInstructions = generatePromptInstructions(workflow);
+  
   // Extract tags from N8N workflow metadata
   const workflowTags = workflow.tags || [];
   const workflowNotes = workflow.notes || '';
@@ -2864,6 +3283,9 @@ function analyzeWorkflowConfig(workflow) {
     }
   });
 
+  // Get automatically detected fields from workflow analysis
+  const autoDetectedFields = promptInstructions.configFields || [];
+
   // Standard configuration fields for all ETF workflows
   const standardFields = [
     { key: 'business_name', label: 'Business Name', type: 'text', required: true },
@@ -2872,8 +3294,17 @@ function analyzeWorkflowConfig(workflow) {
     { key: 'support_email', label: 'Support Email', type: 'email', required: false }
   ];
 
-  // Combine standard fields with custom fields from tags
-  return [...standardFields, ...customFields];
+  // Combine all fields and remove duplicates
+  const allFields = [...standardFields, ...customFields, ...autoDetectedFields];
+  const uniqueFields = allFields.filter((field, index, self) => 
+    index === self.findIndex(f => f.key === field.key)
+  );
+
+  return {
+    fields: uniqueFields,
+    promptInstructions: promptInstructions.instructions,
+    credentialsRequired: promptInstructions.credentials
+  };
 }
 
 function personalizeWorkflowNodes(nodes, configData, clientData) {
@@ -2894,6 +3325,11 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
   }
 
   const placeholders = {
+    // Google OAuth for n8n Credentials
+    '{{GOOGLE_CREDENTIAL_ID}}': configData.google_credential_id || '',
+    '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
+    '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
+    '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
     // Social Media & Communication Credentials
     '{{FACEBOOK_PAGE_TOKEN}}': configData.facebook_page_token || '',
     '{{FACEBOOK_PAGE_ID}}': configData.facebook_page_id || '',
@@ -2904,7 +3340,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
     '{{SLACK_BOT_TOKEN}}': configData.slack_bot_token || '',
     '{{SLACK_CHANNEL}}': configData.slack_channel || '',
-    
+
     // Email & SMS Credentials
     '{{SENDGRID_API_KEY}}': configData.sendgrid_api_key || '',
     '{{MAILGUN_API_KEY}}': configData.mailgun_api_key || '',
@@ -2912,26 +3348,26 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{TWILIO_ACCOUNT_SID}}': configData.twilio_account_sid || '',
     '{{TWILIO_AUTH_TOKEN}}': configData.twilio_auth_token || '',
     '{{TWILIO_PHONE_NUMBER}}': configData.twilio_phone_number || '',
-    
+
     // Booking & Calendar Integration
     '{{CALENDLY_TOKEN}}': configData.calendly_token || '',
     '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
     '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
     '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
     '{{ZOOM_API_SECRET}}': configData.zoom_api_secret || '',
-    
+
     // Payment & CRM Integration
     '{{STRIPE_SECRET_KEY}}': configData.stripe_secret_key || '',
     '{{PAYPAL_CLIENT_ID}}': configData.paypal_client_id || '',
     '{{HUBSPOT_API_KEY}}': configData.hubspot_api_key || '',
     '{{SALESFORCE_TOKEN}}': configData.salesforce_token || '',
-    
+
     // Website & Analytics
     '{{WEBSITE_URL}}': configData.website_url || '',
     '{{BOOKING_URL}}': configData.booking_url || '',
     '{{GOOGLE_ANALYTICS_ID}}': configData.google_analytics_id || '',
     '{{GOOGLE_ADS_CUSTOMER_ID}}': configData.google_ads_customer_id || '',
-    
+
     // Pet Clinic Specific Information
     '{{CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
     '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
@@ -2944,13 +3380,13 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{VETERINARIAN_NAME}}': configData.veterinarian_name || clientData.name || '',
     '{{APPOINTMENT_TYPES}}': configData.appointment_types || 'Wellness Exam, Vaccination, Surgery, Emergency',
     '{{PRICING_INFO}}': configData.pricing_info || 'Contact for pricing information',
-    
+
     // Staff & Contact Information
     '{{RECEPTIONIST_NAME}}': configData.receptionist_name || 'Front Desk',
     '{{MANAGER_NAME}}': configData.manager_name || clientData.name || '',
     '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
     '{{BILLING_EMAIL}}': configData.billing_email || clientData.email || '',
-    
+
     // Client/Business Information
     '{{CLIENT_NAME}}': clientData.name || '',
     '{{CLIENT_EMAIL}}': clientData.email || '',
@@ -2958,7 +3394,7 @@ function personalizeWorkflowNodes(nodes, configData, clientData) {
     '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
     '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
     '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-    
+
     // Legacy placeholders for backward compatibility
     '{{PET_CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
     '{{VET_NAME}}': clientData.name || '',
@@ -3005,8 +3441,49 @@ function extractWebhookUrl(nodes) {
 
 // Start server
 const port = process.env.PORT || 3000;
-console.log(`Server is running on port ${port}`);
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${port}`);
+const server = app.listen(port, '0.0.0.0', (err) => {
+  if (err) {
+    console.error('❌ Server failed to start:', err);
+    return;
+  }
+  
+  console.log(`🚀 Server is running on port ${port}`);
+  console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
+  console.log(`📍 Local URL: http://localhost:${port}`);
+  console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
+  
+  // Test basic route
+  console.log('🧪 Testing server health...');
+  setTimeout(() => {
+    const http = require('http');
+    const options = {
+      hostname: 'localhost',
+      port: port,
+      path: '/health',
+      method: 'GET'
+    };
+    
+    const req = http.request(options, (res) => {
+      console.log(`✅ Health check status: ${res.statusCode}`);
+    });
+    
+    req.on('error', (err) => {
+      console.log(`⚠️ Health check failed: ${err.message}`);
+    });
+    
+    req.end();
+  }, 1000);
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });
