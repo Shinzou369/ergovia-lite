@@ -1608,7 +1608,29 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  console.log('🏥 Health check requested');
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 3000,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Debug endpoint
+app.get('/debug', (req, res) => {
+  console.log('🐛 Debug endpoint requested');
+  res.json({
+    message: 'Server is working!',
+    timestamp: new Date().toISOString(),
+    headers: req.headers,
+    env: {
+      PORT: process.env.PORT,
+      NODE_ENV: process.env.NODE_ENV,
+      REPL_SLUG: process.env.REPL_SLUG,
+      REPL_OWNER: process.env.REPL_OWNER
+    }
+  });
 });
 
 // Lemon Squeezy webhook endpoint
@@ -3420,7 +3442,48 @@ function extractWebhookUrl(nodes) {
 // Start server
 const port = process.env.PORT || 3000;
 
-app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', (err) => {
+  if (err) {
+    console.error('❌ Server failed to start:', err);
+    return;
+  }
+  
   console.log(`🚀 Server is running on port ${port}`);
   console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
+  console.log(`📍 Local URL: http://localhost:${port}`);
+  console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
+  
+  // Test basic route
+  console.log('🧪 Testing server health...');
+  setTimeout(() => {
+    const http = require('http');
+    const options = {
+      hostname: 'localhost',
+      port: port,
+      path: '/health',
+      method: 'GET'
+    };
+    
+    const req = http.request(options, (res) => {
+      console.log(`✅ Health check status: ${res.statusCode}`);
+    });
+    
+    req.on('error', (err) => {
+      console.log(`⚠️ Health check failed: ${err.message}`);
+    });
+    
+    req.end();
+  }, 1000);
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });
