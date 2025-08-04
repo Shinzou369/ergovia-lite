@@ -1,0 +1,381 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "useReadOnlyMode": false
+        }
+      },
+      "name": "📧 Lab Results Email Trigger",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        300
+      ],
+      "id": "250b58e9-fcd0-4a44-865d-401469ebe1d5",
+      "credentials": {
+        "imap": {
+          "id": "{{LAB_EMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Lab Results Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse incoming lab results email/data\nconst emailBody = $input.first().json.text || $input.first().json.body || '';\nconst subject = $input.first().json.subject || '';\n\nconsole.log('📋 Processing lab results for {{CLINIC_NAME}}');\n\n// Enhanced parsing logic for various lab result formats\nlet patientId = 'UNKNOWN';\nlet petName = 'UNKNOWN';\nlet ownerName = 'UNKNOWN';\nlet resultStatus = 'UNKNOWN';\nlet testName = 'UNKNOWN';\nlet resultValue = 'UNKNOWN';\nlet labName = 'UNKNOWN';\nlet testDate = new Date().toISOString().split('T')[0];\nlet urgencyLevel = 'Normal';\n\n// Try multiple parsing patterns for different lab formats\nconst patterns = {\n  patientId: [\n    /Patient\\s*(?:ID|#)?:?\\s*([A-Za-z0-9-]+)/i,\n    /ID\\s*(?:Number|#)?:?\\s*([A-Za-z0-9-]+)/i,\n    /Chart\\s*(?:Number|#)?:?\\s*([A-Za-z0-9-]+)/i\n  ],\n  petName: [\n    /Pet\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i,\n    /Animal\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i,\n    /Patient\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i\n  ],\n  ownerName: [\n    /Owner\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i,\n    /Client\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i,\n    /Guardian\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i\n  ],\n  resultStatus: [\n    /(?:Result\\s*)?Status:?\\s*(Normal|Abnormal|Critical|Pending|Urgent)/i,\n    /Results?:?\\s*(Normal|Abnormal|Critical|Pending|Urgent)/i\n  ],\n  testName: [\n    /Test\\s*(?:Name|Type)?:?\\s*([^\\n\\r,]+)/i,\n    /Procedure:?\\s*([^\\n\\r,]+)/i,\n    /Analysis:?\\s*([^\\n\\r,]+)/i\n  ],\n  resultValue: [\n    /(?:Result\\s*)?Value:?\\s*([^\\n\\r,]+)/i,\n    /Finding:?\\s*([^\\n\\r,]+)/i,\n    /Measurement:?\\s*([^\\n\\r,]+)/i\n  ],\n  labName: [\n    /Lab(?:oratory)?\\s*(?:Name)?:?\\s*([^\\n\\r,]+)/i,\n    /Facility:?\\s*([^\\n\\r,]+)/i\n  ],\n  testDate: [\n    /(?:Test\\s*|Sample\\s*)?Date:?\\s*(\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4})/i,\n    /Collected:?\\s*(\\d{1,2}[\\/-]\\d{1,2}[\\/-]\\d{2,4})/i\n  ]\n};\n\n// Apply patterns to extract data\nfor (const [field, patternList] of Object.entries(patterns)) {\n  for (const pattern of patternList) {\n    const match = emailBody.match(pattern);\n    if (match && match[1]) {\n      if (field === 'patientId') patientId = match[1].trim();\n      else if (field === 'petName') petName = match[1].trim();\n      else if (field === 'ownerName') ownerName = match[1].trim();\n      else if (field === 'resultStatus') resultStatus = match[1].trim();\n      else if (field === 'testName') testName = match[1].trim();\n      else if (field === 'resultValue') resultValue = match[1].trim();\n      else if (field === 'labName') labName = match[1].trim();\n      else if (field === 'testDate') testDate = match[1].trim();\n      break;\n    }\n  }\n}\n\n// Check for urgency indicators\nif (/(?:urgent|critical|immediate|stat|emergency)/i.test(emailBody) || \n    /(?:urgent|critical|immediate|stat|emergency)/i.test(subject)) {\n  urgencyLevel = 'URGENT';\n} else if (/(?:abnormal|elevated|low|high|outside)/i.test(emailBody)) {\n  urgencyLevel = 'Attention';\n}\n\n// Generate formatted report\nconst formattedResults = {\n  patientId,\n  petName,\n  ownerName,\n  testName,\n  resultValue,\n  resultStatus,\n  labName,\n  testDate,\n  urgencyLevel,\n  receivedTimestamp: new Date().toISOString(),\n  rawEmailBody: emailBody,\n  emailSubject: subject,\n  clinicName: '{{CLINIC_NAME}}'\n};\n\nconsole.log(`📊 Lab result parsed:`);\nconsole.log(`   - Patient: ${petName} (ID: ${patientId})`);\nconsole.log(`   - Owner: ${ownerName}`);\nconsole.log(`   - Test: ${testName}`);\nconsole.log(`   - Status: ${resultStatus} (${urgencyLevel})`);\n\nreturn [{ json: formattedResults }];"
+      },
+      "name": "🔍 Parse Lab Results & Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        300
+      ],
+      "id": "11453158-7664-42e1-9d39-22ada9c07be2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{LAB_RESULTS_SHEET_ID}}",
+        "sheetName": "{{LAB_RESULTS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.receivedTimestamp }}",
+            "Patient ID": "={{ $json.patientId }}",
+            "Pet Name": "={{ $json.petName }}",
+            "Owner Name": "={{ $json.ownerName }}",
+            "Test Name": "={{ $json.testName }}",
+            "Result Value": "={{ $json.resultValue }}",
+            "Result Status": "={{ $json.resultStatus }}",
+            "Urgency Level": "={{ $json.urgencyLevel }}",
+            "Lab Name": "={{ $json.labName }}",
+            "Test Date": "={{ $json.testDate }}",
+            "Processed By": "{{CLINIC_NAME}} Auto-System",
+            "Email Subject": "={{ $json.emailSubject }}",
+            "Notification Sent": "Pending"
+          }
+        },
+        "options": {}
+      },
+      "name": "📋 Log to Lab Results Hub",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        260,
+        300
+      ],
+      "id": "f15667b6-34e7-4f1d-bd2c-d69d75f0ebe8",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{VET_EMAIL}}",
+        "subject": "{{ $json.urgencyLevel === 'URGENT' ? '🚨 URGENT' : '📋' }} Lab Results: {{ $json.petName }} ({{ $json.patientId }})",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #{{CLINIC_COLOR}}; color: white; padding: 20px; border-radius: 8px; text-align: center; }\n    .urgent { background: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin: 15px 0; }\n    .normal { background: #e8f5e8; border-left: 5px solid #4caf50; padding: 15px; margin: 15px 0; }\n    .attention { background: #fff3e0; border-left: 5px solid #ff9800; padding: 15px; margin: 15px 0; }\n    .result-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .result-table th, .result-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }\n    .result-table th { background: #f5f5f5; font-weight: bold; }\n    .status-urgent { color: #d32f2f; font-weight: bold; }\n    .status-normal { color: #388e3c; font-weight: bold; }\n    .status-attention { color: #f57c00; font-weight: bold; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>🏥 {{CLINIC_NAME}} - Lab Results</h1>\n    <p>{{ $json.urgencyLevel === 'URGENT' ? '🚨 URGENT ATTENTION REQUIRED' : 'New lab results available' }}</p>\n  </div>\n\n  <div class=\"{{ $json.urgencyLevel === 'URGENT' ? 'urgent' : ($json.urgencyLevel === 'Attention' ? 'attention' : 'normal') }}\">\n    <h2>{{ $json.urgencyLevel === 'URGENT' ? '🚨 Urgent Results Require Immediate Review' : '📋 Lab Results Summary' }}</h2>\n    \n    <table class=\"result-table\">\n      <tr><th>Field</th><th>Value</th></tr>\n      <tr><td><strong>Patient ID</strong></td><td>{{ $json.patientId }}</td></tr>\n      <tr><td><strong>Pet Name</strong></td><td>{{ $json.petName }}</td></tr>\n      <tr><td><strong>Owner</strong></td><td>{{ $json.ownerName }}</td></tr>\n      <tr><td><strong>Test Name</strong></td><td>{{ $json.testName }}</td></tr>\n      <tr><td><strong>Result</strong></td><td>{{ $json.resultValue }}</td></tr>\n      <tr><td><strong>Status</strong></td><td class=\"status-{{ $json.urgencyLevel === 'URGENT' ? 'urgent' : ($json.urgencyLevel === 'Attention' ? 'attention' : 'normal') }}\">{{ $json.resultStatus }}</td></tr>\n      <tr><td><strong>Lab</strong></td><td>{{ $json.labName }}</td></tr>\n      <tr><td><strong>Test Date</strong></td><td>{{ $json.testDate }}</td></tr>\n      <tr><td><strong>Received</strong></td><td>{{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy h:mm a') }}</td></tr>\n    </table>\n  </div>\n\n  <div style=\"margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;\">\n    <h3>📋 Next Steps:</h3>\n    <ul>\n      <li>{{ $json.urgencyLevel === 'URGENT' ? 'Contact client immediately to discuss results' : 'Review results and determine if client contact is needed' }}</li>\n      <li>Update patient records with new lab findings</li>\n      <li>{{ $json.resultStatus === 'Normal' ? 'Consider notifying client of normal results' : 'Schedule follow-up if necessary' }}</li>\n      <li>File results in patient chart</li>\n    </ul>\n  </div>\n\n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>📧 Questions? Contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n    <p>{{CLINIC_NAME}} - Automated Lab Results System</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "ccEmail": "{{ADMIN_EMAIL}}",
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "👨‍⚕️ Notify Veterinarian",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        500,
+        200
+      ],
+      "id": "dfe5d53b-3e3b-4940-b601-9dd1a813154a",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "result-normal-check",
+              "leftValue": "={{ $json.resultStatus }}",
+              "rightValue": "Normal",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Normal Results?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        500,
+        400
+      ],
+      "id": "5cecd087-65dc-4f78-a181-0993f1d7ed07"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{CLIENT_PHONE}}",
+        "message": "🐾 Good news from {{CLINIC_NAME}}! 📋\n\n✅ **{{ $json.petName }}'s lab results are NORMAL!**\n\n🧪 **Test:** {{ $json.testName }}\n📅 **Date:** {{ $json.testDate }}\n🏥 **Lab:** {{ $json.labName }}\n\n😊 **Everything looks great!** No immediate concerns with these results.\n\n📞 Questions? Call us at {{BUSINESS_PHONE_NUMBER}}\n📧 Or email {{BUSINESS_EMAIL}}\n\nThank you for trusting {{CLINIC_NAME}} with {{ $json.petName }}'s care! 🏥❤️",
+        "options": {}
+      },
+      "name": "📱 Send Normal Results SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        740,
+        400
+      ],
+      "id": "32e543fd-9cf1-4645-86f8-af5259132970",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "urgent-check",
+              "leftValue": "={{ $json.urgencyLevel }}",
+              "rightValue": "URGENT",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Urgent Results?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        740,
+        200
+      ],
+      "id": "urgent-results-check"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{VET_PHONE}}",
+        "message": "🚨 **URGENT LAB RESULTS** - {{CLINIC_NAME}}\n\n⚠️ **Immediate attention required!**\n\n🐾 **Patient:** {{ $json.petName }} ({{ $json.patientId }})\n👤 **Owner:** {{ $json.ownerName }}\n🧪 **Test:** {{ $json.testName }}\n📊 **Status:** {{ $json.resultStatus }}\n\n📧 **Full details sent to email**\n\n🔥 **ACTION NEEDED:** Review results and contact client immediately\n\n{{CLINIC_NAME}} Lab Alert System 📋",
+        "options": {}
+      },
+      "name": "📱 Send Urgent SMS to Vet",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        980,
+        200
+      ],
+      "id": "urgent-sms-to-vet",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{LAB_RESULTS_SHEET_ID}}",
+        "sheetName": "{{LAB_RESULTS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Notification Sent": "Yes - {{ $now.setZone('{{TIMEZONE}}').toFormat('MM/dd/yyyy h:mm a') }}",
+            "Notifications": "={{ $json.urgencyLevel === 'URGENT' ? 'Vet Email + Urgent SMS' : ($json.resultStatus === 'Normal' ? 'Vet Email + Client SMS' : 'Vet Email Only') }}"
+          }
+        },
+        "options": {
+          "lookupColumn": "Patient ID",
+          "lookupValue": "={{ $json.patientId }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "📝 Update Notification Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        980,
+        400
+      ],
+      "id": "update-notification-status",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Lab Results Processing & Notification System (PET WF12)\n\n**🎯 Purpose:** Automatically process incoming lab results, parse data, and deliver targeted notifications to veterinarians and clients\n\n**🚀 Key Features:**\n\n**Smart Result Processing:**\n• **Email Monitoring:** Continuous monitoring of lab results email inbox\n• **Intelligent Parsing:** Advanced pattern matching for various lab formats\n• **Data Extraction:** Extracts patient ID, pet name, owner, test details, and urgency\n• **Status Classification:** Categorizes results as Normal, Attention, or URGENT\n• **Multi-Format Support:** Handles different lab result formats and structures\n\n**Automated Notifications:**\n• **Veterinarian Alerts:** Immediate email notifications with detailed HTML reports\n• **Urgent SMS:** Critical results trigger immediate SMS alerts to vet\n• **Client Communication:** Normal results automatically notify pet owners via SMS\n• **Multi-Channel Delivery:** Email + SMS for urgent cases, targeted notifications otherwise\n• **Professional Formatting:** Branded emails with clear result summaries\n\n**Comprehensive Tracking:**\n• **Results Database:** All lab results logged to Google Sheets\n• **Notification Status:** Tracks what notifications were sent and when\n• **Audit Trail:** Complete record of processing and communication\n• **Status Updates:** Real-time tracking of notification delivery\n• **Search & Filter:** Easy access to historical lab results\n\n**⚡ Workflow Process:**\n\n**Processing Flow:**\n1. **Email Monitoring:** Continuous monitoring of lab results inbox\n2. **Data Parsing:** Extract key information using intelligent pattern matching\n3. **Classification:** Determine urgency level and result status\n4. **Database Logging:** Store complete result details in tracking sheet\n5. **Vet Notification:** Send detailed email report to veterinarian\n6. **Urgency Check:** Evaluate if immediate SMS alert is needed\n7. **Client Communication:** For normal results, notify owner via SMS\n8. **Status Update:** Mark notifications as sent with timestamps\n\n**🔍 Smart Parsing Features:**\n• **Multi-Pattern Recognition:** Handles various lab result formats\n• **Field Extraction:** Patient ID, pet name, owner, test type, results\n• **Urgency Detection:** Automatically identifies critical/urgent results\n• **Date Processing:** Extracts and formats test dates properly\n• **Error Handling:** Graceful handling of incomplete or malformed data\n\n**📊 Result Categories:**\n• **Normal:** Standard results, client notification via SMS\n• **Attention:** Abnormal results requiring vet review\n• **URGENT:** Critical results requiring immediate action\n\n**🔔 Notification Matrix:**\n• **Normal Results:** Vet email + Client SMS\n• **Attention Results:** Vet email only\n• **URGENT Results:** Vet email + Urgent SMS to vet\n\n**🔄 Integration Points:**\n• Lab Results Hub: {{LAB_RESULTS_SHEET_ID}}\n• Email Monitoring: {{LAB_EMAIL_CREDENTIAL_ID}}\n• Veterinarian: {{VET_EMAIL}} / {{VET_PHONE}}\n• Client Communication: {{CLIENT_PHONE}}\n• Business Contact: {{BUSINESS_EMAIL}} / {{BUSINESS_PHONE_NUMBER}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Lab Results Sheet: {{LAB_RESULTS_SHEET_NAME}}\n• Timezone: {{TIMEZONE}}\n• Brand Color: {{CLINIC_COLOR}}\n• Admin Notifications: {{ADMIN_EMAIL}}",
+        "height": 800,
+        "width": 900,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -600,
+        -100
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF12 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "📧 Lab Results Email Trigger": {
+      "main": [
+        [
+          {
+            "node": "🔍 Parse Lab Results & Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Parse Lab Results & Extract Data": {
+      "main": [
+        [
+          {
+            "node": "📋 Log to Lab Results Hub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Log to Lab Results Hub": {
+      "main": [
+        [
+          {
+            "node": "👨‍⚕️ Notify Veterinarian",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Normal Results?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "👨‍⚕️ Notify Veterinarian": {
+      "main": [
+        [
+          {
+            "node": "Urgent Results?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normal Results?": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Normal Results SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Update Notification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Send Normal Results SMS": {
+      "main": [
+        [
+          {
+            "node": "📝 Update Notification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urgent Results?": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Urgent SMS to Vet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Update Notification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Send Urgent SMS to Vet": {
+      "main": [
+        [
+          {
+            "node": "📝 Update Notification Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
