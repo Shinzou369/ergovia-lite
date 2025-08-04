@@ -1,0 +1,403 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "⭐ Triggered by Visit Complete (WF3)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -180,
+        300
+      ],
+      "id": "a31042ad-264a-4809-b3cc-488276a52b2b"
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "lookupColumn": "{{ $json.appointmentId || $json.id || 'A' }}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "Get Client Details",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        60,
+        300
+      ],
+      "id": "110928bf-ce43-43de-b994-0ac47e7d2322",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "name": "⏰ Wait 24 Hours for Service Experience",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        300,
+        300
+      ],
+      "id": "43cff084-96cf-4620-b0b1-fd9080dfcd4e"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json['Customer Phone'] }}",
+        "message": "🌟 **{{CLINIC_NAME}} - Share Your Experience!**\n\nHi {{ $json['Customer Name'] }}! We hope {{ $json['Pet Name'] }} had a great visit with us yesterday.\n\n⭐ **Your feedback matters!** Would you mind sharing your experience?\n\n📝 **Leave a Review:** {{GOOGLE_REVIEWS_URL}}\n\n🙏 **Thank you for trusting us** with {{ $json['Pet Name'] }}'s care!\n\n💬 **Questions?** Reply to this message or call {{BUSINESS_PHONE_NUMBER}}\n\n{{CLINIC_NAME}} Team 🐾",
+        "options": {}
+      },
+      "name": "Send Review Request SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        540,
+        300
+      ],
+      "id": "ea8041b9-2f82-47f3-931c-d9a8ade9311f",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json['Customer Email'] }}",
+        "subject": "⭐ How was {{ $json['Pet Name'] }}'s visit to {{CLINIC_NAME}}?",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { text-align: center; color: #{{CLINIC_COLOR}}; border-bottom: 2px solid #{{CLINIC_COLOR}}; padding-bottom: 20px; }\n    .review-request { background: #f8f9fa; padding: 30px; border-radius: 10px; margin: 20px 0; text-align: center; }\n    .stars { font-size: 24px; margin: 15px 0; }\n    .cta-button { display: inline-block; background: #{{CLINIC_COLOR}}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }\n    .visit-summary { margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>{{CLINIC_NAME}}</h1>\n    <p>Thank you for choosing us for {{ $json['Pet Name'] }}'s care!</p>\n  </div>\n  \n  <div class=\"review-request\">\n    <h2>⭐ How was your experience?</h2>\n    <p>Hi {{ $json['Customer Name'] }},</p>\n    <p>We hope {{ $json['Pet Name'] }} had a wonderful visit with us. Your feedback helps us provide the best possible care for all our furry patients!</p>\n    \n    <div class=\"stars\">⭐⭐⭐⭐⭐</div>\n    \n    <a href=\"{{GOOGLE_REVIEWS_URL}}\" class=\"cta-button\">Leave a Review on Google</a>\n    \n    <p><strong>It only takes 2 minutes</strong> and means the world to us and other pet parents!</p>\n  </div>\n  \n  <div class=\"visit-summary\">\n    <h3>📋 Visit Summary:</h3>\n    <p><strong>Pet:</strong> {{ $json['Pet Name'] }}</p>\n    <p><strong>Date:</strong> {{ $json['Date'] }}</p>\n    <p><strong>Service:</strong> {{ $json['Service'] }}</p>\n    <p><strong>Veterinarian:</strong> {{ $json['Assigned Veterinarian'] || '{{DEFAULT_VETERINARIAN}}' }}</p>\n  </div>\n  \n  <div style=\"margin-top: 30px; padding: 15px; background: #e8f4fd; border-radius: 5px; text-align: center;\">\n    <p><strong>Alternative Review Platforms:</strong></p>\n    <p>\n      <a href=\"{{YELP_URL}}\" style=\"margin: 0 10px;\">Yelp</a> |\n      <a href=\"{{FACEBOOK_URL}}\" style=\"margin: 0 10px;\">Facebook</a> |\n      <a href=\"{{NEXTDOOR_URL}}\" style=\"margin: 0 10px;\">Nextdoor</a>\n    </p>\n  </div>\n  \n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>Questions? Contact us at {{BUSINESS_PHONE_NUMBER}} or {{BUSINESS_EMAIL}}</p>\n    <p>{{CLINIC_NAME}} - Caring for your pets like family 🐾</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "ccEmail": "{{ADMIN_EMAIL}}",
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "Send Review Request Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        780,
+        300
+      ],
+      "id": "send-review-email-node",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Review Request Sent": "{{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Review Request Status": "Sent",
+            "Review Request Method": "SMS + Email"
+          }
+        },
+        "options": {
+          "lookupColumn": "{{ $json.appointmentId || $json.id || 'A' }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "Update Master Hub - Review Request",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1020,
+        300
+      ],
+      "id": "update-review-status-node",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "name": "⏰ Wait 7 Days for Follow-up",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1260,
+        300
+      ],
+      "id": "wait-followup-node"
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": "{{REVIEWS_TRACKING_SHEET_ID}}",
+        "sheetName": "{{REVIEWS_SHEET_NAME}}",
+        "lookupColumn": "{{ $json.appointmentId || $json.id }}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "Check if Review Received",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1500,
+        300
+      ],
+      "id": "check-review-received-node",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "review-not-received",
+              "leftValue": "={{ $json['Review Status'] || 'Not Received' }}",
+              "rightValue": "Received",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals",
+                "name": "filter.operator.notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Review Not Received?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1740,
+        300
+      ],
+      "id": "check-review-condition-node"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json['Customer Phone'] }}",
+        "message": "🌟 **{{CLINIC_NAME}} - Gentle Reminder**\n\nHi {{ $json['Customer Name'] }}! We hope {{ $json['Pet Name'] }} is doing great after the recent visit.\n\n💭 **Still thinking about leaving a review?** We'd love to hear about your experience!\n\n⭐ **Quick Review:** {{GOOGLE_REVIEWS_URL}}\n\n🎁 **Thank you** for being such a wonderful pet parent and for choosing {{CLINIC_NAME}}!\n\n{{CLINIC_NAME}} Team 🐾",
+        "options": {}
+      },
+      "name": "Send Gentle Follow-up SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        200
+      ],
+      "id": "send-followup-sms-node",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Follow-up Review Request": "{{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Review Campaign Status": "Complete"
+          }
+        },
+        "options": {
+          "lookupColumn": "{{ $json.appointmentId || $json.id || 'A' }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "Update Campaign Complete",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2220,
+        200
+      ],
+      "id": "update-campaign-complete-node",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Review Request System (PET WF7)\n\n**🎯 Purpose:** Automated review request system to boost online reputation and gather client feedback\n\n**🚀 Features:**\n• **Smart Timing:** Waits 24 hours after visit for optimal review timing\n• **Multi-Channel Approach:** Sends both SMS and email review requests\n• **Follow-up System:** Gentle reminder after 7 days if no review received\n• **Review Tracking:** Monitors review status and campaign completion\n• **Professional Messaging:** Personalized, branded communications\n\n**⚡ Workflow Process:**\n1. **Triggered by Visit Completion:** Activated by PET WF3 when visits end\n2. **Client Data Retrieval:** Gets client contact information from master sheet\n3. **24-Hour Wait:** Allows time for service experience before requesting review\n4. **Multi-Channel Outreach:** Sends personalized SMS and email review requests\n5. **Campaign Tracking:** Updates master hub with review request status\n6. **Follow-up Logic:** Waits 7 days, checks for received reviews\n7. **Gentle Reminder:** Sends follow-up SMS if no review received\n8. **Campaign Completion:** Marks review campaign as complete\n\n**📊 Integration Points:**\n• Master Appointments: {{MASTER_APPOINTMENTS_SHEET_ID}}\n• Reviews Tracking: {{REVIEWS_TRACKING_SHEET_ID}}\n• Google Reviews: {{GOOGLE_REVIEWS_URL}}\n• Alternative Platforms: Yelp, Facebook, Nextdoor\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Default Vet: {{DEFAULT_VETERINARIAN}}\n• Business Contact: {{BUSINESS_PHONE_NUMBER}} / {{BUSINESS_EMAIL}}\n• Brand Colors: {{CLINIC_COLOR}}\n• Timezone: {{TIMEZONE}}",
+        "height": 700,
+        "width": 900,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -300,
+        -100
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF7 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "⭐ Triggered by Visit Complete (WF3)": {
+      "main": [
+        [
+          {
+            "node": "Get Client Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client Details": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait 24 Hours for Service Experience",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 24 Hours for Service Experience": {
+      "main": [
+        [
+          {
+            "node": "Send Review Request SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review Request SMS": {
+      "main": [
+        [
+          {
+            "node": "Send Review Request Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review Request Email": {
+      "main": [
+        [
+          {
+            "node": "Update Master Hub - Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Master Hub - Review Request": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait 7 Days for Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 7 Days for Follow-up": {
+      "main": [
+        [
+          {
+            "node": "Check if Review Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Review Received": {
+      "main": [
+        [
+          {
+            "node": "Review Not Received?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Not Received?": {
+      "main": [
+        [
+          {
+            "node": "Send Gentle Follow-up SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Campaign Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gentle Follow-up SMS": {
+      "main": [
+        [
+          {
+            "node": "Update Campaign Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
