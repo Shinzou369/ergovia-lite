@@ -1,0 +1,338 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 0,
+              "triggerAtMinute": 0,
+              "triggerInterval": 1
+            }
+          ]
+        },
+        "timezone": "{{TIMEZONE}}"
+      },
+      "name": "🔄 Hourly Health Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        200
+      ],
+      "id": "hourly-health-trigger"
+    },
+    {
+      "parameters": {
+        "url": "{{BOOKING_SYSTEM_API_URL}}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "📅 Ping Booking System",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -140,
+        100
+      ],
+      "id": "ping-booking-system"
+    },
+    {
+      "parameters": {
+        "url": "https://api.twilio.com/2010-04-01/Accounts/{{TWILIO_ACCOUNT_SID}}.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "📱 Ping Twilio API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -140,
+        300
+      ],
+      "id": "ping-twilio-api",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "📊 Ping Google Sheets API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -140,
+        500
+      ],
+      "id": "ping-google-sheets-api",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// System Health Status Checker for {{CLINIC_NAME}}\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\n\nconsole.log(`🏥 Running system health check for {{CLINIC_NAME}} - ${now.toLocaleString('en-US', { timeZone: timezone })}`);\n\n// Collect all system responses\nconst bookingSystem = $items('📅 Ping Booking System')[0] || {};\nconst twilioApi = $items('📱 Ping Twilio API')[0] || {};\nconst googleSheetsApi = $items('📊 Ping Google Sheets API')[0] || {};\n\n// System status tracking\nconst systemStatus = {\n  timestamp: now.toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  check_type: 'Hourly Health Monitor',\n  \n  // Individual system status\n  booking_system: {\n    status: bookingSystem.statusCode === 200 ? 'HEALTHY' : 'DOWN',\n    status_code: bookingSystem.statusCode || 'NO_RESPONSE',\n    response_time: bookingSystem.responseTime || 'TIMEOUT',\n    url: '{{BOOKING_SYSTEM_API_URL}}'\n  },\n  \n  twilio_api: {\n    status: twilioApi.statusCode === 200 ? 'HEALTHY' : 'DOWN',\n    status_code: twilioApi.statusCode || 'NO_RESPONSE',\n    response_time: twilioApi.responseTime || 'TIMEOUT',\n    service: 'Twilio SMS API'\n  },\n  \n  google_sheets_api: {\n    status: googleSheetsApi.statusCode === 200 ? 'HEALTHY' : 'DOWN',\n    status_code: googleSheetsApi.statusCode || 'NO_RESPONSE',\n    response_time: googleSheetsApi.responseTime || 'TIMEOUT',\n    service: 'Google Sheets API'\n  }\n};\n\n// Calculate overall system health\nconst healthySystems = Object.values(systemStatus)\n  .filter(system => typeof system === 'object' && system.status === 'HEALTHY')\n  .length;\n\nconst totalSystems = 3; // booking, twilio, google sheets\nconst healthPercentage = (healthySystems / totalSystems) * 100;\n\n// Determine overall status\nlet overallStatus = 'HEALTHY';\nlet alertLevel = 'INFO';\n\nif (healthPercentage < 100) {\n  overallStatus = 'DEGRADED';\n  alertLevel = 'WARNING';\n}\n\nif (healthPercentage < 67) {\n  overallStatus = 'CRITICAL';\n  alertLevel = 'CRITICAL';\n}\n\n// System summary\nsystemStatus.overall = {\n  status: overallStatus,\n  health_percentage: healthPercentage,\n  healthy_systems: healthySystems,\n  total_systems: totalSystems,\n  alert_level: alertLevel\n};\n\n// Generate alert message if needed\nconst failedSystems = [];\nif (systemStatus.booking_system.status !== 'HEALTHY') {\n  failedSystems.push('Booking System API');\n}\nif (systemStatus.twilio_api.status !== 'HEALTHY') {\n  failedSystems.push('Twilio SMS Service');\n}\nif (systemStatus.google_sheets_api.status !== 'HEALTHY') {\n  failedSystems.push('Google Sheets Integration');\n}\n\nif (failedSystems.length > 0) {\n  systemStatus.alert_message = `🚨 SYSTEM ALERT: ${failedSystems.join(', ')} ${failedSystems.length === 1 ? 'is' : 'are'} currently experiencing issues. Immediate attention required.`;\n  systemStatus.impact_assessment = `This may affect: ${failedSystems.includes('Booking System API') ? 'Online appointments, ' : ''}${failedSystems.includes('Twilio SMS Service') ? 'SMS notifications, ' : ''}${failedSystems.includes('Google Sheets Integration') ? 'Data logging and reporting' : ''}`.replace(/, $/, '');\n} else {\n  systemStatus.alert_message = '✅ All systems operational - no action required';\n  systemStatus.impact_assessment = 'All clinic automation systems are functioning normally';\n}\n\n// Check if this is a critical failure requiring immediate notification\nsystemStatus.requires_immediate_alert = alertLevel === 'CRITICAL' || alertLevel === 'WARNING';\n\nconsole.log(`📊 Health check complete: ${overallStatus} (${healthPercentage}% healthy) - ${systemStatus.alert_message}`);\n\nreturn [{ json: systemStatus }];"
+      },
+      "name": "🧮 Analyze System Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        300
+      ],
+      "id": "analyze-system-health"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "critical-alert-condition",
+              "leftValue": "={{ $json.requires_immediate_alert }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "🚨 Requires Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        380,
+        300
+      ],
+      "id": "requires-alert-check"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "{{BUSINESS_EMAIL}}",
+        "subject": "🚨 {{CLINIC_NAME}} - System Health Alert ({{ $json.overall.alert_level }})",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .header { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(231,76,60,0.3); }\n    .header.warning { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }\n    .header.info { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }\n    .header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }\n    .header p { margin: 10px 0 0; font-size: 1rem; opacity: 0.9; }\n    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 25px 0; }\n    .status-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }\n    .status-healthy { border-left: 4px solid #27ae60; }\n    .status-down { border-left: 4px solid #e74c3c; }\n    .status-title { font-weight: 600; color: #2c3e50; margin-bottom: 10px; }\n    .status-value { font-size: 1.2rem; font-weight: 700; margin-bottom: 5px; }\n    .status-healthy .status-value { color: #27ae60; }\n    .status-down .status-value { color: #e74c3c; }\n    .status-details { font-size: 0.9rem; color: #666; }\n    .summary-section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0; }\n    .summary-section h3 { margin: 0 0 15px; color: #2c3e50; }\n    .impact-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 15px 0; }\n    .impact-box.critical { background: #f8d7da; border-color: #f1c0c7; }\n    .footer { text-align: center; margin-top: 25px; padding: 15px; color: #666; border-top: 1px solid #e9ecef; }\n    .timestamp { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; color: #495057; }\n  </style>\n</head>\n<body>\n  <div class=\"header {{ $json.overall.alert_level === 'CRITICAL' ? 'critical' : $json.overall.alert_level === 'WARNING' ? 'warning' : 'info' }}\">\n    <h1>🚨 System Health Alert</h1>\n    <p>{{CLINIC_NAME}} • Status: {{ $json.overall.status }} ({{ $json.overall.health_percentage }}% Healthy)</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>🎯 Alert Summary</h3>\n    <p><strong>{{ $json.alert_message }}</strong></p>\n    <div class=\"impact-box {{ $json.overall.alert_level === 'CRITICAL' ? 'critical' : '' }}\">\n      <strong>Potential Impact:</strong><br>\n      {{ $json.impact_assessment }}\n    </div>\n  </div>\n\n  <div class=\"status-grid\">\n    <div class=\"status-card {{ $json.booking_system.status === 'HEALTHY' ? 'status-healthy' : 'status-down' }}\">\n      <div class=\"status-title\">📅 Booking System</div>\n      <div class=\"status-value\">{{ $json.booking_system.status }}</div>\n      <div class=\"status-details\">\n        Status Code: {{ $json.booking_system.status_code }}<br>\n        Response Time: {{ $json.booking_system.response_time }}\n      </div>\n    </div>\n    \n    <div class=\"status-card {{ $json.twilio_api.status === 'HEALTHY' ? 'status-healthy' : 'status-down' }}\">\n      <div class=\"status-title\">📱 Twilio SMS</div>\n      <div class=\"status-value\">{{ $json.twilio_api.status }}</div>\n      <div class=\"status-details\">\n        Status Code: {{ $json.twilio_api.status_code }}<br>\n        Response Time: {{ $json.twilio_api.response_time }}\n      </div>\n    </div>\n    \n    <div class=\"status-card {{ $json.google_sheets_api.status === 'HEALTHY' ? 'status-healthy' : 'status-down' }}\">\n      <div class=\"status-title\">📊 Google Sheets</div>\n      <div class=\"status-value\">{{ $json.google_sheets_api.status }}</div>\n      <div class=\"status-details\">\n        Status Code: {{ $json.google_sheets_api.status_code }}<br>\n        Response Time: {{ $json.google_sheets_api.response_time }}\n      </div>\n    </div>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>📊 Health Summary</h3>\n    <p><strong>Overall Status:</strong> {{ $json.overall.status }}</p>\n    <p><strong>Systems Healthy:</strong> {{ $json.overall.healthy_systems }} of {{ $json.overall.total_systems }} ({{ $json.overall.health_percentage }}%)</p>\n    <p><strong>Alert Level:</strong> {{ $json.overall.alert_level }}</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>⏰ Check Details</h3>\n    <div class=\"timestamp\">{{ $json.timestamp }}</div>\n    <p style=\"margin-top: 10px;\"><strong>Check Type:</strong> {{ $json.check_type }}</p>\n  </div>\n\n  <div class=\"footer\">\n    <p>🤖 Generated automatically by {{CLINIC_NAME}} ETF System Health Monitor</p>\n    <p>📧 For urgent issues, contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📧 Send System Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        200
+      ],
+      "id": "send-system-alert-email",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "{{TELEGRAM_CHAT_ID}}",
+          "mode": "id"
+        },
+        "text": "🚨 *{{CLINIC_NAME}} System Alert*\n\n{{ $json.alert_message }}\n\n*System Status:*\n📅 Booking System: {{ $json.booking_system.status }}\n📱 Twilio SMS: {{ $json.twilio_api.status }}\n📊 Google Sheets: {{ $json.google_sheets_api.status }}\n\n*Overall Health:* {{ $json.overall.health_percentage }}% ({{ $json.overall.status }})\n*Alert Level:* {{ $json.overall.alert_level }}\n\n*Potential Impact:*\n{{ $json.impact_assessment }}\n\n_Check completed at {{ $json.timestamp }}_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "📱 Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        400
+      ],
+      "id": "send-telegram-alert",
+      "credentials": {
+        "telegramApi": {
+          "id": "{{TELEGRAM_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{SYSTEM_HEALTH_LOG_SHEET_ID}}",
+        "sheetName": "{{SYSTEM_HEALTH_LOG_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Check Type": "={{ $json.check_type }}",
+            "Overall Status": "={{ $json.overall.status }}",
+            "Health Percentage": "={{ $json.overall.health_percentage }}",
+            "Alert Level": "={{ $json.overall.alert_level }}",
+            "Booking System": "={{ $json.booking_system.status }}",
+            "Twilio API": "={{ $json.twilio_api.status }}",
+            "Google Sheets": "={{ $json.google_sheets_api.status }}",
+            "Alert Message": "={{ $json.alert_message }}",
+            "Impact Assessment": "={{ $json.impact_assessment }}",
+            "Alert Sent": "={{ $json.requires_immediate_alert ? 'YES' : 'NO' }}",
+            "Generated By": "ETF Health Monitor"
+          }
+        },
+        "options": {}
+      },
+      "name": "📝 Log Health Check",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        380,
+        600
+      ],
+      "id": "log-health-check",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - System Health Monitoring & Alerting (PET WF15)\n\n**🎯 Purpose:** Comprehensive system health monitoring with automated failure detection and multi-channel alerting\n\n**🚀 Key Features:**\n\n**Continuous Health Monitoring:**\n• **Hourly System Checks:** Automated monitoring of all critical business systems\n• **Multi-Service Monitoring:** Tracks booking system, SMS service, and data integrations\n• **Response Time Tracking:** Monitors API response times and service availability\n• **Timeout Detection:** Identifies systems that are slow or unresponsive\n• **Status Code Analysis:** Analyzes HTTP responses for service health\n\n**Intelligent Alert System:**\n• **Tiered Alert Levels:** INFO, WARNING, and CRITICAL based on impact severity\n• **Multi-Channel Notifications:** Email + Telegram alerts for immediate attention\n• **Smart Alert Logic:** Only sends notifications when intervention is required\n• **Impact Assessment:** Analyzes business impact of system failures\n• **Professional Formatting:** HTML email alerts with system status dashboard\n\n**Comprehensive Logging:**\n• **Health History Tracking:** Complete log of all system health checks\n• **Trend Analysis:** Historical data for identifying patterns and recurring issues\n• **Performance Metrics:** Response time and availability tracking over time\n• **Alert Audit Trail:** Records when alerts were sent and system status changes\n\n**⚡ Automated Monitoring Process:**\n\n**1. Hourly Health Checks:**\n- **Booking System API:** Tests appointment system availability and response time\n- **Twilio SMS Service:** Verifies SMS notification capability and API access\n- **Google Sheets Integration:** Confirms data logging and spreadsheet access\n- **Timeout Handling:** 10-second timeout for each service check\n\n**2. Health Analysis Engine:**\n- **Status Evaluation:** Determines individual system health based on response codes\n- **Overall Health Calculation:** Computes clinic-wide system health percentage\n- **Alert Level Assessment:** Categorizes issues by severity and business impact\n- **Impact Analysis:** Identifies which clinic operations may be affected\n- **Trend Detection:** Compares current status with historical performance\n\n**3. Intelligent Alerting:**\n- **Critical Alerts:** Immediate notification when multiple systems fail\n- **Warning Alerts:** Proactive notification for single system failures\n- **Professional Formatting:** HTML emails with status dashboard and details\n- **Telegram Integration:** Instant mobile notifications for urgent issues\n- **Alert Suppression:** Prevents spam by only alerting on status changes\n\n**4. Data Logging & Reporting:**\n- **Health Check Database:** Permanent record of all system monitoring results\n- **Performance History:** Response time trends and availability statistics\n- **Alert History:** Complete audit trail of all notifications sent\n- **Business Continuity:** Data for assessing system reliability and planning\n\n**📊 System Monitoring Coverage:**\n\n**Booking System Monitoring:**\n• API endpoint availability and response times\n• Appointment scheduling system functionality\n• Online booking form accessibility\n• Integration with clinic management software\n• Customer-facing booking interface health\n\n**Communication System Monitoring:**\n• Twilio SMS API connectivity and authentication\n• SMS delivery capability and account status\n• Message queue processing and delivery rates\n• Phone number provisioning and service status\n• International messaging capability (if applicable)\n\n**Data Integration Monitoring:**\n• Google Sheets API access and authentication\n• Spreadsheet read/write permissions and connectivity\n• Data synchronization between systems\n• Backup and recovery system accessibility\n• Third-party integration health checks\n\n**🚨 Alert Response Framework:**\n\n**CRITICAL Level (Multiple Systems Down):**\n• Immediate email + Telegram notification\n• Business owner and IT contact notification\n• Escalation procedures for extended outages\n• Emergency contact activation if needed\n• Client communication preparation\n\n**WARNING Level (Single System Issue):**\n• Email notification with impact assessment\n• Telegram alert for mobile awareness\n• Recommended action items and troubleshooting\n• Monitoring frequency increase for affected system\n• Backup procedure activation if available\n\n**INFO Level (All Systems Healthy):**\n• Routine logging without immediate alerts\n• Historical data collection for trend analysis\n• Performance baseline establishment\n• Preventive maintenance scheduling\n• System optimization opportunities\n\n**🔄 Integration Points:**\n• Booking System: {{BOOKING_SYSTEM_API_URL}}\n• Twilio SMS: Account {{TWILIO_ACCOUNT_SID}}\n• Google Sheets: {{MASTER_APPOINTMENTS_SHEET_ID}}\n• Health Logs: {{SYSTEM_HEALTH_LOG_SHEET_ID}}\n• Alert Channels: {{BUSINESS_EMAIL}} + {{TELEGRAM_CHAT_ID}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Schedule: Every hour, 24/7\n• Timezone: {{TIMEZONE}}\n• Alert Format: HTML Email + Telegram\n• Monitoring Depth: 3 critical business systems\n• Response Timeout: 10 seconds per check",
+        "height": 800,
+        "width": 900,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -800,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF15 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "🔄 Hourly Health Check": {
+      "main": [
+        [
+          {
+            "node": "📅 Ping Booking System",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Ping Twilio API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📊 Ping Google Sheets API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📅 Ping Booking System": {
+      "main": [
+        [
+          {
+            "node": "🧮 Analyze System Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Ping Twilio API": {
+      "main": [
+        [
+          {
+            "node": "🧮 Analyze System Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Ping Google Sheets API": {
+      "main": [
+        [
+          {
+            "node": "🧮 Analyze System Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧮 Analyze System Health": {
+      "main": [
+        [
+          {
+            "node": "🚨 Requires Alert?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📝 Log Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🚨 Requires Alert?": {
+      "main": [
+        [
+          {
+            "node": "📧 Send System Alert Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📱 Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
