@@ -1,0 +1,454 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.visitNotes }}",
+        "options": {
+          "systemMessage": "You are an expert veterinary assistant for {{CLINIC_NAME}}. Analyze the provided visit notes and identify any future follow-up actions required for the pet. Output these actions as a JSON array of objects, where each object has 'action' (string, e.g., '6-month vaccine reminder', 'flea medication refill'), 'dueDate' (string, YYYY-MM-DD format), 'petId' (string), 'petName' (string), 'clientName' (string), 'clientPhone' (string), and 'clientEmail' (string). If no actions are needed, return an empty array. Example: [{'action': '6-month vaccine reminder', 'dueDate': '2026-01-15', 'petId': 'PET123', 'petName': 'Buddy', 'clientName': 'John Smith', 'clientPhone': '+15551234567', 'clientEmail': 'john@email.com'}]"
+        }
+      },
+      "name": "🤖 AI Agent (Schedule Actions)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        -200
+      ],
+      "id": "d664cb0e-2fd2-492f-b153-d85a00f85e40",
+      "credentials": {
+        "openAiApi": {
+          "id": "{{OPENAI_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "name": "Chat Model (OpenAI)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        20
+      ],
+      "id": "b9c75344-4e75-4ce2-8ce9-363c7114f485",
+      "credentials": {
+        "openAiApi": {
+          "id": "{{OPENAI_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "name": "Memory (Buffer Window)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        20
+      ],
+      "id": "f82a2c85-cb51-4159-a46a-e9a7342b3637"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI Agent output to extract follow-up actions\nconst llmOutput = $input.first().json.output;\nconsole.log('🤖 AI Agent Output:', llmOutput);\n\ntry {\n  // Try to parse the LLM output as JSON\n  let actions;\n  \n  if (typeof llmOutput === 'string') {\n    // Clean up the output if it contains markdown formatting\n    const cleanOutput = llmOutput.replace(/```json\\n?|```\\n?/g, '').trim();\n    actions = JSON.parse(cleanOutput);\n  } else if (Array.isArray(llmOutput)) {\n    actions = llmOutput;\n  } else {\n    actions = [llmOutput];\n  }\n  \n  if (Array.isArray(actions) && actions.length > 0) {\n    console.log(`✅ Successfully parsed ${actions.length} follow-up actions`);\n    return actions.map((action, index) => ({\n      json: {\n        ...action,\n        scheduledDate: new Date().toISOString().split('T')[0],\n        status: 'scheduled',\n        clinic: '{{CLINIC_NAME}}',\n        actionId: `FA${Date.now()}_${index + 1}`\n      }\n    }));\n  } else {\n    console.log('ℹ️ No follow-up actions identified from visit notes');\n    return [];\n  }\n} catch (error) {\n  console.error('❌ Failed to parse AI output:', error);\n  console.error('Raw output:', llmOutput);\n  \n  // Fallback: try to extract basic info and create a generic follow-up\n  const visitData = $node['🔄 Triggered by Visit Completion'].json;\n  if (visitData && visitData['Pet Name']) {\n    return [{\n      json: {\n        action: 'General follow-up check',\n        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now\n        petId: visitData['Pet ID'] || 'UNKNOWN',\n        petName: visitData['Pet Name'],\n        clientName: visitData['Customer Name'],\n        clientPhone: visitData['Customer Phone'],\n        clientEmail: visitData['Customer Email'],\n        scheduledDate: new Date().toISOString().split('T')[0],\n        status: 'scheduled',\n        clinic: '{{CLINIC_NAME}}',\n        actionId: `FA${Date.now()}_1`,\n        notes: 'Fallback action created due to AI parsing error'\n      }\n    }];\n  }\n  \n  return [];\n}"
+      },
+      "name": "Parse AI Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        -200
+      ],
+      "id": "100ecd25-5ddb-48bf-a614-870cdb51779b"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{FUTURE_FOLLOWUPS_SHEET_ID}}",
+        "sheetName": "{{FOLLOWUPS_SHEET_NAME}}",
+        "columns": [
+          {
+            "column": [
+              {
+                "columnName": "Action ID",
+                "columnValue": "={{ $json.actionId }}"
+              },
+              {
+                "columnName": "Action",
+                "columnValue": "={{ $json.action }}"
+              },
+              {
+                "columnName": "Due Date",
+                "columnValue": "={{ $json.dueDate }}"
+              },
+              {
+                "columnName": "Pet ID",
+                "columnValue": "={{ $json.petId }}"
+              },
+              {
+                "columnName": "Pet Name",
+                "columnValue": "={{ $json.petName }}"
+              },
+              {
+                "columnName": "Client Name",
+                "columnValue": "={{ $json.clientName }}"
+              },
+              {
+                "columnName": "Client Phone",
+                "columnValue": "={{ $json.clientPhone }}"
+              },
+              {
+                "columnName": "Client Email",
+                "columnValue": "={{ $json.clientEmail }}"
+              },
+              {
+                "columnName": "Scheduled Date",
+                "columnValue": "={{ $json.scheduledDate }}"
+              },
+              {
+                "columnName": "Status",
+                "columnValue": "={{ $json.status }}"
+              },
+              {
+                "columnName": "Clinic",
+                "columnValue": "={{ $json.clinic }}"
+              },
+              {
+                "columnName": "Notes",
+                "columnValue": "={{ $json.notes || '' }}"
+              }
+            ]
+          }
+        ],
+        "options": {}
+      },
+      "name": "📝 Save Future Follow-ups",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        -200
+      ],
+      "id": "e206e2e3-b91f-445e-b7fb-b46b86cd5c9b",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": "{{FUTURE_FOLLOWUPS_SHEET_ID}}",
+        "sheetName": "{{FOLLOWUPS_SHEET_NAME}}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "📋 Read Future Follow-ups",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        360
+      ],
+      "id": "b56d7229-4582-4c75-a92b-158a391583e5",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter follow-ups that are due today\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\nconst todayStr = today.toISOString().split('T')[0];\n\nconsole.log(`📅 Checking for follow-ups due on: ${todayStr}`);\n\nconst dueActions = $input.all().filter(item => {\n  const dueDateStr = item.json['Due Date'];\n  const status = item.json['Status'];\n  \n  // Only process scheduled actions that are due today\n  if (!dueDateStr || status !== 'scheduled') {\n    return false;\n  }\n\n  // Normalize dates for comparison\n  const dueDate = new Date(dueDateStr);\n  dueDate.setHours(0, 0, 0, 0);\n  \n  const isDue = dueDate.getTime() === today.getTime();\n  \n  if (isDue) {\n    console.log(`✅ Action due today: ${item.json['Action']} for ${item.json['Pet Name']}`);\n  }\n  \n  return isDue;\n});\n\nconsole.log(`📊 Found ${dueActions.length} actions due today`);\n\nreturn dueActions.map(action => ({ json: action.json }));"
+      },
+      "name": "Filter Due Actions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        360
+      ],
+      "id": "6f895068-9d8e-4b43-8a28-3cd084235646"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json['Client Phone'] }}",
+        "message": "🐾 Hi {{ $json['Client Name'] }}! This is a friendly reminder from {{CLINIC_NAME}} about {{ $json['Pet Name'] }}'s upcoming care.\n\n📋 Action Due: {{ $json['Action'] }}\n📅 Due Date: {{ $json['Due Date'] }}\n\n📞 Please call us at {{BUSINESS_PHONE_NUMBER}} to schedule an appointment.\n\nThank you for trusting us with {{ $json['Pet Name'] }}'s health! 🏥❤️",
+        "options": {}
+      },
+      "name": "📱 Send Reminder SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        120,
+        360
+      ],
+      "id": "88b311af-e180-47df-9f7e-d5660bee6f52",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "name": "🔄 Triggered by Visit Completion",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -680,
+        -200
+      ],
+      "id": "9c2470ea-d396-4858-84a8-58af8e7e0110"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process visit completion data and prepare for AI analysis\nconst visitData = $input.first().json;\n\nconsole.log('📋 Processing visit completion for follow-up scheduling:', {\n  petName: visitData['Pet Name'],\n  customer: visitData['Customer Name'],\n  service: visitData['Service Type']\n});\n\n// Prepare comprehensive visit context for AI analysis\nconst visitContext = {\n  visitNotes: visitData['Visit Notes'] || visitData['Service Notes'] || 'Standard visit completed',\n  petName: visitData['Pet Name'],\n  petId: visitData['Pet ID'] || `PET${Date.now()}`,\n  petAge: visitData['Pet Age'],\n  petBreed: visitData['Pet Breed'],\n  serviceType: visitData['Service Type'],\n  visitDate: visitData['Date'],\n  clientName: visitData['Customer Name'],\n  clientPhone: visitData['Customer Phone'],\n  clientEmail: visitData['Customer Email'],\n  veterinarian: visitData['Veterinarian'] || '{{VETERINARIAN_NAME}}',\n  clinicName: '{{CLINIC_NAME}}',\n  \n  // Additional context for AI analysis\n  previousVisits: visitData['Previous Visits'] || 'First visit',\n  medications: visitData['Medications Given'] || 'None specified',\n  vaccinations: visitData['Vaccinations'] || 'None specified',\n  recommendations: visitData['Recommendations'] || 'Standard care'\n};\n\nconsole.log('🤖 Prepared visit context for AI analysis');\n\nreturn { json: visitContext };"
+      },
+      "name": "Prepare Visit Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        -200
+      ],
+      "id": "228d5c15-42b2-4b88-a613-c2cde59c0d3a"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hour",
+              "hourValue": 8
+            }
+          ]
+        }
+      },
+      "name": "⏰ Daily Check at 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -540,
+        360
+      ],
+      "id": "e60e59c7-2ca6-4cdc-a732-dd46ffacf5ca"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{FUTURE_FOLLOWUPS_SHEET_ID}}",
+        "sheetName": "{{FOLLOWUPS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "reminder_sent",
+            "Reminder Sent Date": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Last Contact": "SMS reminder sent"
+          }
+        },
+        "options": {
+          "lookupColumn": "Action ID",
+          "range": "A:Z"
+        }
+      },
+      "name": "Update Follow-up Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        340,
+        360
+      ],
+      "id": "update-followup-status-node",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_EMAIL}}",
+        "to": "={{ADMIN_EMAIL}}",
+        "subject": "📊 Daily Follow-up Reminders Sent - {{CLINIC_NAME}}",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #{{CLINIC_COLOR}}; color: white; padding: 20px; border-radius: 8px; text-align: center; }\n    .summary { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; }\n    .action-list { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 10px 0; }\n    .action-item { padding: 10px; border-bottom: 1px solid #eee; }\n    .action-item:last-child { border-bottom: none; }\n    .footer { text-align: center; color: #666; margin-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>📊 Daily Follow-up Report</h1>\n    <p>{{CLINIC_NAME}} - {{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy') }}</p>\n  </div>\n  \n  <div class=\"summary\">\n    <h3>📈 Today's Summary</h3>\n    <p><strong>Follow-up reminders sent:</strong> {{ $input.all().length }}</p>\n    <p><strong>Time processed:</strong> {{ $now.setZone('{{TIMEZONE}}').toFormat('h:mm a') }}</p>\n  </div>\n  \n  {{ $input.all().length > 0 ? '<div class=\"action-list\"><h3>📋 Reminders Sent Today:</h3>' + $input.all().map(item => '<div class=\"action-item\"><strong>Pet:</strong> ' + item.json['Pet Name'] + '<br><strong>Client:</strong> ' + item.json['Client Name'] + '<br><strong>Action:</strong> ' + item.json['Action'] + '<br><strong>Phone:</strong> ' + item.json['Client Phone'] + '</div>').join('') + '</div>' : '<div class=\"summary\"><p>✅ No follow-up reminders were due today.</p></div>' }}\n  \n  <div class=\"footer\">\n    <p>This is an automated report from your {{CLINIC_NAME}} Follow-up System</p>\n    <p>📞 {{BUSINESS_PHONE_NUMBER}} | 📧 {{BUSINESS_EMAIL}}</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📧 Send Daily Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        360
+      ],
+      "id": "send-daily-report-node",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Future Follow-ups Scheduler (PET WF9)\n\n**🎯 Purpose:** AI-powered follow-up scheduling with automated daily reminders\n\n**🚀 Key Features:**\n• **AI Analysis:** Analyzes visit notes to identify future care needs\n• **Smart Scheduling:** Automatically schedules follow-ups based on visit type and pet needs\n• **Daily Reminders:** Sends SMS reminders for actions due today\n• **Comprehensive Tracking:** Maintains detailed follow-up database\n• **Admin Reports:** Daily summary emails for clinic management\n\n**⚡ Workflow Process:**\n1. **Visit Completion Trigger:** Activated when a visit is completed (from WF4)\n2. **AI Analysis:** Uses OpenAI to analyze visit notes and identify follow-up needs\n3. **Follow-up Scheduling:** Creates future actions with specific due dates\n4. **Database Storage:** Saves all follow-up actions to Google Sheets\n5. **Daily Monitoring:** Checks for actions due today at 8 AM\n6. **Reminder System:** Sends SMS reminders to clients for due actions\n7. **Status Tracking:** Updates follow-up status after reminders sent\n8. **Admin Reporting:** Sends daily summary to clinic administrators\n\n**🤖 AI Capabilities:**\n• Analyzes visit notes for vaccination schedules\n• Identifies medication refill needs\n• Schedules preventive care reminders\n• Recognizes breed-specific health requirements\n• Suggests follow-up intervals based on age and condition\n\n**📊 Follow-up Types:**\n• Vaccination reminders (6-month, annual)\n• Medication refills\n• Dental cleanings\n• Weight checks\n• Senior pet wellness exams\n• Breed-specific screenings\n• Post-surgery follow-ups\n\n**🔄 Integration Points:**\n• Triggered by: Visit Completion Workflow (WF4)\n• Follow-up Database: {{FUTURE_FOLLOWUPS_SHEET_ID}}\n• SMS Reminders: Twilio integration\n• Email Reports: SMTP integration\n• AI Analysis: OpenAI GPT integration\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Daily Check Time: 8:00 AM ({{TIMEZONE}})\n• Contact: {{BUSINESS_PHONE_NUMBER}} / {{BUSINESS_EMAIL}}\n• Admin Notifications: {{ADMIN_EMAIL}}\n• Sheet: {{FOLLOWUPS_SHEET_NAME}}",
+        "height": 800,
+        "width": 900,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -800,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF9 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "🤖 AI Agent (Schedule Actions)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Model (OpenAI)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "🤖 AI Agent (Schedule Actions)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory (Buffer Window)": {
+      "ai_memory": [
+        [
+          {
+            "node": "🤖 AI Agent (Schedule Actions)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Output": {
+      "main": [
+        [
+          {
+            "node": "📝 Save Future Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Read Future Follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Filter Due Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Due Actions": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Reminder SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Triggered by Visit Completion": {
+      "main": [
+        [
+          {
+            "node": "Prepare Visit Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Visit Context": {
+      "main": [
+        [
+          {
+            "node": "🤖 AI Agent (Schedule Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Daily Check at 8 AM": {
+      "main": [
+        [
+          {
+            "node": "📋 Read Future Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Send Reminder SMS": {
+      "main": [
+        [
+          {
+            "node": "Update Follow-up Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Follow-up Status": {
+      "main": [
+        [
+          {
+            "node": "📧 Send Daily Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
