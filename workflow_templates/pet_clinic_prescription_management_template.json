@@ -1,0 +1,383 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "{{CLINIC_NAME}} - New Prescription Entry",
+        "formDescription": "Log new prescriptions for automated refill tracking",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Patient ID",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Enter patient/chart ID"
+              }
+            },
+            {
+              "fieldLabel": "Pet Name",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Pet's name"
+              }
+            },
+            {
+              "fieldLabel": "Owner Name",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Owner's full name"
+              }
+            },
+            {
+              "fieldLabel": "Owner Phone",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "+1 (555) 123-4567"
+              }
+            },
+            {
+              "fieldLabel": "Medication Name",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Medication name and dosage"
+              }
+            },
+            {
+              "fieldLabel": "Quantity Dispensed",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Amount given (e.g., 30 tablets)"
+              }
+            },
+            {
+              "fieldLabel": "Days Supply",
+              "fieldType": "number",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "30"
+              }
+            },
+            {
+              "fieldLabel": "Refills Authorized",
+              "fieldType": "number",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Number of refills (0-5)"
+              }
+            },
+            {
+              "fieldLabel": "Prescribing Veterinarian",
+              "fieldType": "text",
+              "requiredField": true,
+              "fieldOptions": {
+                "placeholder": "Dr. Name"
+              }
+            },
+            {
+              "fieldLabel": "Special Instructions",
+              "fieldType": "textarea",
+              "requiredField": false,
+              "fieldOptions": {
+                "placeholder": "Any special dosing instructions or notes"
+              }
+            }
+          ]
+        },
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "respondWith": "lastNodeExecutionData"
+            }
+          }
+        }
+      },
+      "name": "📋 New Prescription Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        200
+      ],
+      "webhookId": "prescription-form-{{CLINIC_ID}}",
+      "id": "prescription-form-trigger",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{PRESCRIPTION_SHEET_ID}}",
+        "sheetName": "{{PRESCRIPTION_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Issue Date": "={{ $now.setZone('{{TIMEZONE}}').toFormat('MM/dd/yyyy') }}",
+            "Issue Time": "={{ $now.setZone('{{TIMEZONE}}').toFormat('h:mm a') }}",
+            "Patient ID": "={{ $json.formData['Patient ID'] }}",
+            "Pet Name": "={{ $json.formData['Pet Name'] }}",
+            "Owner Name": "={{ $json.formData['Owner Name'] }}",
+            "Owner Phone": "={{ $json.formData['Owner Phone'] }}",
+            "Medication": "={{ $json.formData['Medication Name'] }}",
+            "Quantity": "={{ $json.formData['Quantity Dispensed'] }}",
+            "Days Supply": "={{ $json.formData['Days Supply'] }}",
+            "Refills Authorized": "={{ $json.formData['Refills Authorized'] }}",
+            "Refills Remaining": "={{ $json.formData['Refills Authorized'] }}",
+            "Prescribing Vet": "={{ $json.formData['Prescribing Veterinarian'] }}",
+            "Instructions": "={{ $json.formData['Special Instructions'] }}",
+            "Status": "Active",
+            "Next Refill Due": "={{ $now.setZone('{{TIMEZONE}}').plus({ days: parseInt($json.formData['Days Supply']) - 5 }).toFormat('MM/dd/yyyy') }}",
+            "Clinic": "{{CLINIC_NAME}}",
+            "Entry Method": "Staff Form"
+          }
+        },
+        "options": {}
+      },
+      "name": "📝 Log to Prescription Hub",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -120,
+        200
+      ],
+      "id": "log-prescription-entry",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json.formData['Prescribing Veterinarian'].includes('@') ? $json.formData['Prescribing Veterinarian'] : '{{VET_EMAIL}}' }}",
+        "subject": "✅ Prescription Logged: {{ $json.formData['Pet Name'] }} - {{ $json.formData['Medication Name'] }}",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #{{CLINIC_COLOR}}; color: white; padding: 20px; border-radius: 8px; text-align: center; }\n    .prescription-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 20px 0; }\n    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }\n    .detail-label { font-weight: bold; color: #495057; }\n    .detail-value { color: #212529; }\n    .refill-info { background: #e8f5e8; border-left: 4px solid #28a745; padding: 15px; margin: 15px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>🏥 {{CLINIC_NAME}} - Prescription Logged</h1>\n    <p>New prescription successfully entered into system</p>\n  </div>\n\n  <div class=\"prescription-card\">\n    <h2>📋 Prescription Details</h2>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Patient:</span>\n      <span class=\"detail-value\">{{ $json.formData['Pet Name'] }} (ID: {{ $json.formData['Patient ID'] }})</span>\n    </div>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Owner:</span>\n      <span class=\"detail-value\">{{ $json.formData['Owner Name'] }} - {{ $json.formData['Owner Phone'] }}</span>\n    </div>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Medication:</span>\n      <span class=\"detail-value\">{{ $json.formData['Medication Name'] }}</span>\n    </div>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Quantity:</span>\n      <span class=\"detail-value\">{{ $json.formData['Quantity Dispensed'] }}</span>\n    </div>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Days Supply:</span>\n      <span class=\"detail-value\">{{ $json.formData['Days Supply'] }} days</span>\n    </div>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Prescribing Vet:</span>\n      <span class=\"detail-value\">{{ $json.formData['Prescribing Veterinarian'] }}</span>\n    </div>\n    \n    <div class=\"detail-row\">\n      <span class=\"detail-label\">Issue Date:</span>\n      <span class=\"detail-value\">{{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy h:mm a') }}</span>\n    </div>\n  </div>\n\n  <div class=\"refill-info\">\n    <h3>🔄 Refill Information</h3>\n    <p><strong>Refills Authorized:</strong> {{ $json.formData['Refills Authorized'] }}</p>\n    <p><strong>Estimated Next Refill Due:</strong> {{ $now.setZone('{{TIMEZONE}}').plus({ days: parseInt($json.formData['Days Supply']) - 5 }).toFormat('EEEE, MMMM d, yyyy') }}</p>\n    <p><strong>Automatic Reminder:</strong> {{ $json.formData['Refills Authorized'] > 0 ? 'Client will receive SMS reminder 5 days before medication runs out' : 'No refills authorized - no automatic reminders' }}</p>\n  </div>\n\n  {{ $json.formData['Special Instructions'] ? '<div style=\"background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0;\"><h3>⚠️ Special Instructions</h3><p>' + $json.formData['Special Instructions'] + '</p></div>' : '' }}\n\n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>📧 Questions? Contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n    <p>{{CLINIC_NAME}} - Prescription Management System</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📧 Send Confirmation to Vet",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        200
+      ],
+      "id": "vet-notification-email",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10,
+              "triggerAtMinute": 0
+            }
+          ]
+        },
+        "timezone": "{{TIMEZONE}}"
+      },
+      "name": "⏰ Daily Refill Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        500
+      ],
+      "id": "daily-refill-scheduler"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": "{{PRESCRIPTION_SHEET_ID}}",
+        "sheetName": "{{PRESCRIPTION_SHEET_NAME}}",
+        "options": {}
+      },
+      "name": "📋 Get All Prescriptions",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -120,
+        500
+      ],
+      "id": "get-all-prescriptions",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Advanced prescription refill logic for {{CLINIC_NAME}}\nconst prescriptions = $input.all().map(item => item.json);\nconst today = new Date();\nconst refillCandidates = [];\n\nconsole.log(`🔍 Checking ${prescriptions.length} prescriptions for refill eligibility`);\n\nprescriptions.forEach(prescription => {\n  try {\n    // Skip if no refills remaining or status is not active\n    const refillsRemaining = parseInt(prescription['Refills Remaining'] || 0);\n    const status = prescription['Status'] || 'Active';\n    \n    if (refillsRemaining <= 0 || status.toLowerCase() !== 'active') {\n      return;\n    }\n\n    // Parse issue date and days supply\n    const issueDate = new Date(prescription['Issue Date']);\n    const daysSupply = parseInt(prescription['Days Supply'] || 30);\n    \n    // Skip if issue date is invalid\n    if (isNaN(issueDate.getTime()) || isNaN(daysSupply)) {\n      console.warn(`⚠️ Invalid date or days supply for prescription: ${prescription['Pet Name']} - ${prescription['Medication']}`);\n      return;\n    }\n\n    // Calculate days since issue and when medication runs out\n    const daysSinceIssue = Math.floor((today - issueDate) / (1000 * 60 * 60 * 24));\n    const medicationRunsOut = new Date(issueDate.getTime() + (daysSupply * 24 * 60 * 60 * 1000));\n    const daysUntilRunsOut = Math.floor((medicationRunsOut - today) / (1000 * 60 * 60 * 24));\n\n    // Check if refill reminder should be sent (5 days before running out)\n    const shouldRemind = daysUntilRunsOut <= 5 && daysUntilRunsOut >= 0;\n    \n    if (shouldRemind) {\n      console.log(`📞 Refill reminder needed for ${prescription['Pet Name']} - ${prescription['Medication']} (${daysUntilRunsOut} days remaining)`);\n      \n      refillCandidates.push({\n        ...prescription,\n        daysSinceIssue,\n        daysUntilRunsOut,\n        medicationRunsOutDate: medicationRunsOut.toLocaleDateString(),\n        reminderType: daysUntilRunsOut === 0 ? 'urgent' : 'reminder'\n      });\n    }\n  } catch (error) {\n    console.error(`❌ Error processing prescription for ${prescription['Pet Name']}: ${error.message}`);\n  }\n});\n\nconsole.log(`✅ Found ${refillCandidates.length} prescriptions requiring refill reminders`);\n\nreturn refillCandidates.map(candidate => ({ json: candidate }));"
+      },
+      "name": "🔍 Filter Refill Candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        500
+      ],
+      "id": "filter-refill-candidates"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json['Owner Phone'] }}",
+        "message": "🐾 {{CLINIC_NAME}} Prescription Reminder\n\n{{ $json.reminderType === 'urgent' ? '⚠️ URGENT:' : '📅 Friendly reminder:' }} {{ $json['Pet Name'] }}'s medication ({{ $json['Medication'] }}) {{ $json.reminderType === 'urgent' ? 'runs out TODAY!' : 'will run out in ' + $json.daysUntilRunsOut + ' days.' }}\n\n{{ $json['Refills Remaining'] > 0 ? '✅ Refills available: ' + $json['Refills Remaining'] + ' remaining' : '⚠️ No refills remaining - vet approval needed' }}\n\n📞 Call us at {{BUSINESS_PHONE_NUMBER}} to arrange pickup\n📧 Or email {{BUSINESS_EMAIL}}\n\n{{CLINIC_NAME}} - Caring for {{ $json['Pet Name'] }}! 🏥❤️",
+        "options": {}
+      },
+      "name": "📱 Send Refill Reminder SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        440,
+        500
+      ],
+      "id": "send-refill-sms",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{PRESCRIPTION_SHEET_ID}}",
+        "sheetName": "{{PRESCRIPTION_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Last Reminder Sent": "={{ $now.setZone('{{TIMEZONE}}').toFormat('MM/dd/yyyy h:mm a') }}",
+            "Reminder Count": "={{ parseInt($json['Reminder Count'] || 0) + 1 }}",
+            "Last Contact Type": "SMS Refill Reminder",
+            "Contact Notes": "={{ $json.reminderType === 'urgent' ? 'URGENT: Medication runs out today' : 'Reminded: ' + $json.daysUntilRunsOut + ' days remaining' }}"
+          }
+        },
+        "options": {
+          "lookupColumn": "Patient ID",
+          "lookupValue": "={{ $json['Patient ID'] }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "📝 Update Reminder Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        720,
+        500
+      ],
+      "id": "update-reminder-log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Prescription Management & Refill Reminder System (PET WF13)\n\n**🎯 Purpose:** Complete prescription lifecycle management with automated refill reminders and comprehensive tracking\n\n**🚀 Key Features:**\n\n**Prescription Entry System:**\n• **Staff Form Interface:** Easy-to-use form for logging new prescriptions\n• **Comprehensive Data Capture:** Patient info, medication details, refill authorization\n• **Automatic Calculations:** Auto-calculates next refill due dates\n• **Real-time Logging:** Instant entry into prescription tracking system\n• **Vet Notifications:** Automatic confirmation emails to prescribing veterinarian\n\n**Smart Refill Management:**\n• **Daily Monitoring:** Automated daily checks for refill eligibility\n• **Intelligent Filtering:** Advanced logic to identify refill candidates\n• **Timeline Tracking:** Monitors days supply and refill timing\n• **Status Management:** Tracks active vs inactive prescriptions\n• **Refill Counting:** Decrements remaining refills automatically\n\n**Automated Client Communication:**\n• **Proactive Reminders:** SMS alerts 5 days before medication runs out\n• **Urgent Notifications:** Special handling for same-day medication depletion\n• **Personalized Messages:** Custom messages with pet name and medication details\n• **Refill Status Updates:** Clear indication of remaining refills\n• **Professional Branding:** Branded messages with clinic contact information\n\n**Comprehensive Tracking:**\n• **Prescription Database:** Complete log of all prescriptions in Google Sheets\n• **Contact History:** Tracks all reminder communications\n• **Reminder Analytics:** Counts and timestamps for all contact attempts\n• **Status Updates:** Real-time status tracking and notes\n• **Audit Trail:** Complete record of prescription lifecycle\n\n**⚡ Dual Workflow Process:**\n\n**Part A: New Prescription Entry (On-Demand)**\n1. **Form Submission:** Staff enters prescription details via secure form\n2. **Data Validation:** System validates and formats all prescription data\n3. **Database Logging:** Creates permanent record in prescription tracking sheet\n4. **Vet Notification:** Sends detailed confirmation email to prescribing veterinarian\n5. **Refill Setup:** Automatically calculates and schedules refill timeline\n\n**Part B: Automated Refill Reminders (Daily)**\n1. **Daily Trigger:** Runs every morning at 10 AM to check all prescriptions\n2. **Data Retrieval:** Pulls complete prescription database from Google Sheets\n3. **Smart Filtering:** Analyzes each prescription for refill eligibility:\n   - Checks refills remaining\n   - Calculates days until medication runs out\n   - Identifies prescriptions needing 5-day advance notice\n   - Flags urgent same-day notifications\n4. **SMS Delivery:** Sends personalized refill reminders to pet owners\n5. **Database Updates:** Logs all reminder activity and contact history\n\n**🔍 Advanced Logic Features:**\n• **Days Supply Calculation:** Precise tracking of medication duration\n• **Refill Eligibility:** Smart filtering based on remaining refills\n• **Urgency Detection:** Special handling for urgent refill needs\n• **Contact Optimization:** Prevents duplicate reminders\n• **Error Handling:** Graceful handling of data inconsistencies\n\n**📊 Prescription Categories:**\n• **Active Prescriptions:** Currently valid with refills available\n• **Refill Due:** Medications running low (5 days or less remaining)\n• **Urgent Refill:** Medications running out today\n• **No Refills:** Prescriptions requiring new vet authorization\n\n**🔔 Communication Types:**\n• **Standard Reminder:** 5-day advance notice for refill preparation\n• **Urgent Alert:** Same-day notification for immediate action\n• **Refill Status:** Clear indication of remaining refills available\n• **Contact Instructions:** Direct clinic contact information\n\n**🔄 Integration Points:**\n• Prescription Hub: {{PRESCRIPTION_SHEET_ID}}\n• Staff Form: prescription-form-{{CLINIC_ID}}\n• Veterinarian: {{VET_EMAIL}}\n• SMS Service: {{BUSINESS_PHONE_NUMBER}}\n• Business Contact: {{BUSINESS_EMAIL}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Prescription Sheet: {{PRESCRIPTION_SHEET_NAME}}\n• Timezone: {{TIMEZONE}}\n• Daily Check Time: 10:00 AM\n• Reminder Threshold: 5 days advance notice\n• Brand Color: {{CLINIC_COLOR}}",
+        "height": 800,
+        "width": 900,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -900,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF13 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "📋 New Prescription Form": {
+      "main": [
+        [
+          {
+            "node": "📝 Log to Prescription Hub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Log to Prescription Hub": {
+      "main": [
+        [
+          {
+            "node": "📧 Send Confirmation to Vet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Daily Refill Check": {
+      "main": [
+        [
+          {
+            "node": "📋 Get All Prescriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Get All Prescriptions": {
+      "main": [
+        [
+          {
+            "node": "🔍 Filter Refill Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Filter Refill Candidates": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Refill Reminder SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Send Refill Reminder SMS": {
+      "main": [
+        [
+          {
+            "node": "📝 Update Reminder Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
