@@ -1,0 +1,439 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "{{INVENTORY_CHECK_CRON}}"
+            }
+          ]
+        }
+      },
+      "name": "📅 Daily Inventory Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -200,
+        300
+      ],
+      "id": "1ab3adfc-8651-495e-8e1e-9aae3d860bc0"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": "{{INVENTORY_SHEET_ID}}",
+        "sheetName": "{{INVENTORY_SHEET_NAME}}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "📋 Read Inventory Hub",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        300
+      ],
+      "id": "8524b100-deac-4709-85b9-7b6e57bfc2af",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inventory = $input.all();\nconst reorderList = [];\nconst criticalList = [];\nconst expiringList = [];\n\nconsole.log(`📦 Processing ${inventory.length} inventory items for {{CLINIC_NAME}}`);\n\n// Process each inventory item\ninventory.forEach(item => {\n  const itemData = item.json;\n  const itemName = itemData['Item Name'] || itemData['ItemName'] || 'Unknown Item';\n  const currentStock = parseInt(itemData['Current Stock'] || itemData['CurrentStock'] || '0');\n  const reorderPoint = parseInt(itemData['Reorder Point'] || itemData['ReorderPoint'] || '5');\n  const criticalLevel = parseInt(itemData['Critical Level'] || itemData['CriticalLevel'] || '2');\n  const expiryDate = itemData['Expiry Date'] || itemData['ExpiryDate'];\n  const supplier = itemData['Supplier'] || 'Default Supplier';\n  const category = itemData['Category'] || 'General';\n  const unitCost = parseFloat(itemData['Unit Cost'] || itemData['UnitCost'] || '0');\n  \n  // Check for low stock (reorder point)\n  if (currentStock <= reorderPoint && currentStock > criticalLevel) {\n    const suggestedOrder = Math.max(reorderPoint * 2, 10); // Order double the reorder point or minimum 10\n    reorderList.push({\n      itemName,\n      currentStock,\n      reorderPoint,\n      suggestedOrder,\n      supplier,\n      category,\n      unitCost,\n      totalCost: (suggestedOrder * unitCost).toFixed(2),\n      priority: 'Standard'\n    });\n  }\n  \n  // Check for critical stock\n  if (currentStock <= criticalLevel) {\n    const urgentOrder = Math.max(reorderPoint * 3, 20); // Order triple for urgent needs\n    criticalList.push({\n      itemName,\n      currentStock,\n      criticalLevel,\n      urgentOrder,\n      supplier,\n      category,\n      unitCost,\n      totalCost: (urgentOrder * unitCost).toFixed(2),\n      priority: 'URGENT'\n    });\n  }\n  \n  // Check for items expiring soon (within 30 days)\n  if (expiryDate) {\n    const expiry = new Date(expiryDate);\n    const today = new Date();\n    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));\n    \n    if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {\n      expiringList.push({\n        itemName,\n        currentStock,\n        expiryDate: expiry.toLocaleDateString(),\n        daysUntilExpiry,\n        category,\n        unitCost,\n        priority: daysUntilExpiry <= 7 ? 'URGENT' : 'Standard'\n      });\n    }\n  }\n});\n\nconsole.log(`📊 Inventory Analysis Results:`);\nconsole.log(`   - ${reorderList.length} items need reordering`);\nconsole.log(`   - ${criticalList.length} items at critical levels`);\nconsole.log(`   - ${expiringList.length} items expiring soon`);\n\n// Generate email content\nlet emailBody = `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }\n    .header { background: #{{CLINIC_COLOR}}; color: white; padding: 20px; border-radius: 8px; text-align: center; }\n    .critical { background: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin: 15px 0; }\n    .warning { background: #fff3e0; border-left: 5px solid #ff9800; padding: 15px; margin: 15px 0; }\n    .info { background: #e8f4f8; border-left: 5px solid #{{CLINIC_COLOR}}; padding: 15px; margin: 15px 0; }\n    .item-table { width: 100%; border-collapse: collapse; margin: 10px 0; }\n    .item-table th, .item-table td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }\n    .item-table th { background: #f5f5f5; font-weight: bold; }\n    .urgent { color: #d32f2f; font-weight: bold; }\n    .total-cost { background: #f0f8ff; padding: 10px; border-radius: 5px; margin: 10px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>📦 {{CLINIC_NAME}} - Inventory Alert Report</h1>\n    <p>Daily inventory check completed on {{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy') }}</p>\n  </div>`;\n\nif (criticalList.length > 0) {\n  const criticalTotal = criticalList.reduce((sum, item) => sum + parseFloat(item.totalCost), 0);\n  emailBody += `\n  <div class=\"critical\">\n    <h2>🚨 CRITICAL STOCK ALERT - Immediate Action Required</h2>\n    <p><strong>${criticalList.length} items are at critical stock levels and need urgent reordering!</strong></p>\n    <table class=\"item-table\">\n      <tr><th>Item</th><th>Current Stock</th><th>Critical Level</th><th>Suggested Order</th><th>Supplier</th><th>Est. Cost</th></tr>`;\n  \n  criticalList.forEach(item => {\n    emailBody += `<tr><td class=\"urgent\">${item.itemName}</td><td class=\"urgent\">${item.currentStock}</td><td>${item.criticalLevel}</td><td><strong>${item.urgentOrder}</strong></td><td>${item.supplier}</td><td>$${item.totalCost}</td></tr>`;\n  });\n  \n  emailBody += `</table>\n    <div class=\"total-cost\"><strong>Total Estimated Cost for Critical Items: $${criticalTotal.toFixed(2)}</strong></div>\n  </div>`;\n}\n\nif (reorderList.length > 0) {\n  const reorderTotal = reorderList.reduce((sum, item) => sum + parseFloat(item.totalCost), 0);\n  emailBody += `\n  <div class=\"warning\">\n    <h2>⚠️ Low Stock Alert - Reorder Recommended</h2>\n    <p><strong>${reorderList.length} items have reached their reorder point.</strong></p>\n    <table class=\"item-table\">\n      <tr><th>Item</th><th>Current Stock</th><th>Reorder Point</th><th>Suggested Order</th><th>Category</th><th>Est. Cost</th></tr>`;\n  \n  reorderList.forEach(item => {\n    emailBody += `<tr><td>${item.itemName}</td><td>${item.currentStock}</td><td>${item.reorderPoint}</td><td>${item.suggestedOrder}</td><td>${item.category}</td><td>$${item.totalCost}</td></tr>`;\n  });\n  \n  emailBody += `</table>\n    <div class=\"total-cost\"><strong>Total Estimated Cost for Reorder Items: $${reorderTotal.toFixed(2)}</strong></div>\n  </div>`;\n}\n\nif (expiringList.length > 0) {\n  emailBody += `\n  <div class=\"info\">\n    <h2>📅 Expiry Alert - Items Expiring Soon</h2>\n    <p><strong>${expiringList.length} items are expiring within 30 days.</strong></p>\n    <table class=\"item-table\">\n      <tr><th>Item</th><th>Current Stock</th><th>Expiry Date</th><th>Days Until Expiry</th><th>Category</th></tr>`;\n  \n  expiringList.forEach(item => {\n    const urgentClass = item.daysUntilExpiry <= 7 ? 'urgent' : '';\n    emailBody += `<tr><td class=\"${urgentClass}\">${item.itemName}</td><td>${item.currentStock}</td><td class=\"${urgentClass}\">${item.expiryDate}</td><td class=\"${urgentClass}\">${item.daysUntilExpiry} days</td><td>${item.category}</td></tr>`;\n  });\n  \n  emailBody += `</table>\n  </div>`;\n}\n\nif (criticalList.length === 0 && reorderList.length === 0 && expiringList.length === 0) {\n  emailBody += `\n  <div class=\"info\">\n    <h2>✅ All Good!</h2>\n    <p>No inventory issues detected. All items are adequately stocked and none are expiring soon.</p>\n    <p><strong>Items Checked:</strong> ${inventory.length}</p>\n  </div>`;\n}\n\nconst totalEstimatedCost = (criticalList.reduce((sum, item) => sum + parseFloat(item.totalCost), 0) + reorderList.reduce((sum, item) => sum + parseFloat(item.totalCost), 0)).toFixed(2);\n\nif (parseFloat(totalEstimatedCost) > 0) {\n  emailBody += `\n  <div class=\"total-cost\">\n    <h3>💰 Total Estimated Reorder Cost: $${totalEstimatedCost}</h3>\n  </div>`;\n}\n\nemailBody += `\n  <div style=\"margin-top: 30px; padding: 15px; background: #f5f5f5; border-radius: 5px; text-align: center;\">\n    <p><strong>Next Steps:</strong></p>\n    <p>• Review and approve reorder recommendations</p>\n    <p>• Contact suppliers for urgent items</p>\n    <p>• Update inventory management system</p>\n    <p>• Consider adjusting reorder points if needed</p>\n  </div>\n  \n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>📧 Questions? Contact inventory team at {{INVENTORY_EMAIL}}</p>\n    <p>{{CLINIC_NAME}} - Automated Inventory Management System</p>\n  </div>\n</body>\n</html>`;\n\n// Return results\nconst hasAlerts = (criticalList.length > 0 || reorderList.length > 0 || expiringList.length > 0);\n\nif (hasAlerts) {\n  return [{\n    json: {\n      alertType: criticalList.length > 0 ? 'CRITICAL' : 'WARNING',\n      criticalItems: criticalList.length,\n      reorderItems: reorderList.length,\n      expiringItems: expiringList.length,\n      totalEstimatedCost: parseFloat(totalEstimatedCost),\n      emailBody: emailBody,\n      criticalList,\n      reorderList,\n      expiringList,\n      summary: `${criticalList.length} critical, ${reorderList.length} reorder, ${expiringList.length} expiring`\n    }\n  }];\n} else {\n  console.log('✅ No inventory alerts needed - all items are adequately stocked');\n  return [];\n}"
+      },
+      "name": "🔍 Analyze Stock Levels & Generate Alerts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "id": "ae414909-58cb-4f84-928b-802297804fc9"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{INVENTORY_MANAGER_EMAIL}}",
+        "subject": "{{ $json.alertType === 'CRITICAL' ? '🚨 URGENT' : '⚠️' }}: {{CLINIC_NAME}} Inventory Alert - {{ $json.summary }}",
+        "html": "={{ $json.emailBody }}",
+        "options": {
+          "ccEmail": "{{ADMIN_EMAIL}}",
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📧 Send Inventory Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        500,
+        300
+      ],
+      "id": "f448fe11-b30a-4b4a-b9b1-f1a4f3196a58",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "critical-alert-check",
+              "leftValue": "={{ $json.alertType }}",
+              "rightValue": "CRITICAL",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Critical Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        740,
+        300
+      ],
+      "id": "critical-items-check"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{INVENTORY_MANAGER_PHONE}}",
+        "message": "🚨 **URGENT: {{CLINIC_NAME}} Critical Stock Alert**\n\n📦 **{{ $json.criticalItems }} items at critical levels!**\n\n⚠️ **Immediate action required:**\n• Check email for detailed inventory report\n• Contact suppliers for urgent orders\n• Prioritize restocking critical items\n\n💰 **Est. cost:** ${{ $json.totalEstimatedCost }}\n\n📧 **Full report sent to:** {{INVENTORY_MANAGER_EMAIL}}\n\n{{CLINIC_NAME}} Inventory System 📋",
+        "options": {}
+      },
+      "name": "📱 Send Urgent SMS Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        980,
+        200
+      ],
+      "id": "urgent-sms-alert",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{INVENTORY_LOG_SHEET_ID}}",
+        "sheetName": "{{INVENTORY_LOG_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Alert Type": "={{ $json.alertType }}",
+            "Critical Items": "={{ $json.criticalItems }}",
+            "Reorder Items": "={{ $json.reorderItems }}",
+            "Expiring Items": "={{ $json.expiringItems }}",
+            "Total Estimated Cost": "={{ $json.totalEstimatedCost }}",
+            "Alert Summary": "={{ $json.summary }}",
+            "Email Sent To": "{{INVENTORY_MANAGER_EMAIL}}",
+            "SMS Sent": "={{ $json.alertType === 'CRITICAL' ? 'Yes' : 'No' }}",
+            "Action Required": "={{ $json.alertType === 'CRITICAL' ? 'Urgent - Contact suppliers immediately' : 'Standard - Review and approve orders' }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "📝 Log Alert Activity",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        980,
+        400
+      ],
+      "id": "log-alert-activity",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{INVENTORY_UPDATE_WEBHOOK_PATH}}",
+        "options": {}
+      },
+      "name": "📦 Manual Inventory Update Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        600
+      ],
+      "webhookId": "{{INVENTORY_UPDATE_WEBHOOK_ID}}",
+      "id": "78057068-1467-4051-9323-f99031ba2eda"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process manual inventory update\nconst updateData = $json.body;\n\nconsole.log('📦 Processing manual inventory update:', updateData);\n\n// Validate required fields\nif (!updateData.itemName) {\n  throw new Error('Item name is required');\n}\n\nif (!updateData.newStockLevel && updateData.newStockLevel !== 0) {\n  throw new Error('New stock level is required');\n}\n\n// Prepare update data\nconst itemName = updateData.itemName;\nconst newStockLevel = parseInt(updateData.newStockLevel);\nconst updateType = updateData.updateType || 'manual'; // manual, received, sold, adjusted\nconst notes = updateData.notes || 'Manual inventory update';\nconst updatedBy = updateData.updatedBy || 'System';\nconst batchNumber = updateData.batchNumber || '';\nconst expiryDate = updateData.expiryDate || '';\n\n// Calculate change amount if previous stock provided\nconst previousStock = parseInt(updateData.previousStock || '0');\nconst changeAmount = newStockLevel - previousStock;\n\nreturn {\n  json: {\n    itemName,\n    newStockLevel,\n    updateType,\n    notes,\n    updatedBy,\n    batchNumber,\n    expiryDate,\n    changeAmount,\n    updateTimestamp: new Date().toISOString(),\n    clinicName: '{{CLINIC_NAME}}'\n  }\n};"
+      },
+      "name": "🔄 Process Update Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        600
+      ],
+      "id": "process-update-request"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{INVENTORY_SHEET_ID}}",
+        "sheetName": "{{INVENTORY_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Current Stock": "={{ $json.newStockLevel }}",
+            "Last Updated": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Updated By": "={{ $json.updatedBy }}",
+            "Last Update Type": "={{ $json.updateType }}",
+            "Batch Number": "={{ $json.batchNumber }}",
+            "Expiry Date": "={{ $json.expiryDate }}"
+          }
+        },
+        "options": {
+          "lookupColumn": "Item Name",
+          "lookupValue": "={{ $json.itemName }}",
+          "range": "A:Z"
+        }
+      },
+      "name": "📋 Update Inventory Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        260,
+        600
+      ],
+      "id": "3729431b-874c-431f-9d10-48489fa246ac",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{INVENTORY_LOG_SHEET_ID}}",
+        "sheetName": "{{INVENTORY_TRANSACTIONS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.updateTimestamp }}",
+            "Item Name": "={{ $json.itemName }}",
+            "Update Type": "={{ $json.updateType }}",
+            "New Stock Level": "={{ $json.newStockLevel }}",
+            "Change Amount": "={{ $json.changeAmount }}",
+            "Updated By": "={{ $json.updatedBy }}",
+            "Notes": "={{ $json.notes }}",
+            "Batch Number": "={{ $json.batchNumber }}",
+            "Expiry Date": "={{ $json.expiryDate }}",
+            "Clinic": "={{ $json.clinicName }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "📊 Log Inventory Transaction",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        500,
+        600
+      ],
+      "id": "log-inventory-transaction",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Inventory updated successfully\",\n  \"data\": {\n    \"itemName\": \"{{ $json.itemName }}\",\n    \"newStockLevel\": {{ $json.newStockLevel }},\n    \"updateType\": \"{{ $json.updateType }}\",\n    \"updatedBy\": \"{{ $json.updatedBy }}\",\n    \"timestamp\": \"{{ $json.updateTimestamp }}\"\n  }\n}",
+        "options": {}
+      },
+      "name": "✅ Send Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        740,
+        600
+      ],
+      "id": "send-success-response"
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Inventory Management System (PET WF11)\n\n**🎯 Purpose:** Comprehensive inventory management with automated stock monitoring, reorder alerts, and manual update capabilities\n\n**🚀 Key Features:**\n\n**Automated Monitoring:**\n• **Daily Stock Checks:** Runs on configurable schedule ({{INVENTORY_CHECK_CRON}})\n• **Multi-Level Alerts:** Critical, reorder, and expiry notifications\n• **Smart Recommendations:** Calculates optimal reorder quantities\n• **Cost Estimation:** Provides reorder cost projections\n• **Priority Classification:** Identifies urgent vs. standard needs\n\n**Alert System:**\n• **Email Reports:** Detailed HTML reports with item breakdowns\n• **SMS Notifications:** Urgent alerts for critical stock levels\n• **Multi-Channel Delivery:** Email + SMS for critical items\n• **Supplier Information:** Includes supplier details for quick ordering\n• **Category Analysis:** Groups items by category for better management\n\n**Manual Updates:**\n• **Webhook Integration:** API endpoint for inventory updates\n• **Transaction Logging:** Complete audit trail of all changes\n• **Batch Management:** Tracks batch numbers and expiry dates\n• **Update Types:** Supports manual, received, sold, adjusted updates\n• **Real-time Processing:** Immediate inventory updates\n\n**⚡ Workflow Process:**\n\n**Automated Monitoring Flow:**\n1. **Scheduled Trigger:** Daily inventory check at configured time\n2. **Data Retrieval:** Reads complete inventory from Google Sheets\n3. **Stock Analysis:** Evaluates current vs. reorder/critical levels\n4. **Expiry Checking:** Identifies items expiring within 30 days\n5. **Alert Generation:** Creates detailed HTML email reports\n6. **Multi-Channel Alerts:** Sends email + SMS for critical items\n7. **Activity Logging:** Records all alert activities\n\n**Manual Update Flow:**\n1. **Webhook Trigger:** Receives inventory update requests\n2. **Data Validation:** Validates required fields and formats\n3. **Inventory Update:** Updates stock levels in Google Sheets\n4. **Transaction Logging:** Records change details and audit trail\n5. **Response Delivery:** Confirms successful update\n\n**📊 Alert Categories:**\n• **CRITICAL:** Items at or below critical level (immediate action)\n• **REORDER:** Items at reorder point (schedule orders)\n• **EXPIRING:** Items expiring within 30 days (use or dispose)\n\n**🔄 Integration Points:**\n• Main Inventory: {{INVENTORY_SHEET_ID}}\n• Alert Logging: {{INVENTORY_LOG_SHEET_ID}}\n• Transaction History: {{INVENTORY_TRANSACTIONS_SHEET_NAME}}\n• Email System: {{BUSINESS_EMAIL}}\n• SMS Alerts: {{BUSINESS_PHONE_NUMBER}}\n• Webhook API: {{INVENTORY_UPDATE_WEBHOOK_PATH}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Check Schedule: {{INVENTORY_CHECK_CRON}}\n• Inventory Manager: {{INVENTORY_MANAGER_EMAIL}} / {{INVENTORY_MANAGER_PHONE}}\n• Admin Notifications: {{ADMIN_EMAIL}}\n• Timezone: {{TIMEZONE}}",
+        "height": 800,
+        "width": 900,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -600,
+        -100
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF11 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "📅 Daily Inventory Check": {
+      "main": [
+        [
+          {
+            "node": "📋 Read Inventory Hub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Read Inventory Hub": {
+      "main": [
+        [
+          {
+            "node": "🔍 Analyze Stock Levels & Generate Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Analyze Stock Levels & Generate Alerts": {
+      "main": [
+        [
+          {
+            "node": "📧 Send Inventory Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📧 Send Inventory Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Critical Items?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Items?": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Urgent SMS Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Log Alert Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Send Urgent SMS Alert": {
+      "main": [
+        [
+          {
+            "node": "📝 Log Alert Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📦 Manual Inventory Update Webhook": {
+      "main": [
+        [
+          {
+            "node": "🔄 Process Update Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔄 Process Update Request": {
+      "main": [
+        [
+          {
+            "node": "📋 Update Inventory Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Update Inventory Sheet": {
+      "main": [
+        [
+          {
+            "node": "📊 Log Inventory Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Log Inventory Transaction": {
+      "main": [
+        [
+          {
+            "node": "✅ Send Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
