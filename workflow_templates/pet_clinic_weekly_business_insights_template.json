@@ -1,0 +1,271 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0,
+              "triggerAtDayOfWeek": 0
+            }
+          ]
+        },
+        "timezone": "{{TIMEZONE}}"
+      },
+      "name": "📊 Weekly Report Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -600,
+        200
+      ],
+      "id": "weekly-report-scheduler"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": "{{PAYMENTS_SHEET_ID}}",
+        "sheetName": "{{PAYMENTS_SHEET_NAME}}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "💰 Get Payments Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -320,
+        100
+      ],
+      "id": "get-payments-data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": "{{CLIENTS_SHEET_ID}}",
+        "sheetName": "{{CLIENTS_SHEET_NAME}}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "👥 Get Clients Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -320,
+        300
+      ],
+      "id": "get-clients-data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "documentId": "{{APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{APPOINTMENTS_SHEET_NAME}}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "📅 Get Appointments Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -320,
+        500
+      ],
+      "id": "get-appointments-data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Advanced Weekly Business Insights Calculator for {{CLINIC_NAME}}\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\nconst monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);\n\nconsole.log(`📊 Generating weekly insights for {{CLINIC_NAME}} - ${now.toLocaleDateString()}`);\n\n// Get data from all sources\nconst payments = $items('💰 Get Payments Data').map(item => item.json).filter(p => p && p.Date);\nconst clients = $items('👥 Get Clients Data').map(item => item.json).filter(c => c && c['Join Date']);\nconst appointments = $items('📅 Get Appointments Data').map(item => item.json).filter(a => a && a.Date);\n\nconsole.log(`📋 Data loaded: ${payments.length} payments, ${clients.length} clients, ${appointments.length} appointments`);\n\n// Helper function to parse dates safely\nfunction parseDate(dateStr) {\n  try {\n    if (!dateStr) return null;\n    const date = new Date(dateStr);\n    return isNaN(date.getTime()) ? null : date;\n  } catch (error) {\n    return null;\n  }\n}\n\n// Helper function to parse currency amounts\nfunction parseAmount(amountStr) {\n  if (!amountStr) return 0;\n  const cleaned = amountStr.toString().replace(/[^0-9.-]/g, '');\n  const amount = parseFloat(cleaned);\n  return isNaN(amount) ? 0 : amount;\n}\n\n// Calculate Weekly Metrics\nconst weeklyPayments = payments.filter(p => {\n  const paymentDate = parseDate(p.Date || p['Payment Date'] || p['Date Paid']);\n  return paymentDate && paymentDate >= weekAgo;\n});\n\nconst weeklyRevenue = weeklyPayments.reduce((sum, payment) => {\n  const amount = parseAmount(payment.Amount || payment.Total || payment.Revenue || 0);\n  return sum + amount;\n}, 0);\n\nconst weeklyAppointments = appointments.filter(a => {\n  const appointmentDate = parseDate(a.Date || a['Appointment Date']);\n  return appointmentDate && appointmentDate >= weekAgo;\n});\n\nconst newClientsThisWeek = clients.filter(c => {\n  const joinDate = parseDate(c['Join Date'] || c.JoinDate || c['Registration Date']);\n  return joinDate && joinDate >= weekAgo;\n});\n\n// Calculate Monthly Comparisons\nconst monthlyPayments = payments.filter(p => {\n  const paymentDate = parseDate(p.Date || p['Payment Date'] || p['Date Paid']);\n  return paymentDate && paymentDate >= monthAgo;\n});\n\nconst monthlyRevenue = monthlyPayments.reduce((sum, payment) => {\n  const amount = parseAmount(payment.Amount || payment.Total || payment.Revenue || 0);\n  return sum + amount;\n}, 0);\n\nconst monthlyAppointments = appointments.filter(a => {\n  const appointmentDate = parseDate(a.Date || a['Appointment Date']);\n  return appointmentDate && appointmentDate >= monthAgo;\n});\n\nconst newClientsThisMonth = clients.filter(c => {\n  const joinDate = parseDate(c['Join Date'] || c.JoinDate || c['Registration Date']);\n  return joinDate && joinDate >= monthAgo;\n});\n\n// Calculate Service Breakdown (this week)\nconst serviceBreakdown = {};\nweeklyAppointments.forEach(appointment => {\n  const service = appointment.Service || appointment['Service Type'] || 'General Visit';\n  serviceBreakdown[service] = (serviceBreakdown[service] || 0) + 1;\n});\n\nconst topServices = Object.entries(serviceBreakdown)\n  .sort(([,a], [,b]) => b - a)\n  .slice(0, 5)\n  .map(([service, count]) => `  • ${service}: ${count} appointments`)\n  .join('\\n');\n\n// Calculate Average Transaction Value\nconst avgTransactionValue = weeklyPayments.length > 0 \n  ? (weeklyRevenue / weeklyPayments.length)\n  : 0;\n\n// Calculate Growth Rates\nconst revenueGrowthRate = monthlyRevenue > 0 \n  ? ((weeklyRevenue * 4.33 - monthlyRevenue) / monthlyRevenue * 100)\n  : 0;\n\nconst appointmentGrowthRate = monthlyAppointments.length > 0 \n  ? ((weeklyAppointments.length * 4.33 - monthlyAppointments.length) / monthlyAppointments.length * 100)\n  : 0;\n\n// Identify Top Paying Clients (this week)\nconst clientPayments = {};\nweeklyPayments.forEach(payment => {\n  const clientName = payment['Client Name'] || payment.Client || payment['Customer Name'] || 'Unknown';\n  const amount = parseAmount(payment.Amount || payment.Total || payment.Revenue || 0);\n  clientPayments[clientName] = (clientPayments[clientName] || 0) + amount;\n});\n\nconst topPayingClients = Object.entries(clientPayments)\n  .sort(([,a], [,b]) => b - a)\n  .slice(0, 3)\n  .map(([client, amount]) => `  • ${client}: $${amount.toFixed(2)}`)\n  .join('\\n');\n\n// Generate Insights and Recommendations\nconst insights = [];\n\nif (weeklyRevenue > monthlyRevenue / 4) {\n  insights.push('📈 Revenue is above monthly average - great performance!');\n} else {\n  insights.push('📉 Revenue is below monthly average - consider promotional activities.');\n}\n\nif (newClientsThisWeek.length > 0) {\n  insights.push(`🆕 ${newClientsThisWeek.length} new clients joined - retention focus recommended.`);\n}\n\nif (weeklyAppointments.length > monthlyAppointments.length / 4) {\n  insights.push('📅 Appointment volume is strong this week.');\n} else {\n  insights.push('📅 Appointment volume is lower - consider outreach campaigns.');\n}\n\n// Compile the comprehensive report\nconst reportData = {\n  clinic_name: '{{CLINIC_NAME}}',\n  report_date: now.toLocaleDateString('en-US', { \n    weekday: 'long', \n    year: 'numeric', \n    month: 'long', \n    day: 'numeric',\n    timeZone: timezone\n  }),\n  week_ending: now.toLocaleDateString('en-US', { timeZone: timezone }),\n  \n  // Weekly Metrics\n  weekly_revenue: weeklyRevenue,\n  weekly_appointments: weeklyAppointments.length,\n  weekly_new_clients: newClientsThisWeek.length,\n  weekly_transactions: weeklyPayments.length,\n  avg_transaction_value: avgTransactionValue,\n  \n  // Monthly Context\n  monthly_revenue: monthlyRevenue,\n  monthly_appointments: monthlyAppointments.length,\n  monthly_new_clients: newClientsThisMonth.length,\n  \n  // Growth Metrics\n  revenue_growth_rate: revenueGrowthRate,\n  appointment_growth_rate: appointmentGrowthRate,\n  \n  // Service Analysis\n  top_services: topServices || 'No appointments recorded',\n  total_services_offered: Object.keys(serviceBreakdown).length,\n  \n  // Client Analysis\n  top_paying_clients: topPayingClients || 'No payments recorded',\n  total_active_clients: clients.length,\n  \n  // AI Insights\n  business_insights: insights.join('\\n'),\n  \n  // Report Quality Indicators\n  data_completeness: {\n    payments: payments.length,\n    clients: clients.length,\n    appointments: appointments.length\n  }\n};\n\nconsole.log(`✅ Weekly insights calculated: $${weeklyRevenue.toFixed(2)} revenue, ${weeklyAppointments.length} appointments, ${newClientsThisWeek.length} new clients`);\n\nreturn [{ json: reportData }];"
+      },
+      "name": "🧮 Calculate Business Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        300
+      ],
+      "id": "calculate-business-metrics"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{REPORTS_SHEET_ID}}",
+        "sheetName": "{{REPORTS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Report Date": "={{ $json.report_date }}",
+            "Week Ending": "={{ $json.week_ending }}",
+            "Weekly Revenue": "={{ $json.weekly_revenue }}",
+            "Weekly Appointments": "={{ $json.weekly_appointments }}",
+            "New Clients": "={{ $json.weekly_new_clients }}",
+            "Total Transactions": "={{ $json.weekly_transactions }}",
+            "Avg Transaction Value": "={{ $json.avg_transaction_value.toFixed(2) }}",
+            "Monthly Revenue": "={{ $json.monthly_revenue }}",
+            "Revenue Growth %": "={{ $json.revenue_growth_rate.toFixed(1) }}%",
+            "Appointment Growth %": "={{ $json.appointment_growth_rate.toFixed(1) }}%",
+            "Services Offered": "={{ $json.total_services_offered }}",
+            "Active Clients": "={{ $json.total_active_clients }}",
+            "Generated By": "ETF Auto-Report",
+            "Report Type": "Weekly Business Insights"
+          }
+        },
+        "options": {}
+      },
+      "name": "📝 Log Report to Database",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        320,
+        200
+      ],
+      "id": "log-report-database",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "{{BUSINESS_EMAIL}}",
+        "subject": "📊 {{CLINIC_NAME}} - Weekly Business Insights Report ({{ $json.week_ending }})",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .header { background: linear-gradient(135deg, #{{CLINIC_COLOR}} 0%, #6c5ce7 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }\n    .header h1 { margin: 0; font-size: 2.2rem; font-weight: 700; }\n    .header p { margin: 10px 0 0; font-size: 1.1rem; opacity: 0.9; }\n    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }\n    .metric-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #{{CLINIC_COLOR}}; }\n    .metric-value { font-size: 2rem; font-weight: 700; color: #{{CLINIC_COLOR}}; margin-bottom: 5px; }\n    .metric-label { font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }\n    .metric-growth { font-size: 0.85rem; margin-top: 8px; }\n    .growth-positive { color: #27ae60; }\n    .growth-negative { color: #e74c3c; }\n    .section { background: white; margin: 20px 0; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }\n    .section h3 { margin: 0 0 20px; color: #2c3e50; font-size: 1.3rem; border-bottom: 2px solid #{{CLINIC_COLOR}}; padding-bottom: 10px; }\n    .insights-list { background: #e8f5e8; border-left: 4px solid #27ae60; padding: 20px; margin: 15px 0; border-radius: 8px; }\n    .services-list { background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-line; }\n    .footer { text-align: center; margin-top: 30px; padding: 20px; color: #666; border-top: 1px solid #e9ecef; }\n    .comparison-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .comparison-table th, .comparison-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }\n    .comparison-table th { background: #f8f9fa; font-weight: 600; color: #495057; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>📊 Weekly Business Insights</h1>\n    <p>{{CLINIC_NAME}} • Week Ending {{ $json.week_ending }}</p>\n  </div>\n\n  <div class=\"metrics-grid\">\n    <div class=\"metric-card\">\n      <div class=\"metric-value\">${{ $json.weekly_revenue.toLocaleString('en-US', {minimumFractionDigits: 2}) }}</div>\n      <div class=\"metric-label\">Weekly Revenue</div>\n      <div class=\"metric-growth {{ $json.revenue_growth_rate >= 0 ? 'growth-positive' : 'growth-negative' }}\">\n        {{ $json.revenue_growth_rate >= 0 ? '↗️' : '↘️' }} {{ $json.revenue_growth_rate.toFixed(1) }}% vs last month\n      </div>\n    </div>\n    \n    <div class=\"metric-card\">\n      <div class=\"metric-value\">{{ $json.weekly_appointments }}</div>\n      <div class=\"metric-label\">Appointments</div>\n      <div class=\"metric-growth {{ $json.appointment_growth_rate >= 0 ? 'growth-positive' : 'growth-negative' }}\">\n        {{ $json.appointment_growth_rate >= 0 ? '↗️' : '↘️' }} {{ $json.appointment_growth_rate.toFixed(1) }}% vs last month\n      </div>\n    </div>\n    \n    <div class=\"metric-card\">\n      <div class=\"metric-value\">{{ $json.weekly_new_clients }}</div>\n      <div class=\"metric-label\">New Clients</div>\n      <div class=\"metric-growth\">\n        🆕 This week\n      </div>\n    </div>\n    \n    <div class=\"metric-card\">\n      <div class=\"metric-value\">${{ $json.avg_transaction_value.toFixed(0) }}</div>\n      <div class=\"metric-label\">Avg Transaction</div>\n      <div class=\"metric-growth\">\n        💰 Per visit\n      </div>\n    </div>\n  </div>\n\n  <div class=\"section\">\n    <h3>📈 Month-to-Date Performance</h3>\n    <table class=\"comparison-table\">\n      <tr>\n        <th>Metric</th>\n        <th>This Week</th>\n        <th>Monthly Total</th>\n        <th>Monthly Average</th>\n      </tr>\n      <tr>\n        <td>Revenue</td>\n        <td>${{ $json.weekly_revenue.toLocaleString('en-US', {minimumFractionDigits: 2}) }}</td>\n        <td>${{ $json.monthly_revenue.toLocaleString('en-US', {minimumFractionDigits: 2}) }}</td>\n        <td>${{ ($json.monthly_revenue / 4.33).toLocaleString('en-US', {minimumFractionDigits: 2}) }}</td>\n      </tr>\n      <tr>\n        <td>Appointments</td>\n        <td>{{ $json.weekly_appointments }}</td>\n        <td>{{ $json.monthly_appointments }}</td>\n        <td>{{ Math.round($json.monthly_appointments / 4.33) }}</td>\n      </tr>\n      <tr>\n        <td>New Clients</td>\n        <td>{{ $json.weekly_new_clients }}</td>\n        <td>{{ $json.monthly_new_clients }}</td>\n        <td>{{ Math.round($json.monthly_new_clients / 4.33) }}</td>\n      </tr>\n    </table>\n  </div>\n\n  <div class=\"section\">\n    <h3>🎯 Top Services This Week</h3>\n    <div class=\"services-list\">{{ $json.top_services || 'No service data available' }}</div>\n    <p><strong>Total Services Offered:</strong> {{ $json.total_services_offered }}</p>\n  </div>\n\n  <div class=\"section\">\n    <h3>💎 Top Paying Clients This Week</h3>\n    <div class=\"services-list\">{{ $json.top_paying_clients || 'No payment data available' }}</div>\n    <p><strong>Total Active Clients:</strong> {{ $json.total_active_clients }}</p>\n  </div>\n\n  <div class=\"insights-list\">\n    <h3>🤖 AI Business Insights</h3>\n    <div style=\"white-space: pre-line; line-height: 1.6;\">{{ $json.business_insights || 'Insufficient data for insights generation.' }}</div>\n  </div>\n\n  <div class=\"section\">\n    <h3>📊 Data Quality Report</h3>\n    <p><strong>Payments Records:</strong> {{ $json.data_completeness.payments }}</p>\n    <p><strong>Client Records:</strong> {{ $json.data_completeness.clients }}</p>\n    <p><strong>Appointment Records:</strong> {{ $json.data_completeness.appointments }}</p>\n  </div>\n\n  <div class=\"footer\">\n    <p>📧 Generated automatically by {{CLINIC_NAME}} ETF System</p>\n    <p>📅 Report Date: {{ $json.report_date }}</p>\n    <p>💼 For questions about this report, contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📧 Email Weekly Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        600,
+        300
+      ],
+      "id": "email-weekly-report",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Weekly Business Insights & Analytics (PET WF14)\n\n**🎯 Purpose:** Comprehensive weekly business performance analysis with automated insights generation and executive reporting\n\n**🚀 Key Features:**\n\n**Advanced Analytics Engine:**\n• **Multi-Source Data Integration:** Pulls from payments, clients, and appointments databases\n• **Growth Rate Calculations:** Week-over-week and month-over-month performance tracking\n• **Service Performance Analysis:** Identifies top-performing services and trends\n• **Client Value Analysis:** Tracks high-value clients and transaction patterns\n• **AI-Powered Insights:** Generates actionable business recommendations\n\n**Comprehensive Metrics Dashboard:**\n• **Revenue Analytics:** Weekly revenue, growth rates, and transaction analysis\n• **Appointment Metrics:** Volume tracking, service breakdown, and capacity utilization\n• **Client Analytics:** New client acquisition, retention patterns, and value segmentation\n• **Operational Insights:** Service popularity, efficiency metrics, and trend analysis\n\n**Executive Reporting System:**\n• **Professional Email Reports:** HTML-formatted reports with charts and insights\n• **Database Logging:** Permanent record keeping for historical analysis\n• **Growth Tracking:** Automated trend analysis and performance comparisons\n• **Data Quality Monitoring:** Ensures report accuracy and completeness\n\n**⚡ Automated Weekly Process:**\n\n**1. Data Collection Phase:**\n- **Payment Data Retrieval:** Pulls all payment records from financial tracking sheet\n- **Client Database Access:** Retrieves complete client registration and demographic data\n- **Appointment Records:** Gathers appointment history, services, and completion data\n- **Data Validation:** Ensures data quality and handles missing information gracefully\n\n**2. Advanced Analytics Processing:**\n- **Time-Series Analysis:** Calculates weekly, monthly, and growth metrics\n- **Service Performance:** Analyzes service popularity and revenue contribution\n- **Client Segmentation:** Identifies high-value clients and spending patterns\n- **Trend Detection:** Spots emerging patterns and business opportunities\n- **Comparative Analysis:** Benchmarks current performance against historical data\n\n**3. Insight Generation:**\n- **AI-Powered Recommendations:** Generates actionable business insights\n- **Performance Alerts:** Identifies areas requiring attention or celebration\n- **Growth Opportunities:** Suggests strategies for business improvement\n- **Operational Insights:** Recommends process optimizations\n\n**4. Report Distribution:**\n- **Executive Summary Email:** Sends comprehensive report to business owner\n- **Database Archiving:** Logs report data for historical tracking\n- **Visual Analytics:** Includes charts, graphs, and formatted metrics\n- **Mobile-Friendly Format:** Optimized for viewing on all devices\n\n**📊 Analytics Categories:**\n\n**Revenue Intelligence:**\n• Weekly revenue totals and growth rates\n• Average transaction values and trends\n• Payment method analysis and preferences\n• Revenue per service category breakdown\n• Seasonal and cyclical pattern detection\n\n**Client Analytics:**\n• New client acquisition rates and sources\n• Client lifetime value calculations\n• Retention rate analysis and churn prediction\n• Client segmentation by value and frequency\n• Geographic and demographic insights\n\n**Operational Metrics:**\n• Appointment volume and capacity utilization\n• Service popularity and demand forecasting\n• Staff productivity and efficiency metrics\n• Resource allocation optimization suggestions\n• Workflow bottleneck identification\n\n**🤖 AI-Powered Insights:**\n• **Performance Recognition:** Celebrates achievements and milestones\n• **Opportunity Identification:** Spots untapped revenue potential\n• **Risk Assessment:** Identifies potential business challenges early\n• **Strategic Recommendations:** Suggests data-driven business decisions\n• **Competitive Analysis:** Benchmarks against industry standards\n\n**📈 Growth Tracking Features:**\n• **Trend Analysis:** Long-term business trajectory monitoring\n• **Seasonal Adjustments:** Accounts for cyclical business patterns\n• **Goal Tracking:** Monitors progress toward business objectives\n• **Forecast Modeling:** Predicts future performance based on trends\n• **Benchmark Comparisons:** Tracks performance against targets\n\n**🔄 Integration Points:**\n• Payments Database: {{PAYMENTS_SHEET_ID}}\n• Client Hub: {{CLIENTS_SHEET_ID}}\n• Appointments System: {{APPOINTMENTS_SHEET_ID}}\n• Reports Archive: {{REPORTS_SHEET_ID}}\n• Business Email: {{BUSINESS_EMAIL}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Schedule: Every Sunday at 9:00 AM\n• Timezone: {{TIMEZONE}}\n• Report Format: Executive HTML Email + Database Log\n• Data Sources: 3 integrated business systems\n• Analysis Depth: 7-day window with 30-day context",
+        "height": 800,
+        "width": 900,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1100,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "workflow-description-note",
+      "name": "PET WF14 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "📊 Weekly Report Trigger": {
+      "main": [
+        [
+          {
+            "node": "💰 Get Payments Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "👥 Get Clients Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📅 Get Appointments Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💰 Get Payments Data": {
+      "main": [
+        [
+          {
+            "node": "🧮 Calculate Business Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "👥 Get Clients Data": {
+      "main": [
+        [
+          {
+            "node": "🧮 Calculate Business Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📅 Get Appointments Data": {
+      "main": [
+        [
+          {
+            "node": "🧮 Calculate Business Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧮 Calculate Business Metrics": {
+      "main": [
+        [
+          {
+            "node": "📝 Log Report to Database",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Email Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
