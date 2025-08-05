@@ -830,64 +830,243 @@
                     </div>
                 </div>
 
-                <!-- Telegram Credentials Section -->
-                <div class="form-section">
+                <!-- 🔑 CREDENTIALS SECTION -->
+                <div class="form-section" style="border: 2px solid #FFD700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.02) 100%);">
                     <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="message-circle"></i>
+                        <div class="section-icon" style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);">
+                            <i data-lucide="key"></i>
                         </div>
-                        <h2 class="section-title">Telegram Bot Credentials</h2>
+                        <h2 class="section-title">🔑 API Keys & Credentials</h2>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-style: italic;">
+                        These are your secure API keys and authentication tokens. They will be encrypted and stored safely.
+                    </p>
+
+                    <!-- Telegram Bot Credentials -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="message-circle" style="width: 20px; height: 20px;"></i>
+                        Telegram Bot Credentials
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="telegramBotToken">Telegram Bot Token <span class="required">*</span></label>
+                            <input type="password" id="telegramBotToken" name="telegram_bot_token" required 
+                                   placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                            <div class="form-help">
+                                Get your bot token from @BotFather on Telegram. Format: numbers:letters (35 characters after colon)
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="telegramChatId">Telegram Chat ID <span class="required">*</span></label>
+                            <input type="text" id="telegramChatId" name="telegram_chat_id" required 
+                                   placeholder="-1001234567890">
+                            <div class="form-help">
+                                Your chat ID where the bot will send messages. Negative for groups, positive for individual chats.
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- Twilio SMS Credentials -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="message-square" style="width: 20px; height: 20px;"></i>
+                        Twilio SMS Credentials
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="twilioAccountSid">Twilio Account SID <span class="required">*</span></label>
+                            <input type="password" id="twilioAccountSid" name="twilio_account_sid" required 
+                                   placeholder="AC1234567890abcdef1234567890abcdef">
+                            <div class="form-help">
+                                Your Twilio Account SID for sending SMS messages.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="twilioAuthToken">Twilio Auth Token <span class="required">*</span></label>
+                            <input type="password" id="twilioAuthToken" name="twilio_auth_token" required 
+                                   placeholder="your_twilio_auth_token_here">
+                            <div class="form-help">
+                                Your Twilio Auth Token (kept secure).
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-group">
-                        <label for="telegramBotToken">Telegram Bot Token <span class="required">*</span></label>
-                        <input type="text" id="telegramBotToken" name="telegram_bot_token" required 
-                               placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                        <label for="twilioPhoneNumber">Twilio Phone Number <span class="required">*</span></label>
+                        <input type="tel" id="twilioPhoneNumber" name="twilio_phone_number" required 
+                               placeholder="+15551234567">
                         <div class="form-help">
-                            Get your bot token from @BotFather on Telegram. Format: numbers:letters (35 characters after colon)
+                            Your Twilio phone number in E.164 format (starting with +1).
                         </div>
                     </div>
 
+                    <!-- Email Service Credentials -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="mail" style="width: 20px; height: 20px;"></i>
+                        Email Service Credentials
+                    </h3>
                     <div class="form-group">
-                        <label for="telegramChatId">Telegram Chat ID <span class="required">*</span></label>
-                        <input type="text" id="telegramChatId" name="telegram_chat_id" required 
-                               placeholder="-1001234567890">
+                        <label for="sendgridApiKey">SendGrid API Key <span class="required">*</span></label>
+                        <input type="password" id="sendgridApiKey" name="sendgrid_api_key" required 
+                               placeholder="SG.xxxxxxxxxxxxxxxx">
                         <div class="form-help">
-                            Your chat ID where the bot will send messages. Negative for groups, positive for individual chats.
+                            SendGrid API key for automated email sending.
                         </div>
                     </div>
 
-                    <details style="margin-top: 15px;">
-                        <summary>How to get your Telegram credentials</summary>
-                        <div class="credential-help">
-                            <h4>Getting Bot Token:</h4>
+                    <!-- AI Service Credentials -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="brain" style="width: 20px; height: 20px;"></i>
+                        AI Service Credentials
+                    </h3>
+                    <div class="form-group">
+                        <label for="openaiApiKey">OpenAI API Key <span class="required">*</span></label>
+                        <input type="password" id="openaiApiKey" name="openai_api_key" required 
+                               placeholder="sk-xxxxxxxxxxxxxxxx">
+                        <div class="form-help">
+                            OpenAI API key for AI-powered features like content generation and analysis.
+                        </div>
+                    </div>
+
+                    <!-- Calendly Integration Credentials -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i>
+                        Calendly Integration Credentials
+                    </h3>
+                    <div class="form-group">
+                        <label for="calendlyApiKey">Calendly Personal Access Token <span class="required">*</span></label>
+                        <input type="password" id="calendlyApiKey" name="calendly_api_key" required 
+                               placeholder="your_calendly_personal_access_token">
+                        <div class="form-help">
+                            Personal Access Token from your Calendly developer settings.
+                        </div>
+                    </div>
+
+                    <!-- Social Media Credentials (Optional) -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="share-2" style="width: 20px; height: 20px;"></i>
+                        Social Media Credentials (Optional)
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="facebookPageToken">Facebook Page Access Token</label>
+                            <input type="password" id="facebookPageToken" name="facebook_page_token" 
+                                   placeholder="EAAxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Facebook page access token for posting.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="instagramAccessToken">Instagram Access Token</label>
+                            <input type="password" id="instagramAccessToken" name="instagram_access_token" 
+                                   placeholder="IGQVxxxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Instagram access token for social media automation.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="whatsappToken">WhatsApp Business Token</label>
+                            <input type="password" id="whatsappToken" name="whatsapp_token" 
+                                   placeholder="EAAxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                WhatsApp Business API token for messaging.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="stripeSecretKey">Stripe Secret Key (Optional)</label>
+                            <input type="password" id="stripeSecretKey" name="stripe_secret_key" 
+                                   placeholder="sk_test_xxxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Stripe secret key for payment processing.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Google OAuth Integration -->
+                    <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="cloud" style="width: 20px; height: 20px;"></i>
+                        Google Services Integration
+                    </h3>
+                    <div class="google-connection-section">
+                        <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
+                        <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgNi41OUwyLjE4IDcuNjlDNC4wNCAxMi4wNCA3LjczIDE1IDEyIDE1WjEiIGZpbGw9IiNFQTQzMzUiLz4KPHBhdGggZD0iTTIuMTggMTYuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUw5LjYyIDE3LjU3IDI3MTY4NTIxODE2MTNaIiBmaWxsPSIjRkFCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDIuMTggOC4wOUM3LjczIDYuOTkgMTAuMDQgNS4xMiAxMiA1LjEyVjQuNzQ0Mloic"  alt="Google" style="width: 20px; margin-right: 8px;">
+                            Connect Google Account
+                        </button>
+                        <div id="google-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ Google account connected successfully</span>
+                        </div>
+                    </div>
+
+                    <!-- Credential Setup Guides -->
+                    <details style="margin-top: 30px; border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; padding: 15px;">
+                        <summary style="color: #FFD700; font-weight: bold; cursor: pointer;">📚 How to get all your credentials (Click to expand)</summary>
+                        <div class="credential-help" style="margin-top: 15px;">
+                            <h4>🤖 Telegram Bot Setup:</h4>
                             <ol>
                                 <li>Open Telegram and search for <code>@BotFather</code></li>
                                 <li>Send <code>/newbot</code> command</li>
                                 <li>Follow the prompts to name your bot</li>
                                 <li>Copy the bot token provided</li>
-                            </ol>
-
-                            <h4>Getting Chat ID:</h4>
-                            <ol>
                                 <li>Add your bot to the group/channel where you want notifications</li>
                                 <li>Send a message in that chat</li>
                                 <li>Visit: <code>https://api.telegram.org/bot[BOT_TOKEN]/getUpdates</code></li>
                                 <li>Look for the "chat":{"id": value in the response</li>
                             </ol>
+
+                            <h4>📱 Twilio SMS Setup:</h4>
+                            <ol>
+                                <li>Sign up at <code>twilio.com</code></li>
+                                <li>Go to Console Dashboard</li>
+                                <li>Find your <strong>Account SID</strong> and <strong>Auth Token</strong></li>
+                                <li>Purchase a phone number in Phone Numbers > Manage > Buy a number</li>
+                                <li>Copy the phone number in E.164 format (+15551234567)</li>
+                            </ol>
+
+                            <h4>📧 SendGrid Email Setup:</h4>
+                            <ol>
+                                <li>Sign up at <code>sendgrid.com</code></li>
+                                <li>Go to Settings > API Keys</li>
+                                <li>Create a new API key with full access</li>
+                                <li>Copy the API key (starts with SG.)</li>
+                            </ol>
+
+                            <h4>🤖 OpenAI API Setup:</h4>
+                            <ol>
+                                <li>Sign up at <code>platform.openai.com</code></li>
+                                <li>Go to API Keys section</li>
+                                <li>Create a new API key</li>
+                                <li>Copy the key (starts with sk-)</li>
+                            </ol>
+
+                            <h4>📅 Calendly API Setup:</h4>
+                            <ol>
+                                <li>Log in to your Calendly account</li>
+                                <li>Go to <code>calendly.com/integrations/api_webhooks</code></li>
+                                <li>Click "Generate New Token"</li>
+                                <li>Copy the Personal Access Token</li>
+                            </ol>
                         </div>
                     </details>
                 </div>
 
-                <!-- Appointment Management Configuration -->
-                <div class="form-section">
+                <!-- 📊 CONFIGURATION VARIABLES SECTION -->
+                <div class="form-section" style="border: 2px solid #4CAF50; background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.02) 100%);">
                     <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="calendar-days"></i>
+                        <div class="section-icon" style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);">
+                            <i data-lucide="settings"></i>
                         </div>
-                        <h2 class="section-title">Appointment Management Setup</h2>
+                        <h2 class="section-title">📊 Business Configuration & Variables</h2>
                     </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-style: italic;">
+                        These settings customize how your workflows operate and what information they use.
+                    </p>
 
+                    <!-- Google Sheets Configuration -->
+                    <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="table" style="width: 20px; height: 20px;"></i>
+                        Google Sheets Configuration
+                    </h3>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="appointmentsSheetId">Appointments Google Sheet ID <span class="required">*</span></label>
@@ -909,208 +1088,11 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="clinicAddress">Clinic Address <span class="required">*</span></label>
-                            <textarea id="clinicAddress" name="clinic_address" required rows="2" 
-                                      placeholder="123 Main St, City, State 12345"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="cancellationPolicy">Cancellation Policy <span class="required">*</span></label>
-                            <select id="cancellationPolicy" name="cancellation_policy" required>
-                                <option value="">Select Policy</option>
-                                <option value="24-hour">24-hour</option>
-                                <option value="48-hour">48-hour</option>
-                                <option value="72-hour">72-hour</option>
-                                <option value="1-week">1-week</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="reminderInterval">Reminder Check Interval</label>
-                            <select id="reminderInterval" name="reminder_interval">
-                                <option value="1">Every Hour</option>
-                                <option value="2" selected>Every 2 Hours</option>
-                                <option value="4">Every 4 Hours</option>
-                                <option value="6">Every 6 Hours</option>
-                                <option value="12">Every 12 Hours</option>
-                                <option value="24">Daily</option>
-                            </select>
+                            <label for="staffSheetId">Staff Database Sheet ID</label>
+                            <input type="text" id="staffSheetId" name="staff_sheet_id" 
+                                   placeholder="1StaffDatabaseSheetID...">
                             <div class="form-help">
-                                How often to check for appointments needing reminders.
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="timezone">Timezone <span class="required">*</span></label>
-                            <select id="timezone" name="timezone" required>
-                                <option value="">Select Timezone</option>
-                                <option value="America/New_York">Eastern Time (EST/EDT)</option>
-                                <option value="America/Chicago">Central Time (CST/CDT)</option>
-                                <option value="America/Denver">Mountain Time (MST/MDT)</option>
-                                <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
-                                <option value="America/Phoenix">Arizona Time (MST)</option>
-                                <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
-                                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <details style="margin-top: 15px;">
-                        <summary>How to get your Google Sheet IDs</summary>
-                        <div class="credential-help">
-                            <h4>Getting Sheet IDs:</h4>
-                            <ol>
-                                <li>Open your Google Sheet in a browser</li>
-                                <li>Look at the URL: <code>https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit</code></li>
-                                <li>Copy the long string between <code>/d/</code> and <code>/edit</code></li>
-                                <li>That's your Sheet ID!</li>
-                            </ol>
-
-                            <h4>Required Sheet Structure:</h4>
-                            <p><strong>Appointments Sheet</strong> should have columns:</p>
-                            <ul>
-                                <li>Date, Time, Customer Name, Customer Phone, etc.</li>
-                            </ul>
-                            <p><strong>Master Sheet</strong> will be automatically populated with:</p>
-                            <ul>
-                                <li>Date, Time, Customer Name, Email, Phone, Service, Pet Name, Notes, Status, Created</li>
-                            </ul>
-                        </div>
-                    </details>
-                </div>
-
-                <!-- SMS Service Configuration -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="message-square"></i>
-                        </div>
-                        <h2 class="section-title">SMS Service Setup</h2>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="twilioAccountSid">Twilio Account SID <span class="required">*</span></label>
-                        <input type="text" id="twilioAccountSid" name="twilio_account_sid" required 
-                               placeholder="AC1234567890abcdef1234567890abcdef">
-                        <div class="form-help">
-                            Your Twilio Account SID for sending SMS messages.
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="twilioAuthToken">Twilio Auth Token <span class="required">*</span></label>
-                        <input type="password" id="twilioAuthToken" name="twilio_auth_token" required 
-                               placeholder="your_twilio_auth_token_here">
-                        <div class="form-help">
-                            Your Twilio Auth Token (kept secure).
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="twilioPhoneNumber">Twilio Phone Number <span class="required">*</span></label>
-                        <input type="tel" id="twilioPhoneNumber" name="twilio_phone_number" required 
-                               placeholder="+15551234567">
-                        <div class="form-help">
-                            Your Twilio phone number in E.164 format (starting with +1).
-                        </div>
-                    </div>
-
-                    <details style="margin-top: 15px;">
-                        <summary>How to get your Twilio credentials</summary>
-                        <div class="credential-help">
-                            <h4>Setting up Twilio:</h4>
-                            <ol>
-                                <li>Sign up at <code>twilio.com</code></li>
-                                <li>Go to Console Dashboard</li>
-                                <li>Find your <strong>Account SID</strong> and <strong>Auth Token</strong></li>
-                                <li>Purchase a phone number in Phone Numbers > Manage > Buy a number</li>
-                                <li>Copy the phone number in E.164 format (+15551234567)</li>
-                            </ol>
-
-                            <h4>SMS Features:</h4>
-                            <ul>
-                                <li>✅ Instant appointment confirmations</li>
-                                <li>⏰ Automated reminder messages</li>
-                                <li>📱 Professional business messaging</li>
-                                <li>🔔 Cancellation policy notifications</li>
-                            </ul>
-                        </div>
-                    </details>
-                </div>
-
-                <!-- Calendly Integration -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="calendar-check"></i>
-                        </div>
-                        <h2 class="section-title">Calendly Integration</h2>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="calendlyApiKey">Calendly Personal Access Token <span class="required">*</span></label>
-                        <input type="password" id="calendlyApiKey" name="calendly_api_key" required 
-                               placeholder="your_calendly_personal_access_token">
-                        <div class="form-help">
-                            Personal Access Token from your Calendly developer settings.
-                        </div>
-                    </div>
-
-                    <details style="margin-top: 15px;">
-                        <summary>How to get your Calendly Personal Access Token</summary>
-                        <div class="credential-help">
-                            <h4>Getting Calendly API Access:</h4>
-                            <ol>
-                                <li>Log in to your Calendly account</li>
-                                <li>Go to <code>calendly.com/integrations/api_webhooks</code></li>
-                                <li>Click "Generate New Token"</li>
-                                <li>Copy the Personal Access Token</li>
-                                <li>Paste it in the field above</li>
-                            </ol>
-
-                            <h4>Webhook Setup:</h4>
-                            <p>The workflow will automatically set up webhooks to capture new appointments and trigger confirmations.</p>
-                        </div>
-                    </details>
-                </div>
-
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="cloud"></i>
-                        </div>
-                        <h2 class="section-title">N8N Credentials</h2>
-                    </div>
-
-                    <div class="google-connection-section">
-                        <h3>Connect Google Account for Automation</h3>
-                        <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
-                        <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBoMTYuMCBWMTQuMjZIMTcuOTdWMTEuNjRWMTQuMjZIMTQuMjVWMTYuNjFWMTkuNTNIMi4xOEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRoIGQ9Ik0yLjE4IDguMDl Çünkü0.MDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZ<bos>43MTEuNDc4IDEwLjcxIDIyLjM2IDEwLjE2IDE0LjI1IDE1LjExIDguMDlaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik0xMiAxNy41NkM5LjA0IDE3LjU2IDYuNTcgMTUuNjkgNS42OSA2LjU5TDIuMTggNy42OUM0LjA0IDEyLjA0IDcuNzMgMTUgMTIgMTVaIiBmaWxsPSIjRUE0MzM1Ii8+CjxwYXRoIGQ9IjEuNzYgMTUuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUwxLjI2IDIyQzQuMDQgMjAuNDIgNy43MyAxOS40MiAxMiAxOS40MUMxNi44NyAxOS40MiAyMC45NCAyMC43NCAyMi43OSAyMi4zNkMyMC44OCAyMC40MiAxOC43NyAxOS44MSAxNi44MSAxOS44MUMxNC40NiAxOS44MSAxMi4xMiAxOC44NSAxMC42NSAxNy40OEMxMC40OSAxNy41NyAxMC40OCA3LjY5IDEwLjU5IDcuNjVDOS43OCAxMC43NiA3LjQ1IDEyLjQ4IDUuNjUgMTIuNDhDNC43NCAxMi40OCA0LjY5IDYuNzQgNC44MyA0LjIxTDIuMTggNi41OEMwLjYyIDguNDEgMC44MyAxMC41NiAzLjMxIDEyLjU1QzQuNzcgMTQuMTYgOC4xNSAxNS42MiAxMiAxNS42MUMxNC43OCAxNS42MSAxNy4xOCAxNC43IDE4LjU2IDEzLjQ4TDIyLjEzIDE2LjU0QzE5LjkyIDE4LjQ3IDE1LjYzIDIwLjMxIDEyIDIwLjMxQzcuNzMgMjAuMzEgMy4xOCAxNy44MSAxLjc2IDE1LjEzWiIgZmlsbD0iI0JBQkFCQyIvPgo8L3N2Zz4K" alt="Google" style="width: 20px; margin-right: 8px;">
-                            Connect Google Account
-                        </button>
-                        <div id="google-status" class="connection-status" style="display: none;">
-                            <span class="status-text">✓ Google account connected successfully</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Additional Google Sheets Configuration -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="table"></i>
-                        </div>
-                        <h2 class="section-title">Additional Google Sheets Configuration</h2>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="archiveSheetId">Archive Sheet ID</label>
-                            <input type="text" id="archiveSheetId" name="archive_sheet_id" 
-                                   placeholder="1ArchiveSheetID...">
-                            <div class="form-help">
-                                Sheet for archiving old records (WF16 - Data Archival).
+                                Sheet for staff onboarding tracking (WF10).
                             </div>
                         </div>
                         <div class="form-group">
@@ -1125,14 +1107,6 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="staffSheetId">Staff Database Sheet ID</label>
-                            <input type="text" id="staffSheetId" name="staff_sheet_id" 
-                                   placeholder="1StaffDatabaseSheetID...">
-                            <div class="form-help">
-                                Sheet for staff onboarding tracking (WF10).
-                            </div>
-                        </div>
-                        <div class="form-group">
                             <label for="inventorySheetId">Inventory Sheet ID</label>
                             <input type="text" id="inventorySheetId" name="inventory_sheet_id" 
                                    placeholder="1InventorySheetID...">
@@ -1140,9 +1114,6 @@
                                 Sheet for inventory management (WF11).
                             </div>
                         </div>
-                    </div>
-
-                    <div class="form-row">
                         <div class="form-group">
                             <label for="medicalRecordsSheetId">Medical Records Sheet ID</label>
                             <input type="text" id="medicalRecordsSheetId" name="medical_records_sheet_id" 
@@ -1151,6 +1122,9 @@
                                 Sheet for medical records tracking (WF6).
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="prescriptionSheetId">Prescription Sheet ID</label>
                             <input type="text" id="prescriptionSheetId" name="prescription_sheet_id" 
@@ -1159,27 +1133,105 @@
                                 Sheet for prescription management (WF13).
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Email Service Configuration -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="mail"></i>
-                        </div>
-                        <h2 class="section-title">Email Service Setup</h2>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="sendgridApiKey">SendGrid API Key <span class="required">*</span></label>
-                        <input type="password" id="sendgridApiKey" name="sendgrid_api_key" required 
-                               placeholder="SG.xxxxxxxxxxxxxxxx">
-                        <div class="form-help">
-                            SendGrid API key for automated email sending.
+                        <div class="form-group">
+                            <label for="archiveSheetId">Archive Sheet ID</label>
+                            <input type="text" id="archiveSheetId" name="archive_sheet_id" 
+                                   placeholder="1ArchiveSheetID...">
+                            <div class="form-help">
+                                Sheet for archiving old records (WF16 - Data Archival).
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Operational Settings -->
+                    <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="clock" style="width: 20px; height: 20px;"></i>
+                        Operational Settings
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="timezone">Timezone <span class="required">*</span></label>
+                            <select id="timezone" name="timezone" required>
+                                <option value="">Select Timezone</option>
+                                <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                                <option value="America/Chicago">Central Time (CST/CDT)</option>
+                                <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                                <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                                <option value="America/Phoenix">Arizona Time (MST)</option>
+                                <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
+                                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reminderInterval">Reminder Check Interval</label>
+                            <select id="reminderInterval" name="reminder_interval">
+                                <option value="1">Every Hour</option>
+                                <option value="2" selected>Every 2 Hours</option>
+                                <option value="4">Every 4 Hours</option>
+                                <option value="6">Every 6 Hours</option>
+                                <option value="12">Every 12 Hours</option>
+                                <option value="24">Daily</option>
+                            </select>
+                            <div class="form-help">
+                                How often to check for appointments needing reminders.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cancellationPolicy">Cancellation Policy <span class="required">*</span></label>
+                            <select id="cancellationPolicy" name="cancellation_policy" required>
+                                <option value="">Select Policy</option>
+                                <option value="24-hour">24-hour</option>
+                                <option value="48-hour">48-hour</option>
+                                <option value="72-hour">72-hour</option>
+                                <option value="1-week">1-week</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dataRetentionYears">Data Retention (Years)</label>
+                            <select id="dataRetentionYears" name="data_retention_years">
+                                <option value="5" selected>5 Years</option>
+                                <option value="7">7 Years</option>
+                                <option value="10">10 Years</option>
+                                <option value="permanent">Permanent</option>
+                            </select>
+                            <div class="form-help">
+                                How long to keep archived data.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media Configuration -->
+                    <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="share-2" style="width: 20px; height: 20px;"></i>
+                        Social Media Configuration (Optional)
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="facebookPageId">Facebook Page ID</label>
+                            <input type="text" id="facebookPageId" name="facebook_page_id" 
+                                   placeholder="1234567890123456">
+                            <div class="form-help">
+                                Your Facebook page ID for automated posting.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="whatsappPhoneId">WhatsApp Phone Number ID</label>
+                            <input type="text" id="whatsappPhoneId" name="whatsapp_phone_id" 
+                                   placeholder="1234567890123456">
+                            <div class="form-help">
+                                WhatsApp Business phone number ID.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Configuration -->
+                    <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="mail" style="width: 20px; height: 20px;"></i>
+                        Email Configuration
+                    </h3>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="fromEmail">From Email Address <span class="required">*</span></label>
@@ -1198,84 +1250,34 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- OpenAI Configuration -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="brain"></i>
-                        </div>
-                        <h2 class="section-title">AI Services Configuration</h2>
-                    </div>
+                    <!-- Configuration Guides -->
+                    <details style="margin-top: 30px; border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 8px; padding: 15px;">
+                        <summary style="color: #4CAF50; font-weight: bold; cursor: pointer;">📋 Configuration Setup Guide (Click to expand)</summary>
+                        <div class="credential-help" style="margin-top: 15px;">
+                            <h4>📊 Getting Google Sheet IDs:</h4>
+                            <ol>
+                                <li>Open your Google Sheet in a browser</li>
+                                <li>Look at the URL: <code>https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit</code></li>
+                                <li>Copy the long string between <code>/d/</code> and <code>/edit</code></li>
+                                <li>That's your Sheet ID!</li>
+                            </ol>
 
-                    <div class="form-group">
-                        <label for="openaiApiKey">OpenAI API Key <span class="required">*</span></label>
-                        <input type="password" id="openaiApiKey" name="openai_api_key" required 
-                               placeholder="sk-xxxxxxxxxxxxxxxx">
-                        <div class="form-help">
-                            OpenAI API key for AI-powered features like content generation and analysis.
-                        </div>
-                    </div>
-                </div>
+                            <h4>📱 Social Media IDs:</h4>
+                            <p><strong>Facebook Page ID:</strong> Go to your Facebook page > About > Page Info to find your Page ID</p>
+                            <p><strong>WhatsApp Phone ID:</strong> Found in your WhatsApp Business API dashboard</p>
 
-                <!-- Social Media Integration -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="share-2"></i>
+                            <h4>📋 Required Sheet Structure:</h4>
+                            <p><strong>Appointments Sheet</strong> should have columns:</p>
+                            <ul>
+                                <li>Date, Time, Customer Name, Customer Phone, Service, Pet Name, etc.</li>
+                            </ul>
+                            <p><strong>Master Sheet</strong> will be automatically populated with:</p>
+                            <ul>
+                                <li>Date, Time, Customer Name, Email, Phone, Service, Pet Name, Notes, Status, Created</li>
+                            </ul>
                         </div>
-                        <h2 class="section-title">Social Media Integration (Optional)</h2>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="facebookPageId">Facebook Page ID</label>
-                            <input type="text" id="facebookPageId" name="facebook_page_id" 
-                                   placeholder="1234567890123456">
-                            <div class="form-help">
-                                Your Facebook page ID for automated posting.
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="facebookPageToken">Facebook Page Access Token</label>
-                            <input type="password" id="facebookPageToken" name="facebook_page_token" 
-                                   placeholder="EAAxxxxxxxxxxxxxx">
-                            <div class="form-help">
-                                Facebook page access token for posting.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="instagramAccessToken">Instagram Access Token</label>
-                            <input type="password" id="instagramAccessToken" name="instagram_access_token" 
-                                   placeholder="IGQVxxxxxxxxxxxxxxxx">
-                            <div class="form-help">
-                                Instagram access token for social media automation.
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="whatsappToken">WhatsApp Business Token</label>
-                            <input type="password" id="whatsappToken" name="whatsapp_token" 
-                                   placeholder="EAAxxxxxxxxxxxxxx">
-                            <div class="form-help">
-                                WhatsApp Business API token for messaging.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="whatsappPhoneId">WhatsApp Phone Number ID</label>
-                            <input type="text" id="whatsappPhoneId" name="whatsapp_phone_id" 
-                                   placeholder="1234567890123456">
-                            <div class="form-help">
-                                WhatsApp Business phone number ID.
-                            </div>
-                        </div>
-                    </div>
+                    </details>
                 </div>
 
                 <!-- Business Configuration -->
@@ -1556,7 +1558,7 @@
             } catch (error) {
                 console.error('Google OAuth error:', error);
                 btn.disabled = false;
-                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIzNiAxMGgxNi4wIFcxNC4yNkgxNy45N1cxMS42NFcxNC4yNkgxNC4yNVcxNi42MVcxOS41M0gyLjE4QzQuMDQgMTkuNzQgNy43MyAyMiAxMiAyMFoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTIuMTggOC4wOUM0LjA0IDIuODMgMTUuMDQgMi4yNiAxMi43OSA1LjY2QzEyLjc5IDUuNjYgMTIuNSA1LjY2IDEyLjI1IDUuNjZDOS4wNCA1LjY2IDYuNTcgNy41NCA1LjY5IDkuNTRWOC4wOVoiIGZpbGw9IiMzNEE4NTMiLz4KPHBhdGggZD0iTTEyIDE3LjU2QzkuMDQgMTcuNTYgNi41NyAxNS42OSA1LjY5IDYuNTlMMi4xOCA3LjY5QzQuMDQgMTIuMDQgNy43MyAxNSAxMiAxNVoxIiBmaWxsPSIjRUE0MzM1Ii8+CjxwYXRoIGQ9Ik0yLjE4IDE2LjEzQzQuMDQgMTkuNzQgNy43MyAyMiAxMiAyMkMxMC41OSAyMiA4LjQ3IDIxLjQ2IDYuNTkgMjAuMzFMOS42MiAxNy41N ماxNjg1MjE4MTYxM1oiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5QzcuNzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUwyLjE4IDguMDlDNy43MyA2Ljk5IDEwLjA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgNi41OUwyLjE4IDcuNjlDNC4wNCAxMi4wNCA3LjczIDE1IDEyIDE1WjEiIGZpbGw9IiNFQTQzMzUiLz4KPHBhdGggZD0iTTIuMTggMTYuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUw5LjYyIDE3LjU3IDI3MTY4NTIxODE2MTNaIiBmaWxsPSIjRkFCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDIuMTggOC4wOUM3LjczIDYuOTkgMTAuMDQgNS4xMiAxMiA1LjEyVjQuNzQ0Mloic" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
                 alert('Failed to connect Google account. Please try again.');
             }
         }
