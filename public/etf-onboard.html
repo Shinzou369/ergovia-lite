@@ -559,34 +559,34 @@
 
         .form-help {
                 font-size: 0.9em;
-                color: #666;
+                color: #6b7280;
                 margin-top: 5px;
             }
 
             .form-section {
                 margin: 30px 0;
                 padding: 20px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid var(--border-color);
                 border-radius: 8px;
-                background-color: #f9f9f9;
+                background-color: var(--bg-secondary);
             }
 
             .form-section h3 {
                 margin-top: 0;
-                color: #333;
-                border-bottom: 2px solid #007bff;
+                color: var(--text-primary);
+                border-bottom: 1px solid var(--border-color);
                 padding-bottom: 10px;
             }
 
             .credential-help {
-                background: white;
+                background: var(--bg-tertiary);
                 padding: 15px;
                 border-radius: 5px;
                 margin-top: 10px;
             }
 
             .credential-help h4 {
-                color: #007bff;
+                color: #FFD700;
                 margin-top: 15px;
                 margin-bottom: 10px;
             }
@@ -596,7 +596,7 @@
             }
 
             .credential-help code {
-                background: #f4f4f4;
+                background: rgba(0, 0, 0, 0.2);
                 padding: 2px 6px;
                 border-radius: 3px;
                 font-family: monospace;
@@ -606,10 +606,10 @@
             details summary {
                 cursor: pointer;
                 padding: 10px;
-                background: #e9ecef;
+                background: var(--bg-tertiary);
                 border-radius: 5px;
                 font-weight: bold;
-                color: #495057;
+                color: var(--text-primary);
             }
 
             details[open] summary {
@@ -617,13 +617,13 @@
             }
 
             .required {
-                color: #dc3545;
+                color: #ef4444;
             }
 
             .google-connection-section {
                 margin-top: 20px;
                 padding: 15px;
-                border: 1px solid #ccc;
+                border: 1px solid var(--border-color);
                 border-radius: 5px;
             }
 
@@ -860,7 +860,7 @@
                     <details style="margin-top: 15px;">
                         <summary>How to get your Telegram credentials</summary>
                         <div class="credential-help">
-                            <h4>Getting Your Bot Token:</h4>
+                            <h4>Getting Bot Token:</h4>
                             <ol>
                                 <li>Open Telegram and search for <code>@BotFather</code></li>
                                 <li>Send <code>/newbot</code> command</li>
@@ -868,7 +868,7 @@
                                 <li>Copy the bot token provided</li>
                             </ol>
 
-                            <h4>Getting Your Chat ID:</h4>
+                            <h4>Getting Chat ID:</h4>
                             <ol>
                                 <li>Add your bot to the group/channel where you want notifications</li>
                                 <li>Send a message in that chat</li>
@@ -1086,7 +1086,8 @@
                         <h3>Connect Google Account for Automation</h3>
                         <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
                         <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBIMTJWMTQuMjZIMTIuNTZWMTQuMjZIMTc5MkMxNy42NiAxNS4zIDE2Ljk0IDE2LjExIDE1Ljk0IDE2LjYxVjE5LjUzSDE5LjMyQzIxLjMzIDE3LjcgMjIuNTYgMTUuMiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuMjEgMTMuNjQgMTcuNTYgMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgMTMuMDlIMi4xOFYxNi4wNEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik01LjY5IDEzLjA5QzUuNDEgMTIuMjkgNS4yNiAxMS40NCA1LjI2IDEwLjU5QzUuMjYgOS43NCA1LjQxIDguODkgNS42OSA4LjA5VjUuMDVI.MTggMS4yOCA2Ljg1IDAuNzQgOC44OSAuNzQgMTAuNTlDMC43NCAxMi4yOSAxLjI4IDE0LjMzIDIuMTggMTYuMTNMNy42OSAxMy4wOVoiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5Qzc3MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDUuNjkgOS41OUM2NTcgNi45OSAJLzA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBoMTYgVjE0LjI2SDE3Ljk3VjE2LjYxVjE5LjUzSDQuMDdWMTYuNjFIMi4xOEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRo
+dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuMjEgMTMuNjQgMTcuNTYgMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgMTMuMDlIMi4xOFYxNi4wNEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik01LjY5IDEzLjA5QzUuNDEgMTIuMjkgNS4yNiAxMS40NCA1LjI2IDEwLjU5QzUuMjYgOS43NCA1LjQxIDguODkgNS42OSA4LjA5VjUuMDVI.MTggMS4yOCA2Ljg1IDAuNzQgOC44OSAuNzQgMTAuNTlDMC43NCAxMi4yOSAxLjI4IDE0LjMzIDIuMTggMTYuMTNMNy42OSAxMy4wOVoiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5QzcuNzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNy43MyA2Ljk5IDEwLjA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;">
                             Connect Google Account
                         </button>
                         <div id="google-status" class="connection-status" style="display: none;">
@@ -1297,6 +1298,25 @@
 
                     <div class="form-row">
                         <div class="form-group">
+                            <label for="supportEmail">Support Email <span class="required">*</span></label>
+                            <input type="email" id="supportEmail" name="support_email" required 
+                                   placeholder="support@yourclinic.com">
+                            <div class="form-help">
+                                Email address for customer support inquiries.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="clinicName">Clinic Display Name <span class="required">*</span></label>
+                            <input type="text" id="clinicName" name="clinic_name" required 
+                                   placeholder="Happy Paws Veterinary Clinic">
+                            <div class="form-help">
+                                How your clinic name appears in communications.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="businessColor">Brand Color</label>
                             <input type="color" id="businessColor" name="business_color" value="#4CAF50">
                             <div class="form-help">
@@ -1312,6 +1332,23 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="businessCategory">Business Category</label>
+                            <select id="businessCategory" name="business_category">
+                                <option value="veterinary">Veterinary Clinic</option>
+                                <option value="animal-hospital">Animal Hospital</option>
+                                <option value="pet-grooming">Pet Grooming</option>
+                                <option value="pet-boarding">Pet Boarding</option>
+                                <option value="mobile-vet">Mobile Veterinary</option>
+                            </select>
+                            <div class="form-help">
+                                Type of pet care business you operate.
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Payment Integration -->
@@ -1441,7 +1478,7 @@
             } catch (error) {
                 console.error('Google OAuth error:', error);
                 btn.disabled = false;
-                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zd2dmZyI+CjxwYXRoIGQ9Ik0yMi41NiAxMi4yNUMyMi41NiAxMS40NyAyMi40OSAxMC43MiAyMi4zNiAxMEgxMlYxNC4yNkgxMi41NlYxNC4yNkgxNy45MkMxNy42NiAxNS4zIDE2Ljk0IDE2LjExIDE1Ljk0IDE2LjYxVjE5LjUzSDE5LjMyQzIxLjMzIDE3LjcgMjIuNTYgMTUuMiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuMjEgMTMuNjQgMTcuNTYgMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgMTMuMDlIMi4xOFYxNi4wNEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik01LjY5IDEzLjA5QzUuNDEgMTIuMjkgNS4yNiAxMS40NCA1LjI2IDEwLjU5QzUuMjYgOS43NCA1LjQxIDguODkgNS42OSA4LjA5VjUuMDVI.MTggMS4yOCA2Ljg1IDAuNzQgOC44OSAuNzQgMTAuNTlDMC43NCAxMi4yOSAxLjI4IDE0LjMzIDIuMTggMTYuMTNMNy42OSAxMy4wOVoiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5Qzc3MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDUuNjkgOS41OUM2NTcgNi45OSAJLzA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdmZyI+CjxwYXRoIGQ9Ik0yMi41NiAxMi4yNUMyMi41NiAxMS40NyAyMi40OSAxMC43MiAyMi4zNiAxMEgxMlYxNC4yNkgxMi41NlYxNC4yNkgxNy45MkMxNy42NiAxNS4zIDE2Ljk0IDE2LjExIDE1Ljk0IDE2LjYxVjE5LjUzSDE5LjMyQzIxLjMzIDE3LjcgMjIuNTYgMTUuMiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuMjEgMTMuNjQgMTcuNTYgMTIgMTcuNTZ Çünkü0.04xNy41NiA2LjU3IDE1LjY5IDUuNjkgMTMuMDlIMi4xOFYxNi4wNEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik01LjY5IDEzLjA5QzUuNDEgMTIuMjkgNS4yNiAxMS40NCA1LjI2IDEwLjU5QzUuMjYgOS43NCA1LjQxIDguODkgNS42OSA4LjA5VjUuMDVI.MTggMS4yOCA2Ljg1IDAuNzQgOC44OSAuNzQgMTAuNTlDMC43NCAxMi4yOSAxLjI4IDE0LjMzIDIuMTggMTYuMTNMNy42OSAxMy4wOVoiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5QzcuNzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNy43MyA2Ljk5IDEwLjA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
                 alert('Failed to connect Google account. Please try again.');
             }
         }
@@ -1582,7 +1619,7 @@
                     business_name: clientData.business_name,
                     business_email: clientData.email,
                     business_phone: clientData.phone,
-                    clinic_name: clientData.business_name,
+                    clinic_name: clientData.clinic_name,
                     clinic_address: clientData.clinic_address,
                     clinic_hours: clientData.clinic_hours,
                     emergency_contact: clientData.emergency_contact,
@@ -1590,7 +1627,9 @@
                     vet_license: clientData.vet_license,
                     business_color: clientData.business_color,
                     business_website: clientData.business_website,
-                    
+                    support_email: clientData.support_email,
+                    business_category: clientData.business_category,
+
                     // Google Sheets Configuration
                     appointments_sheet_id: clientData.appointments_sheet_id,
                     master_sheet_id: clientData.master_sheet_id,
@@ -1600,7 +1639,7 @@
                     inventory_sheet_id: clientData.inventory_sheet_id,
                     medical_records_sheet_id: clientData.medical_records_sheet_id,
                     prescription_sheet_id: clientData.prescription_sheet_id,
-                    
+
                     // Communication Settings
                     telegram_bot_token: telegramBotToken,
                     telegram_chat_id: telegramChatId,
@@ -1610,19 +1649,19 @@
                     sendgrid_api_key: clientData.sendgrid_api_key,
                     from_email: clientData.from_email,
                     from_name: clientData.from_name,
-                    
+
                     // AI and Automation
                     openai_api_key: clientData.openai_api_key,
                     calendly_api_key: clientData.calendly_api_key,
-                    
+
                     // Social Media (Optional)
                     facebook_page_id: clientData.facebook_page_id,
                     facebook_page_token: clientData.facebook_page_token,
-                    
+
                     // Payment Processing (Optional)
                     stripe_secret_key: clientData.stripe_secret_key,
                     stripe_publishable_key: clientData.stripe_publishable_key,
-                    
+
                     // System Settings
                     timezone: clientData.timezone,
                     cancellation_policy: clientData.cancellation_policy,
@@ -1826,6 +1865,9 @@
             const phoneNumber = document.getElementById('phoneNumber').value;
             const telegramBotToken = document.getElementById('telegramBotToken').value;
             const telegramChatId = document.getElementById('telegramChatId').value;
+            const supportEmail = document.getElementById('supportEmail').value;
+            const clinicName = document.getElementById('clinicName').value;
+            const businessCategory = document.getElementById('businessCategory').value;
 
             return {
                 clientData: {
@@ -1839,12 +1881,16 @@
                     business_phone: phoneNumber,
                     telegram_bot_token: telegramBotToken,
                     telegram_chat_id: telegramChatId,
-                    clinic_name: businessName,
-                    clinic_address: `${businessName} Address`, // You can add address field if needed
-                    clinic_hours: "Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only",
-                    emergency_contact: phoneNumber,
-                    services_offered: "Vaccinations, Surgery, Dental Care, Emergency Services",
-                    support_email: contactEmail
+                    support_email: supportEmail,
+                    clinic_name: clinicName,
+                    clinic_address: document.getElementById('clinicAddress').value,
+                    clinic_hours: document.getElementById('clinicHours').value,
+                    emergency_contact: document.getElementById('emergencyContact').value,
+                    services_offered: document.getElementById('servicesOffered').value,
+                    vet_license: document.getElementById('vetLicense').value,
+                    business_color: document.getElementById('businessColor').value,
+                    business_website: document.getElementById('businessWebsite').value,
+                    business_category: businessCategory
                 }
             };
         }
