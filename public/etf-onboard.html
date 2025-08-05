@@ -1095,25 +1095,308 @@
                     </div>
                 </div>
 
-                <select id="workflow_template" name="workflow_template">
-                    <option value="">Select a workflow template</option>
-                    <option value="pet_clinic_appointments_and_reminders_template.json">PET WF1: Appointments & Reminders - Automate appointment scheduling and reminders</option>
-                    <option value="pet_clinic_customer_onboarding_template.json">PET WF2: Customer Onboarding - Automate new customer registration</option>
-                    <option value="pet_clinic_feedback_collection_template.json">PET WF3: Feedback Collection - Gather customer feedback post-appointment</option>
-                    <option value="pet_clinic_loyalty_program_template.json">PET WF4: Loyalty Program - Reward repeat customers</option>
-                    <option value="pet_clinic_invoicing_system_template.json">PET WF5: Invoicing System - Complete invoice lifecycle management</option>
-                    <option value="pet_clinic_medical_records_management_template.json">PET WF6: Medical Records Management - Data completeness verification and automated documentation</option>
-                    <option value="pet_clinic_review_request_system_template.json">PET WF7: Review Request System - Automated review requests with follow-up campaigns</option>
-                    <option value="pet_clinic_customer_retention_engine_template.json">PET WF8: Customer Retention Engine - Intelligent loyalty tracking with personalized retention campaigns</option>
-                    <option value="pet_clinic_future_followups_scheduler_template.json">PET WF9: Future Follow-ups Scheduler - AI-powered follow-up scheduling with automated daily reminders</option>
-                    <option value="pet_clinic_staff_onboarding_and_social_media_template.json">PET WF10: Staff Onboarding & Social Media - Automate staff onboarding and weekly social media content</option>
-                    <option value="pet_clinic_inventory_management_template.json">PET WF11: Inventory Management System - Automated stock monitoring with reorder alerts and manual updates</option>
-                    <option value="pet_clinic_lab_results_processing_template.json">PET WF12: Lab Results Processing System - Automated lab result parsing with intelligent notifications</option>
-                    <option value="pet_clinic_prescription_management_template.json">PET WF13: Prescription Management System - Complete prescription lifecycle with automated refill reminders</option>
-                    <option value="pet_clinic_weekly_business_insights_template.json">PET WF14: Weekly Business Insights - Comprehensive analytics with automated executive reporting</option>
-                    <option value="pet_clinic_system_health_monitoring_template.json">PET WF15: System Health Monitoring - Automated system monitoring with multi-channel alerts</option>
-                    <option value="pet_clinic_data_archival_template.json">PET WF16: Data Archival & Retention - Automated 5-year data archival with compliance reporting</option>
-                </select>
+                <!-- Additional Google Sheets Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="table"></i>
+                        </div>
+                        <h2 class="section-title">Additional Google Sheets Configuration</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="archiveSheetId">Archive Sheet ID</label>
+                            <input type="text" id="archiveSheetId" name="archive_sheet_id" 
+                                   placeholder="1ArchiveSheetID...">
+                            <div class="form-help">
+                                Sheet for archiving old records (WF16 - Data Archival).
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="socialMediaSheetId">Social Media Log Sheet ID</label>
+                            <input type="text" id="socialMediaSheetId" name="social_media_sheet_id" 
+                                   placeholder="1SocialMediaSheetID...">
+                            <div class="form-help">
+                                Sheet for tracking social media posts (WF10 - Staff & Social Media).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="staffSheetId">Staff Database Sheet ID</label>
+                            <input type="text" id="staffSheetId" name="staff_sheet_id" 
+                                   placeholder="1StaffDatabaseSheetID...">
+                            <div class="form-help">
+                                Sheet for staff onboarding tracking (WF10).
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inventorySheetId">Inventory Sheet ID</label>
+                            <input type="text" id="inventorySheetId" name="inventory_sheet_id" 
+                                   placeholder="1InventorySheetID...">
+                            <div class="form-help">
+                                Sheet for inventory management (WF11).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="medicalRecordsSheetId">Medical Records Sheet ID</label>
+                            <input type="text" id="medicalRecordsSheetId" name="medical_records_sheet_id" 
+                                   placeholder="1MedicalRecordsSheetID...">
+                            <div class="form-help">
+                                Sheet for medical records tracking (WF6).
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="prescriptionSheetId">Prescription Sheet ID</label>
+                            <input type="text" id="prescriptionSheetId" name="prescription_sheet_id" 
+                                   placeholder="1PrescriptionSheetID...">
+                            <div class="form-help">
+                                Sheet for prescription management (WF13).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Service Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="mail"></i>
+                        </div>
+                        <h2 class="section-title">Email Service Setup</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sendgridApiKey">SendGrid API Key <span class="required">*</span></label>
+                        <input type="password" id="sendgridApiKey" name="sendgrid_api_key" required 
+                               placeholder="SG.xxxxxxxxxxxxxxxx">
+                        <div class="form-help">
+                            SendGrid API key for automated email sending.
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fromEmail">From Email Address <span class="required">*</span></label>
+                            <input type="email" id="fromEmail" name="from_email" required 
+                                   placeholder="noreply@yourclinic.com">
+                            <div class="form-help">
+                                Email address that will appear as sender.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fromName">From Name <span class="required">*</span></label>
+                            <input type="text" id="fromName" name="from_name" required 
+                                   placeholder="Your Clinic Name">
+                            <div class="form-help">
+                                Display name for email sender.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OpenAI Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="brain"></i>
+                        </div>
+                        <h2 class="section-title">AI Services Configuration</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="openaiApiKey">OpenAI API Key <span class="required">*</span></label>
+                        <input type="password" id="openaiApiKey" name="openai_api_key" required 
+                               placeholder="sk-xxxxxxxxxxxxxxxx">
+                        <div class="form-help">
+                            OpenAI API key for AI-powered features like content generation and analysis.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Social Media Integration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="share-2"></i>
+                        </div>
+                        <h2 class="section-title">Social Media Integration (Optional)</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="facebookPageId">Facebook Page ID</label>
+                            <input type="text" id="facebookPageId" name="facebook_page_id" 
+                                   placeholder="1234567890123456">
+                            <div class="form-help">
+                                Your Facebook page ID for automated posting.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="facebookPageToken">Facebook Page Access Token</label>
+                            <input type="password" id="facebookPageToken" name="facebook_page_token" 
+                                   placeholder="EAAxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Facebook page access token for posting.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="settings"></i>
+                        </div>
+                        <h2 class="section-title">Business Configuration</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clinicHours">Clinic Hours <span class="required">*</span></label>
+                            <input type="text" id="clinicHours" name="clinic_hours" required 
+                                   placeholder="Mon-Fri: 8AM-6PM, Sat: 9AM-3PM">
+                            <div class="form-help">
+                                Operating hours for the clinic.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyContact">Emergency Contact <span class="required">*</span></label>
+                            <input type="tel" id="emergencyContact" name="emergency_contact" required 
+                                   placeholder="+15551234567">
+                            <div class="form-help">
+                                Emergency contact number.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="servicesOffered">Services Offered <span class="required">*</span></label>
+                            <textarea id="servicesOffered" name="services_offered" required rows="3" 
+                                      placeholder="Vaccinations, Surgery, Dental Care, Emergency Services, Grooming"></textarea>
+                            <div class="form-help">
+                                List of services your clinic provides.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="vetLicense">Veterinarian License Number</label>
+                            <input type="text" id="vetLicense" name="vet_license" 
+                                   placeholder="VET123456">
+                            <div class="form-help">
+                                License number for compliance records.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="businessColor">Brand Color</label>
+                            <input type="color" id="businessColor" name="business_color" value="#4CAF50">
+                            <div class="form-help">
+                                Primary brand color for emails and documents.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="businessWebsite">Website URL</label>
+                            <input type="url" id="businessWebsite" name="business_website" 
+                                   placeholder="https://yourclinic.com">
+                            <div class="form-help">
+                                Your clinic's website URL.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Integration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="credit-card"></i>
+                        </div>
+                        <h2 class="section-title">Payment Integration (Optional)</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stripeSecretKey">Stripe Secret Key</label>
+                            <input type="password" id="stripeSecretKey" name="stripe_secret_key" 
+                                   placeholder="sk_test_xxxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Stripe secret key for payment processing.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="stripePublishableKey">Stripe Publishable Key</label>
+                            <input type="text" id="stripePublishableKey" name="stripe_publishable_key" 
+                                   placeholder="pk_test_xxxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Stripe publishable key for payment forms.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i data-lucide="sliders"></i>
+                        </div>
+                        <h2 class="section-title">Advanced Settings</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="webhookSecret">Webhook Secret</label>
+                            <input type="password" id="webhookSecret" name="webhook_secret" 
+                                   placeholder="your_webhook_secret_here">
+                            <div class="form-help">
+                                Secret for securing webhook endpoints.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="apiRateLimit">API Rate Limit (per hour)</label>
+                            <input type="number" id="apiRateLimit" name="api_rate_limit" 
+                                   placeholder="1000" min="100" max="10000">
+                            <div class="form-help">
+                                Maximum API calls per hour.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dataRetentionYears">Data Retention (Years)</label>
+                            <select id="dataRetentionYears" name="data_retention_years">
+                                <option value="5" selected>5 Years</option>
+                                <option value="7">7 Years</option>
+                                <option value="10">10 Years</option>
+                                <option value="permanent">Permanent</option>
+                            </select>
+                            <div class="form-help">
+                                How long to keep archived data.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="backupFrequency">Backup Frequency</label>
+                            <select id="backupFrequency" name="backup_frequency">
+                                <option value="daily" selected>Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                            <div class="form-help">
+                                How often to backup data.
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
 
                 <button type="submit" class="submit-btn" id="submitBtn">
@@ -1287,7 +1570,7 @@
             const formData = new FormData(this);
             const clientData = Object.fromEntries(formData.entries());
 
-            // Prepare deployment data with Telegram credentials
+            // Prepare comprehensive deployment data
             const deploymentData = {
                 client_data: {
                     name: clientData.business_name,
@@ -1295,22 +1578,72 @@
                     phone: clientData.phone
                 },
                 config_data: {
+                    // Basic Business Info
                     business_name: clientData.business_name,
                     business_email: clientData.email,
                     business_phone: clientData.phone,
+                    clinic_name: clientData.business_name,
+                    clinic_address: clientData.clinic_address,
+                    clinic_hours: clientData.clinic_hours,
+                    emergency_contact: clientData.emergency_contact,
+                    services_offered: clientData.services_offered,
+                    vet_license: clientData.vet_license,
+                    business_color: clientData.business_color,
+                    business_website: clientData.business_website,
+                    
+                    // Google Sheets Configuration
+                    appointments_sheet_id: clientData.appointments_sheet_id,
+                    master_sheet_id: clientData.master_sheet_id,
+                    archive_sheet_id: clientData.archive_sheet_id,
+                    social_media_sheet_id: clientData.social_media_sheet_id,
+                    staff_sheet_id: clientData.staff_sheet_id,
+                    inventory_sheet_id: clientData.inventory_sheet_id,
+                    medical_records_sheet_id: clientData.medical_records_sheet_id,
+                    prescription_sheet_id: clientData.prescription_sheet_id,
+                    
+                    // Communication Settings
                     telegram_bot_token: telegramBotToken,
                     telegram_chat_id: telegramChatId,
-                    clinic_name: clientData.business_name,
-                    clinic_address: `${clientData.business_name} Address`, // You can add address field if needed
-                    clinic_hours: "Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only",
-                    emergency_contact: clientData.phone,
-                    services_offered: "Vaccinations, Surgery, Dental Care, Emergency Services",
-                    support_email: clientData.email
+                    twilio_account_sid: clientData.twilio_account_sid,
+                    twilio_auth_token: clientData.twilio_auth_token,
+                    twilio_phone_number: clientData.twilio_phone_number,
+                    sendgrid_api_key: clientData.sendgrid_api_key,
+                    from_email: clientData.from_email,
+                    from_name: clientData.from_name,
+                    
+                    // AI and Automation
+                    openai_api_key: clientData.openai_api_key,
+                    calendly_api_key: clientData.calendly_api_key,
+                    
+                    // Social Media (Optional)
+                    facebook_page_id: clientData.facebook_page_id,
+                    facebook_page_token: clientData.facebook_page_token,
+                    
+                    // Payment Processing (Optional)
+                    stripe_secret_key: clientData.stripe_secret_key,
+                    stripe_publishable_key: clientData.stripe_publishable_key,
+                    
+                    // System Settings
+                    timezone: clientData.timezone,
+                    cancellation_policy: clientData.cancellation_policy,
+                    reminder_interval: clientData.reminder_interval,
+                    webhook_secret: clientData.webhook_secret,
+                    api_rate_limit: clientData.api_rate_limit,
+                    data_retention_years: clientData.data_retention_years,
+                    backup_frequency: clientData.backup_frequency
                 },
-                template_id: null, // Will auto-select PET workflows
+                template_id: 'pet_clinic_complete', // Deploy all pet clinic workflows
+                deploy_all_workflows: true, // Flag to duplicate all workflows
                 credentials: {
                     telegram_bot_token: telegramBotToken,
-                    telegram_chat_id: telegramChatId
+                    telegram_chat_id: telegramChatId,
+                    twilio_account_sid: clientData.twilio_account_sid,
+                    twilio_auth_token: clientData.twilio_auth_token,
+                    sendgrid_api_key: clientData.sendgrid_api_key,
+                    openai_api_key: clientData.openai_api_key,
+                    calendly_api_key: clientData.calendly_api_key,
+                    facebook_page_token: clientData.facebook_page_token,
+                    stripe_secret_key: clientData.stripe_secret_key
                 }
             };
 
