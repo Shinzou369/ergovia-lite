@@ -1086,8 +1086,7 @@
                         <h3>Connect Google Account for Automation</h3>
                         <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
                         <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBoMTYgVjE0LjI2SDE3Ljk3VjE2LjYxVjE5LjUzSDQuMDdWMTYuNjFIMi4xOEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRo
-dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuMjEgMTMuNjQgMTcuNTYgMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgMTMuMDlIMi4xOFYxNi4wNEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik01LjY5IDEzLjA5QzUuNDEgMTIuMjkgNS4yNiAxMS40NCA1LjI2IDEwLjU5QzUuMjYgOS43NCA1LjQxIDguODkgNS42OSA4LjA5VjUuMDVI.MTggMS4yOCA2Ljg1IDAuNzQgOC44OSAuNzQgMTAuNTlDMC43NCAxMi4yOSAxLjI4IDE0LjMzIDIuMTggMTYuMTNMNy42OSAxMy4wOVoiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5QzcuNzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNy43MyA2Ljk5IDEwLjA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBoMTYuMCBWMTQuMjZIMTcuOTdWMTEuNjRWMTQuMjZIMTQuMjVWMTYuNjFWMTkuNTNIMi4xOEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRoIGQ9Ik0yLjE4IDguMDlDOS4wNCAyLjgzIDE1LjA0IDIuMjYgMTIuNzkgNS42NkMxMi43OSA1LjY2IDEyLjUgNS42NiAxMi4yNSA1LjY2QzkuMDQgNS42NiA2LjU3IDcuNTQgNS42OSA5LjU0VjguMDlaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik0xMiAxNy41NkM5LjA0IDE3LjU2IDYuNTcgMTUuNjkgNS42OSA2LjU5TDIuMTggNy42OUM0LjA0IDEyLjA0IDcuNzMgMTUgMTIgMTVaIiBmaWxsPSIjRUE0MzM1Ii8+CjxwYXRoIGQ9Ik0yLjE4IDE2LjEzQzQuMDQgMTkuNzQgNy43MyAyMiAxMiAyMkMxMC41OSAyMiA4LjQ3IDIxLjQ2IDYuNTkgMjAuMzFMOS42MiAxNy41NkM4LjYyIDE4LjE2IDcuMzIgMTguNSA2LjkgMTguNTZDNy42OSAxNi4zNCA5LjAzIDE0LjMxIDEwLjU5IDE0LjMxTDE0LjI1IDE0LjAxTDYuMTUgMTUuMTRMNi44NSAxMi4yNUM0LjAzIDEwLjA0IDYuMzQgNy42OSA5LjUzIDcuNjVDMTIuMTggNy42OSAxNC44NyA5LjYyIDE1LjY5IDEzLjA5TDE5LjM0IDE2LjQxQzE3LjUxIDE4LjY2IDE0LjgyIDIwLjE0IDEyIDIwLjI1QzcuNzMgMjAuMjUgMi44NCAxNy43NSAyLjE4IDE2LjEzWiIgZmlsbD0iI1RBU0tDQUQiLz4KPC9zdmc+Cg==" alt="Google" style="width: 20px; margin-right: 8px;">
                             Connect Google Account
                         </button>
                         <div id="google-status" class="connection-status" style="display: none;">
@@ -1247,6 +1246,36 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                             </div>
                         </div>
                     </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="instagramAccessToken">Instagram Access Token</label>
+                            <input type="password" id="instagramAccessToken" name="instagram_access_token" 
+                                   placeholder="IGQVxxxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                Instagram access token for social media automation.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="whatsappToken">WhatsApp Business Token</label>
+                            <input type="password" id="whatsappToken" name="whatsapp_token" 
+                                   placeholder="EAAxxxxxxxxxxxxxx">
+                            <div class="form-help">
+                                WhatsApp Business API token for messaging.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="whatsappPhoneId">WhatsApp Phone Number ID</label>
+                            <input type="text" id="whatsappPhoneId" name="whatsapp_phone_id" 
+                                   placeholder="1234567890123456">
+                            <div class="form-help">
+                                WhatsApp Business phone number ID.
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Business Configuration -->
@@ -1256,6 +1285,63 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                             <i data-lucide="settings"></i>
                         </div>
                         <h2 class="section-title">Business Configuration</h2>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clinicName">Clinic Display Name <span class="required">*</span></label>
+                            <input type="text" id="clinicName" name="clinic_name" required 
+                                   placeholder="Happy Paws Veterinary Clinic">
+                            <div class="form-help">
+                                How your clinic name appears in communications.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="vetName">Veterinarian Name <span class="required">*</span></label>
+                            <input type="text" id="vetName" name="veterinarian_name" required 
+                                   placeholder="Dr. Sarah Johnson">
+                            <div class="form-help">
+                                Primary veterinarian's name for communications.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="managerName">Manager Name</label>
+                            <input type="text" id="managerName" name="manager_name" 
+                                   placeholder="John Smith">
+                            <div class="form-help">
+                                Practice manager or owner name.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="billingEmail">Billing Email</label>
+                            <input type="email" id="billingEmail" name="billing_email" 
+                                   placeholder="billing@yourclinic.com">
+                            <div class="form-help">
+                                Email address for billing and payment notifications.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookingUrl">Online Booking URL</label>
+                            <input type="url" id="bookingUrl" name="booking_url" 
+                                   placeholder="https://booking.yourclinic.com">
+                            <div class="form-help">
+                                URL for online appointment booking.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="practiceName">Practice Name (if different)</label>
+                            <input type="text" id="practiceName" name="practice_name" 
+                                   placeholder="Happy Paws Veterinary Practice">
+                            <div class="form-help">
+                                Legal practice name if different from clinic name.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-row">
@@ -1305,16 +1391,8 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                                 Email address for customer support inquiries.
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label for="clinicName">Clinic Display Name <span class="required">*</span></label>
-                            <input type="text" id="clinicName" name="clinic_name" required 
-                                   placeholder="Happy Paws Veterinary Clinic">
-                            <div class="form-help">
-                                How your clinic name appears in communications.
-                            </div>
-                        </div>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="businessColor">Brand Color</label>
@@ -1332,7 +1410,7 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="businessCategory">Business Category</label>
@@ -1478,7 +1556,7 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
             } catch (error) {
                 console.error('Google OAuth error:', error);
                 btn.disabled = false;
-                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmdmZyI+CjxwYXRoIGQ9Ik0yMi41NiAxMi4yNUMyMi41NiAxMS40NyAyMi40OSAxMC43MiAyMi4zNiAxMEgxMlYxNC4yNkgxMi41NlYxNC4yNkgxNy45MkMxNy42NiAxNS4zIDE2Ljk0IDE2LjExIDE1Ljk0IDE2LjYxVjE5LjUzSDE5LjMyQzIxLjMzIDE3LjcgMjIuNTYgMTUuMiAyMi41NiAxMi4yNVoiIGZpbGw9IiM0Mjg1RjQiLz4KPHBhdGggZD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQgMTcuMjEgMTMuNjQgMTcuNTYgMTIgMTcuNTZ Çünkü0.04xNy41NiA2LjU3IDE1LjY5IDUuNjkgMTMuMDlIMi4xOFYxNi4wNEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjMzRBODUzIi8+CjxwYXRoIGQ9Ik01LjY5IDEzLjA5QzUuNDEgMTIuMjkgNS4yNiAxMS40NCA1LjI2IDEwLjU5QzUuMjYgOS43NCA1LjQxIDguODkgNS42OSA4LjA5VjUuMDVI.MTggMS4yOCA2Ljg1IDAuNzQgOC44OSAuNzQgMTAuNTlDMC43NCAxMi4yOSAxLjI4IDE0LjMzIDIuMTggMTYuMTNMNy42OSAxMy4wOVoiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5QzcuNzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNy43MyA2Ljk5IDEwLjA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD1ub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNMjIuNTYgMTIuMjVDMjIuNTYgMTEuNDcgMjIuNDkgMTAuNzIgMjIuMzYgMTBoMTYuMCBWMTQuMjZIMTcuOTdWMTEuNjRWMTQuMjZIMTQuMjVWMTYuNjFWMTkuNTNIMi4xOEM0LjA0IDE5Ljc0IDcuNzMgMjIgMTIgMjJaIiBmaWxsPSIjNDI4NUY0Ii8+CjxwYXRoIGQ9Ik0yLjE4IDguMDlDOS4wNCAyLjgzIDE1LjA0IDIuMjYgMTIuNzkgNS42NkMxMi43OSA1LjY2IDEyLjUgNS42NiAxMi4yNS 42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ Çünkü0.MDQgMTcuNTYgNi41NyAxNS42OSA1LjY5IDYuNTlMMi4xOCA3LjY5QzQuMDQgMTIuMDQgNy43MyAxNSAxMiAxNVoxIiBmaWxsPSIjRUE0MzM1Ii8+CjxwYXRoIGQ9Ik0yLjE4IDE2LjEzQzQuMDQgMTkuNzQgNy43MyAyMiAxMiAyMkMxMC41OSAyMiA4LjQ3IDIxLjQ2IDYuNTkgMjAuMzFMOS42MiAxNy41N أماxNjg1MjE4MTYxM1oiIGZpbGw9IiNQQjAwNSIvPgo8cGF0aCBkPSJNMTIgNC43NEMxMy43OCA0Ljc0IDE1LjM2IDUuMzkgMTYuNTkgNi41NUwxOS42MiAzLjUyQzE3LjUyIDEuNTkgMTQuODYgMC41OSAxMiAwLjU5QzcuNzMgMC41OSAxNC4wNCAyLjg1IDIuMTggNi41NUw1LjY5IDkuNTlDNy43MyA2Ljk5IDEwLjA0IDUuMTIgMTIgNS4xMlY0Ljc0NDJ6IiBmaWxsPSIjRUE0MzM1Ii8+Cjwvc3ZnPgo=" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
                 alert('Failed to connect Google account. Please try again.');
             }
         }
@@ -1629,6 +1707,13 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                     business_website: clientData.business_website,
                     support_email: clientData.support_email,
                     business_category: clientData.business_category,
+                    // Added new fields
+                    veterinarian_name: clientData.veterinarian_name,
+                    manager_name: clientData.manager_name,
+                    billing_email: clientData.billing_email,
+                    booking_url: clientData.booking_url,
+                    practice_name: clientData.practice_name,
+
 
                     // Google Sheets Configuration
                     appointments_sheet_id: clientData.appointments_sheet_id,
@@ -1649,18 +1734,18 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                     sendgrid_api_key: clientData.sendgrid_api_key,
                     from_email: clientData.from_email,
                     from_name: clientData.from_name,
+                    // Social Media
+                    facebook_page_id: clientData.facebook_page_id,
+                    facebook_page_token: clientData.facebook_page_token,
+                    instagram_access_token: clientData.instagram_access_token,
+                    whatsapp_token: clientData.whatsapp_token,
+                    whatsapp_phone_id: clientData.whatsapp_phone_id,
+
 
                     // AI and Automation
                     openai_api_key: clientData.openai_api_key,
                     calendly_api_key: clientData.calendly_api_key,
 
-                    // Social Media (Optional)
-                    facebook_page_id: clientData.facebook_page_id,
-                    facebook_page_token: clientData.facebook_page_token,
-
-                    // Payment Processing (Optional)
-                    stripe_secret_key: clientData.stripe_secret_key,
-                    stripe_publishable_key: clientData.stripe_publishable_key,
 
                     // System Settings
                     timezone: clientData.timezone,
@@ -1890,7 +1975,19 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
                     vet_license: document.getElementById('vetLicense').value,
                     business_color: document.getElementById('businessColor').value,
                     business_website: document.getElementById('businessWebsite').value,
-                    business_category: businessCategory
+                    business_category: businessCategory,
+                    // Newly added fields
+                    veterinarian_name: document.getElementById('vetName').value,
+                    manager_name: document.getElementById('managerName').value,
+                    billing_email: document.getElementById('billingEmail').value,
+                    booking_url: document.getElementById('bookingUrl').value,
+                    practice_name: document.getElementById('practiceName').value,
+                    // Social Media Fields
+                    facebook_page_id: document.getElementById('facebookPageId').value,
+                    facebook_page_token: document.getElementById('facebookPageToken').value,
+                    instagram_access_token: document.getElementById('instagramAccessToken').value,
+                    whatsapp_token: document.getElementById('whatsappToken').value,
+                    whatsapp_phone_id: document.getElementById('whatsappPhoneId').value,
                 }
             };
         }
@@ -1898,6 +1995,7 @@ dD0iTTIgMjJDMTUuMDQgMjIgMTcuNTYgMjAuOTIgMTkuMzIgMTkuNTNMMTUuOTQgMTYuNjFDMTQuOTQg
         // Deploy the ETF automation
         async function deployETF() {
           const deployButton = document.getElementById('submitBtn');
+          const resultDiv = document.getElementById('result');
           const originalText = deployButton.textContent;
 
           deployButton.textContent = 'Deploying...';
