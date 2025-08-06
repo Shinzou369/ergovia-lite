@@ -1573,24 +1573,54 @@
                 btn.style.display = 'none';
                 status.style.display = 'block';
                 status.innerHTML = '<span class="status-text" style="color: #4CAF50;">✓ Google account connected successfully for automation</span>';
+                
+                // Clear URL parameters after success
+                if (window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
             } else if (urlParams.get('error')) {
                 const error = urlParams.get('error');
                 let errorMessage = 'Failed to connect Google account.';
+                let helpText = '';
 
                 switch (error) {
                     case 'oauth_denied':
                         errorMessage = 'Google OAuth access was denied.';
+                        helpText = 'Please click "Connect Google Account" again and allow access.';
                         break;
                     case 'invalid_state':
-                        errorMessage = 'Security validation failed. Please try again.';
+                        errorMessage = 'Security validation failed.';
+                        helpText = 'This usually happens if the page was refreshed during login. Please try connecting again.';
+                        break;
+                    case 'session_expired':
+                        errorMessage = 'Session expired during authentication.';
+                        helpText = 'Please refresh the page and try connecting again.';
                         break;
                     case 'oauth_failed':
-                        errorMessage = 'OAuth process failed. Please try again.';
+                        errorMessage = 'OAuth process failed.';
+                        helpText = 'Please check your internet connection and try again.';
+                        break;
+                    case 'missing_params':
+                        errorMessage = 'Authentication parameters missing.';
+                        helpText = 'Please try the connection process again.';
                         break;
                 }
 
                 status.style.display = 'block';
-                status.innerHTML = `<span class="status-text" style="color: #f44336;">✗ ${errorMessage}</span>`;
+                status.innerHTML = `
+                    <div style="color: #f44336;">
+                        <span class="status-text">✗ ${errorMessage}</span>
+                        ${helpText ? `<br><small style="color: #666; margin-top: 5px; display: block;">${helpText}</small>` : ''}
+                        <br><button onclick="location.reload()" style="margin-top: 10px; padding: 5px 10px; border: 1px solid #f44336; background: transparent; color: #f44336; border-radius: 3px; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
+
+                // Clear URL parameters after showing error
+                setTimeout(() => {
+                    if (window.history.replaceState) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }, 5000);
             }
         });
 

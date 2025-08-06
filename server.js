@@ -2834,23 +2834,34 @@ app.post('/api/auth/google-n8n-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
 
-    // Store state in session for verification
+    // Store state in session for verification with callback to ensure it's saved
     req.session.n8nOAuthState = state;
-    req.session.save();
+    
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Session storage failed' });
+      }
 
-    // Use ergovia-ai.com for production OAuth redirect
-    const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
+      // Use current domain for OAuth redirect
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const redirectUri = `${protocol}://${host}/api/auth/google-n8n-callback`;
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
-      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `response_type=code&` +
-      `scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive')}&` +
-      `access_type=offline&` +
-      `prompt=consent&` +
-      `state=${state}`;
+      console.log('🔐 OAuth initiated with state:', state);
+      console.log('🔗 Redirect URI:', redirectUri);
 
-    res.json({ authUrl });
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `response_type=code&` +
+        `scope=${encodeURIComponent('https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive')}&` +
+        `access_type=offline&` +
+        `prompt=consent&` +
+        `state=${state}`;
+
+      res.json({ authUrl });
+    });
   } catch (error) {
     console.error('Error initiating Google OAuth for n8n:', error);
     res.status(500).json({ error: 'Failed to initiate OAuth flow' });
@@ -2861,22 +2872,43 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
   try {
     const { code, state, error } = req.query;
 
+    console.log('🔄 OAuth callback received:', { 
+      hasCode: !!code, 
+      hasState: !!state, 
+      error: error,
+      sessionState: req.session.n8nOAuthState 
+    });
+
     if (error) {
       console.error('Google OAuth error:', error);
       return res.redirect('/etf-onboard?error=oauth_denied');
     }
 
     if (!code || !state) {
+      console.error('Missing OAuth parameters:', { code: !!code, state: !!state });
       return res.redirect('/etf-onboard?error=missing_params');
     }
 
     // Verify state parameter
-    if (state !== req.session.n8nOAuthState) {
+    const sessionState = req.session.n8nOAuthState;
+    if (!sessionState) {
+      console.error('No session state found');
+      return res.redirect('/etf-onboard?error=session_expired');
+    }
+
+    if (state !== sessionState) {
+      console.error('State mismatch:', { received: state, expected: sessionState });
       return res.redirect('/etf-onboard?error=invalid_state');
     }
 
-    // Use the same redirect URI as in the OAuth initiation
-    const redirectUri = 'https://ergovia-ai.com/api/auth/google-n8n-callback';
+    console.log('✅ State validation passed');
+
+    // Use dynamic redirect URI to match the request
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const redirectUri = `${protocol}://${host}/api/auth/google-n8n-callback`;
+
+    console.log('🔗 Using redirect URI:', redirectUri);
 
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -2900,6 +2932,8 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
       throw new Error('Failed to obtain access token');
     }
 
+    console.log('✅ Token exchange successful');
+
     // Get user info from Google
     const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
@@ -2908,6 +2942,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
     });
 
     const userInfo = await userInfoResponse.json();
+    console.log('✅ User info retrieved:', userInfo.email);
 
     // Create n8n credential
     const credentialResult = await createN8NCredential(userInfo.email, tokenData, userInfo);
@@ -2917,6 +2952,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
       delete req.session.n8nOAuthState;
       req.session.save();
 
+      console.log('✅ Google OAuth flow completed successfully');
       res.redirect('/etf-onboard?google_connected=true');
     } else {
       throw new Error('Failed to create n8n credential');
