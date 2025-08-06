@@ -537,6 +537,24 @@ app.post('/api/etf/deploy', async (req, res) => {
       configKeys: Object.keys(config_data).length
     });
 
+    // Auto-create Google Sheets if Google OAuth is connected
+    let createdSheets = {};
+    const hasGoogleOAuth = req.session?.google_access_token || config_data.google_access_token;
+    
+    if (hasGoogleOAuth) {
+      console.log('🔗 Google OAuth detected, creating required Google Sheets...');
+      try {
+        createdSheets = await createRequiredGoogleSheets(client_data, req.session?.google_access_token || config_data.google_access_token);
+        
+        // Update config_data with created sheet IDs
+        Object.assign(config_data, createdSheets);
+        console.log('✅ Created Google Sheets:', Object.keys(createdSheets));
+      } catch (sheetError) {
+        console.warn('⚠️ Could not auto-create Google Sheets:', sheetError.message);
+        // Continue with deployment even if sheet creation fails
+      }
+    }
+
     // Test N8N connection first
     try {
       console.log('🔍 Testing N8N connection...');
@@ -2944,10 +2962,18 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
     const userInfo = await userInfoResponse.json();
     console.log('✅ User info retrieved:', userInfo.email);
 
+    // Store tokens in session for automatic sheet creation
+    req.session.google_access_token = tokenData.access_token;
+    req.session.google_refresh_token = tokenData.refresh_token;
+    req.session.google_user_email = userInfo.email;
+
     // Create n8n credential
     const credentialResult = await createN8NCredential(userInfo.email, tokenData, userInfo);
 
     if (credentialResult.success) {
+      // Store credential ID in session as well
+      req.session.google_credential_id = credentialResult.credentialId;
+      
       // Clear OAuth state
       delete req.session.n8nOAuthState;
       req.session.save();
@@ -3031,6 +3057,148 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
 // ========================================
 // ETF Helper Functions
 // ========================================
+
+// Auto-create required Google Sheets for pet clinic workflows
+async function createRequiredGoogleSheets(clientData, accessToken) {
+  const createdSheets = {};
+  const clinicName = clientData.name || 'Pet Clinic';
+  
+  console.log('📊 Creating Google Sheets for:', clinicName);
+
+  // Define required sheets with their structures
+  const sheetsToCreate = [
+    {
+      key: 'appointments_sheet_id',
+      name: `${clinicName} - Appointments`,
+      headers: ['Date', 'Time', 'Customer Name', 'Customer Email', 'Customer Phone', 'Pet Name', 'Pet Type', 'Service', 'Veterinarian', 'Status', 'Notes', 'Created', 'Source']
+    },
+    {
+      key: 'master_sheet_id', 
+      name: `${clinicName} - Master Tracking`,
+      headers: ['Date', 'Time', 'Customer Name', 'Customer Email', 'Customer Phone', 'Pet Name', 'Pet Type', 'Service', 'Veterinarian', 'Status', 'Notes', 'Created', 'Source', 'Appointment ID', 'Follow-up Date']
+    },
+    {
+      key: 'staff_sheet_id',
+      name: `${clinicName} - Staff Database`,
+      headers: ['Staff ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Position', 'Department', 'Hire Date', 'Status', 'Notes', 'Training Completed', 'Certifications']
+    },
+    {
+      key: 'inventory_sheet_id',
+      name: `${clinicName} - Inventory`,
+      headers: ['Item ID', 'Item Name', 'Category', 'Current Stock', 'Minimum Stock', 'Unit Cost', 'Supplier', 'Last Ordered', 'Expiry Date', 'Status', 'Notes']
+    },
+    {
+      key: 'medical_records_sheet_id',
+      name: `${clinicName} - Medical Records`,
+      headers: ['Record ID', 'Pet Name', 'Owner Name', 'Owner Email', 'Date', 'Visit Type', 'Veterinarian', 'Diagnosis', 'Treatment', 'Medications', 'Follow-up Required', 'Notes']
+    },
+    {
+      key: 'prescription_sheet_id',
+      name: `${clinicName} - Prescriptions`,
+      headers: ['Prescription ID', 'Pet Name', 'Owner Name', 'Owner Phone', 'Medication', 'Dosage', 'Instructions', 'Prescribed Date', 'Veterinarian', 'Status', 'Refills Remaining']
+    },
+    {
+      key: 'archive_sheet_id',
+      name: `${clinicName} - Archive`,
+      headers: ['Archive Date', 'Original Sheet', 'Record Type', 'Record ID', 'Customer Name', 'Pet Name', 'Service Date', 'Archived By', 'Reason', 'Original Data']
+    },
+    {
+      key: 'social_media_sheet_id',
+      name: `${clinicName} - Social Media Log`,
+      headers: ['Post Date', 'Platform', 'Content Type', 'Content', 'Engagement', 'Reach', 'Posted By', 'Campaign', 'Status', 'Notes']
+    }
+  ];
+
+  for (const sheet of sheetsToCreate) {
+    try {
+      console.log(`📄 Creating sheet: ${sheet.name}`);
+      
+      // Create new spreadsheet
+      const createResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          properties: {
+            title: sheet.name
+          },
+          sheets: [{
+            properties: {
+              title: 'Data'
+            }
+          }]
+        })
+      });
+
+      if (!createResponse.ok) {
+        const error = await createResponse.text();
+        throw new Error(`Failed to create sheet: ${error}`);
+      }
+
+      const newSheet = await createResponse.json();
+      createdSheets[sheet.key] = newSheet.spreadsheetId;
+      
+      console.log(`✅ Created sheet "${sheet.name}" with ID: ${newSheet.spreadsheetId}`);
+
+      // Add headers to the sheet
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${newSheet.spreadsheetId}/values/Data!A1:${String.fromCharCode(64 + sheet.headers.length)}1?valueInputOption=RAW`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          values: [sheet.headers]
+        })
+      });
+
+      // Format headers (make them bold)
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${newSheet.spreadsheetId}:batchUpdate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          requests: [{
+            repeatCell: {
+              range: {
+                sheetId: 0,
+                startRowIndex: 0,
+                endRowIndex: 1,
+                startColumnIndex: 0,
+                endColumnIndex: sheet.headers.length
+              },
+              cell: {
+                userEnteredFormat: {
+                  textFormat: {
+                    bold: true
+                  },
+                  backgroundColor: {
+                    red: 0.9,
+                    green: 0.9,
+                    blue: 0.9
+                  }
+                }
+              },
+              fields: 'userEnteredFormat(textFormat,backgroundColor)'
+            }
+          }]
+        })
+      });
+
+      console.log(`📊 Added headers to sheet: ${sheet.name}`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to create sheet ${sheet.name}:`, error.message);
+      // Continue with next sheet instead of failing completely
+    }
+  }
+
+  return createdSheets;
+}
 
 function generatePromptInstructions(workflow) {
   console.log('🔍 Analyzing workflow for automatic prompt instructions:', workflow.name);

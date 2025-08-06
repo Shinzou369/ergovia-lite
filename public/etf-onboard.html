@@ -1065,82 +1065,29 @@
                     <!-- Google Sheets Configuration -->
                     <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
                         <i data-lucide="table" style="width: 20px; height: 20px;"></i>
-                        Google Sheets Configuration
+                        Google Sheets - Automated Setup
                     </h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="appointmentsSheetId">Appointments Google Sheet ID <span class="required">*</span></label>
-                            <input type="text" id="appointmentsSheetId" name="appointments_sheet_id" required 
-                                   placeholder="1BcDefGhIjKlMnOpQrStUvWxYz...">
-                            <div class="form-help">
-                                The Google Sheet where your appointments are stored. Copy the ID from the URL.
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="masterSheetId">Master Tracking Sheet ID <span class="required">*</span></label>
-                            <input type="text" id="masterSheetId" name="master_sheet_id" required 
-                                   placeholder="1AbCdEfGhIjKlMnOpQrStUvWx...">
-                            <div class="form-help">
-                                Central sheet for logging all appointments from different sources.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="staffSheetId">Staff Database Sheet ID</label>
-                            <input type="text" id="staffSheetId" name="staff_sheet_id" 
-                                   placeholder="1StaffDatabaseSheetID...">
-                            <div class="form-help">
-                                Sheet for staff onboarding tracking (WF10).
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="socialMediaSheetId">Social Media Log Sheet ID</label>
-                            <input type="text" id="socialMediaSheetId" name="social_media_sheet_id" 
-                                   placeholder="1SocialMediaSheetID...">
-                            <div class="form-help">
-                                Sheet for tracking social media posts (WF10 - Staff & Social Media).
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="inventorySheetId">Inventory Sheet ID</label>
-                            <input type="text" id="inventorySheetId" name="inventory_sheet_id" 
-                                   placeholder="1InventorySheetID...">
-                            <div class="form-help">
-                                Sheet for inventory management (WF11).
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="medicalRecordsSheetId">Medical Records Sheet ID</label>
-                            <input type="text" id="medicalRecordsSheetId" name="medical_records_sheet_id" 
-                                   placeholder="1MedicalRecordsSheetID...">
-                            <div class="form-help">
-                                Sheet for medical records tracking (WF6).
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="prescriptionSheetId">Prescription Sheet ID</label>
-                            <input type="text" id="prescriptionSheetId" name="prescription_sheet_id" 
-                                   placeholder="1PrescriptionSheetID...">
-                            <div class="form-help">
-                                Sheet for prescription management (WF13).
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="archiveSheetId">Archive Sheet ID</label>
-                            <input type="text" id="archiveSheetId" name="archive_sheet_id" 
-                                   placeholder="1ArchiveSheetID...">
-                            <div class="form-help">
-                                Sheet for archiving old records (WF16 - Data Archival).
-                            </div>
-                        </div>
+                    <div class="form-help" style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(76, 175, 80, 0.3);">
+                        <h4 style="color: #4CAF50; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="magic-wand" style="width: 16px; height: 16px;"></i>
+                            ✨ Automated Google Sheets Creation
+                        </h4>
+                        <p style="margin: 0; color: var(--text-secondary);">
+                            <strong>No manual setup required!</strong> When you connect your Google account above, the system will automatically create all the necessary Google Sheets for your pet clinic:
+                        </p>
+                        <ul style="margin: 10px 0 0 20px; color: var(--text-muted);">
+                            <li><strong>Appointments Sheet</strong> - Track all appointments</li>
+                            <li><strong>Master Tracking Sheet</strong> - Central data logging</li>
+                            <li><strong>Staff Database</strong> - Employee management</li>
+                            <li><strong>Inventory Management</strong> - Stock tracking</li>
+                            <li><strong>Medical Records</strong> - Pet health records</li>
+                            <li><strong>Prescription Tracking</strong> - Medication management</li>
+                            <li><strong>Archive Storage</strong> - Historical data</li>
+                            <li><strong>Social Media Log</strong> - Marketing tracking</li>
+                        </ul>
+                        <p style="margin: 15px 0 0 0; color: var(--text-secondary); font-style: italic;">
+                            📊 Each sheet will be pre-configured with proper headers and formatting, ready to use immediately!
+                        </p>
                     </div>
 
                     <!-- Operational Settings -->
@@ -1255,27 +1202,32 @@
                     <details style="margin-top: 30px; border: 1px solid rgba(76, 175, 80, 0.3); border-radius: 8px; padding: 15px;">
                         <summary style="color: #4CAF50; font-weight: bold; cursor: pointer;">📋 Configuration Setup Guide (Click to expand)</summary>
                         <div class="credential-help" style="margin-top: 15px;">
-                            <h4>📊 Getting Google Sheet IDs:</h4>
-                            <ol>
-                                <li>Open your Google Sheet in a browser</li>
-                                <li>Look at the URL: <code>https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit</code></li>
-                                <li>Copy the long string between <code>/d/</code> and <code>/edit</code></li>
-                                <li>That's your Sheet ID!</li>
-                            </ol>
+                            <h4>📊 Automated Google Sheets Creation:</h4>
+                            <p><strong>✨ No manual setup needed!</strong> The system automatically creates:</p>
+                            <ul>
+                                <li><strong>Appointments Sheet:</strong> Date, Time, Customer Name, Email, Phone, Pet Name, Service, Veterinarian, Status, Notes</li>
+                                <li><strong>Master Tracking:</strong> Complete appointment logs from all sources</li>
+                                <li><strong>Staff Database:</strong> Employee information and training records</li>
+                                <li><strong>Inventory:</strong> Stock levels, suppliers, and reorder alerts</li>
+                                <li><strong>Medical Records:</strong> Pet health history and treatments</li>
+                                <li><strong>Prescriptions:</strong> Medication tracking and refills</li>
+                                <li><strong>Archive:</strong> Historical data storage</li>
+                                <li><strong>Social Media Log:</strong> Campaign tracking and engagement</li>
+                            </ul>
 
                             <h4>📱 Social Media IDs:</h4>
                             <p><strong>Facebook Page ID:</strong> Go to your Facebook page > About > Page Info to find your Page ID</p>
                             <p><strong>WhatsApp Phone ID:</strong> Found in your WhatsApp Business API dashboard</p>
 
-                            <h4>📋 Required Sheet Structure:</h4>
-                            <p><strong>Appointments Sheet</strong> should have columns:</p>
-                            <ul>
-                                <li>Date, Time, Customer Name, Customer Phone, Service, Pet Name, etc.</li>
-                            </ul>
-                            <p><strong>Master Sheet</strong> will be automatically populated with:</p>
-                            <ul>
-                                <li>Date, Time, Customer Name, Email, Phone, Service, Pet Name, Notes, Status, Created</li>
-                            </ul>
+                            <h4>🔗 Google Account Connection:</h4>
+                            <p>When you click "Connect Google Account" above, the system will:</p>
+                            <ol>
+                                <li>Authenticate your Google account</li>
+                                <li>Create N8N credentials for automation</li>
+                                <li>Automatically generate all required Google Sheets</li>
+                                <li>Configure proper headers and formatting</li>
+                                <li>Link everything to your workflows seamlessly</li>
+                            </ol>
                         </div>
                     </details>
                 </div>
