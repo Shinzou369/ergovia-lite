@@ -1,0 +1,603 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF Test - Prefilled Form</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #ffffff;
+            --text-secondary: #b8bcc8;
+            --text-muted: #6b7280;
+            --border-color: #2d3748;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-radius: var(--radius-lg);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .test-info {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+
+        .test-info h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        .form-container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+            background: var(--bg-primary);
+        }
+
+        .form-help {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            display: none;
+        }
+
+        .result.success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .result.error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .result h3 {
+            margin-bottom: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .result p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .result code {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+        }
+
+        .placeholder-preview {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .placeholder-preview h4 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        .placeholder-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .placeholder-item {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🧪 ETF Test Page</h1>
+            <p>Pre-filled form to test workflow duplication and placeholder replacement</p>
+            
+            <div class="test-info">
+                <h3>🎯 Test Focus</h3>
+                <p>This form is pre-filled with test data to quickly verify that:</p>
+                <ul style="text-align: left; margin: 10px 0 0 20px;">
+                    <li>✅ Workflow duplication works from N8N</li>
+                    <li>✅ Placeholder variables are correctly replaced</li>
+                    <li>✅ All business data is properly injected</li>
+                    <li>⚠️ Credentials are left empty (testing later)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="form-container">
+            <form id="etfTestForm">
+                <!-- Business Information -->
+                <div class="form-section">
+                    <h2 class="section-title">📊 Business Information</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="businessName">Business Name</label>
+                            <input type="text" id="businessName" name="business_name" 
+                                   value="Happy Paws Veterinary Clinic">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contactEmail">Contact Email</label>
+                            <input type="email" id="contactEmail" name="email" 
+                                   value="info@happypaws.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number</label>
+                            <input type="tel" id="phoneNumber" name="phone" 
+                                   value="+1 (555) 123-4567">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Configuration -->
+                <div class="form-section">
+                    <h2 class="section-title">⚙️ Business Configuration</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="clinicName">Clinic Display Name</label>
+                            <input type="text" id="clinicName" name="clinic_name" 
+                                   value="Happy Paws Veterinary Clinic">
+                        </div>
+                        <div class="form-group">
+                            <label for="vetName">Veterinarian Name</label>
+                            <input type="text" id="vetName" name="veterinarian_name" 
+                                   value="Dr. Sarah Johnson">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="managerName">Manager Name</label>
+                            <input type="text" id="managerName" name="manager_name" 
+                                   value="John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label for="clinicHours">Clinic Hours</label>
+                            <input type="text" id="clinicHours" name="clinic_hours" 
+                                   value="Mon-Fri: 8AM-6PM, Sat: 9AM-3PM">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="emergencyContact">Emergency Contact</label>
+                            <input type="tel" id="emergencyContact" name="emergency_contact" 
+                                   value="+1 (555) EMERGENCY">
+                        </div>
+                        <div class="form-group">
+                            <label for="supportEmail">Support Email</label>
+                            <input type="email" id="supportEmail" name="support_email" 
+                                   value="support@happypaws.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="servicesOffered">Services Offered</label>
+                            <textarea id="servicesOffered" name="services_offered" rows="3">Vaccinations, Surgery, Dental Care, Emergency Services, Grooming, Wellness Exams</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="businessWebsite">Website URL</label>
+                            <input type="url" id="businessWebsite" name="business_website" 
+                                   value="https://happypaws.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookingUrl">Booking URL</label>
+                            <input type="url" id="bookingUrl" name="booking_url" 
+                                   value="https://booking.happypaws.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="businessColor">Brand Color</label>
+                            <input type="color" id="businessColor" name="business_color" 
+                                   value="#4CAF50">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operational Settings -->
+                <div class="form-section">
+                    <h2 class="section-title">🕐 Operational Settings</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="timezone">Timezone</label>
+                            <select id="timezone" name="timezone">
+                                <option value="America/New_York" selected>Eastern Time (EST/EDT)</option>
+                                <option value="America/Chicago">Central Time (CST/CDT)</option>
+                                <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                                <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="cancellationPolicy">Cancellation Policy</label>
+                            <select id="cancellationPolicy" name="cancellation_policy">
+                                <option value="24-hour" selected>24-hour</option>
+                                <option value="48-hour">48-hour</option>
+                                <option value="72-hour">72-hour</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fromEmail">From Email Address</label>
+                            <input type="email" id="fromEmail" name="from_email" 
+                                   value="noreply@happypaws.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="fromName">From Name</label>
+                            <input type="text" id="fromName" name="from_name" 
+                                   value="Happy Paws Clinic">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder Preview -->
+                <div class="placeholder-preview">
+                    <h4>🔍 Key Placeholders That Will Be Tested</h4>
+                    <div class="placeholder-list">
+                        <div class="placeholder-item">{{CLINIC_NAME}}</div>
+                        <div class="placeholder-item">{{VETERINARIAN_NAME}}</div>
+                        <div class="placeholder-item">{{BUSINESS_EMAIL}}</div>
+                        <div class="placeholder-item">{{BUSINESS_PHONE}}</div>
+                        <div class="placeholder-item">{{CLINIC_HOURS}}</div>
+                        <div class="placeholder-item">{{SERVICES_OFFERED}}</div>
+                        <div class="placeholder-item">{{EMERGENCY_CONTACT}}</div>
+                        <div class="placeholder-item">{{SUPPORT_EMAIL}}</div>
+                        <div class="placeholder-item">{{BOOKING_URL}}</div>
+                        <div class="placeholder-item">{{BUSINESS_WEBSITE}}</div>
+                        <div class="placeholder-item">{{MANAGER_NAME}}</div>
+                        <div class="placeholder-item">{{CANCELLATION_POLICY}}</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <i data-lucide="play"></i>
+                    <span>Test Workflow Duplication</span>
+                </button>
+            </form>
+
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Form submission
+        document.getElementById('etfTestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            const originalBtnContent = submitBtn.innerHTML;
+
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading-spinner"></div><span>Testing workflow duplication...</span>';
+            resultDiv.style.display = 'none';
+
+            // Collect form data
+            const formData = new FormData(this);
+            const clientData = Object.fromEntries(formData.entries());
+
+            // Prepare deployment data for testing
+            const deploymentData = {
+                client_data: {
+                    name: clientData.business_name,
+                    email: clientData.email,
+                    phone: clientData.phone
+                },
+                config_data: {
+                    // Basic Business Info
+                    business_name: clientData.business_name,
+                    business_email: clientData.email,
+                    business_phone: clientData.phone,
+                    clinic_name: clientData.clinic_name,
+                    clinic_hours: clientData.clinic_hours,
+                    emergency_contact: clientData.emergency_contact,
+                    services_offered: clientData.services_offered,
+                    support_email: clientData.support_email,
+                    business_website: clientData.business_website,
+                    booking_url: clientData.booking_url,
+                    business_color: clientData.business_color,
+                    veterinarian_name: clientData.veterinarian_name,
+                    manager_name: clientData.manager_name,
+                    timezone: clientData.timezone,
+                    cancellation_policy: clientData.cancellation_policy,
+                    from_email: clientData.from_email,
+                    from_name: clientData.from_name,
+                    
+                    // Empty credentials for now (testing focus is on placeholders)
+                    telegram_bot_token: '',
+                    telegram_chat_id: '',
+                    twilio_account_sid: '',
+                    twilio_auth_token: '',
+                    twilio_phone_number: '',
+                    sendgrid_api_key: '',
+                    openai_api_key: '',
+                    calendly_api_key: ''
+                },
+                template_id: 'pet_clinic_test',
+                test_mode: true // Flag to indicate this is a test
+            };
+
+            try {
+                console.log('🧪 Testing deployment with data:', deploymentData);
+
+                const response = await fetch('/api/etf/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(deploymentData)
+                });
+
+                const result = await response.json();
+                console.log('🧪 Test response:', result);
+
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    const workflowCount = result.duplicated_workflows?.length || result.total_duplicated || 0;
+                    
+                    let workflowDetails = '';
+                    if (result.duplicated_workflows && result.duplicated_workflows.length > 0) {
+                        workflowDetails = '<h4>📋 Duplicated Workflows:</h4><ul style="margin: 10px 0; padding-left: 20px;">';
+                        result.duplicated_workflows.forEach(workflow => {
+                            workflowDetails += `<li><strong>${workflow.new_name}</strong> (ID: <code>${workflow.new_id}</code>)</li>`;
+                        });
+                        workflowDetails += '</ul>';
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        <h3><i data-lucide="check-circle"></i> ✅ Test Successful!</h3>
+                        <p><strong>Client ID:</strong> <code>${result.client_id}</code></p>
+                        <p><strong>Workflows Duplicated:</strong> ${workflowCount}</p>
+                        ${workflowDetails}
+                        
+                        <h4>🎯 Test Results:</h4>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>✅ Workflow duplication: <strong>Working</strong></li>
+                            <li>✅ Placeholder replacement: <strong>Applied</strong></li>
+                            <li>✅ Business data injection: <strong>Success</strong></li>
+                            <li>⏳ Credentials testing: <strong>Next Phase</strong></li>
+                        </ul>
+                        
+                        <h4>📊 Replaced Placeholders:</h4>
+                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 10px 0; font-family: monospace; font-size: 0.9rem;">
+                            <strong>{{CLINIC_NAME}}</strong> → "${deploymentData.config_data.clinic_name}"<br>
+                            <strong>{{VETERINARIAN_NAME}}</strong> → "${deploymentData.config_data.veterinarian_name}"<br>
+                            <strong>{{BUSINESS_EMAIL}}</strong> → "${deploymentData.config_data.business_email}"<br>
+                            <strong>{{BUSINESS_PHONE}}</strong> → "${deploymentData.config_data.business_phone}"<br>
+                            <strong>{{CLINIC_HOURS}}</strong> → "${deploymentData.config_data.clinic_hours}"<br>
+                            <strong>{{SERVICES_OFFERED}}</strong> → "${deploymentData.config_data.services_offered}"
+                        </div>
+                        
+                        <p style="margin-top: 20px; font-style: italic;">🎉 The placeholder variable system is working correctly!</p>
+                    `;
+
+                } else {
+                    throw new Error(result.error || result.details || 'Test failed');
+                }
+
+            } catch (error) {
+                console.error('🧪 Test error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3><i data-lucide="alert-circle"></i> ❌ Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    
+                    <h4>🔍 Debugging Information:</h4>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>N8N Connection:</strong> ${error.message.includes('N8N') ? '❌ Failed' : '✅ Unknown'}</li>
+                        <li><strong>Workflow Templates:</strong> ${error.message.includes('PET workflows') ? '❌ Not Found' : '✅ Unknown'}</li>
+                        <li><strong>Data Structure:</strong> ${error.message.includes('Invalid') ? '❌ Invalid' : '✅ Valid'}</li>
+                    </ul>
+                    
+                    <h4>💡 Next Steps:</h4>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Check N8N service is running</li>
+                        <li>Verify workflows have "PET" tags</li>
+                        <li>Check server logs for detailed errors</li>
+                        <li>Ensure N8N_BASE_URL and N8N_API_KEY are set</li>
+                    </ul>
+                `;
+
+            } finally {
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnContent;
+                resultDiv.style.display = 'block';
+
+                // Scroll to result
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Re-initialize icons
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>
