@@ -811,22 +811,32 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="businessName">Business Name <span class="required">*</span></label>
-                            <input type="text" id="businessName" name="business_name" required 
+                            <input type="text" id="businessName" name="businessName" required 
                                    placeholder="Enter your business name">
+                        </div>
+                        <div class="form-group">
+                            <label for="businessEmail">Business Email <span class="required">*</span></label>
+                            <input type="email" id="businessEmail" name="businessEmail" required 
+                                   placeholder="contact@yourbusiness.com">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="contactEmail">Contact Email <span class="required">*</span></label>
-                            <input type="email" id="contactEmail" name="email" required 
-                                   placeholder="contact@yourbusiness.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="phoneNumber">Phone Number <span class="required">*</span></label>
-                            <input type="tel" id="phoneNumber" name="phone" required 
+                            <label for="businessPhone">Business Phone <span class="required">*</span></label>
+                            <input type="tel" id="businessPhone" name="businessPhone" required 
                                    placeholder="+1 (555) 123-4567">
                         </div>
+                        <div class="form-group">
+                            <label for="websiteUrl">Website URL</label>
+                            <input type="url" id="websiteUrl" name="websiteUrl" 
+                                   placeholder="https://yourclinic.com">
+                        </div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="businessAddress">Business Address</label>
+                        <input type="text" id="businessAddress" name="businessAddress" 
+                               placeholder="123 Pet Street, Animal City, AC 12345">
                     </div>
                 </div>
 
@@ -1244,7 +1254,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="clinicName">Clinic Display Name <span class="required">*</span></label>
-                            <input type="text" id="clinicName" name="clinic_name" required 
+                            <input type="text" id="clinicName" name="clinicName" required 
                                    placeholder="Happy Paws Veterinary Clinic">
                             <div class="form-help">
                                 How your clinic name appears in communications.
@@ -1252,7 +1262,7 @@
                         </div>
                         <div class="form-group">
                             <label for="vetName">Veterinarian Name <span class="required">*</span></label>
-                            <input type="text" id="vetName" name="veterinarian_name" required 
+                            <input type="text" id="vetName" name="vetName" required 
                                    placeholder="Dr. Sarah Johnson">
                             <div class="form-help">
                                 Primary veterinarian's name for communications.
@@ -1263,7 +1273,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="managerName">Manager Name</label>
-                            <input type="text" id="managerName" name="manager_name" 
+                            <input type="text" id="managerName" name="managerName" 
                                    placeholder="John Smith">
                             <div class="form-help">
                                 Practice manager or owner name.
@@ -1271,7 +1281,7 @@
                         </div>
                         <div class="form-group">
                             <label for="billingEmail">Billing Email</label>
-                            <input type="email" id="billingEmail" name="billing_email" 
+                            <input type="email" id="billingEmail" name="billingEmail" 
                                    placeholder="billing@yourclinic.com">
                             <div class="form-help">
                                 Email address for billing and payment notifications.
@@ -1282,7 +1292,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="bookingUrl">Online Booking URL</label>
-                            <input type="url" id="bookingUrl" name="booking_url" 
+                            <input type="url" id="bookingUrl" name="bookingUrl" 
                                    placeholder="https://booking.yourclinic.com">
                             <div class="form-help">
                                 URL for online appointment booking.
@@ -1290,7 +1300,7 @@
                         </div>
                         <div class="form-group">
                             <label for="practiceName">Practice Name (if different)</label>
-                            <input type="text" id="practiceName" name="practice_name" 
+                            <input type="text" id="practiceName" name="practiceName" 
                                    placeholder="Happy Paws Veterinary Practice">
                             <div class="form-help">
                                 Legal practice name if different from clinic name.
@@ -1301,7 +1311,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="clinicHours">Clinic Hours <span class="required">*</span></label>
-                            <input type="text" id="clinicHours" name="clinic_hours" required 
+                            <input type="text" id="clinicHours" name="clinicHours" required 
                                    placeholder="Mon-Fri: 8AM-6PM, Sat: 9AM-3PM">
                             <div class="form-help">
                                 Operating hours for the clinic.
@@ -1309,7 +1319,7 @@
                         </div>
                         <div class="form-group">
                             <label for="emergencyContact">Emergency Contact <span class="required">*</span></label>
-                            <input type="tel" id="emergencyContact" name="emergency_contact" required 
+                            <input type="tel" id="emergencyContact" name="emergencyContact" required 
                                    placeholder="+15551234567">
                             <div class="form-help">
                                 Emergency contact number.
@@ -1320,7 +1330,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="servicesOffered">Services Offered <span class="required">*</span></label>
-                            <textarea id="servicesOffered" name="services_offered" required rows="3" 
+                            <textarea id="servicesOffered" name="servicesOffered" required rows="3" 
                                       placeholder="Vaccinations, Surgery, Dental Care, Emergency Services, Grooming"></textarea>
                             <div class="form-help">
                                 List of services your clinic provides.
@@ -1328,7 +1338,7 @@
                         </div>
                         <div class="form-group">
                             <label for="vetLicense">Veterinarian License Number</label>
-                            <input type="text" id="vetLicense" name="vet_license" 
+                            <input type="text" id="vetLicense" name="vetLicense" 
                                    placeholder="VET123456">
                             <div class="form-help">
                                 License number for compliance records.
@@ -1339,7 +1349,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="supportEmail">Support Email <span class="required">*</span></label>
-                            <input type="email" id="supportEmail" name="support_email" required 
+                            <input type="email" id="supportEmail" name="supportEmail" required 
                                    placeholder="support@yourclinic.com">
                             <div class="form-help">
                                 Email address for customer support inquiries.
@@ -1350,14 +1360,14 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="businessColor">Brand Color</label>
-                            <input type="color" id="businessColor" name="business_color" value="#4CAF50">
+                            <input type="color" id="businessColor" name="businessColor" value="#4CAF50">
                             <div class="form-help">
                                 Primary brand color for emails and documents.
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="businessWebsite">Website URL</label>
-                            <input type="url" id="businessWebsite" name="business_website" 
+                            <input type="url" id="businessWebsite" name="businessWebsite" 
                                    placeholder="https://yourclinic.com">
                             <div class="form-help">
                                 Your clinic's website URL.
@@ -1368,7 +1378,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="businessCategory">Business Category</label>
-                            <select id="businessCategory" name="business_category">
+                            <select id="businessCategory" name="businessCategory">
                                 <option value="veterinary">Veterinary Clinic</option>
                                 <option value="animal-hospital">Animal Hospital</option>
                                 <option value="pet-grooming">Pet Grooming</option>
@@ -1395,7 +1405,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="stripeSecretKey">Stripe Secret Key</label>
-                            <input type="password" id="stripeSecretKey" name="stripe_secret_key" 
+                            <input type="password" id="stripeSecretKey" name="stripeSecretKey" 
                                    placeholder="sk_test_xxxxxxxxxxxxxxxx">
                             <div class="form-help">
                                 Stripe secret key for payment processing.
@@ -1403,7 +1413,7 @@
                         </div>
                         <div class="form-group">
                             <label for="stripePublishableKey">Stripe Publishable Key</label>
-                            <input type="text" id="stripePublishableKey" name="stripe_publishable_key" 
+                            <input type="text" id="stripePublishableKey" name="stripePublishableKey" 
                                    placeholder="pk_test_xxxxxxxxxxxxxxxx">
                             <div class="form-help">
                                 Stripe publishable key for payment forms.
@@ -1510,7 +1520,7 @@
             } catch (error) {
                 console.error('Google OAuth error:', error);
                 btn.disabled = false;
-                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgNi41OUwyLjE4IDcuNjlDNC4wNCAxMi4wNCA3LjczIDE1IDEyIDE1WjEiIGZpbGw9IiNFQTQzMzUiLz4KPHBhdGggZD0iTTIuMTggMTYuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUw5LjYyIDE3LjU3IDI3MTY4NTIxODE2MTNaIiBmaWxsPSIjRkFCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDIuMTggOC4wOUM3LjczIDYuOTkgMTAuMDQgNS4xMiAxMiA1LjEyVjQuNzQ0Mloic" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgNi41OUwyLjE4IDcuNjlDNC4wNCAxMi4wNCA3LjczIDE1IDEyIDE1WjEiIGZpbGw9IiNFQTQzMzUiLz4KPHBhdGggZD0iTTIuMTggMTYuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUw5LjYyIDE3LjU3IDI3MTY4NTIxODE2MTNaIiBmaWxsPSIjRkFCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41 OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDIuMTggOC4wOUM3LjczIDYuOTkgMTAuMDQgNS4xMiAxMiA1LjEyVjQuNzQ0Mloic" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
                 alert('Failed to connect Google account. Please try again.');
             }
         }
@@ -1525,7 +1535,7 @@
                 btn.style.display = 'none';
                 status.style.display = 'block';
                 status.innerHTML = '<span class="status-text" style="color: #4CAF50;">✓ Google account connected successfully for automation</span>';
-                
+
                 // Clear URL parameters after success
                 if (window.history.replaceState) {
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1672,37 +1682,44 @@
             // Prepare comprehensive deployment data
             const deploymentData = {
                 client_data: {
-                    name: clientData.business_name,
-                    email: clientData.email,
-                    phone: clientData.phone
+                    name: clientData.businessName,
+                    email: clientData.businessEmail,
+                    phone: clientData.businessPhone
                 },
                 config_data: {
                     // Basic Business Info
-                    business_name: clientData.business_name,
-                    business_email: clientData.email,
-                    business_phone: clientData.phone,
-                    clinic_name: clientData.clinic_name,
-                    clinic_address: clientData.clinic_address,
-                    clinic_hours: clientData.clinic_hours,
-                    emergency_contact: clientData.emergency_contact,
-                    services_offered: clientData.services_offered,
-                    vet_license: clientData.vet_license,
-                    business_color: clientData.business_color,
-                    business_website: clientData.business_website,
-                    support_email: clientData.support_email,
-                    business_category: clientData.business_category,
+                    business_name: clientData.businessName,
+                    business_email: clientData.businessEmail,
+                    business_phone: clientData.businessPhone,
+                    website_url: clientData.websiteUrl,
+                    business_address: clientData.businessAddress,
                     // Newly added fields
-                    veterinarian_name: clientData.veterinarian_name,
-                    manager_name: clientData.manager_name,
-                    billing_email: clientData.billing_email,
-                    booking_url: clientData.booking_url,
-                    practice_name: clientData.practice_name,
-                    client_name: clientData.client_name,
-                    client_email: clientData.client_email,
-                    client_phone: clientData.client_phone,
+                    clinic_name: clientData.clinicName,
+                    clinic_address: clientData.clinicAddress,
+                    clinic_phone: clientData.clinicPhone,
+                    clinic_email: clientData.clinicEmail,
+                    clinic_hours: clientData.clinicHours,
+                    emergency_hours: clientData.emergencyHours,
+                    services_offered: clientData.servicesOffered,
+                    head_veterinarian: clientData.headVeterinarian,
+                    appointment_types: clientData.appointmentTypes,
+                    pricing_info: clientData.pricingInfo,
+                    receptionist_name: clientData.receptionistName,
+                    manager_name: clientData.managerName,
+                    on_call_staff_name: clientData.onCallStaffName,
+                    on_call_phone: clientData.onCallPhone,
+                    leads_sheet_id: clientData.leadsSheetId,
+                    faq_sheet_name: clientData.faqSheetName,
+                    hitl_queue_sheet_name: clientData.hitlQueueSheetName,
+                    timezone: clientData.timezone,
+                    confidence_threshold: clientData.confidenceThreshold,
+                    response_greeting: clientData.responseGreeting,
+                    cancellation_policy: clientData.cancellation_policy,
+                    reminder_interval: clientData.reminder_interval,
+                    data_retention_years: clientData.data_retention_years,
+                    backup_frequency: clientData.backup_frequency,
 
                     // Google Services
-                    google_calendar_id: clientData.google_calendar_id,
                     google_sheets_credential_id: clientData.google_sheets_credential_id,
                     master_sheet_name: clientData.master_sheet_name,
                     appointments_sheet_name: clientData.appointments_sheet_name,
@@ -1741,8 +1758,8 @@
                     prescription_sheet_id: clientData.prescription_sheet_id,
 
                     // Communication Settings
-                    telegram_bot_token: telegramBotToken,
-                    telegram_chat_id: telegramChatId,
+                    telegram_bot_token: clientData.telegram_bot_token,
+                    telegram_chat_id: clientData.telegram_chat_id,
                     twilio_account_sid: clientData.twilio_account_sid,
                     twilio_auth_token: clientData.twilio_auth_token,
                     twilio_phone_number: clientData.twilio_phone_number,
@@ -1763,26 +1780,8 @@
 
 
                     // System Settings
-                    timezone: clientData.timezone,
-                    cancellation_policy: clientData.cancellation_policy,
-                    reminder_interval: clientData.reminder_interval,
                     webhook_secret: clientData.webhook_secret,
                     api_rate_limit: clientData.api_rate_limit,
-                    data_retention_years: clientData.data_retention_years,
-                    backup_frequency: clientData.backup_frequency
-                },
-                template_id: 'pet_clinic_complete', // Deploy all pet clinic workflows
-                deploy_all_workflows: true, // Flag to duplicate all workflows
-                credentials: {
-                    telegram_bot_token: telegramBotToken,
-                    telegram_chat_id: telegramChatId,
-                    twilio_account_sid: clientData.twilio_account_sid,
-                    twilio_auth_token: clientData.twilio_auth_token,
-                    sendgrid_api_key: clientData.sendgrid_api_key,
-                    openai_api_key: clientData.openai_api_key,
-                    calendly_api_key: clientData.calendly_api_key,
-                    facebook_page_token: clientData.facebook_page_token,
-                    stripe_secret_key: clientData.stripe_secret_key
                 }
             };
 
@@ -1961,8 +1960,8 @@
         // Collect form data
         function collectFormData() {
             const businessName = document.getElementById('businessName').value;
-            const contactEmail = document.getElementById('contactEmail').value;
-            const phoneNumber = document.getElementById('phoneNumber').value;
+            const contactEmail = document.getElementById('businessEmail').value;
+            const phoneNumber = document.getElementById('businessPhone').value;
             const telegramBotToken = document.getElementById('telegramBotToken').value;
             const telegramChatId = document.getElementById('telegramChatId').value;
             const supportEmail = document.getElementById('supportEmail').value;
