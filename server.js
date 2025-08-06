@@ -2900,9 +2900,10 @@ app.use((err, req, res, next) => {
 });
 
 // ========================================
-// Google OAuth for n8n Credentials
+// OAuth Flows for Multiple Services (n8n Credentials)
 // ========================================
 
+// Google OAuth Flow
 app.post('/api/auth/google-n8n-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
@@ -3042,6 +3043,236 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
   } catch (error) {
     console.error('Error in Google OAuth callback:', error);
     res.redirect('/etf-onboard?error=oauth_failed');
+  }
+});
+
+// Facebook OAuth Flow
+app.post('/api/auth/facebook-oauth', (req, res) => {
+  try {
+    const state = crypto.randomBytes(32).toString('hex');
+    
+    req.session.facebookOAuthState = state;
+    
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Session storage failed' });
+      }
+
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const redirectUri = `${protocol}://${host}/api/auth/facebook-callback`;
+
+      console.log('🔐 Facebook OAuth initiated with state:', state);
+
+      const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
+        `client_id=${process.env.FACEBOOK_APP_ID}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `response_type=code&` +
+        `scope=${encodeURIComponent('pages_manage_posts,pages_read_engagement,pages_manage_metadata')}&` +
+        `state=${state}`;
+
+      res.json({ authUrl });
+    });
+  } catch (error) {
+    console.error('Error initiating Facebook OAuth:', error);
+    res.status(500).json({ error: 'Failed to initiate Facebook OAuth flow' });
+  }
+});
+
+app.get('/api/auth/facebook-callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      console.error('Facebook OAuth error:', error);
+      return res.redirect('/etf-onboard?error=facebook_oauth_denied');
+    }
+
+    if (!code || !state || state !== req.session.facebookOAuthState) {
+      return res.redirect('/etf-onboard?error=facebook_invalid_state');
+    }
+
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const redirectUri = `${protocol}://${host}/api/auth/facebook-callback`;
+
+    // Exchange code for access token
+    const tokenResponse = await fetch('https://graph.facebook.com/v18.0/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.FACEBOOK_APP_ID,
+        client_secret: process.env.FACEBOOK_APP_SECRET,
+        redirect_uri: redirectUri,
+        code: code
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.access_token) {
+      req.session.facebook_access_token = tokenData.access_token;
+      req.session.facebook_connected = true;
+      delete req.session.facebookOAuthState;
+      
+      console.log('✅ Facebook OAuth completed successfully');
+      res.redirect('/etf-onboard?facebook_connected=true');
+    } else {
+      throw new Error('Failed to obtain Facebook access token');
+    }
+  } catch (error) {
+    console.error('Error in Facebook OAuth callback:', error);
+    res.redirect('/etf-onboard?error=facebook_oauth_failed');
+  }
+});
+
+// Slack OAuth Flow
+app.post('/api/auth/slack-oauth', (req, res) => {
+  try {
+    const state = crypto.randomBytes(32).toString('hex');
+    
+    req.session.slackOAuthState = state;
+    
+    req.session.save((err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Session storage failed' });
+      }
+
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const redirectUri = `${protocol}://${host}/api/auth/slack-callback`;
+
+      const authUrl = `https://slack.com/oauth/v2/authorize?` +
+        `client_id=${process.env.SLACK_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `scope=${encodeURIComponent('chat:write,channels:read,users:read')}&` +
+        `state=${state}`;
+
+      res.json({ authUrl });
+    });
+  } catch (error) {
+    console.error('Error initiating Slack OAuth:', error);
+    res.status(500).json({ error: 'Failed to initiate Slack OAuth flow' });
+  }
+});
+
+app.get('/api/auth/slack-callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      return res.redirect('/etf-onboard?error=slack_oauth_denied');
+    }
+
+    if (!code || !state || state !== req.session.slackOAuthState) {
+      return res.redirect('/etf-onboard?error=slack_invalid_state');
+    }
+
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const redirectUri = `${protocol}://${host}/api/auth/slack-callback`;
+
+    const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.SLACK_CLIENT_ID,
+        client_secret: process.env.SLACK_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        code: code
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.ok && tokenData.access_token) {
+      req.session.slack_access_token = tokenData.access_token;
+      req.session.slack_team_name = tokenData.team?.name || 'Slack Team';
+      req.session.slack_connected = true;
+      delete req.session.slackOAuthState;
+      
+      console.log('✅ Slack OAuth completed successfully');
+      res.redirect('/etf-onboard?slack_connected=true');
+    } else {
+      throw new Error('Failed to obtain Slack access token');
+    }
+  } catch (error) {
+    console.error('Error in Slack OAuth callback:', error);
+    res.redirect('/etf-onboard?error=slack_oauth_failed');
+  }
+});
+
+// GitHub OAuth Flow
+app.post('/api/auth/github-oauth', (req, res) => {
+  try {
+    const state = crypto.randomBytes(32).toString('hex');
+    
+    req.session.githubOAuthState = state;
+    
+    req.session.save((err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Session storage failed' });
+      }
+
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const redirectUri = `${protocol}://${host}/api/auth/github-callback`;
+
+      const authUrl = `https://github.com/login/oauth/authorize?` +
+        `client_id=${process.env.GITHUB_CLIENT_ID}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `scope=${encodeURIComponent('repo,user')}&` +
+        `state=${state}`;
+
+      res.json({ authUrl });
+    });
+  } catch (error) {
+    console.error('Error initiating GitHub OAuth:', error);
+    res.status(500).json({ error: 'Failed to initiate GitHub OAuth flow' });
+  }
+});
+
+app.get('/api/auth/github-callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      return res.redirect('/etf-onboard?error=github_oauth_denied');
+    }
+
+    if (!code || !state || state !== req.session.githubOAuthState) {
+      return res.redirect('/etf-onboard?error=github_invalid_state');
+    }
+
+    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code: code
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.access_token) {
+      req.session.github_access_token = tokenData.access_token;
+      req.session.github_connected = true;
+      delete req.session.githubOAuthState;
+      
+      console.log('✅ GitHub OAuth completed successfully');
+      res.redirect('/etf-onboard?github_connected=true');
+    } else {
+      throw new Error('Failed to obtain GitHub access token');
+    }
+  } catch (error) {
+    console.error('Error in GitHub OAuth callback:', error);
+    res.redirect('/etf-onboard?error=github_oauth_failed');
   }
 });
 

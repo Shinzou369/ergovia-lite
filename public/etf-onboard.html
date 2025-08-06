@@ -742,6 +742,131 @@
             border-radius: 4px;
             font-size: 12px;
         }
+
+        /* New Styles for Connection Options */
+        .connection-option {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background-color: var(--bg-tertiary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .connect-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: var(--transition);
+            margin-bottom: 10px;
+            min-width: 250px;
+        }
+
+        .connect-btn .btn-icon {
+            font-size: 1.2rem;
+        }
+
+        .connect-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .connect-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .helper-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .connection-status {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-status .status-text {
+            font-weight: 600;
+        }
+
+        .connection-status.success {
+            background-color: rgba(40, 167, 69, 0.15);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .connection-status.error {
+            background-color: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        /* Specific Button Styles */
+        .google-btn {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .google-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #3367d6, #2d8e47);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(66, 133, 244, 0.3);
+        }
+
+        .facebook-btn {
+            background: linear-gradient(135deg, #1877f2, #42a5f5);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .facebook-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #166fe5, #1976d2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(24, 119, 242, 0.3);
+        }
+
+        .slack-btn {
+            background: linear-gradient(135deg, #4a154b, #611f69);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .slack-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #3d1142, #4a1550);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 21, 75, 0.3);
+        }
+
+        .github-btn {
+            background: linear-gradient(135deg, #24292e, #586069);
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        .github-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1b1f23, #444d56);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(36, 41, 46, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -1000,7 +1125,7 @@
                     <div class="google-connection-section">
                         <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
                         <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgNi41OUwyLjE4IDcuNjlDNC4wNCAxMi4wNCA3LjczIDE1IDEyIDE1WjEiIGZpbGw9IiNFQTQzMzUiLz4KPHBhdGggZD0iTTIuMTggMTYuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUw5LjYyIDE3LjU3IDI3MTY4NTIxODE2MTNaIiBmaWxsPSIjRkFCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDIuMTggOC4wOUM3LjczIDYuOTkgMTAuMDQgNS4xMiAxMiA1LjEyVjQuNzQ0Mloic"  alt="Google" style="width: 20px; margin-right: 8px;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.৫৬ ৬.৫৭ ১৫.৬৯ ৫.৬৯ ৬.৫৯২.১৮ ৭.৬৯C4.04 12.04 7.73 15 12 15Z"  alt="Google" style="width: 20px; margin-right: 8px;">
                             Connect Google Account
                         </button>
                         <div id="google-status" class="connection-status" style="display: none;">
@@ -1029,14 +1154,14 @@
                                 <li>Sign up at <code>twilio.com</code></li>
                                 <li>Go to Console Dashboard</li>
                                 <li>Find your <strong>Account SID</strong> and <strong>Auth Token</strong></li>
-                                <li>Purchase a phone number in Phone Numbers > Manage > Buy a number</li>
+                                <li>Purchase a phone number in Phone Numbers &gt; Manage &gt; Buy a number</li>
                                 <li>Copy the phone number in E.164 format (+15551234567)</li>
                             </ol>
 
                             <h4>📧 SendGrid Email Setup:</h4>
                             <ol>
                                 <li>Sign up at <code>sendgrid.com</code></li>
-                                <li>Go to Settings > API Keys</li>
+                                <li>Go to Settings &gt; API Keys</li>
                                 <li>Create a new API key with full access</li>
                                 <li>Copy the API key (starts with SG.)</li>
                             </ol>
@@ -1058,6 +1183,67 @@
                             </ol>
                         </div>
                     </details>
+                </div>
+
+                <!-- Add connection options for other services -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <div class="section-icon" style="background: linear-gradient(135deg, #4285F4 0%, #4CAF50 100%);">
+                            <i data-lucide="link"></i>
+                        </div>
+                        <h2 class="section-title">🔗 Connect Other Services</h2>
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-style: italic;">
+                        Connect your essential third-party accounts to unlock full automation capabilities.
+                    </p>
+
+                    <div class="connection-option">
+                        <button id="connectGoogleBtn" class="connect-btn google-btn" onclick="connectGoogleAccount()">
+                            <span class="btn-icon">🔗</span>
+                            Connect Google Account for Automation
+                        </button>
+                        <small class="helper-text">Automatically creates all required Google Sheets and connects Calendar, Drive</small>
+
+                        <div id="google-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ Google account connected successfully</span>
+                        </div>
+                    </div>
+
+                    <div class="connection-option">
+                        <button id="connectFacebookBtn" class="connect-btn facebook-btn" onclick="connectFacebookAccount()">
+                            <span class="btn-icon">📘</span>
+                            Connect Facebook Page for Social Media
+                        </button>
+                        <small class="helper-text">Automatically post updates, respond to messages, and manage your business page</small>
+
+                        <div id="facebook-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ Facebook account connected successfully</span>
+                        </div>
+                    </div>
+
+                    <div class="connection-option">
+                        <button id="connectSlackBtn" class="connect-btn slack-btn" onclick="connectSlackAccount()">
+                            <span class="btn-icon">💬</span>
+                            Connect Slack Workspace for Notifications
+                        </button>
+                        <small class="helper-text">Send staff notifications, alerts, and updates to your team channels</small>
+
+                        <div id="slack-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ Slack workspace connected successfully</span>
+                        </div>
+                    </div>
+
+                    <div class="connection-option">
+                        <button id="connectGitHubBtn" class="connect-btn github-btn" onclick="connectGitHubAccount()">
+                            <span class="btn-icon">🐙</span>
+                            Connect GitHub for Workflow Backups
+                        </button>
+                        <small class="helper-text">Automatically backup and version control your automation workflows</small>
+
+                        <div id="github-status" class="connection-status" style="display: none;">
+                            <span class="status-text">✓ GitHub account connected successfully</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 📊 CONFIGURATION VARIABLES SECTION -->
@@ -1226,7 +1412,7 @@
                             </ul>
 
                             <h4>📱 Social Media IDs:</h4>
-                            <p><strong>Facebook Page ID:</strong> Go to your Facebook page > About > Page Info to find your Page ID</p>
+                            <p><strong>Facebook Page ID:</strong> Go to your Facebook page &gt; About &gt; Page Info to find your Page ID</p>
                             <p><strong>WhatsApp Phone ID:</strong> Found in your WhatsApp Business API dashboard</p>
 
                             <h4>🔗 Google Account Connection:</h4>
@@ -1493,6 +1679,7 @@
         let currentStep = 1;
         const totalSteps = 4;
 
+        // Google OAuth connection
         async function connectGoogleForN8N() {
             const btn = document.getElementById('connect-google-btn');
             const status = document.getElementById('google-status');
@@ -1520,69 +1707,156 @@
             } catch (error) {
                 console.error('Google OAuth error:', error);
                 btn.disabled = false;
-                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZDOS4wNCAxNy41NiA2LjU3IDE1LjY5IDUuNjkgNi41OUwyLjE4IDcuNjlDNC4wNCAxMi4wNCA3LjczIDE1IDEyIDE1WjEiIGZpbGw9IiNFQTQzMzUiLz4KPHBhdGggZD0iTTIuMTggMTYuMTNDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyQzEwLjU5IDIyIDguNDcgMjEuNDYgNi41OSAyMC4zMUw5LjYyIDE3LjU3IDI3MTY4NTIxODE2MTNaIiBmaWxsPSIjRkFCMDA1Ii8+CjxwYXRoIGQ9Ik0xMiA0Ljc0QzEzLjc4IDQuNzQgMTUuMzYgNS4zOSAxNi41 OSA2LjU1TDE5LjYyIDMuNTJDMTcuNTIgMS41OSAxNC44NiAwLjU5IDEyIDAuNTlDNy43MyAwLjU5IDE0LjA0IDIuODUgMi4xOCA2LjU1TDIuMTggOC4wOUM3LjczIDYuOTkgMTAuMDQgNS4xMiAxMiA1LjEyVjQuNzQ0Mloic" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.৫৬ ৬.৫৭ ১৫.৬৯ ৫.৬৯ ৬.৫৯২.১৮ ৭.৬৯C4.04 12.04 7.73 15 12 15Z" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
                 alert('Failed to connect Google account. Please try again.');
             }
         }
 
-        // Check for success/error parameters on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const btn = document.getElementById('connect-google-btn');
-            const status = document.getElementById('google-status');
+        // Facebook OAuth connection
+        async function connectFacebookAccount() {
+            const btn = document.getElementById('connectFacebookBtn');
 
-            if (urlParams.get('google_connected') === 'true') {
-                btn.style.display = 'none';
-                status.style.display = 'block';
-                status.innerHTML = '<span class="status-text" style="color: #4CAF50;">✓ Google account connected successfully for automation</span>';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-icon">⏳</span> Connecting...';
 
-                // Clear URL parameters after success
-                if (window.history.replaceState) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
+            try {
+                const response = await fetch('/api/auth/facebook-oauth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.authUrl) {
+                    window.location.href = data.authUrl;
+                } else {
+                    throw new Error('Failed to get Facebook authorization URL');
                 }
-            } else if (urlParams.get('error')) {
-                const error = urlParams.get('error');
-                let errorMessage = 'Failed to connect Google account.';
-                let helpText = '';
+            } catch (error) {
+                console.error('Facebook OAuth error:', error);
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">❌</span> Connection Failed - Try Again';
 
-                switch (error) {
-                    case 'oauth_denied':
-                        errorMessage = 'Google OAuth access was denied.';
-                        helpText = 'Please click "Connect Google Account" again and allow access.';
-                        break;
-                    case 'invalid_state':
-                        errorMessage = 'Security validation failed.';
-                        helpText = 'This usually happens if the page was refreshed during login. Please try connecting again.';
-                        break;
-                    case 'session_expired':
-                        errorMessage = 'Session expired during authentication.';
-                        helpText = 'Please refresh the page and try connecting again.';
-                        break;
-                    case 'oauth_failed':
-                        errorMessage = 'OAuth process failed.';
-                        helpText = 'Please check your internet connection and try again.';
-                        break;
-                    case 'missing_params':
-                        errorMessage = 'Authentication parameters missing.';
-                        helpText = 'Please try the connection process again.';
-                        break;
-                }
-
-                status.style.display = 'block';
-                status.innerHTML = `
-                    <div style="color: #f44336;">
-                        <span class="status-text">✗ ${errorMessage}</span>
-                        ${helpText ? `<br><small style="color: #666; margin-top: 5px; display: block;">${helpText}</small>` : ''}
-                        <br><button onclick="location.reload()" style="margin-top: 10px; padding: 5px 10px; border: 1px solid #f44336; background: transparent; color: #f44336; border-radius: 3px; cursor: pointer;">Try Again</button>
-                    </div>
-                `;
-
-                // Clear URL parameters after showing error
                 setTimeout(() => {
-                    if (window.history.replaceState) {
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
-                }, 5000);
+                    btn.innerHTML = '<span class="btn-icon">📘</span> Connect Facebook Page for Social Media';
+                }, 3000);
+            }
+        }
+
+        // Slack OAuth connection
+        async function connectSlackAccount() {
+            const btn = document.getElementById('connectSlackBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-icon">⏳</span> Connecting...';
+
+            try {
+                const response = await fetch('/api/auth/slack-oauth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.authUrl) {
+                    window.location.href = data.authUrl;
+                } else {
+                    throw new Error('Failed to get Slack authorization URL');
+                }
+            } catch (error) {
+                console.error('Slack OAuth error:', error);
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">❌</span> Connection Failed - Try Again';
+
+                setTimeout(() => {
+                    btn.innerHTML = '<span class="btn-icon">💬</span> Connect Slack Workspace for Notifications';
+                }, 3000);
+            }
+        }
+
+        // GitHub OAuth connection
+        async function connectGitHubAccount() {
+            const btn = document.getElementById('connectGitHubBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-icon">⏳</span> Connecting...';
+
+            try {
+                const response = await fetch('/api/auth/github-oauth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.authUrl) {
+                    window.location.href = data.authUrl;
+                } else {
+                    throw new Error('Failed to get GitHub authorization URL');
+                }
+            } catch (error) {
+                console.error('GitHub OAuth error:', error);
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">❌</span> Connection Failed - Try Again';
+
+                setTimeout(() => {
+                    btn.innerHTML = '<span class="btn-icon">🐙</span> Connect GitHub for Workflow Backups';
+                }, 3000);
+            }
+        }
+
+        // Check for connection status on page load
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Check Google connection
+            if (urlParams.get('google_connected') === 'true') {
+                const googleBtn = document.getElementById('connectGoogleBtn');
+                const googleStatus = document.getElementById('google-status');
+
+                googleBtn.innerHTML = '<span class="btn-icon">✅</span> Google Connected';
+                googleBtn.disabled = true;
+                googleBtn.style.background = '#28a745';
+                googleStatus.style.display = 'block';
+            }
+
+            // Check Facebook connection
+            if (urlParams.get('facebook_connected') === 'true') {
+                const facebookBtn = document.getElementById('connectFacebookBtn');
+                const facebookStatus = document.getElementById('facebook-status');
+
+                facebookBtn.innerHTML = '<span class="btn-icon">✅</span> Facebook Connected';
+                facebookBtn.disabled = true;
+                facebookBtn.style.background = '#28a745';
+                facebookStatus.style.display = 'block';
+            }
+
+            // Check Slack connection
+            if (urlParams.get('slack_connected') === 'true') {
+                const slackBtn = document.getElementById('connectSlackBtn');
+                const slackStatus = document.getElementById('slack-status');
+
+                slackBtn.innerHTML = '<span class="btn-icon">✅</span> Slack Connected';
+                slackBtn.disabled = true;
+                slackBtn.style.background = '#28a745';
+                slackStatus.style.display = 'block';
+            }
+
+            // Check GitHub connection
+            if (urlParams.get('github_connected') === 'true') {
+                const githubBtn = document.getElementById('connectGitHubBtn');
+                const githubStatus = document.getElementById('github-status');
+
+                githubBtn.innerHTML = '<span class="btn-icon">✅</span> GitHub Connected';
+                githubBtn.disabled = true;
+                githubBtn.style.background = '#28a745';
+                githubStatus.style.display = 'block';
+            }
+
+            // Clean URL after checking all parameters
+            if (urlParams.toString()) {
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
             }
         });
 
@@ -1660,7 +1934,7 @@
             const resultDiv = document.getElementById('result');
             const originalBtnContent = submitBtn.innerHTML;
 
-            // Validate credentials before submission
+            // Validate Telegram credentials before submission
             const telegramBotToken = document.getElementById('telegramBotToken').value;
             const telegramChatId = document.getElementById('telegramChatId').value;
 
