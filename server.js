@@ -2970,19 +2970,24 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
       throw new Error('N8N configuration missing');
     }
 
+    // Create Google Sheets OAuth2 credential which is more commonly used in N8N workflows
     const credentialData = {
-      name: `Google OAuth - ${userInfo.name} (${userEmail})`,
-      type: 'googleOAuth2Api',
+      name: `Google Sheets - ${userInfo.name} (${userEmail})`,
+      type: 'googleSheetsOAuth2Api',
       data: {
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || '',
-        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive'
+        oauthTokenData: {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token || '',
+          scope: tokenData.scope || 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
+          token_type: tokenData.token_type || 'Bearer'
+        }
       }
     };
 
     console.log('Creating n8n credential for:', userEmail);
+    console.log('Credential data structure:', JSON.stringify(credentialData, null, 2));
 
     const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
       method: 'POST',
@@ -3010,8 +3015,8 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
         console.warn('Could not save credential ID to user record:', fileError.message);
       }
 
-      console.log(`Successfully created n8n Google credential for ${userEmail}:`, result.id);
-      return { success: true, credentialId: result.id };
+      console.log(`Successfully created n8n Google Sheets credential for ${userEmail}:`, result.id);
+      return { success: true, credentialId: result.id, credentialType: 'googleSheetsOAuth2Api' };
     } else {
       console.error('N8N API response error:', result);
       throw new Error(`N8N API error: ${result.message || JSON.stringify(result)}`);
