@@ -107,6 +107,19 @@ class N8NApiClient {
       console.log(`🔄 Creating new tag: "${tagName}"`);
       return await this.makeRequest('POST', '/tags', { name: tagName });
     } catch (error) {
+      // Handle 409 conflict errors specifically (tag already exists)
+      if (error.message.includes('409') || error.message.includes('already exists')) {
+        console.log(`✅ Tag "${tagName}" created by another process (409 conflict resolved)`);
+        // Try to fetch the existing tag
+        try {
+          const tagsResponse = await this.makeRequest('GET', '/tags');
+          const tags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
+          const existingTag = tags.find(tag => tag.name === tagName);
+          return existingTag || { name: tagName, id: null };
+        } catch (fetchError) {
+          return { name: tagName, id: null };
+        }
+      }
       console.error(`❌ Error with tag "${tagName}":`, error.message);
       throw error;
     }
@@ -632,9 +645,13 @@ app.post('/api/etf/deploy', async (req, res) => {
         const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
         console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
 
-        // Add tag to the workflow using the correct API format
+        // Add tag to the workflow using a simple numeric format to avoid special character issues
         try {
-          const tagName = `PET[${client_data.name}]`;
+          // Generate a simple numeric tag ID based on client_id and timestamp
+          const tagSuffix = client_id.substring(0, 8).toUpperCase();
+          const tagName = `PET-${tagSuffix}`;
+
+          console.log(`🏷️ Creating tag: "${tagName}" for workflow ${newWorkflow.id}`);
 
           // Ensure tag exists first
           await n8nClient.createTag(tagName);
@@ -647,19 +664,7 @@ app.post('/api/etf/deploy', async (req, res) => {
           // Continue - workflow creation succeeded even if tagging failed
         }
 
-        // Check if workflow can be activated before attempting activation
-        try {
-          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
-          if (canActivate) {
-            await n8nClient.activateWorkflow(newWorkflow.id);
-            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
-          } else {
-            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
-          }
-        } catch (activationError) {
-          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError.message}`);
-          // Continue with next workflow instead of failing completely
-        }
+        
 
         // Save deployment record
         const deployment_id = uuidv4();
@@ -673,12 +678,50 @@ app.post('/api/etf/deploy', async (req, res) => {
           );
         });
 
+        // Track activation status for summary
+        let activationStatus = 'activated';
+        let activationError = null;
+        
+        // Check if workflow can be activated before attempting activation
+        try {
+          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
+          if (canActivate) {
+            // Try to activate workflow
+            await n8nClient.activateWorkflow(newWorkflow.id);
+            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+          } else {
+            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+            activationStatus = 'no_trigger';
+          }
+        } catch (activationError_caught) {
+          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError_caught.message}`);
+          
+          activationStatus = 'failed';
+          activationError = activationError_caught.message;
+          
+          // Log specific error types for debugging
+          if (activationError_caught.message.includes('credentials')) {
+            console.log(`📝 Note: Workflow ${newWorkflow.id} needs credentials to be configured before activation`);
+            activationStatus = 'needs_credentials';
+          } else if (activationError_caught.message.includes('cron')) {
+            console.log(`📝 Note: Workflow ${newWorkflow.id} has invalid cron expression - needs manual fix`);
+            activationStatus = 'invalid_cron';
+          } else if (activationError_caught.message.includes('trim')) {
+            console.log(`📝 Note: Workflow ${newWorkflow.id} has configuration issues - needs manual review`);
+            activationStatus = 'config_error';
+          }
+          
+          // Continue with next workflow instead of failing completely
+        }
+
         duplicatedWorkflows.push({
           original_id: petWorkflow.id,
           original_name: petWorkflow.name,
           new_id: newWorkflow.id,
           new_name: newWorkflow.name,
-          deployment_id: deployment_id
+          deployment_id: deployment_id,
+          activation_status: activationStatus,
+          activation_error: activationError
         });
 
       } catch (workflowError) {
@@ -702,12 +745,24 @@ app.post('/api/etf/deploy', async (req, res) => {
       throw new Error('Failed to duplicate any PET workflows');
     }
 
+    // Count activation status
+    const activatedCount = duplicatedWorkflows.filter(w => 
+      !w.activation_error && w.activated !== false
+    ).length;
+    
+    const needsCredentialsCount = duplicatedWorkflows.filter(w => 
+      w.activation_error && w.activation_error.includes('credentials')
+    ).length;
+
     res.json({
       success: true,
       client_id: client_id,
       duplicated_workflows: duplicatedWorkflows,
       total_duplicated: duplicatedWorkflows.length,
-      message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}`
+      activated_workflows: activatedCount,
+      workflows_needing_credentials: needsCredentialsCount,
+      tag_applied: `PET-${client_id.substring(0, 8).toUpperCase()}`,
+      message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials.`
     });
 
   } catch (error) {
