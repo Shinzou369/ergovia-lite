@@ -1,0 +1,172 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtDay": 1,
+              "triggerAtHour": 2,
+              "triggerAtMinute": 0,
+              "triggerInterval": "month"
+            }
+          ]
+        },
+        "timezone": "{{TIMEZONE}}"
+      },
+      "name": "Monthly Archive Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -500,
+        200
+      ],
+      "id": "monthly-archive-trigger"
+    },
+    {
+      "parameters": {
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "options": {
+          "range": "A:Z"
+        }
+      },
+      "name": "Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -240,
+        200
+      ],
+      "id": "get-all-appointments",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst archiveThresholdYears = 5;\nconst archiveCutoffDate = new Date();\narchiveCutoffDate.setFullYear(archiveCutoffDate.getFullYear() - archiveThresholdYears);\n\nconst allAppointments = $input.all().map(item => item.json);\nconst appointmentsToArchive = allAppointments.filter(appointment => {\n  const dateFields = [appointment['Date'], appointment['Appointment Date'], appointment['AppointmentDate']];\n  let appointmentDate = null;\n  \n  for (const dateField of dateFields) {\n    if (dateField) {\n      const parsedDate = new Date(dateField);\n      if (!isNaN(parsedDate.getTime())) {\n        appointmentDate = parsedDate;\n        break;\n      }\n    }\n  }\n  \n  return appointmentDate && appointmentDate < archiveCutoffDate;\n});\n\nconst archivalResults = {\n  timestamp: now.toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  total_records_processed: allAppointments.length,\n  records_to_archive: appointmentsToArchive.length,\n  status: appointmentsToArchive.length > 0 ? 'ARCHIVAL_REQUIRED' : 'NO_ARCHIVAL_NEEDED',\n  appointments_to_archive: appointmentsToArchive\n};\n\nreturn [{ json: archivalResults }];"
+      },
+      "name": "Identify Records for Archive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        200
+      ],
+      "id": "identify-archive-records"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "archive-required-condition",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ARCHIVAL_REQUIRED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Archive Required?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        280,
+        200
+      ],
+      "id": "archive-required-check"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ARCHIVE_SHEET_ID}}",
+        "sheetName": "{{ARCHIVE_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        },
+        "options": {}
+      },
+      "name": "Move to Archive Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        540,
+        100
+      ],
+      "id": "move-to-archive-sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Monthly Archive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Appointments": {
+      "main": [
+        [
+          {
+            "node": "Identify Records for Archive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Records for Archive": {
+      "main": [
+        [
+          {
+            "node": "Archive Required?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archive Required?": {
+      "main": [
+        [
+          {
+            "node": "Move to Archive Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "TEMPLATE_INSTANCE"
+  }
+}
