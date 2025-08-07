@@ -247,6 +247,18 @@ function initETFDatabase() {
     )
   `);
 
+  // Client history table for tracking changes
+  etfDB.run(`
+    CREATE TABLE IF NOT EXISTS etf_client_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(client_id) REFERENCES etf_clients(id)
+    )
+  `);
+
   console.log('ETF Database initialized');
   return etfDB;
 }
@@ -730,13 +742,23 @@ app.post('/api/etf/deploy', async (req, res) => {
       }
     }
 
-    // Insert client record (only once for all workflows)
+    // Insert client record (only once for all workflows) with proper email association
     await new Promise((resolve, reject) => {
       etfDB.run(
         `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [client_id, client_data.name, client_data.email, client_data.name, 
-         'General', 'general'],
+        [client_id, client_data.name, client_data.email || 'unknown@example.com', client_data.name, 
+         'Pet Clinic', 'dental'],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    // Log the initial deployment to history
+    await new Promise((resolve, reject) => {
+      etfDB.run(
+        `INSERT INTO etf_client_history (client_id, action, details, timestamp)
+         VALUES (?, ?, ?, ?)`,
+        [client_id, 'Initial Deployment', `Deployed ${duplicatedWorkflows.length} workflows for ${client_data.name}`, new Date().toISOString()],
         (err) => err ? reject(err) : resolve()
       );
     });
@@ -1095,6 +1117,244 @@ app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
       error: 'Internal server error during validation'
     });
   }
+});
+
+// ETF Client Control Panel API endpoints
+
+// Get client deployments by email
+app.get('/api/etf/client-deployments', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email parameter is required' });
+    }
+
+    // Get client by email
+    const clientSql = `SELECT * FROM etf_clients WHERE email = ?`;
+    
+    etfDB.all(clientSql, [email], (err, clients) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Failed to fetch client data' });
+      }
+
+      if (clients.length === 0) {
+        return res.json({ deployments: [] });
+      }
+
+      // Get deployments for these clients
+      const clientIds = clients.map(c => c.id);
+      const deploymentSql = `
+        SELECT 
+          etf_deployments.*,
+          etf_clients.name as client_name,
+          etf_clients.email as client_email,
+          (SELECT COUNT(*) FROM etf_deployments d2 WHERE d2.client_id = etf_deployments.client_id) as total_workflows
+        FROM etf_deployments 
+        JOIN etf_clients ON etf_deployments.client_id = etf_clients.id
+        WHERE etf_deployments.client_id IN (${clientIds.map(() => '?').join(',')})
+        ORDER BY etf_deployments.deployed_at DESC
+      `;
+
+      etfDB.all(deploymentSql, clientIds, (err, deployments) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ error: 'Failed to fetch deployments' });
+        }
+
+        // Group by client for easier handling
+        const groupedDeployments = [];
+        const clientMap = new Map();
+
+        deployments.forEach(deployment => {
+          if (!clientMap.has(deployment.client_id)) {
+            clientMap.set(deployment.client_id, {
+              client_id: deployment.client_id,
+              client_name: deployment.client_name,
+              client_email: deployment.client_email,
+              created_at: deployment.deployed_at,
+              total_workflows: deployment.total_workflows,
+              workflows: []
+            });
+            groupedDeployments.push(clientMap.get(deployment.client_id));
+          }
+          
+          clientMap.get(deployment.client_id).workflows.push({
+            deployment_id: deployment.id,
+            workflow_name: deployment.workflow_name,
+            n8n_workflow_id: deployment.n8n_workflow_id,
+            status: deployment.status,
+            deployed_at: deployment.deployed_at
+          });
+        });
+
+        res.json({ deployments: groupedDeployments });
+      });
+    });
+
+  } catch (error) {
+    console.error('Error fetching client deployments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get client configuration
+app.get('/api/etf/client-config/:clientId', (req, res) => {
+  const { clientId } = req.params;
+
+  const sql = `
+    SELECT config_data 
+    FROM etf_deployments 
+    WHERE client_id = ? 
+    ORDER BY deployed_at DESC 
+    LIMIT 1
+  `;
+
+  etfDB.get(sql, [clientId], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch configuration' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json({ 
+      config: row.config_data,
+      client_id: clientId 
+    });
+  });
+});
+
+// Get client workflows
+app.get('/api/etf/client-workflows/:clientId', (req, res) => {
+  const { clientId } = req.params;
+
+  const sql = `
+    SELECT 
+      id,
+      template_id,
+      n8n_workflow_id,
+      workflow_name,
+      status,
+      deployed_at
+    FROM etf_deployments 
+    WHERE client_id = ?
+    ORDER BY deployed_at DESC
+  `;
+
+  etfDB.all(sql, [clientId], (err, workflows) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch workflows' });
+    }
+
+    // Add N8N URLs to workflows
+    const workflowsWithUrls = workflows.map(workflow => ({
+      ...workflow,
+      n8n_url: `${N8N_BASE_URL}/workflow/${workflow.n8n_workflow_id}`
+    }));
+
+    res.json({ workflows: workflowsWithUrls });
+  });
+});
+
+// Update client configuration
+app.post('/api/etf/update-client-config/:clientId', (req, res) => {
+  const { clientId } = req.params;
+  const { config, changes } = req.body;
+
+  if (!config) {
+    return res.status(400).json({ error: 'Configuration data is required' });
+  }
+
+  // Start transaction
+  etfDB.serialize(() => {
+    etfDB.run('BEGIN TRANSACTION');
+
+    // Update all deployments for this client with new config
+    const updateSql = `
+      UPDATE etf_deployments 
+      SET config_data = ?
+      WHERE client_id = ?
+    `;
+
+    etfDB.run(updateSql, [JSON.stringify(config), clientId], function(err) {
+      if (err) {
+        console.error('Error updating config:', err);
+        etfDB.run('ROLLBACK');
+        return res.status(500).json({ error: 'Failed to update configuration' });
+      }
+
+      // Log the change to history
+      if (changes && Object.keys(changes).length > 0) {
+        const changeDetails = Object.entries(changes).map(([field, change]) => 
+          `${field}: "${change.old}" → "${change.new}"`
+        ).join(', ');
+
+        const historySql = `
+          INSERT INTO etf_client_history (client_id, action, details, timestamp)
+          VALUES (?, ?, ?, ?)
+        `;
+
+        etfDB.run(historySql, [
+          clientId,
+          'Configuration Updated',
+          `Updated ${Object.keys(changes).length} fields: ${changeDetails}`,
+          new Date().toISOString()
+        ], (historyErr) => {
+          if (historyErr) {
+            console.warn('Failed to log change history:', historyErr);
+          }
+
+          etfDB.run('COMMIT');
+          console.log(`✅ Configuration updated for client ${clientId}`);
+          
+          res.json({
+            success: true,
+            message: 'Configuration updated successfully',
+            changes_applied: Object.keys(changes).length
+          });
+        });
+      } else {
+        etfDB.run('COMMIT');
+        res.json({
+          success: true,
+          message: 'Configuration updated successfully',
+          changes_applied: 0
+        });
+      }
+    });
+  });
+});
+
+// Get client change history
+app.get('/api/etf/client-history/:clientId', (req, res) => {
+  const { clientId } = req.params;
+
+  const sql = `
+    SELECT action, details, timestamp
+    FROM etf_client_history 
+    WHERE client_id = ?
+    ORDER BY timestamp DESC
+    LIMIT 50
+  `;
+
+  etfDB.all(sql, [clientId], (err, history) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch change history' });
+    }
+
+    res.json({ history: history || [] });
+  });
+});
+
+// ETF Client Panel route
+app.get('/etf-client-panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'etf-client-panel.html'));
 });
 
 // Test endpoint to personalize the Telegram workflow

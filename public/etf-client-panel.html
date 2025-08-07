@@ -1,0 +1,707 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF Client Control Panel</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .client-panel {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .panel-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+        }
+
+        .panel-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            color: #333;
+            margin: 0 0 20px 0;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .icon {
+            font-size: 1.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .workflow-list {
+            display: grid;
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .workflow-item {
+            padding: 15px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .workflow-info {
+            flex: 1;
+        }
+
+        .workflow-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .workflow-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .workflow-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .history-log {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .history-action {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .history-details {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .save-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            color: #dc3545;
+            padding: 15px;
+            background: #f8d7da;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .success {
+            color: #155724;
+            padding: 15px;
+            background: #d4edda;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .info-card {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-card h4 {
+            margin: 0 0 10px 0;
+            color: #1565c0;
+        }
+
+        .info-card p {
+            margin: 0;
+            color: #1976d2;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="client-panel">
+        <div class="panel-header">
+            <h1>🎛️ ETF Client Control Panel</h1>
+            <p>Manage your deployed workflows and business settings</p>
+        </div>
+
+        <div id="authCheck" class="loading">
+            Checking authentication...
+        </div>
+
+        <div id="mainPanel" style="display: none;">
+            <div class="info-card">
+                <h4>📋 Your ETF Deployment</h4>
+                <p id="deploymentInfo">Loading deployment information...</p>
+            </div>
+
+            <div class="panel-grid">
+                <!-- Business Information Section -->
+                <div class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">🏢</span>
+                        Business Information
+                    </h2>
+                    <form id="businessForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="businessName">Business Name</label>
+                                <input type="text" id="businessName" name="business_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="businessEmail">Business Email</label>
+                                <input type="email" id="businessEmail" name="business_email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="businessPhone">Business Phone</label>
+                                <input type="tel" id="businessPhone" name="business_phone" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="websiteUrl">Website URL</label>
+                                <input type="url" id="websiteUrl" name="website_url">
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="businessAddress">Business Address</label>
+                            <textarea id="businessAddress" name="business_address" rows="3"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="businessHours">Business Hours</label>
+                            <textarea id="businessHours" name="business_hours" rows="2" 
+                                      placeholder="Mon-Fri: 8AM-6PM, Sat: 9AM-3PM"></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Service Information Section -->
+                <div class="panel-section">
+                    <h2 class="section-title">
+                        <span class="icon">🐾</span>
+                        Service Information
+                    </h2>
+                    <form id="serviceForm">
+                        <div class="form-group">
+                            <label for="servicesOffered">Services Offered</label>
+                            <textarea id="servicesOffered" name="services_offered" rows="3" 
+                                      placeholder="Vaccinations, Surgery, Dental Care, Emergency Services"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyContact">Emergency Contact</label>
+                            <input type="tel" id="emergencyContact" name="emergency_contact">
+                        </div>
+                        <div class="form-group">
+                            <label for="veterinarianName">Primary Veterinarian</label>
+                            <input type="text" id="veterinarianName" name="veterinarian_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="appointmentTypes">Appointment Types</label>
+                            <textarea id="appointmentTypes" name="appointment_types" rows="2" 
+                                      placeholder="Wellness Exam, Vaccination, Surgery, Emergency"></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Workflow Management Section -->
+            <div class="panel-section">
+                <h2 class="section-title">
+                    <span class="icon">⚙️</span>
+                    Deployed Workflows
+                </h2>
+                <div id="workflowList" class="workflow-list">
+                    Loading workflows...
+                </div>
+            </div>
+
+            <!-- Change History Section -->
+            <div class="panel-section">
+                <h2 class="section-title">
+                    <span class="icon">📝</span>
+                    Change History
+                </h2>
+                <div id="historyLog" class="history-log">
+                    Loading change history...
+                </div>
+            </div>
+
+            <!-- Save Section -->
+            <div class="save-section">
+                <button id="saveChanges" class="btn btn-success" style="margin-right: 15px; font-size: 16px; padding: 15px 30px;">
+                    💾 Save All Changes
+                </button>
+                <button id="resetChanges" class="btn btn-secondary" style="font-size: 16px; padding: 15px 30px;">
+                    🔄 Reset to Original
+                </button>
+                <div id="saveStatus" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script>
+        let originalData = {};
+        let currentClientId = null;
+        let deploymentData = null;
+
+        // Check authentication and load client data
+        async function initializePanel() {
+            try {
+                const authStatus = await checkAuthStatus();
+                
+                if (!authStatus.authenticated) {
+                    document.getElementById('authCheck').innerHTML = `
+                        <div class="error">
+                            <h3>Authentication Required</h3>
+                            <p>Please log in to access your ETF Control Panel.</p>
+                            <button class="btn btn-primary" onclick="initiateGoogleLogin()">Login</button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Check if user has ETF deployments
+                await loadClientDeployments(authStatus.user.email);
+                
+            } catch (error) {
+                console.error('Error initializing panel:', error);
+                document.getElementById('authCheck').innerHTML = `
+                    <div class="error">
+                        <h3>Error Loading Panel</h3>
+                        <p>Failed to load your ETF control panel. Please try again.</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadClientDeployments(userEmail) {
+            try {
+                const response = await fetch(`/api/etf/client-deployments?email=${encodeURIComponent(userEmail)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load deployments');
+                }
+
+                if (data.deployments && data.deployments.length > 0) {
+                    // Use the first deployment (could be enhanced to handle multiple)
+                    deploymentData = data.deployments[0];
+                    currentClientId = deploymentData.client_id;
+                    
+                    document.getElementById('deploymentInfo').innerHTML = `
+                        <strong>${deploymentData.client_name}</strong> - 
+                        ${deploymentData.total_workflows} workflows deployed on ${new Date(deploymentData.created_at).toLocaleDateString()}
+                    `;
+                    
+                    await loadClientData();
+                    await loadWorkflows();
+                    await loadChangeHistory();
+                    
+                    document.getElementById('authCheck').style.display = 'none';
+                    document.getElementById('mainPanel').style.display = 'block';
+                } else {
+                    // No deployments found
+                    document.getElementById('authCheck').innerHTML = `
+                        <div class="info-card">
+                            <h4>No ETF Deployments Found</h4>
+                            <p>You don't have any ETF deployments yet. Would you like to create one?</p>
+                            <a href="/etf-onboard" class="btn btn-primary">Start ETF Onboarding</a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading deployments:', error);
+                document.getElementById('authCheck').innerHTML = `
+                    <div class="error">
+                        <h3>Error Loading Deployments</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadClientData() {
+            try {
+                const response = await fetch(`/api/etf/client-config/${currentClientId}`);
+                const data = await response.json();
+
+                if (response.ok && data.config) {
+                    const config = JSON.parse(data.config);
+                    originalData = { ...config };
+                    
+                    // Populate form fields
+                    populateForm(config);
+                }
+            } catch (error) {
+                console.error('Error loading client data:', error);
+            }
+        }
+
+        function populateForm(config) {
+            // Business Information
+            document.getElementById('businessName').value = config.business_name || '';
+            document.getElementById('businessEmail').value = config.business_email || '';
+            document.getElementById('businessPhone').value = config.business_phone || '';
+            document.getElementById('websiteUrl').value = config.website_url || '';
+            document.getElementById('businessAddress').value = config.business_address || config.clinic_address || '';
+            document.getElementById('businessHours').value = config.business_hours || config.clinic_hours || '';
+
+            // Service Information
+            document.getElementById('servicesOffered').value = config.services_offered || '';
+            document.getElementById('emergencyContact').value = config.emergency_contact || '';
+            document.getElementById('veterinarianName').value = config.veterinarian_name || '';
+            document.getElementById('appointmentTypes').value = config.appointment_types || '';
+        }
+
+        async function loadWorkflows() {
+            try {
+                const response = await fetch(`/api/etf/client-workflows/${currentClientId}`);
+                const data = await response.json();
+
+                if (response.ok && data.workflows) {
+                    renderWorkflows(data.workflows);
+                } else {
+                    document.getElementById('workflowList').innerHTML = '<p>No workflows found.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading workflows:', error);
+                document.getElementById('workflowList').innerHTML = '<p class="error">Error loading workflows.</p>';
+            }
+        }
+
+        function renderWorkflows(workflows) {
+            const container = document.getElementById('workflowList');
+            
+            if (workflows.length === 0) {
+                container.innerHTML = '<p>No workflows deployed yet.</p>';
+                return;
+            }
+
+            container.innerHTML = workflows.map(workflow => `
+                <div class="workflow-item">
+                    <div class="workflow-info">
+                        <div class="workflow-name">${workflow.workflow_name}</div>
+                        <span class="workflow-status ${workflow.status === 'active' ? 'status-active' : 'status-inactive'}">
+                            ${workflow.status}
+                        </span>
+                    </div>
+                    <div class="workflow-actions">
+                        <a href="${workflow.n8n_url}" target="_blank" class="btn btn-secondary btn-small">
+                            View in N8N
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadChangeHistory() {
+            try {
+                const response = await fetch(`/api/etf/client-history/${currentClientId}`);
+                const data = await response.json();
+
+                if (response.ok && data.history) {
+                    renderHistory(data.history);
+                } else {
+                    document.getElementById('historyLog').innerHTML = '<p>No change history available.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+                document.getElementById('historyLog').innerHTML = '<p class="error">Error loading change history.</p>';
+            }
+        }
+
+        function renderHistory(history) {
+            const container = document.getElementById('historyLog');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<p>No changes recorded yet.</p>';
+                return;
+            }
+
+            container.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
+                    <div class="history-action">${item.action}</div>
+                    <div class="history-details">${item.details}</div>
+                </div>
+            `).join('');
+        }
+
+        async function saveChanges() {
+            const saveBtn = document.getElementById('saveChanges');
+            const statusDiv = document.getElementById('saveStatus');
+            
+            saveBtn.disabled = true;
+            saveBtn.textContent = '💾 Saving...';
+            statusDiv.innerHTML = '';
+
+            try {
+                // Collect current form data
+                const businessForm = new FormData(document.getElementById('businessForm'));
+                const serviceForm = new FormData(document.getElementById('serviceForm'));
+                
+                const newConfig = {};
+                
+                // Combine form data
+                for (let [key, value] of businessForm.entries()) {
+                    newConfig[key] = value;
+                }
+                for (let [key, value] of serviceForm.entries()) {
+                    newConfig[key] = value;
+                }
+
+                // Check what changed
+                const changes = getChanges(originalData, newConfig);
+                
+                if (Object.keys(changes).length === 0) {
+                    statusDiv.innerHTML = '<div class="info-card"><p>No changes detected.</p></div>';
+                    return;
+                }
+
+                // Confirm changes
+                const confirmMsg = `You are about to update ${Object.keys(changes).length} fields:\n\n` +
+                    Object.entries(changes).map(([key, change]) => 
+                        `• ${key}: "${change.old}" → "${change.new}"`
+                    ).join('\n') + '\n\nContinue?';
+
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                // Save changes
+                const response = await fetch(`/api/etf/update-client-config/${currentClientId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        config: newConfig,
+                        changes: changes
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    statusDiv.innerHTML = '<div class="success">✅ Changes saved successfully!</div>';
+                    originalData = { ...newConfig };
+                    
+                    // Reload history to show new changes
+                    await loadChangeHistory();
+                } else {
+                    throw new Error(result.error || 'Failed to save changes');
+                }
+
+            } catch (error) {
+                console.error('Error saving changes:', error);
+                statusDiv.innerHTML = `<div class="error">❌ Error saving changes: ${error.message}</div>`;
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save All Changes';
+            }
+        }
+
+        function getChanges(original, current) {
+            const changes = {};
+            
+            Object.keys(current).forEach(key => {
+                const oldValue = original[key] || '';
+                const newValue = current[key] || '';
+                
+                if (oldValue !== newValue) {
+                    changes[key] = {
+                        old: oldValue,
+                        new: newValue
+                    };
+                }
+            });
+            
+            return changes;
+        }
+
+        function resetChanges() {
+            if (confirm('Are you sure you want to reset all changes to the original values?')) {
+                populateForm(originalData);
+                document.getElementById('saveStatus').innerHTML = '<div class="success">✅ Form reset to original values.</div>';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('saveChanges').addEventListener('click', saveChanges);
+        document.getElementById('resetChanges').addEventListener('click', resetChanges);
+
+        // Initialize the panel
+        document.addEventListener('DOMContentLoaded', initializePanel);
+    </script>
+</body>
+</html>
