@@ -231,6 +231,41 @@
         },
       ];
 
+      // Store user deployments globally
+      let userDeployments = [];
+
+      // Check if user has deployments for specific template
+      async function checkUserDeployments() {
+        try {
+          const authStatus = await checkAuthStatus();
+          if (!authStatus.authenticated) {
+            return;
+          }
+
+          const response = await fetch(`/api/etf/client-deployments?email=${encodeURIComponent(authStatus.user.email)}`);
+          const data = await response.json();
+
+          if (response.ok && data.deployments) {
+            userDeployments = data.deployments;
+          }
+        } catch (error) {
+          console.log('Could not check user deployments:', error);
+        }
+      }
+
+      // Check if user has deployed a specific template type
+      function hasDeployment(templateId) {
+        if (templateId === 'pet-clinic') {
+          // Check if user has any Pet Clinic deployments
+          return userDeployments.some(deployment => 
+            deployment.total_workflows > 0 && 
+            deployment.client_name && 
+            deployment.client_name.toLowerCase().includes('pet')
+          );
+        }
+        return false;
+      }
+
       // Render templates
       function renderTemplates(templatesToRender = templates) {
         const grid = document.getElementById("templates-grid");
@@ -247,17 +282,30 @@
 
         grid.innerHTML = templatesToRender
           .map((template) => {
-            // Pet Clinic has onboarding, others show "Coming Soon"
+            // Check if user has deployment for this template
+            const hasUserDeployment = hasDeployment(template.id);
             let onclickAction, overlayContent;
 
             if (template.id === "pet-clinic") {
-              onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
-              overlayContent = `<div class="coming-soon-overlay">
-                  <i class="overlay-icon" data-lucide="rocket"></i>
-                  <span class="overlay-text">Get Started!</span>
-                  <span class="overlay-subtitle">Deploy your AI vet assistant</span>
-                </div>`;
+              if (hasUserDeployment) {
+                // User has Pet Clinic deployment - show Control Panel
+                onclickAction = `onclick="window.location.href='/etf-client-panel'"`;
+                overlayContent = `<div class="coming-soon-overlay deployed">
+                    <i class="overlay-icon" data-lucide="settings"></i>
+                    <span class="overlay-text">Control Panel</span>
+                    <span class="overlay-subtitle">Manage your deployed AI assistant</span>
+                  </div>`;
+              } else {
+                // No deployment - show Get Started
+                onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
+                overlayContent = `<div class="coming-soon-overlay">
+                    <i class="overlay-icon" data-lucide="rocket"></i>
+                    <span class="overlay-text">Get Started!</span>
+                    <span class="overlay-subtitle">Deploy your AI vet assistant</span>
+                  </div>`;
+              }
             } else {
+              // Other templates - always show Get Started for now
               onclickAction = `onclick="window.location.href='/etf-onboard'"`;
               overlayContent = `<div class="coming-soon-overlay">
                   <i class="overlay-icon" data-lucide="rocket"></i>
@@ -267,7 +315,7 @@
             }
 
             return `
-        <div class="template-card" ${onclickAction}>
+        <div class="template-card ${hasUserDeployment ? 'deployed' : ''}" ${onclickAction}>
           ${overlayContent}
           <div class="card-icon">${template.icon}</div>
           <div class="card-content">
@@ -394,8 +442,10 @@
         // Initial enforcement
         enforceCorrectHeroContent();
 
-        // Render templates
-        renderTemplates();
+        // Check user deployments and render templates
+        checkUserDeployments().then(() => {
+          renderTemplates();
+        });
 
         // Create a robust protection system for hero content
         if (heroSection && heroContent) {

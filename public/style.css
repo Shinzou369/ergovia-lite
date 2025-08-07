@@ -1793,6 +1793,65 @@ i {
   border: none;
 }
 
+/* Auth buttons styling */
+.login-btn,
+.signup-btn,
+.logout-btn {
+  background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.login-btn:hover,
+.signup-btn:hover,
+.logout-btn:hover {
+  background: var(--bg-chat);
+  transform: translateY(-1px);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.login-btn {
+  background: var(--ergovia-gradient);
+  color: white;
+  border: none;
+}
+
+.login-btn:hover {
+  background: var(--ergovia-gradient);
+  color: white;
+  box-shadow: var(--shadow);
+}
+
+.signup-btn {
+  background: transparent;
+  border: 1px solid var(--border-light);
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.logout-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+}
+
 /* Legacy styles for backward compatibility */
 .google-login-btn,
 .admin-link {
@@ -1932,8 +1991,7 @@ i {
 /* Secondary FAB for token counter */
 .fab-secondary {
   background: var(--ergovia-navy);
-  opacity: ```python
-0.9;
+  opacity: 0.9;
 }
 
 .fab-secondary:hover {
@@ -2832,35 +2890,42 @@ a:focus-visible {
   gap: 20px;
 }
 
+/* Deployed template styles */
+.template-card.deployed {
+  border-color: #28a745;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(40, 167, 69, 0.05) 100%);
+}
+
+.template-card.deployed:hover {
+  border-color: #28a745;
+  box-shadow: 0 20px 40px rgba(40, 167, 69, 0.2);
+}
+
 /* Coming Soon Overlay */
 .coming-soon-overlay {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  font-weight: 600;
-  font-size: 1.2rem;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(103, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  color: white;
   opacity: 0;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 5;
-  pointer-events: none;
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(8px);
-  transform: scale(0.95);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+/* Deployed overlay styles */
+.coming-soon-overlay.deployed {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.95) 0%, rgba(34, 139, 34, 0.95) 100%);
 }
 
 .template-card:hover .coming-soon-overlay {
   opacity: 1;
-  transform: scale(1);
-  background: rgba(0, 0, 0, 0.75);
 }
 
 /* Pet Clinic specific enhanced overlay */
@@ -2873,7 +2938,7 @@ a:focus-visible {
 .template-card[onclick*="pet-clinic"]:hover .coming-soon-overlay {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
   border-color: rgba(16, 185, 129, 0.6);
-  box-shadow: 0 25px 50px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 30px 60px rgba(16, 185, 129, 0.4);
   animation: petClinicPulse 2s ease-in-out infinite;
 }
 
@@ -3597,79 +3662,81 @@ footer a[href*="linkedin"]:hover {
     margin-bottom: 15px !important;
   }
 
-  footer a[title*="Follow"], footer a[title*="Connect"] {
+  footer a[title*="Follow"],
+  footer a[title*="Connect"] {
     width: 36px !important;
     height: 36px !important;
   }
 
-  footer a[title*="Follow"] i, footer a[title*="Connect"] i {
+  footer a[title*="Follow"] i,
+  footer a[title*="Connect"] i {
     width: 18px !important;
     height: 18px !important;
   }
 }
 
 /* Custom Subscribe Button */
-  .custom-subscribe-btn {
-    background: var(--primary-gradient);
-    border: none;
-    border-radius: var(--radius-lg);
-    padding: 16px 24px;
-    width: 100%;
-    max-width: 280px;
-    margin: 0 auto;
-    cursor: pointer;
-    transition: var(--transition);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    box-shadow: 0 4px 15px rgba(184, 165, 72, 0.3);
-    position: relative;
-    overflow: hidden;
-  }
+.custom-subscribe-btn {
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(184, 165, 72, 0.3);
+  position: relative;
+  overflow: hidden;
+}
 
-  .custom-subscribe-btn:hover {
-    background: var(--ergovia-gold);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(184, 165, 72, 0.4);
-  }
+.custom-subscribe-btn:hover {
+  background: var(--ergovia-gold);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(184, 165, 72, 0.4);
+}
 
-  .custom-subscribe-btn:active {
-    transform: translateY(-1px);
-  }
+.custom-subscribe-btn:active {
+  transform: translateY(-1px);
+}
 
-  .custom-subscribe-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.6s;
-  }
+.custom-subscribe-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
 
-  .custom-subscribe-btn:hover::before {
-    left: 100%;
-  }
+.custom-subscribe-btn:hover::before {
+  left: 100%;
+}
 
-  .custom-subscribe-btn i {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2;
-  }
+.custom-subscribe-btn i {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
 
-  .btn-price {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 4px 12px;
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-left: 8px;
-  }
+.btn-price {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
 
 /* Google OAuth Connection Styles */
 .google-connection-section {
