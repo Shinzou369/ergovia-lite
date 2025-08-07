@@ -88,6 +88,7 @@ class N8NApiClient {
   async getWorkflows() { return await this.makeRequest('GET', '/workflows'); }
   async getWorkflow(id) { return await this.makeRequest('GET', `/workflows/${id}`); }
   async createWorkflow(workflowData) { return await this.makeRequest('POST', '/workflows', workflowData); }
+  async updateWorkflow(id, workflowData) { return await this.makeRequest('PUT', `/workflows/${id}`, workflowData); }
   async activateWorkflow(id) { return await this.makeRequest('POST', `/workflows/${id}/activate`); }
 
   // Create or get tag first, then update workflow with tags
@@ -531,7 +532,7 @@ app.post('/api/etf/deploy', async (req, res) => {
   try {
     console.log('📋 ETF Deploy request received:', JSON.stringify(req.body, null, 2));
 
-    let { client_data, config_data, template_id } = req.body;
+    let { client_data, config_data, template_ids } = req.body; // Changed template_id to template_ids to handle multiple
 
     // Validate required data
     if (!client_data || !client_data.name) {
@@ -565,12 +566,12 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Auto-create Google Sheets if Google OAuth is connected
     let createdSheets = {};
     const hasGoogleOAuth = req.session?.google_access_token || config_data.google_access_token;
-    
+
     if (hasGoogleOAuth) {
       console.log('🔗 Google OAuth detected, creating required Google Sheets...');
       try {
         createdSheets = await createRequiredGoogleSheets(client_data, req.session?.google_access_token || config_data.google_access_token);
-        
+
         // Update config_data with created sheet IDs
         Object.assign(config_data, createdSheets);
         console.log('✅ Created Google Sheets:', Object.keys(createdSheets));
@@ -594,89 +595,66 @@ app.post('/api/etf/deploy', async (req, res) => {
       });
     }
 
-    // Find ALL PET workflows for duplication
-    console.log('🔍 Searching for ALL PET workflows to duplicate...');
+    // Ensure template_ids is an array
+    const templateIds = Array.isArray(template_ids) ? template_ids : [template_ids].filter(Boolean);
 
-    const workflows = await n8nClient.getWorkflows();
-    const petWorkflows = workflows.data ? 
-      workflows.data.filter(workflow => {
-        const workflowTags = workflow.tags || [];
-        return Array.isArray(workflowTags) && workflowTags.some(tag => {
-          if (typeof tag === 'string') {
-            return tag.toLowerCase() === 'pet';
-          } else if (tag && typeof tag === 'object' && tag.name) {
-            // Handle N8N tag objects with name property
-            return tag.name.toLowerCase() === 'pet';
-          }
-          return false;
-        });
-        // No active status filter - include ALL PET workflows (active and inactive)
-      }) : [];
-
-    if (petWorkflows.length === 0) {
-      throw new Error('No PET workflows found. Please ensure your N8N workflows have "PET" tags.');
+    if (templateIds.length === 0) {
+      throw new Error('No template IDs provided for deployment.');
     }
 
-    console.log(`✅ Found ${petWorkflows.length} PET workflows to duplicate`);
+    console.log(`🔍 Found ${templateIds.length} specified PET workflows to duplicate`);
 
     const duplicatedWorkflows = [];
     const client_id = uuidv4();
 
-    // Duplicate each PET workflow
-    for (const petWorkflow of petWorkflows) {
-      try {
-        console.log(`🚀 Duplicating workflow: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
+    // Personalize workflows, handling inter-workflow dependencies
+    const personalizationResult = await personalizeMultipleWorkflows(templateIds, configData, clientData);
 
-        // Get the template workflow from N8N
-        console.log(`📥 Fetching workflow details for: ${petWorkflow.name} (ID: ${petWorkflow.id})`);
-        const originalWorkflow = await n8nClient.getWorkflow(petWorkflow.id);
-        console.log(`📋 Received workflow data:`, {
-          id: originalWorkflow?.id,
-          name: originalWorkflow?.name,
-          hasNodes: Array.isArray(originalWorkflow?.nodes),
-          nodeCount: originalWorkflow?.nodes?.length || 0
-        });
+    if (personalizationResult.errors.length > 0) {
+      console.warn(`⚠️ Some workflows had errors during personalization:`, personalizationResult.errors);
+    }
 
-        // Validate original workflow data
-        if (!originalWorkflow || !originalWorkflow.name) {
-          console.error(`❌ Invalid workflow data for ${petWorkflow.name}:`, originalWorkflow);
-          throw new Error(`Invalid workflow data received from N8N for workflow ${petWorkflow.id}`);
-        }
-
-        // Create clean workflow data - exclude ALL read-only properties including tags
-        const personalizedWorkflow = {
-          name: `[${client_data.name}] ${originalWorkflow.name}`,
-          nodes: personalizeWorkflowNodes(originalWorkflow.nodes || [], config_data, client_data),
-          connections: originalWorkflow.connections || {},
-          settings: originalWorkflow.settings || {},
-          staticData: originalWorkflow.staticData || {}
-          // Explicitly exclude: id, active, versionId, createdAt, updatedAt, tags, etc.
-        };
-
-        // Create new workflow first
-        const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
-        console.log(`✅ Workflow created with ID: ${newWorkflow.id}`);
-
-        // Add tag to the workflow using a simple numeric format to avoid special character issues
+    // Tag all successfully created workflows with a client identifier
+    const clientTag = `PET[${clientData.name}]`;
+    for (const result of personalizationResult.results) {
+      if (result.success) {
         try {
-          // Generate a simple numeric tag ID based on client_id and timestamp
-          const tagSuffix = client_id.substring(0, 8).toUpperCase();
-          const tagName = `PET-${tagSuffix}`;
-
-          console.log(`🏷️ Creating tag: "${tagName}" for workflow ${newWorkflow.id}`);
-
-          // Ensure tag exists first
-          await n8nClient.createTag(tagName);
-
-          // Apply tag using the working format (array of tag name strings)
-          await n8nClient.updateWorkflowTags(newWorkflow.id, [{ name: tagName }]);
-          console.log(`✅ Tag "${tagName}" added to workflow ${newWorkflow.id}`);
+          await n8nClient.updateWorkflowTags(result.newId, [{ name: clientTag }]);
+          console.log(`🏷️ Tagged workflow ${result.newId} with "${clientTag}"`);
         } catch (tagError) {
-          console.warn(`⚠️ Could not add tag to workflow ${newWorkflow.id}: ${tagError.message}`);
-          // Continue - workflow creation succeeded even if tagging failed
+          console.warn(`⚠️ Could not tag workflow ${result.newId}:`, tagError.message);
         }
+      }
+    }
 
-        
+    // Log the workflow dependency mappings
+    console.log(`\n🔗 Inter-workflow Dependencies Resolved:`);
+    console.log(`   Original templates now reference personalized workflows`);
+    console.log(`   Example: If template referenced "WF3", it now references "[${clientData.name}] WF3"`);
+    if (personalizationResult.workflowIdMappings) {
+      Object.entries(personalizationResult.workflowIdMappings).forEach(([original, personalized]) => {
+        console.log(`   ${original} → ${personalized}`);
+      });
+    }
+
+    // Save deployment records and attempt activation for each personalized workflow
+    for (const result of personalizationResult.results) {
+      if (!result.success) {
+        duplicatedWorkflows.push({
+          original_id: result.originalId,
+          original_name: `(Error fetching original workflow: ${result.error})`,
+          new_id: null,
+          new_name: null,
+          deployment_id: null,
+          activation_status: 'failed_creation',
+          activation_error: result.error
+        });
+        continue;
+      }
+
+      try {
+        const newWorkflowId = result.newId;
+        const newWorkflowName = result.name;
 
         // Save deployment record
         const deployment_id = uuidv4();
@@ -684,7 +662,7 @@ app.post('/api/etf/deploy', async (req, res) => {
           etfDB.run(
             `INSERT INTO etf_deployments (id, client_id, template_id, n8n_workflow_id, workflow_name, taskforce_type, config_data) 
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [deployment_id, client_id, petWorkflow.id, newWorkflow.id, newWorkflow.name, 
+            [deployment_id, client_id, result.originalId, newWorkflowId, newWorkflowName, 
              'general', JSON.stringify(config_data)],
             (err) => err ? reject(err) : resolve()
           );
@@ -693,59 +671,65 @@ app.post('/api/etf/deploy', async (req, res) => {
         // Track activation status for summary
         let activationStatus = 'activated';
         let activationError = null;
-        
+
         // Check if workflow can be activated before attempting activation
         try {
-          const canActivate = await n8nClient.canActivateWorkflow(newWorkflow.id);
+          const canActivate = await n8nClient.canActivateWorkflow(newWorkflowId);
           if (canActivate) {
             // Try to activate workflow
-            await n8nClient.activateWorkflow(newWorkflow.id);
-            console.log(`✅ Workflow ${newWorkflow.id} activated successfully`);
+            await n8nClient.activateWorkflow(newWorkflowId);
+            console.log(`✅ Workflow ${newWorkflowId} activated successfully`);
           } else {
-            console.log(`ℹ️ Workflow ${newWorkflow.id} skipped activation (no trigger node)`);
+            console.log(`ℹ️ Workflow ${newWorkflowId} skipped activation (no trigger node)`);
             activationStatus = 'no_trigger';
           }
         } catch (activationError_caught) {
-          console.warn(`⚠️ Could not activate workflow ${newWorkflow.id}: ${activationError_caught.message}`);
-          
+          console.warn(`⚠️ Could not activate workflow ${newWorkflowId}: ${activationError_caught.message}`);
+
           activationStatus = 'failed';
           activationError = activationError_caught.message;
-          
+
           // Log specific error types for debugging
-          if (activationError_caught.message.includes('credentials')) {
-            console.log(`📝 Note: Workflow ${newWorkflow.id} needs credentials to be configured before activation`);
+          if (activationError.includes('credentials')) {
+            console.log(`📝 Note: Workflow ${newWorkflowId} needs credentials to be configured before activation`);
             activationStatus = 'needs_credentials';
-          } else if (activationError_caught.message.includes('cron')) {
-            console.log(`📝 Note: Workflow ${newWorkflow.id} has invalid cron expression - needs manual fix`);
+          } else if (activationError.includes('cron')) {
+            console.log(`📝 Note: Workflow ${newWorkflowId} has invalid cron expression - needs manual fix`);
             activationStatus = 'invalid_cron';
-          } else if (activationError_caught.message.includes('trim')) {
-            console.log(`📝 Note: Workflow ${newWorkflow.id} has configuration issues - needs manual review`);
+          } else if (activationError.includes('trim')) {
+            console.log(`📝 Note: Workflow ${newWorkflowId} has configuration issues - needs manual review`);
             activationStatus = 'config_error';
           }
-          
-          // Continue with next workflow instead of failing completely
         }
 
         duplicatedWorkflows.push({
-          original_id: petWorkflow.id,
-          original_name: petWorkflow.name,
-          new_id: newWorkflow.id,
-          new_name: newWorkflow.name,
+          original_id: result.originalId,
+          original_name: result.name,
+          new_id: newWorkflowId,
+          new_name: newWorkflowName,
           deployment_id: deployment_id,
           activation_status: activationStatus,
           activation_error: activationError
         });
 
       } catch (workflowError) {
-        console.error(`❌ Failed to duplicate workflow ${petWorkflow.name}:`, workflowError.message);
-        // Continue with other workflows instead of failing completely
+        console.error(`❌ Failed to process personalized workflow ${result.newId}:`, workflowError.message);
+        duplicatedWorkflows.push({
+          original_id: result.originalId,
+          original_name: result.name,
+          new_id: result.newId,
+          new_name: result.name,
+          deployment_id: null,
+          activation_status: 'processing_error',
+          activation_error: workflowError.message
+        });
       }
     }
 
     // Insert client record (only once for all workflows) with proper email association
     await new Promise((resolve, reject) => {
       etfDB.run(
-        `INSERT INTO etf_clients (id, name, email, company, industry, taskforce_type) 
+        `INSERT OR IGNORE INTO etf_clients (id, name, email, company, industry, taskforce_type) 
          VALUES (?, ?, ?, ?, ?, ?)`,
         [client_id, client_data.name, client_data.email || 'unknown@example.com', client_data.name, 
          'Pet Clinic', 'dental'],
@@ -764,27 +748,34 @@ app.post('/api/etf/deploy', async (req, res) => {
     });
 
     if (duplicatedWorkflows.length === 0) {
-      throw new Error('Failed to duplicate any PET workflows');
+      throw new Error('Failed to create or process any workflows.');
     }
 
-    // Count activation status
+    // Count activation statuses for summary
     const activatedCount = duplicatedWorkflows.filter(w => 
-      !w.activation_error && w.activated !== false
+      w.activation_status === 'activated'
     ).length;
-    
     const needsCredentialsCount = duplicatedWorkflows.filter(w => 
-      w.activation_error && w.activation_error.includes('credentials')
+      w.activation_status === 'needs_credentials'
+    ).length;
+    const noTriggerCount = duplicatedWorkflows.filter(w => 
+      w.activation_status === 'no_trigger'
+    ).length;
+    const failedCount = duplicatedWorkflows.filter(w => 
+      w.activation_status === 'failed' || w.activation_status === 'processing_error' || w.activation_status === 'failed_creation'
     ).length;
 
     res.json({
       success: true,
       client_id: client_id,
       duplicated_workflows: duplicatedWorkflows,
-      total_duplicated: duplicatedWorkflows.length,
+      total_processed: duplicatedWorkflows.length,
       activated_workflows: activatedCount,
       workflows_needing_credentials: needsCredentialsCount,
-      tag_applied: `PET-${client_id.substring(0, 8).toUpperCase()}`,
-      message: `Successfully duplicated ${duplicatedWorkflows.length} PET workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials.`
+      workflows_with_no_trigger: noTriggerCount,
+      failed_workflows: failedCount,
+      tag_applied: clientTag,
+      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${clientData.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.`
     });
 
   } catch (error) {
@@ -804,6 +795,10 @@ app.post('/api/etf/deploy', async (req, res) => {
       userMessage = 'No PET workflows found';
     } else if (error.message.includes('timeout')) {
       userMessage = 'ETF service timeout - please try again';
+    } else if (error.message.includes('No template IDs provided')) {
+      userMessage = 'No workflows selected for deployment';
+    } else if (error.message.includes('Failed to create or process any workflows')) {
+      userMessage = 'Failed to deploy any selected workflows';
     }
 
     res.status(500).json({ 
@@ -1125,14 +1120,14 @@ app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
 app.get('/api/etf/client-deployments', async (req, res) => {
   try {
     const { email } = req.query;
-    
+
     if (!email) {
       return res.status(400).json({ error: 'Email parameter is required' });
     }
 
     // Get client by email
     const clientSql = `SELECT * FROM etf_clients WHERE email = ?`;
-    
+
     etfDB.all(clientSql, [email], (err, clients) => {
       if (err) {
         console.error('Database error:', err);
@@ -1179,7 +1174,7 @@ app.get('/api/etf/client-deployments', async (req, res) => {
             });
             groupedDeployments.push(clientMap.get(deployment.client_id));
           }
-          
+
           clientMap.get(deployment.client_id).workflows.push({
             deployment_id: deployment.id,
             workflow_name: deployment.workflow_name,
@@ -1311,7 +1306,7 @@ app.post('/api/etf/update-client-config/:clientId', (req, res) => {
 
           etfDB.run('COMMIT');
           console.log(`✅ Configuration updated for client ${clientId}`);
-          
+
           res.json({
             success: true,
             message: 'Configuration updated successfully',
@@ -1840,7 +1835,7 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
+  if (!req.session.user) { // Changed from !req.user to !req.session.user
     return res.status(401).json({ error: 'Authentication required' });
   }
   next();
@@ -1852,37 +1847,44 @@ function requirePremium(req, res, next) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  // Get user ID from authenticated user (Google OAuth uses 'id' field)
-  const userId = req.user.id;
-  const userEmail = req.user.emails?.[0]?.value;
-  const users = loadUsers();
-
-  // Try to find user by Google ID first, then by email
-  let userRecord = users[userId];
-  if (!userRecord && userEmail) {
-    userRecord = Object.values(users).find(u => u.email === userEmail);
+  // First check session for user data, then fallback to saved data
+  let userData = req.user.savedUserData;
+  if (!userData) {
+    const userEmail = req.user.emails?.[0]?.value;
+    userData = findUserByEmail(userEmail);
   }
 
-  console.log('Premium check - User ID:', userId, 'Email:', userEmail, 'User record found:', !!userRecord);
+  console.log('Premium check - User ID:', req.user.id, 'Email:', req.user.emails?.[0]?.value, 'User record found:', !!userData);
 
-  if (!userRecord) {
-    console.log('❌ No user record found for:', userEmail || userId);
+  if (!userData) {
+    console.log('❌ No user record found for:', req.user.emails?.[0]?.value || req.user.id);
     return res.status(403).json({ error: 'Premium access required' });
   }
 
   // Check subscription expiration for monthly subscribers
-  if (userRecord.subscriptionType === 'monthly' && userRecord.subscriptionExpiresAt) {
+  if (userData.subscriptionType === 'monthly' && userData.subscriptionExpiresAt) {
     const now = new Date();
-    const expirationDate = new Date(userRecord.subscriptionExpiresAt);
+    const expirationDate = new Date(userData.subscriptionExpiresAt);
 
     if (now > expirationDate) {
-      console.log('❌ Subscription expired for user:', userEmail, 'Expired at:', expirationDate);
+      console.log('❌ Subscription expired for user:', userData.email, 'Expired at:', expirationDate);
 
       // Update user record to reflect expired status
-      userRecord.isPremium = false;
-      userRecord.subscriptionStatus = 'expired';
-      users[userId] = userRecord;
-      saveUsers(users);
+      userData.isPremium = false;
+      userData.subscriptionStatus = 'expired';
+      
+      // Update the session and savedUserData if available
+      if (req.user.savedUserData) {
+        req.user.savedUserData.isPremium = false;
+        req.user.savedUserData.subscriptionStatus = 'expired';
+      }
+      if (req.session.user) {
+        req.session.user.isPremium = false;
+        req.session.user.subscriptionStatus = 'expired';
+      }
+
+      // Save updated user data
+      saveUser(userData);
 
       return res.status(403).json({ 
         error: 'Subscription expired', 
@@ -1893,23 +1895,23 @@ function requirePremium(req, res, next) {
   }
 
   // Check if user has active premium access
-  const hasValidSubscription = userRecord.isPremium && 
-    (userRecord.subscriptionStatus === 'active' || userRecord.hasUnlimitedAccess);
+  const hasValidSubscription = userData.isPremium && 
+    (userData.subscriptionStatus === 'active' || userData.hasUnlimitedAccess);
 
   if (!hasValidSubscription) {
-    console.log('❌ Premium access denied for user:', userEmail || userId, 
-                'Premium:', userRecord.isPremium, 'Status:', userRecord.subscriptionStatus);
+    console.log('❌ Premium access denied for user:', userData.email || req.user.id, 
+                'Premium:', userData.isPremium, 'Status:', userData.subscriptionStatus);
     return res.status(403).json({ error: 'Premium access required' });
   }
 
-  console.log('✅ Premium access granted for user:', userEmail);
+  console.log('✅ Premium access granted for user:', userData.email);
   next();
 }
 
 
 
 app.get('/api/taskforce/clients', requireAuth, (req, res) => {
-  const userId = req.user.googleId;
+  const userId = req.user.id; // Use req.user.id for authenticated user ID
 
   db.all('SELECT * FROM taskforce_clients WHERE user_id = ? ORDER BY created_at DESC', 
     [userId], (err, rows) => {
@@ -1924,7 +1926,7 @@ app.get('/api/taskforce/clients', requireAuth, (req, res) => {
 // Get specific taskforce client
 app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
   const { clientId } = req.params;
-  const userId = req.user.googleId;
+  const userId = req.user.id; // Use req.user.id for authenticated user ID
 
   db.get('SELECT * FROM taskforce_clients WHERE id = ? AND user_id = ?', 
     [clientId, userId], (err, row) => {
@@ -3125,7 +3127,7 @@ app.get('/model-config', (req, res) => {
 app.get('/api/user/profile', requireAuth, (req, res) => {
   try {
     const users = loadUsers();
-    const user = users[req.session.user.googleId];
+    const user = users[req.session.user.googleId]; // Access googleId from session
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -3170,7 +3172,7 @@ app.post('/api/auth/google-n8n-oauth', (req, res) => {
 
     // Store state in session for verification with callback to ensure it's saved
     req.session.n8nOAuthState = state;
-    
+
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
@@ -3289,7 +3291,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
     if (credentialResult.success) {
       // Store credential ID in session as well
       req.session.google_credential_id = credentialResult.credentialId;
-      
+
       // Clear OAuth state
       delete req.session.n8nOAuthState;
       req.session.save();
@@ -3310,9 +3312,9 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
 app.post('/api/auth/facebook-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
-    
+
     req.session.facebookOAuthState = state;
-    
+
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
@@ -3322,8 +3324,6 @@ app.post('/api/auth/facebook-oauth', (req, res) => {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host;
       const redirectUri = `${protocol}://${host}/api/auth/facebook-callback`;
-
-      console.log('🔐 Facebook OAuth initiated with state:', state);
 
       const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
         `client_id=${process.env.FACEBOOK_APP_ID}&` +
@@ -3370,12 +3370,12 @@ app.get('/api/auth/facebook-callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
-    
+
     if (tokenData.access_token) {
       req.session.facebook_access_token = tokenData.access_token;
       req.session.facebook_connected = true;
       delete req.session.facebookOAuthState;
-      
+
       console.log('✅ Facebook OAuth completed successfully');
       res.redirect('/etf-onboard?facebook_connected=true');
     } else {
@@ -3391,9 +3391,9 @@ app.get('/api/auth/facebook-callback', async (req, res) => {
 app.post('/api/auth/slack-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
-    
+
     req.session.slackOAuthState = state;
-    
+
     req.session.save((err) => {
       if (err) {
         return res.status(500).json({ error: 'Session storage failed' });
@@ -3445,13 +3445,13 @@ app.get('/api/auth/slack-callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
-    
+
     if (tokenData.ok && tokenData.access_token) {
       req.session.slack_access_token = tokenData.access_token;
       req.session.slack_team_name = tokenData.team?.name || 'Slack Team';
       req.session.slack_connected = true;
       delete req.session.slackOAuthState;
-      
+
       console.log('✅ Slack OAuth completed successfully');
       res.redirect('/etf-onboard?slack_connected=true');
     } else {
@@ -3467,9 +3467,9 @@ app.get('/api/auth/slack-callback', async (req, res) => {
 app.post('/api/auth/github-oauth', (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
-    
+
     req.session.githubOAuthState = state;
-    
+
     req.session.save((err) => {
       if (err) {
         return res.status(500).json({ error: 'Session storage failed' });
@@ -3519,12 +3519,12 @@ app.get('/api/auth/github-callback', async (req, res) => {
     });
 
     const tokenData = await tokenResponse.json();
-    
+
     if (tokenData.access_token) {
       req.session.github_access_token = tokenData.access_token;
       req.session.github_connected = true;
       delete req.session.githubOAuthState;
-      
+
       console.log('✅ GitHub OAuth completed successfully');
       res.redirect('/etf-onboard?github_connected=true');
     } else {
@@ -3608,7 +3608,7 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
 async function createRequiredGoogleSheets(clientData, accessToken) {
   const createdSheets = {};
   const clinicName = clientData.name || 'Pet Clinic';
-  
+
   console.log('📊 Creating Google Sheets for:', clinicName);
 
   // Define required sheets with their structures
@@ -3658,7 +3658,7 @@ async function createRequiredGoogleSheets(clientData, accessToken) {
   for (const sheet of sheetsToCreate) {
     try {
       console.log(`📄 Creating sheet: ${sheet.name}`);
-      
+
       // Create new spreadsheet
       const createResponse = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
         method: 'POST',
@@ -3685,7 +3685,7 @@ async function createRequiredGoogleSheets(clientData, accessToken) {
 
       const newSheet = await createResponse.json();
       createdSheets[sheet.key] = newSheet.spreadsheetId;
-      
+
       console.log(`✅ Created sheet "${sheet.name}" with ID: ${newSheet.spreadsheetId}`);
 
       // Add headers to the sheet
@@ -3736,7 +3736,7 @@ async function createRequiredGoogleSheets(clientData, accessToken) {
       });
 
       console.log(`📊 Added headers to sheet: ${sheet.name}`);
-      
+
     } catch (error) {
       console.error(`❌ Failed to create sheet ${sheet.name}:`, error.message);
       // Continue with next sheet instead of failing completely
@@ -3748,20 +3748,20 @@ async function createRequiredGoogleSheets(clientData, accessToken) {
 
 function generatePromptInstructions(workflow) {
   console.log('🔍 Analyzing workflow for automatic prompt instructions:', workflow.name);
-  
+
   const instructions = [];
   const configFields = [];
   const credentials = [];
   const nodes = workflow.nodes || [];
-  
+
   // Track detected placeholders and services
   const detectedPlaceholders = new Set();
   const detectedServices = new Set();
-  
+
   // Analyze each node for placeholders and credentials
   nodes.forEach(node => {
     const nodeStr = JSON.stringify(node);
-    
+
     // Detect credential requirements
     if (node.credentials) {
       Object.keys(node.credentials).forEach(credType => {
@@ -3782,7 +3782,7 @@ function generatePromptInstructions(workflow) {
             required: true
           });
         }
-        
+
         if (credType.includes('google')) {
           detectedServices.add('google');
           credentials.push({
@@ -3793,7 +3793,7 @@ function generatePromptInstructions(workflow) {
             required: true
           });
         }
-        
+
         if (credType.includes('openai')) {
           detectedServices.add('openai');
           credentials.push({
@@ -3804,7 +3804,7 @@ function generatePromptInstructions(workflow) {
             required: true
           });
         }
-        
+
         if (credType.includes('slack')) {
           detectedServices.add('slack');
           credentials.push({
@@ -3817,7 +3817,7 @@ function generatePromptInstructions(workflow) {
         }
       });
     }
-    
+
     // Detect placeholder patterns in node parameters
     const placeholderPatterns = [
       /\{\{CLINIC_NAME\}\}/g,
@@ -3836,7 +3836,7 @@ function generatePromptInstructions(workflow) {
       /\{\{WEBSITE_URL\}\}/g,
       /\{\{BOOKING_URL\}\}/g
     ];
-    
+
     placeholderPatterns.forEach(pattern => {
       const matches = nodeStr.match(pattern);
       if (matches) {
@@ -3846,11 +3846,11 @@ function generatePromptInstructions(workflow) {
       }
     });
   });
-  
+
   // Generate config fields based on detected placeholders
   Array.from(detectedPlaceholders).forEach(placeholder => {
     const key = placeholder.replace(/\{\{|\}\}/g, '').toLowerCase();
-    
+
     switch (key) {
       case 'clinic_name':
         configFields.push({
@@ -3944,32 +3944,34 @@ function generatePromptInstructions(workflow) {
         break;
     }
   });
-  
+
   // Generate instructions based on detected services and placeholders
   instructions.push('This workflow has been automatically analyzed. Please provide the following information:');
-  
+
   if (detectedServices.has('telegram')) {
     instructions.push('• Set up Telegram Bot: Create a bot with @BotFather and get your bot token and chat ID');
   }
-  
+
   if (detectedServices.has('google')) {
     instructions.push('• Connect Google Account: You\'ll need to authorize access to Google services');
   }
-  
+
   if (detectedPlaceholders.size > 0) {
     instructions.push(`• Configure ${detectedPlaceholders.size} business-specific fields detected in the workflow`);
   }
-  
+
   if (detectedServices.has('openai')) {
     instructions.push('• Provide OpenAI API Key: Get your API key from platform.openai.com');
   }
-  
+
   console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
-  
+
   return {
     instructions: instructions.join('\n'),
     configFields: configFields,
-    credentials: Array.from(new Map(credentials.map(c => [`${c.service}_${c.type}`, c])).values()) // Remove duplicates
+    credentialsRequired: credentials.filter((c, index, self) => 
+      index === self.findIndex(t => (t.service === c.service && t.type === c.type))
+    ) // Remove duplicate credentials
   };
 }
 
@@ -4005,19 +4007,14 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
-  
-  return 'general'; // Default fallbackdes('fitness')) return 'gym';
-  if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
-  if (name.includes('tutor') || name.includes('education')) return 'tutoring';
-  if (name.includes('massage') || name.includes('spa')) return 'massage';
 
-  return 'general';
+  return 'general'; // Default fallback
 }
 
 function analyzeWorkflowConfig(workflow) {
   // Generate automatic prompt instructions based on workflow content
   const promptInstructions = generatePromptInstructions(workflow);
-  
+
   // Extract tags from N8N workflow metadata
   const workflowTags = workflow.tags || [];
   const workflowNotes = workflow.notes || '';
@@ -4070,126 +4067,43 @@ function analyzeWorkflowConfig(workflow) {
   };
 }
 
-function personalizeWorkflowNodes(nodes, configData, clientData) {
-  // Validate input parameters
-  if (!Array.isArray(nodes)) {
-    console.warn('⚠️ Nodes is not an array:', typeof nodes);
-    return nodes || [];
-  }
-
-  if (!configData || typeof configData !== 'object') {
-    console.warn('⚠️ Invalid configData provided');
-    configData = {};
-  }
-
-  if (!clientData || typeof clientData !== 'object') {
-    console.warn('⚠️ Invalid clientData provided');
-    clientData = {};
-  }
-
-  const placeholders = {
-    // Google OAuth for n8n Credentials
-    '{{GOOGLE_CREDENTIAL_ID}}': configData.google_credential_id || '',
-    '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
-    '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
-    '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
-    // Social Media & Communication Credentials
-    '{{FACEBOOK_PAGE_TOKEN}}': configData.facebook_page_token || '',
-    '{{FACEBOOK_PAGE_ID}}': configData.facebook_page_id || '',
-    '{{INSTAGRAM_ACCESS_TOKEN}}': configData.instagram_access_token || '',
-    '{{WHATSAPP_TOKEN}}': configData.whatsapp_token || '',
-    '{{WHATSAPP_PHONE_ID}}': configData.whatsapp_phone_id || '',
-    '{{TELEGRAM_BOT_TOKEN}}': configData.telegram_bot_token || '',
-    '{{TELEGRAM_CHAT_ID}}': configData.telegram_chat_id || '',
-    '{{SLACK_BOT_TOKEN}}': configData.slack_bot_token || '',
-    '{{SLACK_CHANNEL}}': configData.slack_channel || '',
-
-    // Email & SMS Credentials
-    '{{SENDGRID_API_KEY}}': configData.sendgrid_api_key || '',
-    '{{MAILGUN_API_KEY}}': configData.mailgun_api_key || '',
-    '{{MAILGUN_DOMAIN}}': configData.mailgun_domain || '',
-    '{{TWILIO_ACCOUNT_SID}}': configData.twilio_account_sid || '',
-    '{{TWILIO_AUTH_TOKEN}}': configData.twilio_auth_token || '',
-    '{{TWILIO_PHONE_NUMBER}}': configData.twilio_phone_number || '',
-
-    // Booking & Calendar Integration
-    '{{CALENDLY_TOKEN}}': configData.calendly_token || '',
-    '{{GOOGLE_CALENDAR_ID}}': configData.google_calendar_id || '',
-    '{{GOOGLE_SHEETS_ID}}': configData.google_sheets_id || '',
-    '{{ZOOM_API_KEY}}': configData.zoom_api_key || '',
-    '{{ZOOM_API_SECRET}}': configData.zoom_api_secret || '',
-
-    // Payment & CRM Integration
-    '{{STRIPE_SECRET_KEY}}': configData.stripe_secret_key || '',
-    '{{PAYPAL_CLIENT_ID}}': configData.paypal_client_id || '',
-    '{{HUBSPOT_API_KEY}}': configData.hubspot_api_key || '',
-    '{{SALESFORCE_TOKEN}}': configData.salesforce_token || '',
-
-    // Website & Analytics
-    '{{WEBSITE_URL}}': configData.website_url || '',
-    '{{BOOKING_URL}}': configData.booking_url || '',
-    '{{GOOGLE_ANALYTICS_ID}}': configData.google_analytics_id || '',
-    '{{GOOGLE_ADS_CUSTOMER_ID}}': configData.google_ads_customer_id || '',
-
-    // Pet Clinic Specific Information
-    '{{CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
-    '{{CLINIC_ADDRESS}}': configData.clinic_address || '',
-    '{{CLINIC_PHONE}}': configData.clinic_phone || configData.business_phone || '',
-    '{{CLINIC_EMAIL}}': configData.clinic_email || configData.business_email || '',
-    '{{CLINIC_HOURS}}': configData.clinic_hours || 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM, Sun: Emergency Only',
-    '{{EMERGENCY_HOURS}}': configData.emergency_hours || '24/7 Emergency Line Available',
-    '{{EMERGENCY_CONTACT}}': configData.emergency_contact || configData.business_phone || '',
-    '{{SERVICES_OFFERED}}': configData.services_offered || 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming',
-    '{{VETERINARIAN_NAME}}': configData.veterinarian_name || clientData.name || '',
-    '{{APPOINTMENT_TYPES}}': configData.appointment_types || 'Wellness Exam, Vaccination, Surgery, Emergency',
-    '{{PRICING_INFO}}': configData.pricing_info || 'Contact for pricing information',
-
-    // Staff & Contact Information
-    '{{RECEPTIONIST_NAME}}': configData.receptionist_name || 'Front Desk',
-    '{{MANAGER_NAME}}': configData.manager_name || clientData.name || '',
-    '{{SUPPORT_EMAIL}}': configData.support_email || clientData.email || '',
-    '{{BILLING_EMAIL}}': configData.billing_email || clientData.email || '',
-
-    // Client/Business Information
-    '{{CLIENT_NAME}}': clientData.name || '',
-    '{{CLIENT_EMAIL}}': clientData.email || '',
-    '{{CLIENT_PHONE}}': clientData.phone || '',
-    '{{BUSINESS_NAME}}': configData.business_name || clientData.name || '',
-    '{{BUSINESS_EMAIL}}': configData.business_email || clientData.email || '',
-    '{{BUSINESS_PHONE}}': configData.business_phone || clientData.phone || '',
-
-    // Legacy placeholders for backward compatibility
-    '{{PET_CLINIC_NAME}}': configData.clinic_name || configData.business_name || '',
-    '{{VET_NAME}}': clientData.name || '',
-    '{{VETERINARIAN}}': clientData.name || '',
-    '{{PRACTICE_NAME}}': configData.business_name || clientData.name || '',
-    '{{CONTACT_EMAIL}}': clientData.email || '',
-    '{{PHONE_NUMBER}}': clientData.phone || ''
-  };
-
-  console.log('🔄 Personalizing workflow with placeholders:', Object.keys(placeholders).length);
-
+function personalizeWorkflowNodes(nodes, configData, clientData, workflowIdMappings = {}) {
   return nodes.map(node => {
-    try {
-      let nodeStr = JSON.stringify(node);
+    let personalizedNode = JSON.parse(JSON.stringify(node));
 
-      // Replace all placeholders
-      Object.entries(placeholders).forEach(([placeholder, value]) => {
-        if (value) {
-          const regex = new RegExp(escapeRegExp(placeholder), 'g');
-          const matches = nodeStr.match(regex);
-          if (matches && matches.length > 0) {
-            console.log(`  ✅ Replacing ${matches.length} instances of ${placeholder} with "${value}"`);
-            nodeStr = nodeStr.replace(regex, value);
-          }
-        }
+    // Personalize node parameters
+    if (personalizedNode.parameters) {
+      let paramString = JSON.stringify(personalizedNode.parameters);
+
+      // Replace workflow ID references with personalized workflow IDs
+      Object.entries(workflowIdMappings).forEach(([templateId, personalizedId]) => {
+        const regex = new RegExp(`"${templateId}"`, 'g');
+        paramString = paramString.replace(regex, `"${personalizedId}"`);
       });
 
-      return JSON.parse(nodeStr);
-    } catch (error) {
-      console.error('❌ Error personalizing node:', node.name, error);
-      return node; // Return original node if parsing fails
+      const personalizedParamString = personalizeString(paramString, configData, clientData);
+      personalizedNode.parameters = JSON.parse(personalizedParamString);
     }
+
+    // Personalize node name
+    if (personalizedNode.name) {
+      personalizedNode.name = personalizeString(personalizedNode.name, configData, clientData);
+    }
+
+    // Personalize credentials reference
+    if (personalizedNode.credentials) {
+      Object.keys(personalizedNode.credentials).forEach(credType => {
+        if (personalizedNode.credentials[credType].name) {
+          personalizedNode.credentials[credType].name = personalizeString(
+            personalizedNode.credentials[credType].name, 
+            configData, 
+            clientData
+          );
+        }
+      });
+    }
+
+    return personalizedNode;
   });
 }
 
@@ -4210,12 +4124,12 @@ const server = app.listen(port, '0.0.0.0', (err) => {
     console.error('❌ Server failed to start:', err);
     return;
   }
-  
+
   console.log(`🚀 Server is running on port ${port}`);
   console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
   console.log(`📍 Local URL: http://localhost:${port}`);
   console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
-  
+
   // Test basic route
   console.log('🧪 Testing server health...');
   setTimeout(() => {
@@ -4226,15 +4140,15 @@ const server = app.listen(port, '0.0.0.0', (err) => {
       path: '/health',
       method: 'GET'
     };
-    
+
     const req = http.request(options, (res) => {
       console.log(`✅ Health check status: ${res.statusCode}`);
     });
-    
+
     req.on('error', (err) => {
       console.log(`⚠️ Health check failed: ${err.message}`);
     });
-    
+
     req.end();
   }, 1000);
 });
@@ -4250,3 +4164,137 @@ process.on('SIGTERM', () => {
     process.exit(0);
   });
 });
+
+// Placeholder function for personalizeString, assuming it exists elsewhere
+function personalizeString(str, configData, clientData) {
+  // This function should replace placeholders like {{BUSINESS_NAME}} with actual data
+  // For example:
+  if (typeof str !== 'string') return str;
+
+  let personalizedStr = str;
+
+  // Combine configData and clientData for easier access
+  const allData = { ...clientData, ...configData };
+
+  // Iterate over common placeholders, add more as needed
+  const placeholders = {
+    '{{BUSINESS_NAME}}': allData.business_name || allData.clinic_name || allData.name || '',
+    '{{BUSINESS_EMAIL}}': allData.business_email || allData.clinic_email || allData.email || '',
+    '{{BUSINESS_PHONE}}': allData.business_phone || allData.clinic_phone || allData.phone || '',
+    '{{CLINIC_NAME}}': allData.clinic_name || allData.business_name || allData.name || '',
+    '{{CLINIC_PHONE}}': allData.clinic_phone || allData.business_phone || allData.phone || '',
+    '{{CLINIC_EMAIL}}': allData.clinic_email || allData.business_email || allData.email || '',
+    '{{CLIENT_NAME}}': allData.name || '',
+    '{{CLIENT_EMAIL}}': allData.email || '',
+    '{{CLIENT_PHONE}}': allData.phone || '',
+    '{{WEBSITE_URL}}': allData.website_url || '',
+    '{{BOOKING_URL}}': allData.booking_url || '',
+    '{{VETERINARIAN_NAME}}': allData.veterinarian_name || allData.name || '',
+    '{{EMERGENCY_CONTACT}}': allData.emergency_contact || allData.business_phone || '',
+    '{{TELEGRAM_BOT_TOKEN}}': allData.telegram_bot_token || '',
+    '{{TELEGRAM_CHAT_ID}}': allData.telegram_chat_id || ''
+  };
+
+  Object.entries(placeholders).forEach(([placeholder, value]) => {
+    if (value !== null && value !== undefined) {
+      const regex = new RegExp(escapeRegExp(placeholder), 'g');
+      personalizedStr = personalizedStr.replace(regex, value);
+    }
+  });
+
+  return personalizedStr;
+}
+
+
+// --- Helper function for personalizing multiple workflows ---
+async function personalizeMultipleWorkflows(workflowIds, configData, clientData) {
+  const results = [];
+  const errors = [];
+  const workflowIdMappings = {}; // Map original IDs to new personalized IDs
+
+  // First pass: Create all workflows without inter-workflow dependencies
+  for (const workflowId of workflowIds) {
+    try {
+      console.log(`🔄 Creating base workflow for ${workflowId}...`);
+
+      // Get the original workflow
+      const originalWorkflow = await n8nClient.getWorkflow(workflowId);
+
+      // Create personalized workflow data (without dependencies resolved yet)
+      const personalizedWorkflow = {
+        name: `[${clientData.name}] ${originalWorkflow.name}`,
+        nodes: originalWorkflow.nodes || [],
+        connections: originalWorkflow.connections || {},
+        settings: originalWorkflow.settings || {},
+        staticData: originalWorkflow.staticData || {},
+        tags: originalWorkflow.tags || []
+      };
+
+      // Create the new workflow
+      const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+      console.log(`✅ Created base workflow: ${newWorkflow.id} - ${newWorkflow.name}`);
+
+      // Store the mapping
+      workflowIdMappings[workflowId] = newWorkflow.id;
+
+      results.push({
+        originalId: workflowId,
+        newId: newWorkflow.id,
+        name: newWorkflow.name,
+        success: true
+      });
+
+    } catch (error) {
+      console.error(`❌ Error creating base workflow ${workflowId}:`, error.message);
+      errors.push({
+        originalId: workflowId,
+        error: error.message,
+        success: false
+      });
+    }
+  }
+
+  // Second pass: Update all workflows with proper dependencies and personalization
+  for (const result of results) {
+    if (!result.success) continue;
+
+    try {
+      console.log(`🔗 Updating workflow dependencies for ${result.newId}...`);
+
+      // Get the original workflow again
+      const originalWorkflow = await n8nClient.getWorkflow(result.originalId);
+
+      // Personalize the workflow nodes with dependency mappings
+      const personalizedNodes = personalizeWorkflowNodes(
+        originalWorkflow.nodes || [], 
+        configData, 
+        clientData,
+        workflowIdMappings
+      );
+
+      // Update the workflow with personalized nodes
+      const updateData = {
+        name: `[${clientData.name}] ${originalWorkflow.name}`,
+        nodes: personalizedNodes,
+        connections: originalWorkflow.connections || {},
+        settings: originalWorkflow.settings || {},
+        staticData: originalWorkflow.staticData || {}
+      };
+
+      await n8nClient.updateWorkflow(result.newId, updateData);
+      console.log(`✅ Updated workflow dependencies: ${result.newId}`);
+
+    } catch (error) {
+      console.error(`❌ Error updating workflow dependencies ${result.newId}:`, error.message);
+      // Mark as error but don't remove from results since workflow was created
+      result.dependencyError = error.message;
+    }
+  }
+
+  console.log(`\n📋 Workflow ID Mappings:`);
+  Object.entries(workflowIdMappings).forEach(([original, personalized]) => {
+    console.log(`   ${original} → ${personalized}`);
+  });
+
+  return { results, errors, workflowIdMappings };
+}
