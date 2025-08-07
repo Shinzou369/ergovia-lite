@@ -3974,6 +3974,9 @@ function generatePromptInstructions(workflow) {
 }
 
 function escapeRegExp(string) {
+  if (typeof string !== 'string') {
+    return '';
+  }
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters for regex
 }
 
@@ -3999,6 +4002,11 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   // Fallback to name-based detection
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
   if (name.includes('gym') || name.includes('fitness')) return 'gym';
+  if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
+  if (name.includes('tutor') || name.includes('education')) return 'tutoring';
+  if (name.includes('massage') || name.includes('spa')) return 'massage';
+  
+  return 'general'; // Default fallbackdes('fitness')) return 'gym';
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';

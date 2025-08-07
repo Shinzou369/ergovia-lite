@@ -1,4 +1,3 @@
-
 {
   "nodes": [
     {
@@ -91,10 +90,10 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Status": "Visit Completed",
+            "Status": "VisitCompleted",
             "Completion Time": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
-            "Post-Visit Processes": "Triggered",
-            "Last Updated": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}"
+            "Post-VisitProcesses": "Triggered",
+            "LastUpdated": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}"
           }
         },
         "options": {
@@ -227,95 +226,79 @@
   "connections": {
     "Visit Complete Webhook": {
       "main": [
-        [
-          {
-            "node": "Update Appointment Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "Update Appointment Status",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "Auto-Detect Visit End": {
       "main": [
-        [
-          {
-            "node": "Update Appointment Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "Update Appointment Status",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "Update Appointment Status": {
       "main": [
-        [
-          {
-            "node": "Send Visit Complete SMS",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Update Master Hub",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "Send Visit Complete SMS",
+          "type": "main",
+          "index": 0
+        },
+        {
+          "node": "Update Master Hub",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "Send Visit Complete SMS": {
       "main": [
-        [
-          {
-            "node": "🧾 Trigger Invoicing (WF5)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "🧾 Trigger Invoicing (WF5)",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "Update Master Hub": {
       "main": [
-        [
-          {
-            "node": "🧾 Trigger Invoicing (WF5)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "🧾 Trigger Invoicing (WF5)",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "🧾 Trigger Invoicing (WF5)": {
       "main": [
-        [
-          {
-            "node": "📋 Trigger Medical Records (WF6)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "📋 Trigger Medical Records (WF6)",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "📋 Trigger Medical Records (WF6)": {
       "main": [
-        [
-          {
-            "node": "⭐ Trigger Review Request (WF7)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "⭐ Trigger Review Request (WF7)",
+          "type": "main",
+          "index": 0
+        }
       ]
     },
     "⭐ Trigger Review Request (WF7)": {
       "main": [
-        [
-          {
-            "node": "🔄 Trigger Retention Engine (WF8)",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        {
+          "node": "🔄 Trigger Retention Engine (WF8)",
+          "type": "main",
+          "index": 0
+        }
       ]
     }
   },

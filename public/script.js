@@ -148,6 +148,8 @@ async function sendMessage(promptText) {
       showPaymentModal();
     } else if (error.message?.includes("401")) {
       errorMessage = "Please log in to continue using the chat.";
+    } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
+      errorMessage = "Network connection issue. Please check your internet and try again.";
     }
 
     addMessage(errorMessage, "error");
@@ -167,6 +169,9 @@ async function sendMessage(promptText) {
 
 // Model selection based on keywords
 function selectModel(prompt) {
+  if (!prompt || typeof prompt !== 'string') {
+    return getModelConfig()?.default_model || "gpt-3.5-turbo";
+  }
   const lower = prompt.toLowerCase();
 
   // Load model configuration

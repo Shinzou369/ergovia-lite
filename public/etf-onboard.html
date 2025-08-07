@@ -879,7 +879,7 @@
 
     <div class="container">
         <!-- Header Section -->
-        <div class="header">
+        <header class="header">
             <h1>🤖 General ETF Automation Setup</h1>
             <p>Deploy your personalized AI taskforce automation in minutes</p>
 
@@ -915,7 +915,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
 
         <!-- Form Container -->
         <div class="form-container">
@@ -1125,7 +1125,7 @@
                     <div class="google-connection-section">
                         <p>Connect your Google account to enable automated workflows with Gmail, Google Sheets, and other Google services.</p>
                         <button id="connect-google-btn" class="secondary-btn" onclick="connectGoogleForN8N()">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.৫৬ ৬.৫৭ ১৫.৬৯ ৫.৬৯ ৬.৫৯২.১৮ ৭.৬৯C4.04 12.04 7.73 15 12 15Z"  alt="Google" style="width: 20px; margin-right: 8px;">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.५৬ ৬.৫৭ ১৫.৬৯ ৫.N.692.18 7.69C4.04 12.04 7.73 15 12 15Z" alt="Google" style="width: 20px; margin-right: 8px;">
                             Connect Google Account
                         </button>
                         <div id="google-status" class="connection-status" style="display: none;">
@@ -1707,7 +1707,7 @@
             } catch (error) {
                 console.error('Google OAuth error:', error);
                 btn.disabled = false;
-                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.৫৬ ৬.৫৭ ১৫.৬৯ ৫.৬৯ ৬.৫৯২.১৮ ৭.৬৯C4.04 12.04 7.73 15 12 15Z" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
+                btn.innerHTML = '<img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.৫৬ ৬.৫৭ ১৫.৬৯ ৫.N.692.18 7.69C4.04 12.04 7.73 15 12 15Z" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google Account';
                 alert('Failed to connect Google account. Please try again.');
             }
         }

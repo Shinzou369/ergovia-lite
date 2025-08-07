@@ -359,7 +359,9 @@
       }
     </style>
 
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="common-styles.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <!-- Google Fonts including Questrial for clean typography -->
     <link
       href="https://fonts.googleapis.com/css2?family=Questrial:wght@400&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
@@ -387,7 +389,7 @@
     <!-- Top navigation bar -->
     <nav class="top-nav animate__animated animate__fadeInDown">
       <div class="nav-left">
-        <button class="toggle-btn" onclick="toggleSidebar()">
+        <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle sidebar">
           <span class="hamburger-line"> </span>
           <span class="hamburger-line"> </span>
           <span class="hamburger-line"> </span>
@@ -405,7 +407,7 @@
         <a href="admin.html" class="admin-link" title="Model Configuration">
           <i data-lucide="settings"></i>
         </a>
-        <button class="theme-btn" onclick="toggleTheme()">
+        <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
           <i data-lucide="sun" id="theme-icon"></i>
         </button>
       </div>
@@ -476,7 +478,7 @@
         >
           <div class="sidebar-header">
             <h2><i data-lucide="message-square"></i>Conversations</h2>
-            <button class="new-thread-btn" onclick="newChat()">
+            <button class="new-thread-btn" onclick="newChat()" aria-label="New chat">
               <span class="btn-icon">
                 <i data-lucide="plus"></i>
               </span>
@@ -605,7 +607,7 @@
       <div class="payment-modal-content">
         <div class="payment-modal-header">
           <h2>Upgrade Required</h2>
-          <button class="modal-close-btn" onclick="hidePaymentModal()">
+          <button class="modal-close-btn" onclick="hidePaymentModal()" aria-label="Close modal">
             <i data-lucide="x"></i>
           </button>
         </div>
