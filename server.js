@@ -595,11 +595,45 @@ app.post('/api/etf/deploy', async (req, res) => {
       });
     }
 
-    // Ensure template_ids is an array
-    const templateIds = Array.isArray(template_ids) ? template_ids : [template_ids].filter(Boolean);
-
-    if (templateIds.length === 0) {
-      throw new Error('No template IDs provided for deployment.');
+    // Handle test mode - use actual PET workflows when template_id is "pet_clinic_test"
+    let templateIds;
+    
+    if (template_id === 'pet_clinic_test' || req.body.test_mode) {
+      console.log('🧪 Test mode detected - fetching all available PET workflows');
+      
+      // Get all PET workflows for test deployment
+      try {
+        const workflows = await n8nClient.getWorkflows();
+        const petWorkflows = workflows.data ? 
+          workflows.data.filter(workflow => {
+            const workflowTags = workflow.tags || [];
+            return Array.isArray(workflowTags) && workflowTags.some(tag => {
+              if (typeof tag === 'string') {
+                return tag.toLowerCase() === 'pet';
+              } else if (tag && typeof tag === 'object' && tag.name) {
+                return tag.name.toLowerCase() === 'pet';
+              }
+              return false;
+            });
+          }).map(w => w.id) : [];
+        
+        if (petWorkflows.length === 0) {
+          throw new Error('No PET workflows found in N8N for test deployment');
+        }
+        
+        templateIds = petWorkflows;
+        console.log(`🧪 Using ${templateIds.length} PET workflows for test: ${templateIds.join(', ')}`);
+        
+      } catch (error) {
+        throw new Error(`Failed to fetch PET workflows for test: ${error.message}`);
+      }
+    } else {
+      // Production mode - use provided template_ids
+      templateIds = Array.isArray(template_ids) ? template_ids : [template_ids].filter(Boolean);
+      
+      if (templateIds.length === 0) {
+        throw new Error('No template IDs provided for deployment.');
+      }
     }
 
     console.log(`🔍 Found ${templateIds.length} specified PET workflows to duplicate`);
