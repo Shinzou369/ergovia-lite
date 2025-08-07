@@ -650,11 +650,52 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // Tag all successfully created workflows with a client identifier
     const clientTag = `PET[${clientData.name}]`;
+    
+    // Create credentials for this client
+    const credentialMappings = {};
+    
+    // Create Google Services credential (Gmail SMTP, Sheets, Calendar)
+    if (req.session?.google_access_token) {
+      const googleCredentialId = await createN8NCredential(
+        clientData.email, 
+        {
+          access_token: req.session.google_access_token,
+          refresh_token: req.session.google_refresh_token
+        }, 
+        { name: clientData.name, email: clientData.email }
+      );
+      
+      if (googleCredentialId.success) {
+        credentialMappings['googleSheetsOAuth2Api'] = googleCredentialId.credentialId;
+        credentialMappings['googleCalendarOAuth2Api'] = googleCredentialId.credentialId;
+        
+        // Create Gmail SMTP credential
+        const gmailCredentialId = await createGmailSMTPCredential(
+          clientData.email,
+          req.session.google_access_token,
+          req.session.google_refresh_token,
+          clientTag
+        );
+        if (gmailCredentialId) {
+          credentialMappings['gmailOAuth2'] = gmailCredentialId;
+        }
+      }
+    }
+    
+    // Create Calendly OAuth credential (when ready)
+    const calendlyCredentialId = await createCalendlyOAuthCredential(clientTag);
+    if (calendlyCredentialId) {
+      credentialMappings['calendlyOAuth2Api'] = calendlyCredentialId;
+    }
+
     for (const result of personalizationResult.results) {
       if (result.success) {
         try {
           await n8nClient.updateWorkflowTags(result.newId, [{ name: clientTag }]);
           console.log(`🏷️ Tagged workflow ${result.newId} with "${clientTag}"`);
+          
+          // Apply credentials to this workflow
+          await applyCredentialsToWorkflow(result.newId, credentialMappings);
         } catch (tagError) {
           console.warn(`⚠️ Could not tag workflow ${result.newId}:`, tagError.message);
         }
@@ -3780,6 +3821,130 @@ async function createRequiredGoogleSheets(clientData, accessToken) {
   return createdSheets;
 }
 
+// Create Gmail SMTP credential in N8N
+async function createGmailSMTPCredential(userEmail, accessToken, refreshToken, clientTag) {
+  try {
+    console.log('📧 Creating Gmail SMTP credential for:', userEmail);
+
+    const credentialData = {
+      name: `Gmail SMTP - ${clientTag}`,
+      type: 'gmailOAuth2',
+      data: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        oauthTokenData: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          scope: 'https://www.googleapis.com/auth/gmail.send',
+          token_type: 'Bearer'
+        }
+      }
+    };
+
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      },
+      body: JSON.stringify(credentialData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gmail SMTP credential creation failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(`✅ Created Gmail SMTP credential: ${result.id}`);
+    return result.id;
+
+  } catch (error) {
+    console.error('❌ Failed to create Gmail SMTP credential:', error);
+    return null;
+  }
+}
+
+// Create Calendly OAuth credential (placeholder for when OAuth is ready)
+async function createCalendlyOAuthCredential(clientTag) {
+  try {
+    console.log('📅 Creating Calendly OAuth credential for:', clientTag);
+
+    const credentialData = {
+      name: `Calendly OAuth - ${clientTag}`,
+      type: 'calendlyOAuth2Api',
+      data: {
+        clientId: process.env.CALENDLY_CLIENT_ID || 'your_calendly_client_id',
+        clientSecret: process.env.CALENDLY_CLIENT_SECRET || 'your_calendly_client_secret',
+        // OAuth flow would populate these
+        oauthTokenData: {
+          access_token: 'placeholder_access_token',
+          refresh_token: 'placeholder_refresh_token',
+          token_type: 'Bearer'
+        }
+      }
+    };
+
+    const response = await fetch(`${N8N_BASE_URL}/api/v1/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-N8N-API-KEY': N8N_API_KEY
+      },
+      body: JSON.stringify(credentialData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Calendly OAuth credential creation failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(`✅ Created Calendly OAuth credential: ${result.id}`);
+    return result.id;
+
+  } catch (error) {
+    console.error('❌ Failed to create Calendly OAuth credential:', error);
+    return null;
+  }
+}
+
+// Apply credentials to duplicated workflow
+async function applyCredentialsToWorkflow(workflowId, credentialMappings) {
+  try {
+    console.log(`🔑 Applying credentials to workflow ${workflowId}`);
+
+    // Get the workflow
+    const workflow = await n8nClient.getWorkflow(workflowId);
+    
+    // Update nodes with credentials
+    const updatedNodes = workflow.nodes.map(node => {
+      if (node.credentials) {
+        Object.keys(node.credentials).forEach(credType => {
+          if (credentialMappings[credType]) {
+            node.credentials[credType] = {
+              id: credentialMappings[credType],
+              name: `Auto-assigned - ${credType}`
+            };
+          }
+        });
+      }
+      return node;
+    });
+
+    // Update the workflow
+    await n8nClient.updateWorkflow(workflowId, {
+      ...workflow,
+      nodes: updatedNodes
+    });
+
+    console.log(`✅ Applied credentials to workflow ${workflowId}`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Failed to apply credentials to workflow ${workflowId}:`, error);
+    return false;
+  }
+}
+
 function generatePromptInstructions(workflow) {
   console.log('🔍 Analyzing workflow for automatic prompt instructions:', workflow.name);
 
@@ -3817,13 +3982,24 @@ function generatePromptInstructions(workflow) {
           });
         }
 
-        if (credType.includes('google')) {
+        if (credType.includes('google') || credType.includes('gmail')) {
           detectedServices.add('google');
           credentials.push({
             service: 'google',
             type: 'oauth',
-            label: 'Google Account',
-            description: 'Connect your Google account for Calendar, Sheets, etc.',
+            label: 'Google Services (Gmail, Sheets, Calendar)',
+            description: 'Connect your Google account via OAuth for Gmail SMTP, Sheets, and Calendar',
+            required: true
+          });
+        }
+
+        if (credType.includes('calendly')) {
+          detectedServices.add('calendly');
+          credentials.push({
+            service: 'calendly',
+            type: 'oauth',
+            label: 'Calendly OAuth',
+            description: 'Connect your Calendly account via OAuth',
             required: true
           });
         }
@@ -3846,7 +4022,29 @@ function generatePromptInstructions(workflow) {
             type: 'bot_token',
             label: 'Slack Bot Token',
             description: 'Create a Slack app and get bot token',
-            required: true
+            required: false
+          });
+        }
+
+        if (credType.includes('facebook')) {
+          detectedServices.add('facebook');
+          credentials.push({
+            service: 'facebook',
+            type: 'access_token',
+            label: 'Facebook Access Token',
+            description: 'Manual token for Facebook social media posting',
+            required: false
+          });
+        }
+
+        if (credType.includes('twitter') || credType.includes('x')) {
+          detectedServices.add('twitter');
+          credentials.push({
+            service: 'twitter',
+            type: 'api_key',
+            label: 'Twitter/X API Keys',
+            description: 'Manual API keys for Twitter/X social media posting',
+            required: false
           });
         }
       });
@@ -3861,14 +4059,16 @@ function generatePromptInstructions(workflow) {
       /\{\{CLINIC_HOURS\}\}/g,
       /\{\{SERVICES_OFFERED\}\}/g,
       /\{\{EMERGENCY_CONTACT\}\}/g,
-      /\{\{VETERINARIAN_NAME\}\}/g,
+      /\{\{VETERINARIAN_NAMES\}\}/g,
+      /\{\{PRIMARY_VETERINARIAN\}\}/g,
       /\{\{TELEGRAM_BOT_TOKEN\}\}/g,
       /\{\{TELEGRAM_CHAT_ID\}\}/g,
       /\{\{BUSINESS_NAME\}\}/g,
       /\{\{BUSINESS_EMAIL\}\}/g,
       /\{\{BUSINESS_PHONE\}\}/g,
       /\{\{WEBSITE_URL\}\}/g,
-      /\{\{BOOKING_URL\}\}/g
+      /\{\{BOOKING_URL\}\}/g,
+      /\{\{CALENDLY_URL\}\}/g
     ];
 
     placeholderPatterns.forEach(pattern => {
@@ -3931,13 +4131,31 @@ function generatePromptInstructions(workflow) {
           placeholder: '+1-555-EMERGENCY'
         });
         break;
-      case 'veterinarian_name':
+      case 'veterinarian_names':
         configFields.push({
-          key: 'veterinarian_name',
-          label: 'Veterinarian Name',
+          key: 'veterinarian_names',
+          label: 'Veterinarians (one per line)',
+          type: 'textarea',
+          required: true,
+          placeholder: 'Dr. Sarah Johnson\nDr. Michael Chen\nDr. Emily Rodriguez'
+        });
+        break;
+      case 'primary_veterinarian':
+        configFields.push({
+          key: 'primary_veterinarian',
+          label: 'Primary Veterinarian',
           type: 'text',
           required: true,
           placeholder: 'Dr. Sarah Johnson'
+        });
+        break;
+      case 'calendly_url':
+        configFields.push({
+          key: 'calendly_url',
+          label: 'Calendly Scheduling URL',
+          type: 'url',
+          required: false,
+          placeholder: 'https://calendly.com/your-clinic'
         });
         break;
       case 'telegram_bot_token':
@@ -4210,6 +4428,11 @@ function personalizeString(str, configData, clientData) {
   // Combine configData and clientData for easier access
   const allData = { ...clientData, ...configData };
 
+  // Process veterinarian names array
+  const veterinarianNames = allData.veterinarian_names ? 
+    allData.veterinarian_names.split('\n').filter(name => name.trim()) : [];
+  const primaryVeterinarian = allData.primary_veterinarian || veterinarianNames[0] || '';
+
   // Iterate over common placeholders, add more as needed
   const placeholders = {
     '{{BUSINESS_NAME}}': allData.business_name || allData.clinic_name || allData.name || '',
@@ -4223,7 +4446,9 @@ function personalizeString(str, configData, clientData) {
     '{{CLIENT_PHONE}}': allData.phone || '',
     '{{WEBSITE_URL}}': allData.website_url || '',
     '{{BOOKING_URL}}': allData.booking_url || '',
-    '{{VETERINARIAN_NAME}}': allData.veterinarian_name || allData.name || '',
+    '{{CALENDLY_URL}}': allData.calendly_url || '',
+    '{{VETERINARIAN_NAMES}}': veterinarianNames.join(', ') || '',
+    '{{PRIMARY_VETERINARIAN}}': primaryVeterinarian,
     '{{EMERGENCY_CONTACT}}': allData.emergency_contact || allData.business_phone || '',
     '{{TELEGRAM_BOT_TOKEN}}': allData.telegram_bot_token || '',
     '{{TELEGRAM_CHAT_ID}}': allData.telegram_chat_id || ''
