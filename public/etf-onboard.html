@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ETF Automation Setup - Ergovia AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Questrial:wght@400&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
         * {
@@ -14,18 +14,23 @@
         }
 
         :root {
+            /* Ergovia AI Brand Colors - Brown to Gold */
             --primary-gradient: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
             --secondary-gradient: linear-gradient(135deg, #6B5B1A 0%, #FFD700 100%);
-            --bg-primary: #0f0f23;
-            --bg-secondary: #1a1a2e;
-            --bg-tertiary: #16213e;
+            --ergovia-navy: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 100%);
+            --ergovia-gold: linear-gradient(135deg, #8B7E2A 0%, #B8A548 50%, #FFD700 100%);
+            --ergovia-text-gradient: linear-gradient(135deg, #c6cfdb, #cdd5e0, #f4efe8, #ffffff);
+            
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #262626;
             --text-primary: #ffffff;
-            --text-secondary: #b8bcc8;
-            --text-muted: #6b7280;
-            --border-color: #2d3748;
-            --border-light: #374151;
-            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            --text-secondary: #d4ac0d;
+            --text-muted: #b8860b;
+            --border-color: #404040;
+            --border-light: #525252;
+            --shadow-lg: 0 20px 25px -5px rgb(107 91 26 / 0.3), 0 8px 10px -6px rgb(107 91 26 / 0.2);
+            --shadow-xl: 0 25px 50px -12px rgb(107 91 26 / 0.4);
             --radius: 12px;
             --radius-lg: 16px;
             --radius-xl: 24px;
@@ -33,7 +38,7 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, sans-serif;
+            font-family: 'Questrial', 'Inter', system-ui, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
@@ -132,13 +137,15 @@
         .header h1 {
             font-size: 3rem;
             font-weight: 800;
+            font-family: 'Questrial', 'Inter', system-ui, sans-serif;
             margin-bottom: 16px;
-            background: var(--primary-gradient);
+            background: var(--ergovia-text-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 2px 4px rgba(107, 91, 26, 0.3);
             animation: titleGlow 3s ease-in-out infinite alternate;
+            letter-spacing: 0.02em;
         }
 
         @keyframes titleGlow {
@@ -271,8 +278,13 @@
         .section-title {
             font-size: 1.5rem;
             font-weight: 700;
+            font-family: 'Questrial', 'Inter', system-ui, sans-serif;
             color: var(--text-primary);
             margin: 0;
+            background: var(--ergovia-text-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         /* Form Groups */
@@ -1004,8 +1016,8 @@
     <div class="container">
         <!-- Header Section -->
         <header class="header">
-            <h1>🤖 General ETF Automation Setup</h1>
-            <p>Deploy your personalized AI taskforce automation in minutes</p>
+            <h1>🤖 Ergovia AI ETF Setup</h1>
+            <p>Deploy your personalized AI taskforce automation powered by Ergovia AI</p>
 
             <div class="workflow-preview">
                 <div class="preview-title">
