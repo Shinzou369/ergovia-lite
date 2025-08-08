@@ -655,7 +655,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     const client_id = uuidv4();
 
     // Personalize workflows, handling inter-workflow dependencies
-    const personalizationResult = await personalizeMultipleWorkflows(templateIds, configData, clientData);
+    const personalizationResult = await personalizeMultipleWorkflows(templateIds, config_data, client_data);
 
     if (personalizationResult.errors.length > 0) {
       console.warn(`⚠️ Some workflows had errors during personalization:`, personalizationResult.errors);
