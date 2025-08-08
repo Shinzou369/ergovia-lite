@@ -8,8 +8,10 @@
   },
   {
     "key": "sk-example-key-2",
-    "assigned": false,
-    "created_date": "2025-01-01"
+    "assigned": true,
+    "created_date": "2025-01-01",
+    "assigned_date": "2025-08-08T04:23:58.250Z",
+    "client_id": "32e57640-c36d-405e-970a-504126ae841d"
   },
   {
     "key": "sk-example-key-3",
