@@ -1,2 +1,12 @@
-
-[]
+[
+  {
+    "client_id": "b2fd1066-875a-471d-bbbe-8fe82bd737ff",
+    "openai_key": "sk-example-key-1",
+    "used_tokens": 0,
+    "limit_tokens": 100000,
+    "workflow_id": "p5WdFIJM4ZTCBydz",
+    "reset_date": "2025-09-01T00:00:00.000Z",
+    "created_date": "2025-08-08T04:21:32.974Z",
+    "last_used": null
+  }
+]

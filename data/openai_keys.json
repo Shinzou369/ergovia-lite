@@ -1,6 +1,19 @@
-
 [
-  { "key": "sk-example-key-1", "assigned": false, "created_date": "2025-01-01" },
-  { "key": "sk-example-key-2", "assigned": false, "created_date": "2025-01-01" },
-  { "key": "sk-example-key-3", "assigned": false, "created_date": "2025-01-01" }
+  {
+    "key": "sk-example-key-1",
+    "assigned": true,
+    "created_date": "2025-01-01",
+    "assigned_date": "2025-08-08T04:21:32.974Z",
+    "client_id": "b2fd1066-875a-471d-bbbe-8fe82bd737ff"
+  },
+  {
+    "key": "sk-example-key-2",
+    "assigned": false,
+    "created_date": "2025-01-01"
+  },
+  {
+    "key": "sk-example-key-3",
+    "assigned": false,
+    "created_date": "2025-01-01"
+  }
 ]
