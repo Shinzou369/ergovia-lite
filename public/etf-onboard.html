@@ -1003,6 +1003,83 @@
         .form-group input[type="password"]:focus {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFD700' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-eye-off'%3E%3Cpath d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/%3E%3Cpath d='M12 17a2 2 0 0 0 2-2v-1a2 2 0 0 0-4 0v1a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E");
         }
+
+        /* Enhanced OpenAI Key Generation Styles */
+        .openai-key-section {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%);
+            border: 2px solid #FFD700;
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .openai-key-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+        }
+
+        .generate-key-btn {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            border: none;
+            border-radius: var(--radius);
+            padding: 12px 24px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .generate-key-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+            background: linear-gradient(135deg, #FFA500 0%, #FFD700 100%);
+        }
+
+        .generate-key-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .key-status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .key-success-message {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #28a745;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .key-features {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -1188,14 +1265,52 @@
                         <i data-lucide="brain" style="width: 20px; height: 20px;"></i>
                         AI Service Credentials
                     </h3>
-                    <div class="form-group">
-                        <label for="openaiApiKey">OpenAI API Key <span class="required">*</span></label>
-                        <input type="password" id="openaiApiKey" name="openai_api_key" required
-                               placeholder="sk-xxxxxxxxxxxxxxxx">
-                        <div class="form-help">
-                            OpenAI API key for AI-powered features like content generation and analysis.
+                    
+                    <!-- OpenAI Key Generation Section -->
+                    <div class="credential-card" style="border: 2px solid #FFD700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%); margin-bottom: 20px;">
+                        <div class="credential-header">
+                            <h4 style="color: #FFD700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="key" style="width: 16px; height: 16px;"></i>
+                                Dedicated OpenAI API Key
+                            </h4>
+                            <span class="credential-status" id="openaiKeyStatus" style="background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);">Not Generated</span>
+                        </div>
+                        <p style="margin: 15px 0; color: var(--text-secondary);">
+                            <strong>✨ Get your personalized OpenAI API key!</strong> We'll assign you a dedicated API key with budget tracking and usage monitoring. This ensures your workflows have reliable AI access.
+                        </p>
+                        <button type="button" id="generateOpenAIKeyBtn" class="credential-btn" onclick="generatePersonalOpenAIKey()" style="margin-bottom: 15px;">
+                            <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                            Generate My OpenAI Key
+                        </button>
+                        <div id="openaiKeyResult" style="display: none; padding: 15px; background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 8px; margin-top: 10px;">
+                            <p style="margin: 0; color: #28a745; font-weight: 600;">
+                                ✅ Your dedicated OpenAI key has been generated and assigned!
+                            </p>
+                            <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+                                Monthly token limit: 100,000 tokens | Usage tracking: Enabled
+                            </small>
+                        </div>
+                        <div class="credential-features" style="margin-top: 15px;">
+                            <small>
+                                <strong>Included:</strong> 100K monthly tokens • Usage tracking • Budget monitoring • Automatic renewal
+                            </small>
                         </div>
                     </div>
+
+                    <!-- Alternative: Manual OpenAI Key Input -->
+                    <details style="margin-top: 20px;">
+                        <summary style="color: var(--text-secondary); cursor: pointer; font-size: 0.9rem;">Or provide your own OpenAI API key</summary>
+                        <div style="margin-top: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                            <div class="form-group">
+                                <label for="openaiApiKey">Your OpenAI API Key (Optional)</label>
+                                <input type="password" id="openaiApiKey" name="openai_api_key"
+                                       placeholder="sk-xxxxxxxxxxxxxxxx">
+                                <div class="form-help">
+                                    If you prefer to use your own OpenAI API key instead of our managed service.
+                                </div>
+                            </div>
+                        </div>
+                    </details>
 
                     <!-- Calendly Integration Credentials -->
                     <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
@@ -1919,6 +2034,12 @@
                 }
             }
 
+            // Handle generated client ID if OpenAI key was generated
+            if (configData.generated_client_id) {
+                deploymentData.client_id = configData.generated_client_id;
+                console.log('Using generated client ID:', configData.generated_client_id);
+            }
+
             // Prepare deployment data
             const deploymentData = {
                 client_data: {
@@ -1979,6 +2100,73 @@
                 lucide.createIcons();
             }
         });
+
+        // Generate Personal OpenAI Key function
+        async function generatePersonalOpenAIKey() {
+            const btn = document.getElementById('generateOpenAIKeyBtn');
+            const status = document.getElementById('openaiKeyStatus');
+            const result = document.getElementById('openaiKeyResult');
+            const originalBtnContent = btn.innerHTML;
+
+            // Check if business name is filled (required for client ID)
+            const businessName = document.getElementById('businessName').value.trim();
+            if (!businessName) {
+                showError('Please enter your business name first before generating an OpenAI key.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></div><span>Generating...</span>';
+
+            try {
+                // Generate client ID from business name
+                const clientId = businessName.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now();
+
+                const response = await fetch('/api/client/generate-openai-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        business_name: businessName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update UI to show success
+                    status.textContent = 'Generated';
+                    status.style.background = 'rgba(40, 167, 69, 0.15)';
+                    status.style.color = '#28a745';
+                    status.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+                    
+                    result.style.display = 'block';
+                    
+                    btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i>Key Generated';
+                    btn.style.background = '#28a745';
+                    
+                    // Store client ID for form submission
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'generated_client_id';
+                    hiddenInput.value = clientId;
+                    document.getElementById('etfOnboardingForm').appendChild(hiddenInput);
+                    
+                    showSuccess(`OpenAI key generated successfully! Key preview: ${data.key_preview}`);
+                    
+                } else {
+                    throw new Error(data.error || 'Failed to generate OpenAI key');
+                }
+
+            } catch (error) {
+                console.error('OpenAI key generation error:', error);
+                btn.disabled = false;
+                btn.innerHTML = originalBtnContent;
+                showError(`Failed to generate OpenAI key: ${error.message}`);
+            }
+        }
 
         // Enhanced form validation function
         function validateForm() {
