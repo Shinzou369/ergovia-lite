@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Key Administration</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .admin-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .admin-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .key-input-area {
+            width: 100%;
+            min-height: 200px;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            margin: 15px 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <header class="page-header">
+            <h1>🔑 OpenAI Key Administration</h1>
+            <p>Manage OpenAI API keys for client workflows</p>
+        </header>
+
+        <!-- Statistics -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalKeys">-</div>
+                <div class="stat-label">Total Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="assignedKeys">-</div>
+                <div class="stat-label">Assigned Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="availableKeys">-</div>
+                <div class="stat-label">Available Keys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalClients">-</div>
+                <div class="stat-label">Total Clients</div>
+            </div>
+        </div>
+
+        <!-- Add New Keys Section -->
+        <div class="admin-section">
+            <h3>Add New OpenAI Keys</h3>
+            <p>Enter OpenAI API keys (one per line). Keys should start with "sk-" and be valid OpenAI API keys.</p>
+            
+            <div class="alert alert-success" id="successAlert"></div>
+            <div class="alert alert-error" id="errorAlert"></div>
+
+            <textarea 
+                class="key-input-area" 
+                id="keyInput" 
+                placeholder="sk-example-key-1&#10;sk-example-key-2&#10;sk-example-key-3"></textarea>
+
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="addKeys()">Add Keys to Pool</button>
+                <button class="btn btn-secondary" onclick="clearInput()">Clear</button>
+                <button class="btn btn-success" onclick="loadStats()">Refresh Stats</button>
+            </div>
+        </div>
+
+        <!-- Client Usage Section -->
+        <div class="admin-section">
+            <h3>Client Token Usage</h3>
+            <p>View token usage for a specific client:</p>
+            
+            <input type="text" id="clientIdInput" placeholder="Enter Client ID" style="padding: 8px; margin-right: 10px; width: 300px;">
+            <button class="btn" onclick="checkClientUsage()">Check Usage</button>
+            
+            <div id="clientUsageResult" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Load statistics on page load
+        document.addEventListener('DOMContentLoaded', loadStats);
+
+        function showAlert(message, type = 'success') {
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const alert = document.getElementById(alertId);
+            
+            // Hide other alert
+            const otherAlert = document.getElementById(type === 'success' ? 'errorAlert' : 'successAlert');
+            otherAlert.style.display = 'none';
+            
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function setLoading(element, loading = true) {
+            if (loading) {
+                element.classList.add('loading');
+            } else {
+                element.classList.remove('loading');
+            }
+        }
+
+        async function loadStats() {
+            const statsGrid = document.getElementById('statsGrid');
+            setLoading(statsGrid, true);
+
+            try {
+                const response = await fetch('/api/admin/pool-stats');
+                const stats = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('totalKeys').textContent = stats.total_keys;
+                    document.getElementById('assignedKeys').textContent = stats.assigned_keys;
+                    document.getElementById('availableKeys').textContent = stats.available_keys;
+                    document.getElementById('totalClients').textContent = stats.total_clients;
+                } else {
+                    throw new Error(stats.error || 'Failed to load statistics');
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showAlert('Failed to load statistics: ' + error.message, 'error');
+            } finally {
+                setLoading(statsGrid, false);
+            }
+        }
+
+        async function addKeys() {
+            const keyInput = document.getElementById('keyInput');
+            const keysText = keyInput.value.trim();
+
+            if (!keysText) {
+                showAlert('Please enter at least one API key', 'error');
+                return;
+            }
+
+            const keys = keysText.split('\n')
+                .map(key => key.trim())
+                .filter(key => key.length > 0);
+
+            if (keys.length === 0) {
+                showAlert('No valid keys found', 'error');
+                return;
+            }
+
+            // Validate key format
+            const invalidKeys = keys.filter(key => !key.startsWith('sk-') || key.length < 20);
+            if (invalidKeys.length > 0) {
+                showAlert(`Invalid key format detected. Keys must start with "sk-" and be at least 20 characters long.`, 'error');
+                return;
+            }
+
+            const addButton = document.querySelector('button[onclick="addKeys()"]');
+            setLoading(addButton, true);
+
+            try {
+                const response = await fetch('/api/admin/openai-keys', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ keys })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert(`Successfully added ${result.added_keys} keys to the pool`, 'success');
+                    keyInput.value = '';
+                    loadStats(); // Refresh statistics
+                } else {
+                    throw new Error(result.error || 'Failed to add keys');
+                }
+            } catch (error) {
+                console.error('Error adding keys:', error);
+                showAlert('Failed to add keys: ' + error.message, 'error');
+            } finally {
+                setLoading(addButton, false);
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('keyInput').value = '';
+        }
+
+        async function checkClientUsage() {
+            const clientIdInput = document.getElementById('clientIdInput');
+            const clientId = clientIdInput.value.trim();
+            const resultDiv = document.getElementById('clientUsageResult');
+
+            if (!clientId) {
+                resultDiv.innerHTML = '<div style="color: #dc3545;">Please enter a Client ID</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div>Loading...</div>';
+
+            try {
+                const response = await fetch(`/api/client/usage/${encodeURIComponent(clientId)}`);
+                const usage = await response.json();
+
+                if (response.ok) {
+                    const percentage = usage.percentage || 0;
+                    const statusColor = percentage >= 100 ? '#dc3545' : percentage >= 80 ? '#ffc107' : '#28a745';
+                    
+                    resultDiv.innerHTML = `
+                        <div style="border: 1px solid #ddd; padding: 20px; border-radius: 8px; background: white;">
+                            <h4 style="margin-top: 0;">Client: ${usage.client_id}</h4>
+                            <div style="margin-bottom: 10px;">
+                                <strong>Token Usage:</strong> ${usage.used_tokens.toLocaleString()} / ${usage.limit_tokens.toLocaleString()} 
+                                <span style="color: ${statusColor}; font-weight: bold;">(${percentage}%)</span>
+                            </div>
+                            <div style="width: 100%; background: #f0f0f0; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${Math.min(percentage, 100)}%; height: 20px; background: ${statusColor}; transition: width 0.3s;"></div>
+                            </div>
+                            <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                                <div><strong>Status:</strong> ${usage.status}</div>
+                                <div><strong>Reset Date:</strong> ${new Date(usage.reset_date).toLocaleDateString()}</div>
+                                <div><strong>Last Used:</strong> ${usage.last_used ? new Date(usage.last_used).toLocaleString() : 'Never'}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div style="color: #dc3545;">Error: ${usage.error}</div>`;
+                }
+            } catch (error) {
+                console.error('Error checking usage:', error);
+                resultDiv.innerHTML = `<div style="color: #dc3545;">Failed to check usage: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>

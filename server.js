@@ -13,6 +13,16 @@ const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { countTokens, countConversationTokens } = require('./utils/tokenCounter');
+const { 
+  assignKeyToClient, 
+  getClientData, 
+  updateTokenUsage, 
+  checkBudget,
+  addKeysToPool,
+  getPoolStats 
+} = require('./utils/keyManager');
+const { initScheduler } = require('./utils/scheduler');
 
 // ========================================
 // ETF Integration - N8N Configuration
@@ -265,6 +275,9 @@ function initETFDatabase() {
 }
 
 const etfDB = initETFDatabase();
+
+// Initialize monthly token reset scheduler
+initScheduler();
 
 // Validate required environment variables
 const requiredEnvVars = [
@@ -712,6 +725,16 @@ app.post('/api/etf/deploy', async (req, res) => {
       });
     }
 
+    // Generate OpenAI API key for this client
+    let openaiKeyGenerated = false;
+    try {
+      const assignedKey = assignKeyToClient(client_id, templateIds[0] || 'multiple_workflows', 100000);
+      console.log(`✅ Auto-generated OpenAI key for client ${client_id}`);
+      openaiKeyGenerated = true;
+    } catch (keyError) {
+      console.warn(`⚠️ Could not auto-generate OpenAI key for client ${client_id}:`, keyError.message);
+    }
+
     // Save deployment records and attempt activation for each personalized workflow
     for (const result of personalizationResult.results) {
       if (!result.success) {
@@ -850,7 +873,8 @@ app.post('/api/etf/deploy', async (req, res) => {
       workflows_with_no_trigger: noTriggerCount,
       failed_workflows: failedCount,
       tag_applied: clientTag,
-      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${clientData.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.`
+      openai_key_generated: openaiKeyGenerated,
+      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${clientData.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiKeyGenerated ? ' Personal OpenAI key generated.' : ''}`
     });
 
   } catch (error) {
@@ -1570,6 +1594,235 @@ app.post('/api/etf/test-apply-tags', async (req, res) => {
       error: error.message,
       workflow_id: req.body.workflowId,
       attempted_tags: req.body.tags
+    });
+  }
+});
+
+// ========================================
+// OpenAI Key Budget System
+// ========================================
+
+// Generate OpenAI key for client when workflow is duplicated
+app.post('/api/client/generate-openai-key', async (req, res) => {
+  try {
+    const { client_id, workflow_id, token_limit } = req.body;
+
+    if (!client_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Client ID is required'
+      });
+    }
+
+    console.log(`🔑 Generating OpenAI key for client: ${client_id}`);
+
+    const apiKey = assignKeyToClient(client_id, workflow_id, token_limit || 100000);
+
+    res.json({
+      success: true,
+      message: 'OpenAI API key assigned successfully',
+      client_id: client_id,
+      key_assigned: true,
+      token_limit: token_limit || 100000,
+      key_preview: apiKey.substring(0, 7) + '...' + apiKey.slice(-4)
+    });
+
+  } catch (error) {
+    console.error('❌ Error generating OpenAI key:', error);
+    
+    if (error.message.includes('No available OpenAI keys')) {
+      return res.status(503).json({
+        success: false,
+        error: 'No available API keys. Please contact administrator.',
+        details: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate OpenAI key',
+      details: error.message
+    });
+  }
+});
+
+// Client GPT endpoint - uses their assigned key and tracks usage
+app.post('/api/client/ask-gpt', async (req, res) => {
+  try {
+    const { client_id, prompt, messages, model } = req.body;
+
+    if (!client_id || (!prompt && !messages)) {
+      return res.status(400).json({
+        error: 'Client ID and prompt/messages are required'
+      });
+    }
+
+    // Get client data
+    const clientData = getClientData(client_id);
+    if (!clientData) {
+      return res.status(404).json({
+        error: 'Client not found. Please generate an OpenAI key first.'
+      });
+    }
+
+    // Count tokens for the request
+    let inputTokens = 0;
+    if (messages && Array.isArray(messages)) {
+      inputTokens = countConversationTokens(messages);
+    } else if (prompt) {
+      inputTokens = countTokens(prompt);
+    }
+
+    // Check if client has budget for this request (estimate)
+    const estimatedTokens = inputTokens + 500; // Add buffer for response
+    if (!checkBudget(client_id, estimatedTokens)) {
+      return res.status(429).json({
+        error: 'Monthly token limit reached',
+        usage: {
+          used_tokens: clientData.used_tokens,
+          limit_tokens: clientData.limit_tokens,
+          percentage: Math.round((clientData.used_tokens / clientData.limit_tokens) * 100)
+        }
+      });
+    }
+
+    const selectedModel = model || 'gpt-3.5-turbo';
+    const clientApiKey = clientData.openai_key;
+
+    // Prepare messages for OpenAI
+    let finalMessages = [];
+    if (messages && Array.isArray(messages)) {
+      finalMessages = messages;
+    } else if (prompt) {
+      finalMessages = [{ role: 'user', content: prompt }];
+    }
+
+    // Make request to OpenAI using client's assigned key
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${clientApiKey}`
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: finalMessages,
+        max_tokens: 1500,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`OpenAI API Error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    const responseMessage = data.choices[0].message;
+
+    // Count response tokens and update usage
+    const outputTokens = countTokens(responseMessage.content);
+    const totalTokensUsed = inputTokens + outputTokens;
+
+    // Update client's token usage
+    const updatedClientData = updateTokenUsage(client_id, totalTokensUsed);
+
+    console.log(`📊 Client ${client_id} used ${totalTokensUsed} tokens (${updatedClientData.used_tokens}/${updatedClientData.limit_tokens} total)`);
+
+    res.json({
+      message: responseMessage,
+      usage: {
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokensUsed,
+        used_tokens: updatedClientData.used_tokens,
+        limit_tokens: updatedClientData.limit_tokens,
+        percentage: Math.round((updatedClientData.used_tokens / updatedClientData.limit_tokens) * 100)
+      },
+      model: selectedModel
+    });
+
+  } catch (error) {
+    console.error('❌ Client GPT request failed:', error);
+    res.status(500).json({
+      error: 'Failed to process GPT request',
+      details: error.message
+    });
+  }
+});
+
+// Get client's token usage
+app.get('/api/client/usage/:client_id', (req, res) => {
+  try {
+    const { client_id } = req.params;
+    const clientData = getClientData(client_id);
+
+    if (!clientData) {
+      return res.status(404).json({
+        error: 'Client not found'
+      });
+    }
+
+    const percentage = Math.round((clientData.used_tokens / clientData.limit_tokens) * 100);
+
+    res.json({
+      client_id: client_id,
+      used_tokens: clientData.used_tokens,
+      limit_tokens: clientData.limit_tokens,
+      percentage: percentage,
+      reset_date: clientData.reset_date,
+      last_used: clientData.last_used,
+      status: percentage >= 100 ? 'limit_reached' : percentage >= 80 ? 'warning' : 'ok'
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching usage:', error);
+    res.status(500).json({
+      error: 'Failed to fetch usage data',
+      details: error.message
+    });
+  }
+});
+
+// Admin endpoints for key management
+app.post('/api/admin/openai-keys', (req, res) => {
+  try {
+    const { keys } = req.body;
+
+    if (!keys || !Array.isArray(keys)) {
+      return res.status(400).json({
+        error: 'Keys array is required'
+      });
+    }
+
+    const addedKeys = addKeysToPool(keys);
+
+    res.json({
+      success: true,
+      message: `Added ${addedKeys.length} keys to pool`,
+      added_keys: addedKeys.length,
+      key_previews: addedKeys.map(key => key.substring(0, 7) + '...' + key.slice(-4))
+    });
+
+  } catch (error) {
+    console.error('❌ Error adding keys:', error);
+    res.status(500).json({
+      error: 'Failed to add keys',
+      details: error.message
+    });
+  }
+});
+
+// Get OpenAI key pool statistics
+app.get('/api/admin/pool-stats', (req, res) => {
+  try {
+    const stats = getPoolStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('❌ Error fetching pool stats:', error);
+    res.status(500).json({
+      error: 'Failed to fetch pool statistics',
+      details: error.message
     });
   }
 });
