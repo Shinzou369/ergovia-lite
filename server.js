@@ -110,13 +110,15 @@ class N8NApiClient {
       const existingTag = tags.find(tag => tag.name === tagName);
 
       if (existingTag) {
-        console.log(`✅ Tag "${tagName}" already exists`);
+        console.log(`✅ Tag "${tagName}" already exists with ID: ${existingTag.id}`);
         return existingTag;
       }
 
       // Tag doesn't exist, create it
       console.log(`🔄 Creating new tag: "${tagName}"`);
-      return await this.makeRequest('POST', '/tags', { name: tagName });
+      const newTag = await this.makeRequest('POST', '/tags', { name: tagName });
+      console.log(`✅ Created new tag "${tagName}" with ID: ${newTag.id}`);
+      return newTag;
     } catch (error) {
       // Handle 409 conflict errors specifically (tag already exists)
       if (error.message.includes('409') || error.message.includes('already exists')) {
@@ -138,37 +140,36 @@ class N8NApiClient {
 
   async updateWorkflowTags(workflowId, tags) {
     // N8N API requires array of tag objects: [{"id": "tagId1"}, {"id": "tagId2"}]
-    // First, we need to get the actual tag objects from N8N
     const tagObjects = [];
 
     for (const tag of Array.isArray(tags) ? tags : []) {
-      let tagName;
+      let tagToProcess;
+      
       if (typeof tag === 'string') {
-        tagName = tag;
+        // Create or get the tag first
+        tagToProcess = await this.createTag(tag);
       } else if (typeof tag === 'object' && tag.name) {
-        tagName = tag.name;
+        // Create or get the tag first
+        tagToProcess = await this.createTag(tag.name);
       } else {
-        tagName = String(tag);
+        // Create or get the tag first
+        tagToProcess = await this.createTag(String(tag));
       }
 
-      // Get the tag with its ID from N8N
-      try {
-        const tagsResponse = await this.makeRequest('GET', '/tags');
-        const allTags = Array.isArray(tagsResponse) ? tagsResponse : (tagsResponse.data || []);
-        const existingTag = allTags.find(t => t.name === tagName);
-
-        if (existingTag && existingTag.id) {
-          tagObjects.push({ id: existingTag.id });
-          console.log(`✅ Found tag "${tagName}" with ID: ${existingTag.id}`);
-        } else {
-          console.warn(`⚠️ Tag "${tagName}" not found or missing ID`);
-        }
-      } catch (error) {
-        console.error(`❌ Error getting tag "${tagName}":`, error.message);
+      if (tagToProcess && tagToProcess.id) {
+        tagObjects.push({ id: tagToProcess.id });
+        console.log(`✅ Adding tag "${tagToProcess.name}" (ID: ${tagToProcess.id}) to workflow ${workflowId}`);
+      } else {
+        console.warn(`⚠️ Could not get valid tag ID for "${tag}"`);
       }
     }
 
-    console.log(`🏷️ Applying tag objects to workflow ${workflowId}:`, tagObjects);
+    if (tagObjects.length === 0) {
+      console.warn(`⚠️ No valid tags to apply to workflow ${workflowId}`);
+      return null;
+    }
+
+    console.log(`🏷️ Applying ${tagObjects.length} tag(s) to workflow ${workflowId}`);
     // Send tag objects as array of objects with id property
     return await this.makeRequest('PUT', `/workflows/${workflowId}/tags`, tagObjects);
   }
@@ -667,13 +668,15 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Skip credential creation - focus on placeholder personalization only
     // Credentials will be left blank for manual configuration
 
+    console.log(`🏷️ Creating client identification tag: "${clientTag}"`);
+
     for (const result of personalizationResult.results) {
       if (result.success) {
         try {
-          await n8nClient.updateWorkflowTags(result.newId, [{ name: clientTag }]);
-          console.log(`🏷️ Tagged workflow ${result.newId} with "${clientTag}"`);
+          await n8nClient.updateWorkflowTags(result.newId, [clientTag]);
+          console.log(`✅ Successfully tagged workflow ${result.newId} with "${clientTag}"`);
         } catch (tagError) {
-          console.warn(`⚠️ Could not tag workflow ${result.newId}:`, tagError.message);
+          console.error(`❌ Could not tag workflow ${result.newId}:`, tagError.message);
         }
       }
     }
