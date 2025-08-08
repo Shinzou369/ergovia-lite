@@ -527,8 +527,8 @@ app.get('/api/etf/templates', async (req, res) => {
           config_fields: workflowAnalysis.fields || [],
           prompt_instructions: workflowAnalysis.promptInstructions || '',
           credentials_required: workflowAnalysis.credentialsRequired || [],
-          created_at: workflow.createdAt,
-          updated_at: workflow.updatedAt
+          created_at: workflow.created_at,
+          updated_at: workflow.updated_at
         };
       }) : [];
 
@@ -610,10 +610,10 @@ app.post('/api/etf/deploy', async (req, res) => {
 
     // Handle test mode - use actual PET workflows when template_id is "pet_clinic_test"
     let templateIds;
-    
+
     if (req.body.template_id === 'pet_clinic_test' || req.body.test_mode) {
       console.log('🧪 Test mode detected - fetching all available PET workflows');
-      
+
       // Get all PET workflows for test deployment
       try {
         const workflows = await n8nClient.getWorkflows();
@@ -629,21 +629,21 @@ app.post('/api/etf/deploy', async (req, res) => {
               return false;
             });
           }).map(w => w.id) : [];
-        
+
         if (petWorkflows.length === 0) {
           throw new Error('No PET workflows found in N8N for test deployment');
         }
-        
+
         templateIds = petWorkflows;
         console.log(`🧪 Using ${templateIds.length} PET workflows for test: ${templateIds.join(', ')}`);
-        
+
       } catch (error) {
         throw new Error(`Failed to fetch PET workflows for test: ${error.message}`);
       }
     } else {
       // Production mode - use provided template_ids
       templateIds = Array.isArray(template_ids) ? template_ids : [template_ids].filter(Boolean);
-      
+
       if (templateIds.length === 0) {
         throw new Error('No template IDs provided for deployment.');
       }
@@ -662,29 +662,29 @@ app.post('/api/etf/deploy', async (req, res) => {
     }
 
     // Tag all successfully created workflows with a client identifier
-    const clientTag = `PET[${clientData.name}]`;
-    
+    const clientTag = `PET[${client_data.name}]`;
+
     // Create credentials for this client
     const credentialMappings = {};
-    
+
     // Create Google Services credential (Gmail SMTP, Sheets, Calendar)
     if (req.session?.google_access_token) {
       const googleCredentialId = await createN8NCredential(
-        clientData.email, 
+        client_data.email, 
         {
           access_token: req.session.google_access_token,
           refresh_token: req.session.google_refresh_token
         }, 
-        { name: clientData.name, email: clientData.email }
+        { name: client_data.name, email: client_data.email }
       );
-      
+
       if (googleCredentialId.success) {
         credentialMappings['googleSheetsOAuth2Api'] = googleCredentialId.credentialId;
         credentialMappings['googleCalendarOAuth2Api'] = googleCredentialId.credentialId;
-        
+
         // Create Gmail SMTP credential
         const gmailCredentialId = await createGmailSMTPCredential(
-          clientData.email,
+          client_data.email,
           req.session.google_access_token,
           req.session.google_refresh_token,
           clientTag
@@ -694,7 +694,7 @@ app.post('/api/etf/deploy', async (req, res) => {
         }
       }
     }
-    
+
     // Create Calendly OAuth credential (when ready)
     const calendlyCredentialId = await createCalendlyOAuthCredential(clientTag);
     if (calendlyCredentialId) {
@@ -706,7 +706,7 @@ app.post('/api/etf/deploy', async (req, res) => {
         try {
           await n8nClient.updateWorkflowTags(result.newId, [{ name: clientTag }]);
           console.log(`🏷️ Tagged workflow ${result.newId} with "${clientTag}"`);
-          
+
           // Apply credentials to this workflow
           await applyCredentialsToWorkflow(result.newId, credentialMappings);
         } catch (tagError) {
@@ -718,7 +718,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Log the workflow dependency mappings
     console.log(`\n🔗 Inter-workflow Dependencies Resolved:`);
     console.log(`   Original templates now reference personalized workflows`);
-    console.log(`   Example: If template referenced "WF3", it now references "[${clientData.name}] WF3"`);
+    console.log(`   Example: If template referenced "WF3", it now references "[${client_data.name}] WF3"`);
     if (personalizationResult.workflowIdMappings) {
       Object.entries(personalizationResult.workflowIdMappings).forEach(([original, personalized]) => {
         console.log(`   ${original} → ${personalized}`);
@@ -874,7 +874,7 @@ app.post('/api/etf/deploy', async (req, res) => {
       failed_workflows: failedCount,
       tag_applied: clientTag,
       openai_key_generated: openaiKeyGenerated,
-      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${clientData.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiKeyGenerated ? ' Personal OpenAI key generated.' : ''}`
+      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiKeyGenerated ? ' Personal OpenAI key generated.' : ''}`
     });
 
   } catch (error) {
@@ -1629,7 +1629,7 @@ app.post('/api/client/generate-openai-key', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error generating OpenAI key:', error);
-    
+
     if (error.message.includes('No available OpenAI keys')) {
       return res.status(503).json({
         success: false,
@@ -2200,7 +2200,7 @@ function requirePremium(req, res, next) {
       // Update user record to reflect expired status
       userData.isPremium = false;
       userData.subscriptionStatus = 'expired';
-      
+
       // Update the session and savedUserData if available
       if (req.user.savedUserData) {
         req.user.savedUserData.isPremium = false;
@@ -3371,6 +3371,7 @@ app.get("/complete-signup", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "complete-signup.html"));
 });
 
+// Confirm login route
 app.get("/confirm-login", (req, res) => {
   if (!req.isAuthenticated()) {
     return res.redirect("/signup");
@@ -3701,6 +3702,7 @@ app.get('/api/auth/facebook-callback', async (req, res) => {
 
     if (tokenData.access_token) {
       req.session.facebook_access_token = tokenData.access_token;
+      req.session.facebook_team_name = tokenData.team?.name || 'Facebook Team';
       req.session.facebook_connected = true;
       delete req.session.facebookOAuthState;
 
@@ -4167,7 +4169,7 @@ async function applyCredentialsToWorkflow(workflowId, credentialMappings) {
 
     // Get the workflow
     const workflow = await n8nClient.getWorkflow(workflowId);
-    
+
     // Update nodes with credentials
     const updatedNodes = workflow.nodes.map(node => {
       if (node.credentials) {
