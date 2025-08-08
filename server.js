@@ -611,7 +611,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Handle test mode - use actual PET workflows when template_id is "pet_clinic_test"
     let templateIds;
     
-    if (template_id === 'pet_clinic_test' || req.body.test_mode) {
+    if (req.body.template_id === 'pet_clinic_test' || req.body.test_mode) {
       console.log('🧪 Test mode detected - fetching all available PET workflows');
       
       // Get all PET workflows for test deployment
