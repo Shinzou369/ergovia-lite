@@ -664,51 +664,14 @@ app.post('/api/etf/deploy', async (req, res) => {
     // Tag all successfully created workflows with a client identifier
     const clientTag = `PET[${client_data.name}]`;
 
-    // Create credentials for this client
-    const credentialMappings = {};
-
-    // Create Google Services credential (Gmail SMTP, Sheets, Calendar)
-    if (req.session?.google_access_token) {
-      const googleCredentialId = await createN8NCredential(
-        client_data.email, 
-        {
-          access_token: req.session.google_access_token,
-          refresh_token: req.session.google_refresh_token
-        }, 
-        { name: client_data.name, email: client_data.email }
-      );
-
-      if (googleCredentialId.success) {
-        credentialMappings['googleSheetsOAuth2Api'] = googleCredentialId.credentialId;
-        credentialMappings['googleCalendarOAuth2Api'] = googleCredentialId.credentialId;
-
-        // Create Gmail SMTP credential
-        const gmailCredentialId = await createGmailSMTPCredential(
-          client_data.email,
-          req.session.google_access_token,
-          req.session.google_refresh_token,
-          clientTag
-        );
-        if (gmailCredentialId) {
-          credentialMappings['gmailOAuth2'] = gmailCredentialId;
-        }
-      }
-    }
-
-    // Create Calendly OAuth credential (when ready)
-    const calendlyCredentialId = await createCalendlyOAuthCredential(clientTag);
-    if (calendlyCredentialId) {
-      credentialMappings['calendlyOAuth2Api'] = calendlyCredentialId;
-    }
+    // Skip credential creation - focus on placeholder personalization only
+    // Credentials will be left blank for manual configuration
 
     for (const result of personalizationResult.results) {
       if (result.success) {
         try {
           await n8nClient.updateWorkflowTags(result.newId, [{ name: clientTag }]);
           console.log(`🏷️ Tagged workflow ${result.newId} with "${clientTag}"`);
-
-          // Apply credentials to this workflow
-          await applyCredentialsToWorkflow(result.newId, credentialMappings);
         } catch (tagError) {
           console.warn(`⚠️ Could not tag workflow ${result.newId}:`, tagError.message);
         }
@@ -4597,18 +4560,8 @@ function personalizeWorkflowNodes(nodes, configData, clientData, workflowIdMappi
       personalizedNode.name = personalizeString(personalizedNode.name, configData, clientData);
     }
 
-    // Personalize credentials reference
-    if (personalizedNode.credentials) {
-      Object.keys(personalizedNode.credentials).forEach(credType => {
-        if (personalizedNode.credentials[credType].name) {
-          personalizedNode.credentials[credType].name = personalizeString(
-            personalizedNode.credentials[credType].name, 
-            configData, 
-            clientData
-          );
-        }
-      });
-    }
+    // Skip credential personalization - leave credentials blank as requested
+    // Credentials will need to be manually configured in N8N
 
     return personalizedNode;
   });
@@ -4705,8 +4658,8 @@ function personalizeString(str, configData, clientData) {
     '{{VETERINARIAN_NAMES}}': veterinarianNames.join(', ') || '',
     '{{PRIMARY_VETERINARIAN}}': primaryVeterinarian,
     '{{EMERGENCY_CONTACT}}': allData.emergency_contact || allData.business_phone || '',
-    '{{TELEGRAM_BOT_TOKEN}}': allData.telegram_bot_token || '',
-    '{{TELEGRAM_CHAT_ID}}': allData.telegram_chat_id || ''
+    '{{TELEGRAM_BOT_TOKEN}}': '', // Leave blank for manual configuration
+    '{{TELEGRAM_CHAT_ID}}': '' // Leave blank for manual configuration
   };
 
   Object.entries(placeholders).forEach(([placeholder, value]) => {
@@ -4735,13 +4688,13 @@ async function personalizeMultipleWorkflows(workflowIds, configData, clientData)
       const originalWorkflow = await n8nClient.getWorkflow(workflowId);
 
       // Create personalized workflow data (without dependencies resolved yet)
+      // Exclude 'tags' field as it's read-only in N8N API
       const personalizedWorkflow = {
         name: `[${clientData.name}] ${originalWorkflow.name}`,
         nodes: originalWorkflow.nodes || [],
         connections: originalWorkflow.connections || {},
         settings: originalWorkflow.settings || {},
-        staticData: originalWorkflow.staticData || {},
-        tags: originalWorkflow.tags || []
+        staticData: originalWorkflow.staticData || {}
       };
 
       // Create the new workflow
