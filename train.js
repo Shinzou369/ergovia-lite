@@ -9,7 +9,7 @@ const openai = new OpenAI({
 
 async function uploadAndFineTune() {
   try {
-    const filePath = path.join(__dirname, "ergo2training_data.jsonl");
+    const filePath = path.join(__dirname, "ergovia_training_data.jsonl");
 
     // Upload training file
     console.log("Uploading training data...");
