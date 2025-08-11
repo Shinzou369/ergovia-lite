@@ -91,6 +91,12 @@ async function updateUIForLoggedInUser(user) {
   // Personalize hero title
   personalizeHeroTitle(user);
 
+  // Hide login section in hero
+  const loginSection = document.getElementById('login-section');
+  if (loginSection) {
+    loginSection.style.display = 'none';
+  }
+
   // Remove any existing login prompts
   const existingLoginBtn = document.querySelector('.auth-placeholder');
   if (existingLoginBtn) {
@@ -124,6 +130,12 @@ function showLoginOption() {
 
   // Show generic hero title
   showGenericHeroTitle();
+
+  // Show login section in hero
+  const loginSection = document.getElementById('login-section');
+  if (loginSection) {
+    loginSection.style.display = 'block';
+  }
 
   // Update UI to show empty state (this will clear threads list)
   if (typeof updateUI !== 'undefined') {

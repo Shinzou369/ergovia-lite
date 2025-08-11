@@ -3360,7 +3360,7 @@ a:focus-visible {
   gap: 12px;
   background: #ffffff;
   color: #1f2937;
-  border: 1px solid #d1d5db;
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius);
   padding: 14px 24px;
   font-size: 1rem;
@@ -3375,6 +3375,10 @@ a:focus-visible {
   background: #f9fafb;
   transform: translateY(-2px);
   box-shadow: var(--shadow);
+}
+
+.google-login-modal-btn:active {
+  transform: translateY(0);
 }
 
 .google-login-modal-btn svg {
@@ -3846,4 +3850,69 @@ footer a[href*="linkedin"]:hover {
     transform: none;
     box-shadow: none;
   }
+}
+
+/* Login Section */
+.login-section {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.google-auth-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 12px 24px;
+  background: white;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.google-auth-btn:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.google-auth-btn:active {
+  transform: translateY(0);
+}
+
+.auth-links {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.auth-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.auth-link:hover {
+  color: var(--secondary);
+  text-decoration: underline;
 }

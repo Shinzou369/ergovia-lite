@@ -10,7 +10,12 @@ const promptInput = document.getElementById("prompt-input");
 const submitBtn = document.getElementById("submit-btn");
 const charCounter = document.getElementById("char-counter");
 
-// Initialize the application
+// OAuth Login Function
+function initiateGoogleLogin() {
+  window.location.href = '/set-auth-intent/login';
+}
+
+// Initialize on page load
 document.addEventListener("DOMContentLoaded", function() {
   initializeApp();
   loadThreads();
@@ -684,3 +689,4 @@ window.toggleTheme = toggleTheme;
 window.toggleSidebar = toggleSidebar;
 window.openCustomerService = openCustomerService;
 window.handleTokenUsageClick = handleTokenUsageClick;
+window.initiateGoogleLogin = initiateGoogleLogin; // Added this line to export the new function
