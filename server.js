@@ -4547,7 +4547,7 @@ const server = app.listen(port, '0.0.0.0', (err) => {
   console.log('🚀 Server is running on port ${port}');
   console.log('🌐 External access: Available on 0.0.0.0:${port}');
   console.log('📍 Local URL: http://localhost:${port}');
-  console.log('🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co');
+  console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
 
   // Test basic route
   console.log('🧪 Testing server health...');
