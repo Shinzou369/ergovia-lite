@@ -609,37 +609,56 @@ app.post('/api/etf/deploy', async (req, res) => {
       });
     }
 
-    // Handle test mode - use actual PET workflows when template_id is "pet_clinic_test"
+    // Handle test mode - use actual PET workflows when template_id is "pet_clinic_test" or "test_workflow"
     let templateIds;
 
-    if (req.body.template_id === 'pet_clinic_test' || req.body.test_mode) {
-      console.log('🧪 Test mode detected - fetching all available PET workflows');
+    if (req.body.template_id === 'pet_clinic_test' || req.body.template_id === 'test_workflow' || req.body.test_mode) {
+      console.log('🧪 Test mode detected - fetching workflows with TEST tag');
 
-      // Get all PET workflows for test deployment
+      // Get workflows with TEST tag for test deployment
       try {
         const workflows = await n8nClient.getWorkflows();
-        const petWorkflows = workflows.data ? 
+        const testWorkflows = workflows.data ? 
           workflows.data.filter(workflow => {
             const workflowTags = workflow.tags || [];
             return Array.isArray(workflowTags) && workflowTags.some(tag => {
               if (typeof tag === 'string') {
-                return tag.toLowerCase() === 'pet';
+                return tag.toLowerCase() === 'test';
               } else if (tag && typeof tag === 'object' && tag.name) {
-                return tag.name.toLowerCase() === 'pet';
+                return tag.name.toLowerCase() === 'test';
               }
               return false;
             });
           }).map(w => w.id) : [];
 
-        if (petWorkflows.length === 0) {
-          throw new Error('No PET workflows found in N8N for test deployment');
+        // If no TEST workflows found, fall back to PET workflows for backwards compatibility
+        if (testWorkflows.length === 0) {
+          console.log('⚠️ No TEST workflows found, falling back to PET workflows');
+          const petWorkflows = workflows.data ? 
+            workflows.data.filter(workflow => {
+              const workflowTags = workflow.tags || [];
+              return Array.isArray(workflowTags) && workflowTags.some(tag => {
+                if (typeof tag === 'string') {
+                  return tag.toLowerCase() === 'pet';
+                } else if (tag && typeof tag === 'object' && tag.name) {
+                  return tag.name.toLowerCase() === 'pet';
+                }
+                return false;
+              });
+            }).map(w => w.id) : [];
+
+          if (petWorkflows.length === 0) {
+            throw new Error('No TEST or PET workflows found in N8N for test deployment');
+          }
+          templateIds = petWorkflows;
+          console.log(`🧪 Using ${templateIds.length} PET workflows for test: ${templateIds.join(', ')}`);
+        } else {
+          templateIds = testWorkflows;
+          console.log(`🧪 Using ${templateIds.length} TEST workflows for test: ${templateIds.join(', ')}`);
         }
 
-        templateIds = petWorkflows;
-        console.log(`🧪 Using ${templateIds.length} PET workflows for test: ${templateIds.join(', ')}`);
-
       } catch (error) {
-        throw new Error(`Failed to fetch PET workflows for test: ${error.message}`);
+        throw new Error(`Failed to fetch TEST workflows for test: ${error.message}`);
       }
     } else {
       // Production mode - use provided template_ids
