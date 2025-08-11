@@ -1577,6 +1577,76 @@ app.post('/api/client/generate-openai-key', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Client ID is required'
+
+// Validate Telegram credentials endpoint
+app.post('/api/etf/validate-telegram-credentials', async (req, res) => {
+  try {
+    const { telegram_bot_token, telegram_chat_id } = req.body;
+
+    if (!telegram_bot_token || !telegram_chat_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Both telegram_bot_token and telegram_chat_id are required'
+      });
+    }
+
+    // Basic format validation
+    if (!/^\d+:[A-Za-z0-9_-]{35}$/.test(telegram_bot_token)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid bot token format. Should be: numbers:letters (35 characters after colon)'
+      });
+    }
+
+    if (!/^-?\d+$/.test(telegram_chat_id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid chat ID format. Should be a number (negative for groups)'
+      });
+    }
+
+    // Test the bot token by making a call to Telegram API
+    try {
+      const response = await axios.get(`https://api.telegram.org/bot${telegram_bot_token}/getMe`);
+
+      if (!response.data.ok) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid bot token - Telegram API rejected it'
+        });
+      }
+
+      const botInfo = response.data.result;
+
+      res.json({
+        success: true,
+        message: 'Telegram credentials validated successfully',
+        bot_info: {
+          name: botInfo.first_name,
+          username: botInfo.username,
+          can_join_groups: botInfo.can_join_groups,
+          can_read_all_group_messages: botInfo.can_read_all_group_messages
+        }
+      });
+
+    } catch (telegramError) {
+      console.error('Telegram API validation error:', telegramError.message);
+      res.status(400).json({
+        success: false,
+        error: 'Failed to validate bot token with Telegram API'
+      });
+    }
+
+  } catch (error) {
+    console.error('Credential validation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error during validation'
+    });
+  }
+});
+
+
       });
     }
 
@@ -3904,6 +3974,8 @@ async function createN8NCredential(userEmail, tokenData, userInfo) {
 async function createRequiredGoogleSheets(clientData, accessToken) {
   const createdSheets = {};
   const clinicName = clientData.name || 'Pet Clinic';
+  
+  console.log('📊 Auto-creating Google Sheets for:', clinicName);
 
   console.log('📊 Creating Google Sheets for:', clinicName);
 
@@ -4126,6 +4198,108 @@ async function createCalendlyOAuthCredential(clientTag) {
     console.error('❌ Failed to create Calendly OAuth credential:', error);
     return null;
   }
+}
+
+// Personalize multiple workflows with inter-workflow ID dependencies
+async function personalizeMultipleWorkflows(templateIds, configData, clientData) {
+  const results = [];
+  const errors = [];
+  const workflowIdMappings = {}; // Map original IDs to personalized IDs
+
+  console.log(`🔄 Starting personalization of ${templateIds.length} workflows`);
+
+  // First pass: Create all workflows and build ID mappings
+  for (const templateId of templateIds) {
+    try {
+      console.log(`📋 Processing template: ${templateId}`);
+      
+      const originalWorkflow = await n8nClient.getWorkflow(templateId);
+      const personalizedName = `[${clientData.name}] ${originalWorkflow.name}`;
+      
+      // Create workflow without cross-references first
+      const personalizedNodes = personalizeWorkflowNodes(
+        originalWorkflow.nodes || [], 
+        configData, 
+        clientData,
+        {} // Empty mappings for first pass
+      );
+
+      const personalizedWorkflow = {
+        name: personalizedName,
+        nodes: personalizedNodes,
+        connections: originalWorkflow.connections || {},
+        settings: originalWorkflow.settings || {},
+        staticData: originalWorkflow.staticData || {}
+      };
+
+      const newWorkflow = await n8nClient.createWorkflow(personalizedWorkflow);
+      
+      // Store mapping for second pass
+      workflowIdMappings[templateId] = newWorkflow.id;
+      
+      results.push({
+        success: true,
+        originalId: templateId,
+        newId: newWorkflow.id,
+        name: personalizedName
+      });
+
+      console.log(`✅ Created workflow: ${personalizedName} (${newWorkflow.id})`);
+
+    } catch (error) {
+      console.error(`❌ Failed to create workflow ${templateId}:`, error.message);
+      errors.push({
+        templateId,
+        error: error.message
+      });
+      results.push({
+        success: false,
+        originalId: templateId,
+        error: error.message
+      });
+    }
+  }
+
+  // Second pass: Update workflows with correct inter-workflow references
+  console.log(`🔗 Updating inter-workflow dependencies...`);
+  
+  for (const result of results) {
+    if (!result.success) continue;
+
+    try {
+      const originalWorkflow = await n8nClient.getWorkflow(result.originalId);
+      
+      // Re-personalize with complete ID mappings
+      const personalizedNodes = personalizeWorkflowNodes(
+        originalWorkflow.nodes || [], 
+        configData, 
+        clientData,
+        workflowIdMappings
+      );
+
+      await n8nClient.updateWorkflow(result.newId, {
+        nodes: personalizedNodes,
+        connections: originalWorkflow.connections || {},
+        settings: originalWorkflow.settings || {},
+        staticData: originalWorkflow.staticData || {}
+      });
+
+      console.log(`🔗 Updated dependencies for workflow: ${result.newId}`);
+
+    } catch (error) {
+      console.warn(`⚠️ Could not update dependencies for ${result.newId}:`, error.message);
+    }
+  }
+
+  console.log(`✅ Personalization complete: ${results.filter(r => r.success).length}/${templateIds.length} successful`);
+
+  return {
+    results,
+    errors,
+    workflowIdMappings,
+    successCount: results.filter(r => r.success).length,
+    totalCount: templateIds.length
+  };
 }
 
 // Apply credentials to duplicated workflow

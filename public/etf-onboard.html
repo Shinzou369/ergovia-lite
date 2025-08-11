@@ -469,6 +469,76 @@
             font-size: 0.9rem;
         }
 
+        /* Multi-Step Progress */
+        .step-progress {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .step-progress::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            background: var(--bg-secondary);
+            padding: 10px;
+            border-radius: 8px;
+            min-width: 80px;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--border-color);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 8px;
+            transition: var(--transition);
+        }
+
+        .step-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .step.active .step-number {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .step.active .step-label {
+            color: var(--text-primary);
+        }
+
+        .step.completed .step-number {
+            background: #28a745;
+            color: white;
+        }
+
+        .step.completed .step-label {
+            color: #28a745;
+        }
+
         /* Progress Indicator */
         .progress-bar {
             width: 100%;
@@ -485,6 +555,113 @@
             width: 0%;
             transition: width 0.5s ease;
             border-radius: 2px;
+        }
+
+        /* Step Container */
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Step Navigation */
+        .step-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            border-color: #FFD700;
+            background: var(--bg-secondary);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .nav-btn.primary {
+            background: var(--primary-gradient);
+            border-color: transparent;
+            color: white;
+        }
+
+        .nav-btn.primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+
+        /* API Test Results */
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .test-result.success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            color: #28a745;
+        }
+
+        .test-result.error {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            color: #dc3545;
+        }
+
+        .test-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: var(--transition);
+        }
+
+        .test-btn:hover {
+            background: #138496;
+        }
+
+        .test-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         /* Responsive Design */
@@ -1132,19 +1309,40 @@
 
         <!-- Form Container -->
         <div class="form-container">
+            <!-- Multi-Step Progress -->
+            <div class="step-progress">
+                <div class="step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Business Info</div>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Connect Services</div>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Configure Settings</div>
+                </div>
+                <div class="step" data-step="4">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Deploy</div>
+                </div>
+            </div>
+
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
 
             <form id="etfOnboardingForm">
-                <!-- Business Information Section -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon">
-                            <i data-lucide="building-2"></i>
+                <!-- Step 1: Business Information -->
+                <div class="form-step active" id="step1">
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon">
+                                <i data-lucide="building-2"></i>
+                            </div>
+                            <h2 class="section-title">Step 1: Business Information</h2>
                         </div>
-                        <h2 class="section-title">Business Information</h2>
-                    </div>
 
                     <div class="form-row">
                         <div class="form-group">
@@ -1176,19 +1374,101 @@
                         <input type="text" id="businessAddress" name="businessAddress"
                                placeholder="123 Pet Street, Animal City, AC 12345">
                     </div>
+
+                    <div class="step-navigation">
+                        <div></div> <!-- Empty div for spacing -->
+                        <button type="button" class="nav-btn primary" onclick="nextStep()">
+                            <span>Next: Connect Services</span>
+                            <i data-lucide="arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- 🔑 CREDENTIALS SECTION -->
-                <div class="form-section" style="border: 2px solid #FFD700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0.02) 100%);">
-                    <div class="section-header">
-                        <div class="section-icon" style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);">
-                            <i data-lucide="key"></i>
+                <!-- Step 2: Service Connections -->
+                <div class="form-step" id="step2">
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon" style="background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);">
+                                <i data-lucide="link"></i>
+                            </div>
+                            <h2 class="section-title">Step 2: Connect Your Services</h2>
                         </div>
-                        <h2 class="section-title">🔑 API Keys & Credentials</h2>
+                        <p style="color: var(--text-secondary); margin-bottom: 30px; font-style: italic;">
+                            Connect your accounts with secure OAuth - no manual API keys needed!
+                        </p>
+
+                        <!-- One-Click Google Connection -->
+                        <div class="credential-card" style="border: 2px solid #4285F4; background: linear-gradient(135deg, rgba(66, 133, 244, 0.1) 0%, rgba(52, 168, 83, 0.05) 100%); margin-bottom: 25px;">
+                            <div class="credential-header">
+                                <h4 style="color: #4285F4; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="cloud" style="width: 20px; height: 20px;"></i>
+                                    Google Services (Gmail, Sheets, Calendar)
+                                </h4>
+                                <span class="credential-status" id="googleConnectionStatus" style="background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);">Not Connected</span>
+                            </div>
+                            <p style="margin: 15px 0; color: var(--text-secondary);">
+                                <strong>✨ One-click connection!</strong> Automatically creates all your Google Sheets and enables Gmail SMTP for professional communications.
+                            </p>
+                            <button type="button" id="connectGoogleBtn" class="credential-btn" onclick="connectGoogleForN8N()" style="margin-bottom: 15px;">
+                                <i data-lucide="cloud" style="width: 16px; height: 16px;"></i>
+                                Connect Google Account
+                            </button>
+                            <div id="googleConnectionResult" style="display: none; padding: 15px; background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 8px; margin-top: 10px;">
+                                <p style="margin: 0; color: #28a745; font-weight: 600;">
+                                    ✅ Google account connected! Auto-creating your sheets...
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- OpenAI Key Generation -->
+                        <div class="credential-card" style="border: 2px solid #FFD700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%); margin-bottom: 25px;">
+                            <div class="credential-header">
+                                <h4 style="color: #FFD700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                                    AI Assistant (OpenAI)
+                                </h4>
+                                <span class="credential-status" id="openaiKeyStatus" style="background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);">Not Generated</span>
+                            </div>
+                            <p style="margin: 15px 0; color: var(--text-secondary);">
+                                <strong>🤖 Get your AI assistant!</strong> We'll provide a dedicated OpenAI key with usage tracking and budget monitoring.
+                            </p>
+                            <button type="button" id="generateOpenAIKeyBtn" class="credential-btn" onclick="generatePersonalOpenAIKey()" style="margin-bottom: 15px;">
+                                <i data-lucide="key" style="width: 16px; height: 16px;"></i>
+                                Generate AI Assistant Key
+                            </button>
+                            <div id="openaiKeyResult" style="display: none; padding: 15px; background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 8px; margin-top: 10px;">
+                                <p style="margin: 0; color: #28a745; font-weight: 600;">
+                                    ✅ AI assistant ready! Monthly limit: 100K tokens
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <p style="color: var(--text-secondary); margin-bottom: 20px; font-style: italic;">
-                        These are your secure API keys and authentication tokens. They will be encrypted and stored safely.
-                    </p>
+
+                    <div class="step-navigation">
+                        <button type="button" class="nav-btn" onclick="prevStep()">
+                            <i data-lucide="arrow-left"></i>
+                            <span>Back</span>
+                        </button>
+                        <button type="button" class="nav-btn primary" onclick="nextStep()">
+                            <span>Next: Manual Credentials</span>
+                            <i data-lucide="arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Manual Credentials & Configuration -->
+                <div class="form-step" id="step3">
+                <!-- 🔑 MANUAL CREDENTIALS SECTION -->
+                <div class="form-section" style="border: 2px solid #FF6B35; background: linear-gradient(135deg, rgba(255, 107, 53, 0.05) 0%, rgba(255, 107, 53, 0.02) 100%);">
+                        <div class="section-header">
+                            <div class="section-icon" style="background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);">
+                                <i data-lucide="key"></i>
+                            </div>
+                            <h2 class="section-title">🔑 Manual API Keys & Credentials</h2>
+                        </div>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px; font-style: italic;">
+                            Enter your API keys for advanced integrations. All credentials are encrypted and stored securely.
+                        </p>
 
                     <!-- Telegram Bot Credentials -->
                     <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
@@ -1198,11 +1478,17 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="telegramBotToken">Telegram Bot Token <span class="required">*</span></label>
-                            <input type="password" id="telegramBotToken" name="telegram_bot_token" required
-                                   placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <input type="password" id="telegramBotToken" name="telegram_bot_token" required
+                                       placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" style="flex: 1;">
+                                <button type="button" class="test-btn" onclick="testTelegramCredentials()" id="testTelegramBtn">
+                                    Test
+                                </button>
+                            </div>
                             <div class="form-help">
                                 Get your bot token from @BotFather on Telegram. Format: numbers:letters (35 characters after colon)
                             </div>
+                            <div id="telegramTestResult" class="test-result"></div>
                         </div>
                         <div class="form-group">
                             <label for="telegramChatId">Telegram Chat ID <span class="required">*</span></label>
@@ -1427,8 +1713,22 @@
                             </ol>
                         </div>
                     </details>
+                    </div>
+
+                    <div class="step-navigation">
+                        <button type="button" class="nav-btn" onclick="prevStep()">
+                            <i data-lucide="arrow-left"></i>
+                            <span>Back</span>
+                        </button>
+                        <button type="button" class="nav-btn primary" onclick="nextStep()">
+                            <span>Next: Final Configuration</span>
+                            <i data-lucide="arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
 
+                <!-- Step 4: Final Configuration & Deployment -->
+                <div class="form-step" id="step4">
                 <!-- 📊 CONFIGURATION VARIABLES SECTION -->
                 <div class="form-section" style="border: 2px solid #4CAF50; background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.02) 100%);">
                     <div class="section-header">
@@ -1851,10 +2151,17 @@
                     </div>
                 </div>
 
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <i data-lucide="play"></i>
-                    <span>Deploy Workflow</span>
-                </button>
+                <div class="step-navigation">
+                        <button type="button" class="nav-btn" onclick="prevStep()">
+                            <i data-lucide="arrow-left"></i>
+                            <span>Back</span>
+                        </button>
+                        <button type="submit" class="nav-btn primary" id="submitBtn">
+                            <i data-lucide="rocket"></i>
+                            <span>Deploy My Automation</span>
+                        </button>
+                    </div>
+                </div>
             </form>
 
             <div id="result" class="result"></div>
@@ -2166,6 +2473,119 @@
                 btn.innerHTML = originalBtnContent;
                 showError(`Failed to generate OpenAI key: ${error.message}`);
             }
+        }
+
+        // Multi-Step Navigation
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                // Validate current step before proceeding
+                if (validateCurrentStep()) {
+                    currentStep++;
+                    showStep(currentStep);
+                    updateStepProgress();
+                }
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+                updateStepProgress();
+            }
+        }
+
+        function showStep(step) {
+            // Hide all steps
+            document.querySelectorAll('.form-step').forEach(stepEl => {
+                stepEl.classList.remove('active');
+            });
+            
+            // Show current step
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((stepEl, index) => {
+                stepEl.classList.remove('active', 'completed');
+                if (index + 1 < step) {
+                    stepEl.classList.add('completed');
+                } else if (index + 1 === step) {
+                    stepEl.classList.add('active');
+                }
+            });
+        }
+
+        function updateStepProgress() {
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function validateCurrentStep() {
+            const currentStepEl = document.getElementById(`step${currentStep}`);
+            const requiredFields = currentStepEl.querySelectorAll('[required]');
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#ef4444';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '';
+                }
+            });
+
+            if (!isValid) {
+                showError('Please fill in all required fields before proceeding.');
+            }
+
+            return isValid;
+        }
+
+        // Test Telegram Credentials
+        async function testTelegramCredentials() {
+            const botToken = document.getElementById('telegramBotToken').value;
+            const chatId = document.getElementById('telegramChatId').value;
+            const testBtn = document.getElementById('testTelegramBtn');
+            const resultDiv = document.getElementById('telegramTestResult');
+
+            if (!botToken || !chatId) {
+                showTestResult(resultDiv, false, 'Please enter both bot token and chat ID');
+                return;
+            }
+
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+
+            try {
+                const response = await fetch('/api/etf/validate-telegram-credentials', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_bot_token: botToken,
+                        telegram_chat_id: chatId
+                    })
+                });
+
+                const result = await response.json();
+                showTestResult(resultDiv, result.success, 
+                    result.success ? `✅ Connection successful! Bot: ${result.bot_info?.name || 'Unknown'}` : 
+                    `❌ ${result.error}`);
+
+            } catch (error) {
+                showTestResult(resultDiv, false, `❌ Test failed: ${error.message}`);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'Test';
+            }
+        }
+
+        function showTestResult(element, success, message) {
+            element.className = `test-result ${success ? 'success' : 'error'}`;
+            element.textContent = message;
+            element.style.display = 'block';
         }
 
         // Enhanced form validation function
