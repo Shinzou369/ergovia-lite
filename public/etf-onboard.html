@@ -992,6 +992,109 @@
             color: var(--text-muted);
         }
 
+        /* Missing Fields Alert Styles */
+        .missing-fields-alert {
+            position: relative;
+            z-index: 100;
+        }
+
+        .missing-fields-alert .alert-content {
+            position: relative;
+        }
+
+        .missing-fields-alert h4 {
+            color: #ef4444;
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .missing-fields-alert p {
+            color: #dc3545;
+            margin: 0 0 12px 0;
+            font-weight: 600;
+        }
+
+        .missing-fields-list {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #ef4444;
+            margin-bottom: 15px;
+        }
+
+        .alert-close-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .alert-close-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            transform: scale(1.1);
+        }
+
+        /* Enhanced Required Field Indicators */
+        .required {
+            color: #ef4444;
+            font-weight: 700;
+            margin-left: 3px;
+        }
+
+        .form-group label .required::before {
+            content: " ";
+        }
+
+        .form-group input[required],
+        .form-group select[required],
+        .form-group textarea[required] {
+            border-left: 3px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .form-group input[required]:focus,
+        .form-group select[required]:focus,
+        .form-group textarea[required]:focus {
+            border-left-color: #FFD700;
+        }
+
+        .form-group input[required]:valid,
+        .form-group select[required]:valid,
+        .form-group textarea[required]:valid {
+            border-left-color: rgba(34, 197, 94, 0.5);
+        }
+
+        /* Timezone optgroup styling */
+        .form-group select optgroup {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 8px 12px;
+        }
+
+        .form-group select option {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 6px 12px;
+        }
+
         .form-group input[type="password"] {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-eye-off'%3E%3Cpath d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/%3E%3Cpath d='M12 17a2 2 0 0 0 2-2v-1a2 2 0 0 0-4 0v1a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E");
             background-position: right 12px center;
@@ -1492,15 +1595,74 @@
                         <div class="form-group">
                             <label for="timezone">Timezone <span class="required">*</span></label>
                             <select id="timezone" name="timezone" required>
-                                <option value="">Select Timezone</option>
-                                <option value="America/New_York">Eastern Time (EST/EDT)</option>
-                                <option value="America/Chicago">Central Time (CST/CDT)</option>
-                                <option value="America/Denver">Mountain Time (MST/MDT)</option>
-                                <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
-                                <option value="America/Phoenix">Arizona Time (MST)</option>
-                                <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
-                                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                                <option value="">Select Your Timezone</option>
+                                <optgroup label="🇺🇸 United States">
+                                    <option value="America/New_York">Eastern Time (EST/EDT) - New York, Miami, Atlanta</option>
+                                    <option value="America/Chicago">Central Time (CST/CDT) - Chicago, Dallas, Houston</option>
+                                    <option value="America/Denver">Mountain Time (MST/MDT) - Denver, Salt Lake City</option>
+                                    <option value="America/Los_Angeles">Pacific Time (PST/PDT) - Los Angeles, San Francisco, Seattle</option>
+                                    <option value="America/Phoenix">Arizona Time (MST) - Phoenix (No Daylight Saving)</option>
+                                    <option value="America/Anchorage">Alaska Time (AKST/AKDT) - Anchorage</option>
+                                    <option value="Pacific/Honolulu">Hawaii Time (HST) - Honolulu</option>
+                                </optgroup>
+                                <optgroup label="🇨🇦 Canada">
+                                    <option value="America/Toronto">Eastern Time - Toronto, Ottawa</option>
+                                    <option value="America/Winnipeg">Central Time - Winnipeg</option>
+                                    <option value="America/Edmonton">Mountain Time - Calgary, Edmonton</option>
+                                    <option value="America/Vancouver">Pacific Time - Vancouver</option>
+                                    <option value="America/Halifax">Atlantic Time - Halifax</option>
+                                    <option value="America/St_Johns">Newfoundland Time - St. John's</option>
+                                </optgroup>
+                                <optgroup label="🇲🇽 Mexico">
+                                    <option value="America/Mexico_City">Central Time - Mexico City</option>
+                                    <option value="America/Tijuana">Pacific Time - Tijuana</option>
+                                    <option value="America/Cancun">Eastern Time - Cancun</option>
+                                </optgroup>
+                                <optgroup label="🇬🇧 United Kingdom & Ireland">
+                                    <option value="Europe/London">GMT/BST - London, Manchester, Edinburgh</option>
+                                    <option value="Europe/Dublin">GMT/IST - Dublin, Cork</option>
+                                </optgroup>
+                                <optgroup label="🇪🇺 Europe">
+                                    <option value="Europe/Paris">CET/CEST - Paris, Berlin, Rome, Madrid</option>
+                                    <option value="Europe/Amsterdam">CET/CEST - Amsterdam, Brussels</option>
+                                    <option value="Europe/Stockholm">CET/CEST - Stockholm, Copenhagen</option>
+                                    <option value="Europe/Zurich">CET/CEST - Zurich, Vienna</option>
+                                    <option value="Europe/Prague">CET/CEST - Prague, Budapest</option>
+                                    <option value="Europe/Warsaw">CET/CEST - Warsaw, Krakow</option>
+                                    <option value="Europe/Athens">EET/EEST - Athens, Helsinki</option>
+                                    <option value="Europe/Moscow">MSK - Moscow, St. Petersburg</option>
+                                </optgroup>
+                                <optgroup label="🇦🇺 Australia">
+                                    <option value="Australia/Sydney">AEST/AEDT - Sydney, Melbourne</option>
+                                    <option value="Australia/Brisbane">AEST - Brisbane</option>
+                                    <option value="Australia/Perth">AWST - Perth</option>
+                                    <option value="Australia/Adelaide">ACST/ACDT - Adelaide</option>
+                                    <option value="Australia/Darwin">ACST - Darwin</option>
+                                </optgroup>
+                                <optgroup label="🌏 Asia">
+                                    <option value="Asia/Tokyo">JST - Tokyo, Osaka</option>
+                                    <option value="Asia/Seoul">KST - Seoul</option>
+                                    <option value="Asia/Shanghai">CST - Beijing, Shanghai</option>
+                                    <option value="Asia/Hong_Kong">HKT - Hong Kong</option>
+                                    <option value="Asia/Singapore">SGT - Singapore</option>
+                                    <option value="Asia/Taipei">CST - Taipei</option>
+                                    <option value="Asia/Bangkok">ICT - Bangkok</option>
+                                    <option value="Asia/Jakarta">WIB - Jakarta</option>
+                                    <option value="Asia/Manila">PHT - Manila</option>
+                                    <option value="Asia/Kolkata">IST - Mumbai, Delhi, Bangalore</option>
+                                    <option value="Asia/Dubai">GST - Dubai, Abu Dhabi</option>
+                                </optgroup>
+                                <optgroup label="🌍 Other Regions">
+                                    <option value="Africa/Cairo">EET - Cairo</option>
+                                    <option value="Africa/Johannesburg">SAST - Johannesburg, Cape Town</option>
+                                    <option value="America/Sao_Paulo">BRT - São Paulo, Rio de Janeiro</option>
+                                    <option value="America/Argentina/Buenos_Aires">ART - Buenos Aires</option>
+                                    <option value="Pacific/Auckland">NZST/NZDT - Auckland</option>
+                                </optgroup>
                             </select>
+                            <div class="form-help">
+                                Select your business timezone for appointment scheduling and reminders.
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="reminderInterval">Reminder Check Interval</label>
@@ -1522,13 +1684,42 @@
                         <div class="form-group">
                             <label for="cancellationPolicy">Cancellation Policy <span class="required">*</span></label>
                             <select id="cancellationPolicy" name="cancellation_policy" required>
-                                <option value="">Select Policy</option>
-                                <option value="24-hour">24-hour</option>
-                                <option value="48-hour">48-hour</option>
-                                <option value="72-hour">72-hour</option>
-                                <option value="1-week">1-week</option>
+                                <option value="">Select Cancellation Policy</option>
+                                <option value="24-hour">24-hour notice required</option>
+                                <option value="48-hour">48-hour notice required</option>
+                                <option value="72-hour">72-hour notice required</option>
+                                <option value="1-week">1-week notice required</option>
+                                <option value="same-day">Same-day cancellation allowed</option>
+                                <option value="no-cancellation">No cancellation policy</option>
                             </select>
+                            <div class="form-help">
+                                <strong>Policy Details:</strong><br>
+                                • <strong>24-hour:</strong> Clients must cancel at least 24 hours before appointment<br>
+                                • <strong>48-hour:</strong> Clients must cancel at least 48 hours before appointment<br>
+                                • <strong>72-hour:</strong> Clients must cancel at least 72 hours before appointment<br>
+                                • <strong>1-week:</strong> Clients must cancel at least 1 week before appointment<br>
+                                • <strong>Same-day:</strong> Clients can cancel on the same day without penalty<br>
+                                • <strong>No policy:</strong> No specific cancellation requirements
+                            </div>
                         </div>
+                        <div class="form-group">
+                            <label for="cancellationFee">Cancellation Fee (optional)</label>
+                            <select id="cancellationFee" name="cancellation_fee">
+                                <option value="">No cancellation fee</option>
+                                <option value="25">$25 cancellation fee</option>
+                                <option value="50">$50 cancellation fee</option>
+                                <option value="75">$75 cancellation fee</option>
+                                <option value="100">$100 cancellation fee</option>
+                                <option value="full-charge">Full appointment charge</option>
+                                <option value="custom">Custom amount (specify in notes)</option>
+                            </select>
+                            <div class="form-help">
+                                Fee charged for late cancellations (based on your policy above).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
                             <label for="dataRetentionYears">Data Retention (Years)</label>
                             <select id="dataRetentionYears" name="data_retention_years">
@@ -1539,6 +1730,19 @@
                             </select>
                             <div class="form-help">
                                 How long to keep archived data.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="noShowPolicy">No-Show Policy</label>
+                            <select id="noShowPolicy" name="no_show_policy">
+                                <option value="">No specific policy</option>
+                                <option value="warning">First warning, then charge</option>
+                                <option value="immediate-charge">Immediate charge for no-shows</option>
+                                <option value="three-strikes">Three strikes policy</option>
+                                <option value="reschedule-fee">Reschedule fee required</option>
+                            </select>
+                            <div class="form-help">
+                                How to handle clients who don't show up for appointments.
                             </div>
                         </div>
                     </div>
@@ -2283,42 +2487,112 @@
             }
         }
 
-        // Enhanced form validation function
+        // Enhanced form validation function with missing field alerts
         function validateForm() {
             let isValid = true;
             const requiredFields = document.querySelectorAll('[required]');
+            const missingFields = [];
 
             requiredFields.forEach(field => {
                 const value = field.value.trim();
                 let fieldIsValid = true;
+                const fieldName = field.closest('.form-group').querySelector('label').textContent.replace(' *', '');
 
                 if (!value) {
                     fieldIsValid = false;
+                    missingFields.push(fieldName);
                 } else {
                     // Specific validations
                     if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
                         fieldIsValid = false;
+                        missingFields.push(`${fieldName} (invalid format)`);
                     }
                     if (field.type === 'tel') {
                         const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
                         const cleanPhone = value.replace(/[\s\-\(\)\.]/g, '');
                         if (!phoneRegex.test(cleanPhone)) {
                             fieldIsValid = false;
+                            missingFields.push(`${fieldName} (invalid format)`);
                         }
                     }
                     if (field.type === 'url' && value && !/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value)) {
                         fieldIsValid = false;
+                        missingFields.push(`${fieldName} (invalid format)`);
                     }
                 }
 
                 if (!fieldIsValid) {
                     field.style.borderColor = '#ef4444'; // Highlight error
+                    field.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.2)';
                     isValid = false;
                 } else {
                     field.style.borderColor = ''; // Reset border color
+                    field.style.boxShadow = '';
                 }
             });
+
+            // Show missing fields alert
+            if (missingFields.length > 0) {
+                showMissingFieldsAlert(missingFields);
+            }
+
             return isValid;
+        }
+
+        // Show missing fields alert
+        function showMissingFieldsAlert(missingFields) {
+            const alertDiv = document.getElementById('missing-fields-alert') || createMissingFieldsAlert();
+            const fieldsList = missingFields.map(field => `• ${field}`).join('<br>');
+            
+            alertDiv.innerHTML = `
+                <div class="alert-content">
+                    <h4><i data-lucide="alert-triangle"></i> Missing Required Fields</h4>
+                    <p>Please fill in the following required fields:</p>
+                    <div class="missing-fields-list">${fieldsList}</div>
+                    <button onclick="hideMissingFieldsAlert()" class="alert-close-btn">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+            `;
+            
+            alertDiv.style.display = 'block';
+            alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Re-initialize icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Create missing fields alert element
+        function createMissingFieldsAlert() {
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'missing-fields-alert';
+            alertDiv.className = 'missing-fields-alert';
+            alertDiv.style.cssText = `
+                display: none;
+                background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+                border: 2px solid rgba(239, 68, 68, 0.3);
+                border-radius: 12px;
+                padding: 20px;
+                margin: 20px 0;
+                position: relative;
+                animation: slideInUp 0.3s ease-out;
+            `;
+            
+            // Insert after form container
+            const formContainer = document.querySelector('.form-container');
+            formContainer.parentNode.insertBefore(alertDiv, formContainer.nextSibling);
+            
+            return alertDiv;
+        }
+
+        // Hide missing fields alert
+        function hideMissingFieldsAlert() {
+            const alertDiv = document.getElementById('missing-fields-alert');
+            if (alertDiv) {
+                alertDiv.style.display = 'none';
+            }
         }
 
         // Real-time validation on blur
