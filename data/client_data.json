@@ -18,5 +18,15 @@
     "reset_date": "2025-09-01T00:00:00.000Z",
     "created_date": "2025-08-08T04:23:58.250Z",
     "last_used": null
+  },
+  {
+    "client_id": "19cb3ca4-b9ea-472a-9785-d11d7fabc306",
+    "openai_key": "sk-example-key-3",
+    "used_tokens": 0,
+    "limit_tokens": 100000,
+    "workflow_id": "okWGigCzBH7A6jQy",
+    "reset_date": "2025-09-01T00:00:00.000Z",
+    "created_date": "2025-08-11T14:13:38.713Z",
+    "last_used": null
   }
 ]
