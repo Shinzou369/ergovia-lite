@@ -15,9 +15,7 @@
   },
   {
     "key": "sk-example-key-3",
-    "assigned": true,
-    "created_date": "2025-01-01",
-    "assigned_date": "2025-08-08T04:28:52.778Z",
-    "client_id": "052a79a3-c069-42e2-9d2f-bbcfb8a1b397"
+    "assigned": false,
+    "created_date": "2025-01-01"
   }
 ]
