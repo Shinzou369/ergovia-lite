@@ -914,24 +914,87 @@
                                 <label for="timezone">Timezone <span class="required">*</span></label>
                                 <select id="timezone" name="timezone" required>
                                     <option value="">Select Timezone</option>
-                                    <option value="America/New_York">Eastern Time (EST/EDT)</option>
-                                    <option value="America/Chicago">Central Time (CST/CDT)</option>
-                                    <option value="America/Denver">Mountain Time (MST/MDT)</option>
-                                    <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
-                                    <option value="America/Phoenix">Arizona Time (MST)</option>
-                                    <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
-                                    <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                                    <!-- North America -->
+                                    <optgroup label="North America">
+                                        <option value="America/New_York">Eastern Time (EST/EDT) - New York, Toronto</option>
+                                        <option value="America/Chicago">Central Time (CST/CDT) - Chicago, Dallas</option>
+                                        <option value="America/Denver">Mountain Time (MST/MDT) - Denver, Salt Lake City</option>
+                                        <option value="America/Los_Angeles">Pacific Time (PST/PDT) - Los Angeles, Seattle</option>
+                                        <option value="America/Phoenix">Arizona Time (MST) - Phoenix</option>
+                                        <option value="America/Anchorage">Alaska Time (AKST/AKDT) - Anchorage</option>
+                                        <option value="Pacific/Honolulu">Hawaii Time (HST) - Honolulu</option>
+                                        <option value="America/Vancouver">Pacific Time - Vancouver</option>
+                                        <option value="America/Edmonton">Mountain Time - Edmonton</option>
+                                        <option value="America/Winnipeg">Central Time - Winnipeg</option>
+                                        <option value="America/Halifax">Atlantic Time - Halifax</option>
+                                        <option value="America/St_Johns">Newfoundland Time - St. John's</option>
+                                    </optgroup>
+                                    <!-- Europe -->
+                                    <optgroup label="Europe">
+                                        <option value="Europe/London">Greenwich Mean Time (GMT/BST) - London</option>
+                                        <option value="Europe/Dublin">Greenwich Mean Time (GMT/IST) - Dublin</option>
+                                        <option value="Europe/Paris">Central European Time (CET/CEST) - Paris, Madrid</option>
+                                        <option value="Europe/Berlin">Central European Time (CET/CEST) - Berlin, Rome</option>
+                                        <option value="Europe/Amsterdam">Central European Time (CET/CEST) - Amsterdam</option>
+                                        <option value="Europe/Stockholm">Central European Time (CET/CEST) - Stockholm</option>
+                                        <option value="Europe/Zurich">Central European Time (CET/CEST) - Zurich</option>
+                                        <option value="Europe/Athens">Eastern European Time (EET/EEST) - Athens</option>
+                                        <option value="Europe/Helsinki">Eastern European Time (EET/EEST) - Helsinki</option>
+                                        <option value="Europe/Moscow">Moscow Standard Time (MSK) - Moscow</option>
+                                    </optgroup>
+                                    <!-- Asia Pacific -->
+                                    <optgroup label="Asia Pacific">
+                                        <option value="Asia/Tokyo">Japan Standard Time (JST) - Tokyo</option>
+                                        <option value="Asia/Seoul">Korea Standard Time (KST) - Seoul</option>
+                                        <option value="Asia/Shanghai">China Standard Time (CST) - Beijing, Shanghai</option>
+                                        <option value="Asia/Hong_Kong">Hong Kong Time (HKT) - Hong Kong</option>
+                                        <option value="Asia/Singapore">Singapore Standard Time (SGT) - Singapore</option>
+                                        <option value="Asia/Bangkok">Indochina Time (ICT) - Bangkok</option>
+                                        <option value="Asia/Jakarta">Western Indonesia Time (WIB) - Jakarta</option>
+                                        <option value="Asia/Manila">Philippine Standard Time (PST) - Manila</option>
+                                        <option value="Asia/Kolkata">India Standard Time (IST) - Mumbai, Delhi</option>
+                                        <option value="Asia/Dubai">Gulf Standard Time (GST) - Dubai</option>
+                                        <option value="Australia/Sydney">Australian Eastern Time (AEST/AEDT) - Sydney</option>
+                                        <option value="Australia/Melbourne">Australian Eastern Time (AEST/AEDT) - Melbourne</option>
+                                        <option value="Australia/Perth">Australian Western Time (AWST) - Perth</option>
+                                        <option value="Pacific/Auckland">New Zealand Standard Time (NZST/NZDT) - Auckland</option>
+                                    </optgroup>
+                                    <!-- South America -->
+                                    <optgroup label="South America">
+                                        <option value="America/Sao_Paulo">Brasília Time (BRT/BRST) - São Paulo</option>
+                                        <option value="America/Argentina/Buenos_Aires">Argentina Time (ART) - Buenos Aires</option>
+                                        <option value="America/Santiago">Chile Standard Time (CLT/CLST) - Santiago</option>
+                                        <option value="America/Lima">Peru Time (PET) - Lima</option>
+                                        <option value="America/Bogota">Colombia Time (COT) - Bogotá</option>
+                                    </optgroup>
+                                    <!-- Africa -->
+                                    <optgroup label="Africa">
+                                        <option value="Africa/Cairo">Eastern European Time (EET) - Cairo</option>
+                                        <option value="Africa/Lagos">West Africa Time (WAT) - Lagos</option>
+                                        <option value="Africa/Johannesburg">South Africa Standard Time (SAST) - Johannesburg</option>
+                                        <option value="Africa/Casablanca">Western European Time (WET) - Casablanca</option>
+                                    </optgroup>
                                 </select>
+                                <div class="form-help">
+                                    Select your business timezone for appointment scheduling and communications.
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label for="cancellationPolicy">Cancellation Policy <span class="required">*</span></label>
                                 <select id="cancellationPolicy" name="cancellation_policy" required>
                                     <option value="">Select Policy</option>
-                                    <option value="24-hour">24-hour</option>
-                                    <option value="48-hour">48-hour</option>
-                                    <option value="72-hour">72-hour</option>
-                                    <option value="1-week">1-week</option>
+                                    <option value="2-hour">2 Hours Notice - Clients must cancel at least 2 hours before appointment</option>
+                                    <option value="4-hour">4 Hours Notice - Clients must cancel at least 4 hours before appointment</option>
+                                    <option value="12-hour">12 Hours Notice - Clients must cancel at least 12 hours before appointment</option>
+                                    <option value="24-hour">24 Hours Notice - Clients must cancel at least 24 hours before appointment</option>
+                                    <option value="48-hour">48 Hours Notice - Clients must cancel at least 48 hours before appointment</option>
+                                    <option value="72-hour">72 Hours Notice - Clients must cancel at least 72 hours before appointment</option>
+                                    <option value="1-week">1 Week Notice - Clients must cancel at least 1 week before appointment</option>
+                                    <option value="no-cancellation">No Cancellations - All appointments are final once booked</option>
                                 </select>
+                                <div class="form-help">
+                                    Choose how much advance notice clients must give to cancel appointments without penalty.
+                                </div>
                             </div>
                         </div>
 
@@ -1197,14 +1260,27 @@
             const requiredFields = currentStepElement.querySelectorAll('[required]');
 
             let isValid = true;
+            let missingFields = [];
+
             requiredFields.forEach(field => {
+                const fieldName = field.previousElementSibling ? field.previousElementSibling.textContent.replace(' *', '') : field.name;
+                
                 if (!field.value.trim()) {
                     field.style.borderColor = '#ef4444';
+                    field.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                    missingFields.push(fieldName);
                     isValid = false;
                 } else {
                     field.style.borderColor = '';
+                    field.style.boxShadow = '';
                 }
             });
+
+            // Show specific error message for missing fields
+            if (!isValid && missingFields.length > 0) {
+                const errorMessage = `Please fill in the following required fields: ${missingFields.join(', ')}`;
+                showError(errorMessage);
+            }
 
             return isValid;
         }
@@ -1424,12 +1500,39 @@
         function validateAllSteps() {
             const requiredFields = document.querySelectorAll('[required]');
             let isValid = true;
+            let missingFields = [];
+            let stepErrors = {};
 
             requiredFields.forEach(field => {
                 if (!field.value.trim()) {
+                    const fieldName = field.previousElementSibling ? field.previousElementSibling.textContent.replace(' *', '') : field.name;
+                    const stepElement = field.closest('.form-step');
+                    const stepNumber = stepElement.id.replace('step-content-', '');
+                    
+                    if (!stepErrors[stepNumber]) {
+                        stepErrors[stepNumber] = [];
+                    }
+                    stepErrors[stepNumber].push(fieldName);
+                    missingFields.push(fieldName);
                     isValid = false;
                 }
             });
+
+            // Show detailed error message
+            if (!isValid && missingFields.length > 0) {
+                let errorMessage = 'Please complete all required fields before deploying:\n\n';
+                
+                Object.keys(stepErrors).forEach(stepNum => {
+                    const stepNames = ['', 'Business Information', 'API Keys & Credentials', 'Configuration', 'Advanced Settings', 'Review'];
+                    errorMessage += `Step ${stepNum} - ${stepNames[stepNum]}:\n`;
+                    stepErrors[stepNum].forEach(field => {
+                        errorMessage += `• ${field}\n`;
+                    });
+                    errorMessage += '\n';
+                });
+
+                showError(errorMessage.replace(/\n/g, '<br>'));
+            }
 
             return isValid;
         }
