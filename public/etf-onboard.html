@@ -1173,6 +1173,28 @@
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateStepDisplay();
+            
+            // Add real-time validation to clear errors when fields are filled
+            document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+                field.addEventListener('input', function() {
+                    if (this.value.trim()) {
+                        this.style.borderColor = '';
+                        this.style.boxShadow = '';
+                        
+                        // Check if all required fields in current step are now filled
+                        const currentStepElement = document.getElementById(`step-content-${currentStep}`);
+                        const requiredFields = currentStepElement.querySelectorAll('[required]');
+                        const allFilled = Array.from(requiredFields).every(f => f.value.trim());
+                        
+                        if (allFilled) {
+                            const resultDiv = document.getElementById('result');
+                            if (resultDiv && resultDiv.classList.contains('error')) {
+                                resultDiv.style.display = 'none';
+                            }
+                        }
+                    }
+                });
+            });
         });
 
         // Change step function
@@ -1263,7 +1285,8 @@
             let missingFields = [];
 
             requiredFields.forEach(field => {
-                const fieldName = field.previousElementSibling ? field.previousElementSibling.textContent.replace(' *', '') : field.name;
+                const label = field.previousElementSibling;
+                const fieldName = label ? label.textContent.replace(' *', '').replace('*', '').trim() : field.placeholder || field.name || 'Unknown field';
                 
                 if (!field.value.trim()) {
                     field.style.borderColor = '#ef4444';
@@ -1276,8 +1299,13 @@
                 }
             });
 
-            // Show specific error message for missing fields
-            if (!isValid && missingFields.length > 0) {
+            // Clear any existing error messages if validation passes
+            if (isValid) {
+                const resultDiv = document.getElementById('result');
+                if (resultDiv) {
+                    resultDiv.style.display = 'none';
+                }
+            } else if (missingFields.length > 0) {
                 const errorMessage = `Please fill in the following required fields: ${missingFields.join(', ')}`;
                 showError(errorMessage);
             }
