@@ -661,6 +661,35 @@
         box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
       }
 
+      /* Sample Button */
+      .sample-btn {
+        position: fixed;
+        top: 150px;
+        right: 30px;
+        z-index: 1001;
+        background: var(--ergovia-gradient);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 12px;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+      }
+
+      .sample-btn:hover {
+        background: var(--ergovia-gold);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+      }
+
       /* Loading Animation */
       .loading-overlay {
         position: fixed;
@@ -740,6 +769,12 @@
     <!-- Login Button -->
     <button class="login-btn" onclick="initiateGoogleLogin()" title="Already have an account? Login">
       <i data-lucide="log-in" id="login-icon"></i>
+    </button>
+
+    <!-- Sample Button -->
+    <button class="sample-btn" onclick="handleSampleClick()" title="Sample Button">
+      <i data-lucide="star"></i>
+      Sample Button
     </button>
 
     <!-- Main Split Container -->
@@ -835,6 +870,12 @@
       // Google login function
       function initiateGoogleLogin() {
         window.location.href = '/auth/google';
+      }
+
+      // Sample button function
+      function handleSampleClick() {
+        alert('Sample button clicked! You can customize this function to do anything you want.');
+        console.log('Sample button was clicked at:', new Date().toISOString());
       }
 
       // Initialize page after DOM loads
