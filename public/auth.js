@@ -60,6 +60,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function updateUIForLoggedInUser(user) {
+  // Check if user needs role selection
+  if (!user.role || user.needsRoleSelection) {
+    // Redirect to role selection page
+    window.location.href = '/select-role';
+    return;
+  }
+
   // Set global login state
   if (typeof isUserLoggedIn !== 'undefined') {
     isUserLoggedIn = true;
@@ -146,6 +153,7 @@ function updateTopNavForUser(user) {
   // Check if user has premium access
   const isPremium = user.isPremium || user.hasUnlimitedAccess;
   const premiumBadge = isPremium ? '<span class="premium-badge" title="Premium Member">👑</span>' : '';
+  const roleBadge = user.role ? `<span class="role-badge" title="${user.role === 'affiliate' ? 'Affiliate Partner' : 'Client'}">${user.role === 'affiliate' ? '💼' : '🚀'}</span>` : '';
 
   // Create user info container
   const authContainer = document.createElement('div');
@@ -156,7 +164,7 @@ function updateTopNavForUser(user) {
         ${user.picture ? `<img src="${user.picture}" alt="${user.name}" class="avatar-img">` : '👤'}
       </div>
       <div class="user-info">
-        <span class="user-name">${user.name} ${premiumBadge}</span>
+        <span class="user-name">${user.name} ${roleBadge} ${premiumBadge}</span>
       </div>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>

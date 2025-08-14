@@ -2593,6 +2593,17 @@ function saveUser(userData) {
   saveUsers(users);
 }
 
+function updateUserRole(googleId, role) {
+  const users = loadUsers();
+  if (users[googleId]) {
+    users[googleId].role = role;
+    users[googleId].roleSelectedAt = new Date().toISOString();
+    saveUsers(users);
+    return users[googleId];
+  }
+  return null;
+}
+
 // Google OAuth routes with proper account selection
 app.get("/auth/google",
   passport.authenticate("google", { 
@@ -2643,6 +2654,10 @@ app.get("/auth/google/callback",
       } else {
         // Login flow
         if (existingUser) {
+          // Check if user needs role selection
+          if (!existingUser.role || existingUser.needsRoleSelection) {
+            return res.redirect('/select-role');
+          }
           return res.redirect('/confirm-login');
         } else {
           // No account exists, redirect to signup
@@ -3064,7 +3079,9 @@ app.get("/api/auth/status", (req, res) => {
     subscriptionType: userData?.subscriptionType || null,
     subscriptionStatus: userData?.subscriptionStatus || null,
     subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
-    nextRenewalDate: userData?.nextRenewalDate || null
+    nextRenewalDate: userData?.nextRenewalDate || null,
+    role: userData?.role || null,
+    needsRoleSelection: userData?.needsRoleSelection || false
   };
 
   console.log('✅ Auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
@@ -3262,7 +3279,9 @@ app.post("/api/complete-signup", (req, res) => {
     preferredFirstName: firstName,
     preferredLastName: lastName,
     createdAt: new Date().toISOString(),
-    isComplete: true
+    isComplete: true,
+    role: null, // Will be set after role selection
+    needsRoleSelection: true
   };
 
   // Save user data to persistent storage
@@ -3303,6 +3322,49 @@ app.post("/api/complete-signup", (req, res) => {
         isComplete: true
       }
     });
+  });
+});
+
+// Role selection endpoint
+app.post("/api/select-role", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const { role } = req.body;
+  const validRoles = ['affiliate', 'client'];
+
+  if (!role || !validRoles.includes(role)) {
+    return res.status(400).json({ 
+      error: "Valid role required", 
+      validRoles: validRoles 
+    });
+  }
+
+  const googleId = req.user.id;
+  const updatedUser = updateUserRole(googleId, role);
+
+  if (!updatedUser) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Update session data
+  req.user.role = role;
+  req.user.needsRoleSelection = false;
+  req.user.savedUserData = updatedUser;
+
+  console.log('✅ Role Selected:', {
+    name: `${updatedUser.preferredFirstName} ${updatedUser.preferredLastName}`,
+    email: updatedUser.email,
+    role: role,
+    timestamp: new Date().toISOString()
+  });
+
+  res.json({ 
+    success: true, 
+    message: "Role selected successfully",
+    role: role,
+    redirectTo: role === 'affiliate' ? '/chat' : '/taskforce'
   });
 });
 
@@ -3388,6 +3450,14 @@ app.get("/login-failed", (req, res) => {
 // Serve login page
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Serve role selection page
+app.get("/select-role", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  res.sendFile(path.join(__dirname, "public", "select-role.html"));
 });
 
 // Serve the frontend

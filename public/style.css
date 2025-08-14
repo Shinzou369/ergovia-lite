@@ -2463,6 +2463,25 @@ pre:hover[data-lang]::before {
     font-size: 10px;
   }
 
+  /* Chat container mobile optimizations */
+  .chat-container {
+    margin-bottom: 15px;
+  }
+
+  .output-box {
+    padding: 12px;
+    max-height: 45vh;
+  }
+
+  /* Prompt container mobile */
+  .prompt-container {
+    padding: 15px 0;
+  }
+
+  .prompt-box {
+    padding: 12px;
+  }
+
   /* Legal pages very small */
   .legal-content,
   .contact-content {
@@ -3846,4 +3865,24 @@ footer a[href*="linkedin"]:hover {
     transform: none;
     box-shadow: none;
   }
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.role-badge {
+  background: var(--ergovia-gradient);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-left: 4px;
+  opacity: 0.9;
 }
