@@ -634,8 +634,8 @@
         }
       }
 
-      /* Login Toggle */
-      .login-toggle {
+      /* Login Button */
+      .login-btn {
         position: fixed;
         top: 90px;
         right: 30px;
@@ -655,7 +655,7 @@
         box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
       }
 
-      .login-toggle:hover {
+      .login-btn:hover {
         background: var(--ergovia-gold);
         transform: scale(1.1);
         box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
@@ -738,7 +738,7 @@
     </nav>
 
     <!-- Login Button -->
-    <button class="login-toggle" onclick="redirectToLogin()" title="Login">
+    <button class="login-btn" onclick="initiateGoogleLogin()" title="Login">
       <i data-lucide="log-in" id="login-icon"></i>
     </button>
 
@@ -832,9 +832,9 @@
         window.location.href = '/taskforce.html';
       }
 
-      // Login redirect function
-      function redirectToLogin() {
-        window.location.href = '/login.html';
+      // Google login function
+      function initiateGoogleLogin() {
+        window.location.href = '/auth/google';
       }
 
       // Initialize page after DOM loads
