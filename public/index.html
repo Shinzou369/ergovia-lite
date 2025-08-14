@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en" data-theme="dark">
   <head>
@@ -113,7 +114,7 @@
         border-bottom: 1px solid var(--border-color);
         display: flex;
         align-items: center;
-        justify-content: center; /* Center the logo container */
+        justify-content: center;
         z-index: 1000;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       }
@@ -215,33 +216,6 @@
         position: relative;
         max-width: 500px;
         transition: all 0.6s ease;
-      }
-
-      /* Sliding Content Animation */
-      .sliding-content {
-        position: relative;
-        min-height: 200px;
-        overflow: hidden;
-      }
-
-      .slide {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .slide.active {
-        opacity: 1;
-        transform: translateX(0);
-      }
-
-      .slide.prev {
-        opacity: 0;
-        transform: translateX(-100%);
       }
 
       .section-icon {
@@ -521,8 +495,7 @@
         }
       }
 
-      /* Theme Toggle - Removed as per user request */
-      /*
+      /* Theme Toggle */
       .theme-toggle {
         position: fixed;
         top: 90px;
@@ -546,7 +519,6 @@
         background: rgba(255, 255, 255, 0.2);
         transform: scale(1.1);
       }
-      */
 
       /* Loading Animation */
       .loading-overlay {
@@ -603,7 +575,10 @@
       </div>
     </nav>
 
-    <!-- Theme Toggle - Removed -->
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+      <i data-lucide="sun" id="theme-icon"></i>
+    </button>
 
     <!-- Main Split Container -->
     <div class="split-container">
@@ -617,34 +592,22 @@
         </div>
 
         <div class="section-content">
-          <div class="sliding-content">
-            <!-- Slide 1: Title -->
-            <div class="slide active" id="slide1">
-              <div class="section-icon">
-                <i data-lucide="briefcase"></i>
-              </div>
-              <h2 class="section-title">I want to be an<br>Affiliate</h2>
-              <div class="cta-button">
-                Join Our Network
-              </div>
-            </div>
-
-            <!-- Slide 2: Description -->
-            <div class="slide" id="slide2">
-              <div class="section-icon">
-                <i data-lucide="handshake"></i>
-              </div>
-              <p class="section-subtitle">
-                Partner with us and earn recurring commissions by promoting ERGOVIA-AI's powerful automation solutions to businesses worldwide.
-              </p>
-              <ul class="features-list">
-                <li><i data-lucide="trending-up"></i> Recurring Commissions</li>
-                <li><i data-lucide="users"></i> Marketing Support</li>
-                <li><i data-lucide="award"></i> Performance Bonuses</li>
-                <li><i data-lucide="headphones"></i> Dedicated Support</li>
-              </ul>
-            </div>
+          <div class="section-icon">💼</div>
+          <h2 class="section-title">I want to be an<br>Affiliate</h2>
+          <p class="section-subtitle">
+            Partner with us and earn recurring commissions by promoting ERGOVIA-AI's powerful automation solutions to businesses worldwide.
+          </p>
+          
+          <div class="cta-button">
+            Join Our Network
           </div>
+
+          <ul class="features-list">
+            <li><i data-lucide="trending-up"></i> Recurring Commissions</li>
+            <li><i data-lucide="users"></i> Marketing Support</li>
+            <li><i data-lucide="award"></i> Performance Bonuses</li>
+            <li><i data-lucide="headphones"></i> Dedicated Support</li>
+          </ul>
         </div>
       </div>
 
@@ -694,8 +657,23 @@
         window.location.href = '/taskforce.html';
       }
 
-      // Theme toggle function - Removed as per user request
-      // function toggleTheme() { ... }
+      // Theme toggle function
+      function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+
+        // Update theme icon
+        const themeIcon = document.getElementById('theme-icon');
+        if (themeIcon) {
+          themeIcon.setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+          if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+          }
+        }
+      }
 
       // Initialize page after DOM loads
       document.addEventListener("DOMContentLoaded", () => {
@@ -709,15 +687,15 @@
           lucide.createIcons();
         }
 
-        // Update theme icon based on current theme - Removed as per user request
-        // const currentTheme = document.documentElement.getAttribute('data-theme');
-        // const themeIcon = document.getElementById('theme-icon');
-        // if (themeIcon) {
-        //   themeIcon.setAttribute('data-lucide', currentTheme === 'dark' ? 'sun' : 'moon');
-        //   if (typeof lucide !== 'undefined') {
-        //     lucide.createIcons();
-        //   }
-        // }
+        // Update theme icon based on current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const themeIcon = document.getElementById('theme-icon');
+        if (themeIcon) {
+          themeIcon.setAttribute('data-lucide', currentTheme === 'dark' ? 'sun' : 'moon');
+          if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+          }
+        }
 
         console.log("ERGOVIA-AI split landing page initialized");
       });
@@ -725,7 +703,7 @@
       // Add smooth hover effects
       document.addEventListener('DOMContentLoaded', function() {
         const sections = document.querySelectorAll('.split-section');
-
+        
         sections.forEach(section => {
           section.addEventListener('mouseenter', function() {
             sections.forEach(s => {
@@ -750,32 +728,6 @@
         } else if (e.key === 'ArrowRight' || e.key === '2') {
           redirectToClient();
         }
-      });
-
-      // Sliding content animation for affiliate section
-      document.addEventListener('DOMContentLoaded', function() {
-        const slides = document.querySelectorAll('.slide');
-        let currentSlide = 0;
-
-        function nextSlide() {
-          // Remove active class from current slide
-          slides[currentSlide].classList.remove('active');
-          slides[currentSlide].classList.add('prev');
-
-          // Move to next slide
-          currentSlide = (currentSlide + 1) % slides.length;
-
-          // Add active class to next slide
-          setTimeout(() => {
-            slides.forEach(slide => slide.classList.remove('prev'));
-            slides[currentSlide].classList.add('active');
-          }, 100);
-        }
-
-        // Start the sliding animation after page loads
-        setTimeout(() => {
-          setInterval(nextSlide, 4000); // Change slide every 4 seconds
-        }, 2000);
       });
     </script>
   </body>
