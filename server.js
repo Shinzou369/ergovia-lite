@@ -820,14 +820,39 @@ app.post('/api/etf/deploy', async (req, res) => {
       );
     });
 
-    // Log the initial deployment to history
-    await new Promise((resolve, reject) => {
-      etfDB.run(
-        `INSERT INTO etf_client_history (client_id, action, details, timestamp)
-         VALUES (?, ?, ?, ?)`,
-        [client_id, 'Initial Deployment', `Deployed ${duplicatedWorkflows.length} workflows for ${client_data.name}`, new Date().toISOString()],
-        (err) => err ? reject(err) : resolve()
-      );
+    // Log the initial deployment to history with detailed metrics
+    const deploymentSummary = {
+      total: duplicatedWorkflows.length,
+      activated: activatedCount,
+      needs_credentials: needsCredentialsCount,
+      no_trigger: noTriggerCount,
+      failed: failedCount
+    };
+
+    logDeploymentEvent(
+      client_id, 
+      'Initial Deployment', 
+      `Deployed ${duplicatedWorkflows.length} workflows for ${client_data.name}. Success: ${activatedCount}, Needs Setup: ${needsCredentialsCount}, Failed: ${failedCount}`,
+      failedCount > 0 ? 'warning' : 'info'
+    );
+
+    // Log individual workflow statuses
+    duplicatedWorkflows.forEach(workflow => {
+      if (workflow.activation_status === 'failed' || workflow.activation_status === 'processing_error') {
+        logDeploymentEvent(
+          client_id,
+          'Workflow Deployment Failed',
+          `${workflow.new_name}: ${workflow.activation_error}`,
+          'error'
+        );
+      } else if (workflow.activation_status === 'activated') {
+        logDeploymentEvent(
+          client_id,
+          'Workflow Deployed Successfully',
+          `${workflow.new_name}: Successfully activated`,
+          'info'
+        );
+      }
     });
 
     if (duplicatedWorkflows.length === 0) {
@@ -1435,6 +1460,146 @@ app.get('/api/etf/client-history/:clientId', (req, res) => {
 app.get('/etf-client-panel', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-client-panel.html'));
 });
+
+// Get client monitoring data
+app.get('/api/etf/monitoring/:clientId', (req, res) => {
+  const { clientId } = req.params;
+
+  try {
+    // Get deployment metrics
+    const metricsSql = `
+      SELECT 
+        COUNT(*) as total_deployments,
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_workflows,
+        MAX(deployed_at) as last_deployment,
+        (SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as success_rate
+      FROM etf_deployments 
+      WHERE client_id = ?
+    `;
+
+    etfDB.get(metricsSql, [clientId], (err, metrics) => {
+      if (err) {
+        console.error('Error fetching metrics:', err);
+        return res.status(500).json({ error: 'Failed to fetch metrics' });
+      }
+
+      // Get recent deployment logs
+      const logsSql = `
+        SELECT action as message, details, timestamp, 'info' as level
+        FROM etf_client_history 
+        WHERE client_id = ?
+        ORDER BY timestamp DESC 
+        LIMIT 20
+      `;
+
+      etfDB.all(logsSql, [clientId], (err, logs) => {
+        if (err) {
+          console.error('Error fetching logs:', err);
+          return res.status(500).json({ error: 'Failed to fetch logs' });
+        }
+
+        // Format metrics
+        const formattedMetrics = {
+          total_deployments: metrics?.total_deployments || 0,
+          active_workflows: metrics?.active_workflows || 0,
+          success_rate: metrics?.success_rate ? `${Math.round(metrics.success_rate)}%` : '0%',
+          last_deployment: metrics?.last_deployment ? 
+            new Date(metrics.last_deployment).toLocaleDateString() : 'Never'
+        };
+
+        // Add error logs from our error logging system
+        const errorLogsSql = `
+          SELECT error_message as message, timestamp, 'error' as level, error_type
+          FROM etf_error_logs 
+          WHERE client_id = ?
+          ORDER BY timestamp DESC 
+          LIMIT 10
+        `;
+
+        etfDB.all(errorLogsSql, [clientId], (err, errorLogs) => {
+          // Combine logs (ignore error if error_logs table doesn't exist yet)
+          const combinedLogs = [
+            ...(logs || []),
+            ...(errorLogs || [])
+          ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 20);
+
+          res.json({
+            metrics: formattedMetrics,
+            logs: combinedLogs
+          });
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Error in monitoring endpoint:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Log frontend errors
+app.post('/api/etf/log-error', (req, res) => {
+  const { client_id, error_type, error_message, stack, timestamp, user_agent, url } = req.body;
+
+  // Create error logs table if it doesn't exist
+  etfDB.run(`
+    CREATE TABLE IF NOT EXISTS etf_error_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      client_id TEXT,
+      error_type TEXT NOT NULL,
+      error_message TEXT NOT NULL,
+      stack TEXT,
+      user_agent TEXT,
+      url TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating error logs table:', err);
+      return res.status(500).json({ error: 'Failed to create error logs table' });
+    }
+
+    // Insert error log
+    etfDB.run(`
+      INSERT INTO etf_error_logs (client_id, error_type, error_message, stack, user_agent, url, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [client_id, error_type, error_message, stack, user_agent, url, timestamp], (err) => {
+      if (err) {
+        console.error('Error logging frontend error:', err);
+        return res.status(500).json({ error: 'Failed to log error' });
+      }
+
+      console.log(`🚨 Frontend Error Logged - Client: ${client_id}, Type: ${error_type}, Message: ${error_message}`);
+      res.json({ success: true });
+    });
+  });
+});
+
+// Enhanced deployment logging
+function logDeploymentEvent(clientId, action, details, level = 'info') {
+  const logEntry = {
+    client_id: clientId,
+    action: action,
+    details: details,
+    level: level,
+    timestamp: new Date().toISOString()
+  };
+
+  // Log to history table
+  etfDB.run(
+    `INSERT INTO etf_client_history (client_id, action, details, timestamp)
+     VALUES (?, ?, ?, ?)`,
+    [clientId, action, details, logEntry.timestamp],
+    (err) => {
+      if (err) {
+        console.error('Error logging deployment event:', err);
+      }
+    }
+  );
+
+  // Also log to console with proper formatting
+  const logSymbol = level === 'error' ? '❌' : level === 'warning' ? '⚠️' : '✅';
+  console.log(`${logSymbol} [${level.toUpperCase()}] Client ${clientId}: ${action} - ${details}`);
+}
 
 // Test endpoint to personalize the Telegram workflow
 app.post('/api/etf/test-personalize-telegram', async (req, res) => {
