@@ -887,6 +887,13 @@
           redirectToClient();
         }
       });
+
+      // Handle URL parameters for success messages
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('deployed') === 'true') {
+        // Show deployment success message
+        console.log('Deployment completed successfully');
+      }
     </script>
   </body>
 </html>
