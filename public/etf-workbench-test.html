@@ -785,19 +785,11 @@
 
         <button class="generate-btn" id="generateBtn">
             <i data-lucide="play"></i>
-            Generate ETF Workflows + OpenAI Key
+            Generate ETF Workflows
         </button>
     </div>
 
-    <div id="openai-generation-preview" style="margin-top: 15px; padding: 15px; background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; display: none;">
-        <h4 style="color: #FFD700; margin: 0 0 10px 0;">🔑 Included: Personal OpenAI API Key</h4>
-        <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
-            <li>Dedicated API key for your business</li>
-            <li>100K+ monthly token budget</li>
-            <li>Usage tracking & monitoring</li>
-            <li>Automatic integration with workflows</li>
-        </ul>
-    </div>
+    
 
     <!-- Workbench Canvas -->
     <div class="workbench-canvas">
@@ -2086,13 +2078,7 @@
                 activated_workflows: Math.floor(Math.random() * 5) + 2, // 2-6 activated
                 workflows_needing_credentials: Math.floor(Math.random() * 3), // 0-2 needing creds
                 failed_workflows: Math.floor(Math.random() * 2), // 0-1 failed
-                tag_applied: "default_tag",
-                openai_setup: configData.auto_generate_openai ? {
-                    success: true,
-                    key_preview: "sk-xxxxxxxxxxxxxxxxxxxx", // Simulated key preview
-                    token_limit: 100000, // Simulated 100K tokens
-                    message: "OpenAI API key generated and configured."
-                } : null
+                tag_applied: "default_tag"
             };
 
             // Display results
@@ -2108,20 +2094,9 @@
             resultsDiv.style.background = 'var(--bg-tertiary)';
             resultsDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
 
-            const openaiInfo = data.openai_setup && data.openai_setup.success ? 
-                `<div style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; padding: 15px; margin: 15px 0;">
-                    <h4 style="color: #FFD700; margin: 0 0 10px 0;">🔑 Personal OpenAI Key Generated!</h4>
-                    <p style="margin: 5px 0; color: var(--text-secondary);">Key Preview: ${data.openai_setup.key_preview}</p>
-                    <p style="margin: 5px 0; color: var(--text-secondary);">Monthly Budget: ${formatTokenLimit(data.openai_setup.token_limit)} tokens</p>
-                    <a href="/client-openai-dashboard?client_id=${data.client_id}" target="_blank" 
-                       style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem;">
-                        📊 View Usage Dashboard
-                    </a>
-                </div>` : '';
-
             resultsDiv.innerHTML = `
                 <div class="success-message">
-                    <h3>🎉 Deployment Successful!</h3>
+                    <h3>🎉 Workflows Deployed Successfully!</h3>
                     <p><strong>Client ID:</strong> ${data.client_id}</p>
                     <p><strong>Workflows Deployed:</strong> ${data.total_processed}</p>
                     <ul>
@@ -2130,7 +2105,10 @@
                         <li>❌ Failed: ${data.failed_workflows}</li>
                     </ul>
                     <p><strong>Tag Applied:</strong> ${data.tag_applied}</p>
-                    ${openaiInfo}
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 15px; margin: 15px 0;">
+                        <h4 style="color: var(--success); margin: 0 0 10px 0;">📋 Next Steps</h4>
+                        <p style="margin: 5px 0; color: var(--text-secondary);">Your ETF workflows have been deployed and are ready to use with your configured credentials.</p>
+                    </div>
                 </div>
             `;
 
@@ -2147,23 +2125,22 @@
 
             const originalHTML = this.innerHTML;
             this.disabled = true;
-            this.innerHTML = '<div class="loading"></div> Generating ETF Workflow...';
+            this.innerHTML = '<div class="loading"></div> Generating ETF Workflows...';
 
             // Collect all data from workbench
-            const businessInfo = collectBoxData('business-info');
-            const clinicConfig = collectBoxData('clinic-config');
+            const businessInfo = collectBoxData('business');
+            const clinicConfig = collectBoxData('clinic');
             const communication = collectBoxData('communication');
-            const operational = collectBoxData('operational');
+            const operational = collectBoxData('operations');
             const credentials = collectCredentialsData();
             const advanced = collectBoxData('advanced');
 
             // Validate required fields
-            const requiredFields = ['businessName', 'businessEmail', 'businessPhone']; // Corrected field names
+            const requiredFields = ['businessName', 'businessEmail', 'businessPhone'];
             const missingFields = requiredFields.filter(field => !businessInfo[field]);
 
             if (missingFields.length > 0) {
                 alert(`Please fill in required fields: ${missingFields.join(', ')}`);
-                document.getElementById('openai-generation-preview').style.display = 'none'; // Hide preview if validation fails
                 this.disabled = false;
                 this.innerHTML = originalHTML;
                 return;
@@ -2177,21 +2154,19 @@
                 ...operational,
                 ...credentials,
                 ...advanced,
-                // Add flag for automatic OpenAI key generation
-                auto_generate_openai: true,
                 estimated_workflow_count: 8 // Estimated number of PET workflows
             };
 
             // Client data for identification
             const clientData = {
-                name: businessInfo.businessName, // Corrected field name
-                email: businessInfo.businessEmail, // Corrected field name
-                phone: businessInfo.businessPhone // Corrected field name
+                name: businessInfo.businessName,
+                email: businessInfo.businessEmail,
+                phone: businessInfo.businessPhone
             };
 
-            console.log('Generating workflows with automatic OpenAI setup:', configData);
+            console.log('Generating ETF workflows:', configData);
 
-            // Call ETF deployment API with OpenAI auto-generation
+            // Call ETF deployment API
             deployETFWorkflows(clientData, configData);
 
             // Reset button after a short delay
