@@ -70,25 +70,29 @@
         .progress-indicator {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            font-weight: 500;
         }
 
         .progress-circle {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: var(--border-color);
             transition: var(--transition);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .progress-circle.completed {
             background: var(--success);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
         }
 
         .progress-circle.active {
             background: var(--warning);
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
         }
 
         .generate-btn {
@@ -96,15 +100,18 @@
             color: white;
             border: none;
             border-radius: var(--radius-lg);
-            padding: 12px 24px;
-            font-weight: 600;
+            padding: 16px 28px;
+            font-weight: 700;
             cursor: pointer;
             transition: var(--transition);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             opacity: 0.5;
             pointer-events: none;
+            font-size: 1rem;
+            min-height: 52px;
+            white-space: nowrap;
         }
 
         .generate-btn.ready {
@@ -127,9 +134,11 @@
             position: relative;
             padding: 40px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 32px;
             align-items: start;
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
         /* Section Headers */
@@ -164,11 +173,11 @@
             background: var(--bg-secondary);
             border: 2px solid var(--border-color);
             border-radius: var(--radius-lg);
-            padding: 24px;
+            padding: 28px;
             cursor: pointer;
             transition: var(--transition);
             position: relative;
-            min-height: 250px;
+            min-height: 280px;
             display: flex;
             flex-direction: column;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -205,29 +214,31 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .config-icon {
-            width: 48px;
-            height: 48px;
+            width: 56px;
+            height: 56px;
             background: var(--primary-gradient);
             border-radius: var(--radius);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .config-status {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .config-status.pending {
@@ -241,36 +252,41 @@
         }
 
         .config-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 12px;
             color: var(--text-primary);
+            line-height: 1.3;
         }
 
         .config-description {
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.5;
-            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
             flex-grow: 1;
+            min-height: 60px;
         }
 
         .config-fields-preview {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 16px;
-            max-height: 60px;
+            gap: 8px;
+            margin-bottom: 20px;
+            max-height: 80px;
             overflow: hidden;
         }
 
         .field-tag {
             background: rgba(255, 255, 255, 0.1);
             color: var(--text-muted);
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
             border: 1px solid var(--border-color);
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: fit-content;
         }
 
         .field-tag.filled {
@@ -283,12 +299,16 @@
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius);
-            padding: 12px;
+            padding: 16px 20px;
             text-align: center;
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-size: 0.95rem;
+            font-weight: 600;
             transition: var(--transition);
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .config-box:hover .config-action {
@@ -321,7 +341,7 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px;
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
@@ -329,7 +349,7 @@
         }
 
         .modal-header {
-            padding: 24px;
+            padding: 32px 32px 24px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
@@ -341,12 +361,12 @@
         }
 
         .modal-title {
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
 
         .modal-close {
@@ -365,53 +385,62 @@
         }
 
         .modal-body {
-            padding: 24px;
+            padding: 32px;
         }
 
         .form-section {
-            margin-bottom: 32px;
+            margin-bottom: 36px;
         }
 
         .form-section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.2rem;
+            font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
+            gap: 12px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
             color: var(--text-primary);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            line-height: 1.4;
         }
 
         .required {
             color: var(--error);
+            font-weight: 700;
         }
 
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 12px;
+            padding: 14px 16px;
             border: 2px solid var(--border-color);
             border-radius: var(--radius);
             background: var(--bg-tertiary);
             color: var(--text-primary);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             transition: var(--transition);
             font-family: inherit;
+            line-height: 1.4;
+            min-height: 48px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
         }
 
         .form-group input:focus,
@@ -424,29 +453,29 @@
 
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
         }
 
         .form-grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: 20px;
         }
 
         .modal-footer {
-            padding: 24px;
+            padding: 24px 32px;
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: flex-end;
-            gap: 12px;
+            gap: 16px;
             position: sticky;
             bottom: 0;
             background: var(--bg-secondary);
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 14px 24px;
             border: none;
             border-radius: var(--radius);
             font-weight: 600;
@@ -454,16 +483,22 @@
             transition: var(--transition);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            font-size: 0.95rem;
+            min-height: 48px;
+            min-width: 120px;
+            justify-content: center;
         }
 
         .btn-secondary {
             background: var(--border-color);
             color: var(--text-primary);
+            border: 1px solid var(--border-light);
         }
 
         .btn-secondary:hover {
             background: var(--border-light);
+            transform: translateY(-1px);
         }
 
         .btn-primary {
@@ -480,32 +515,33 @@
         .credential-section {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 20px;
-            margin-bottom: 20px;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 24px;
         }
 
         .credential-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .credential-info {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
 
         .credential-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 6px;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .credential-icon.google { background: #4285f4; }
@@ -519,56 +555,70 @@
         .credential-icon.slack { background: #4a154b; }
 
         .credential-details h4 {
-            margin: 0;
+            margin: 0 0 4px 0;
             color: var(--text-primary);
-            font-size: 0.95rem;
+            font-size: 1.05rem;
+            font-weight: 600;
         }
 
         .credential-details p {
             margin: 0;
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
         }
 
         .credential-status {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            padding: 4px 8px;
-            border-radius: 4px;
+            gap: 8px;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
         .credential-status.connected {
             background: rgba(16, 185, 129, 0.2);
             color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
         .credential-status.disconnected {
             background: rgba(239, 68, 68, 0.2);
             color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
         .credential-actions {
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
         }
 
         .credential-btn {
-            padding: 6px 12px;
+            padding: 10px 16px;
             border: 1px solid var(--border-color);
             background: var(--bg-secondary);
             color: var(--text-secondary);
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             transition: var(--transition);
+            font-weight: 500;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
         }
 
         .credential-btn:hover {
             background: var(--border-color);
             color: var(--text-primary);
+            transform: translateY(-1px);
         }
 
         .credential-btn.primary {
@@ -577,15 +627,28 @@
             border: none;
         }
 
+        .credential-btn.primary:hover {
+            box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        }
+
         .credential-input {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
             background: var(--bg-primary);
             color: var(--text-primary);
-            font-size: 0.85rem;
-            margin-top: 8px;
+            font-size: 0.9rem;
+            margin-top: 12px;
+            font-family: inherit;
+            min-height: 44px;
+            transition: var(--transition);
+        }
+
+        .credential-input:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
 
         /* Responsive Design */
@@ -593,22 +656,87 @@
             .workbench-canvas {
                 grid-template-columns: 1fr;
                 padding: 20px;
-                gap: 20px;
+                gap: 24px;
             }
 
             .workbench-header {
                 flex-direction: column;
-                gap: 16px;
+                gap: 20px;
                 align-items: stretch;
+                padding: 24px 20px;
+            }
+
+            .workbench-title h1 {
+                font-size: 1.3rem;
+                text-align: center;
             }
 
             .progress-indicator {
                 justify-content: center;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .generate-btn {
+                padding: 16px 24px;
+                font-size: 0.95rem;
+                justify-content: center;
+            }
+
+            .config-box {
+                min-height: 240px;
+                padding: 24px 20px;
+            }
+
+            .config-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 1.6rem;
+            }
+
+            .config-title {
+                font-size: 1.1rem;
+            }
+
+            .config-description {
+                font-size: 0.9rem;
+                min-height: 50px;
             }
 
             .form-grid,
             .form-grid-2 {
                 grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                max-width: 95%;
+                margin: 20px;
+            }
+
+            .modal-body {
+                padding: 24px 20px;
+            }
+
+            .modal-footer {
+                padding: 20px;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .credential-actions {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .credential-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 12px 16px;
             }
         }
 
