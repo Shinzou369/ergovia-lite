@@ -607,7 +607,15 @@
             <div class="progress-circle" id="progress-4"></div>
             <div class="progress-circle" id="progress-5"></div>
             <div class="progress-circle" id="progress-6"></div>
-            <span id="progress-text">0/6 Complete</span>
+            <div class="progress-circle" id="progress-7"></div>
+            <div class="progress-circle" id="progress-8"></div>
+            <div class="progress-circle" id="progress-9"></div>
+            <div class="progress-circle" id="progress-10"></div>
+            <div class="progress-circle" id="progress-11"></div>
+            <div class="progress-circle" id="progress-12"></div>
+            <div class="progress-circle" id="progress-13"></div>
+            <div class="progress-circle" id="progress-14"></div>
+            <span id="progress-text">0/14 Complete</span>
         </div>
 
         <button class="generate-btn" id="generateBtn">
@@ -699,25 +707,166 @@
             <div class="config-action">Click to configure operations</div>
         </div>
 
-        <!-- Credentials & Integrations -->
-        <div class="config-box" data-config="credentials" onclick="openConfigModal('credentials')">
+        <!-- Google Services -->
+        <div class="config-box" data-config="google" onclick="openConfigModal('google')">
             <div class="config-header">
-                <div class="config-icon">🔐</div>
-                <div class="config-status pending" id="status-credentials">5</div>
+                <div class="config-icon">🔗</div>
+                <div class="config-status pending" id="status-google">5</div>
             </div>
-            <div class="config-title">Credentials & API Keys</div>
+            <div class="config-title">Google Services</div>
             <div class="config-description">
-                Connect third-party services and manage API credentials for automation features.
+                Connect Google Sheets, Gmail, Drive, and Calendar for automated data management and communication.
             </div>
-            <div class="config-fields-preview" id="fields-credentials">
-                <div class="field-tag">Google Services</div>
-                <div class="field-tag">OpenAI</div>
-                <div class="field-tag">Telegram</div>
-                <div class="field-tag">Twilio SMS</div>
-                <div class="field-tag">Calendly</div>
-                <div class="field-tag">Social Media</div>
+            <div class="config-fields-preview" id="fields-google">
+                <div class="field-tag">OAuth Connection</div>
+                <div class="field-tag">Sheets Access</div>
+                <div class="field-tag">Gmail Integration</div>
             </div>
-            <div class="config-action">Click to manage credentials</div>
+            <div class="config-action">Click to connect Google services</div>
+        </div>
+
+        <!-- OpenAI API -->
+        <div class="config-box" data-config="openai" onclick="openConfigModal('openai')">
+            <div class="config-header">
+                <div class="config-icon">🤖</div>
+                <div class="config-status pending" id="status-openai">6</div>
+            </div>
+            <div class="config-title">OpenAI API</div>
+            <div class="config-description">
+                Enable AI-powered features including automated responses, content generation, and intelligent customer interactions.
+            </div>
+            <div class="config-fields-preview" id="fields-openai">
+                <div class="field-tag">API Key</div>
+                <div class="field-tag">Token Limit</div>
+                <div class="field-tag">Usage Tracking</div>
+            </div>
+            <div class="config-action">Click to setup OpenAI integration</div>
+        </div>
+
+        <!-- Telegram Bot -->
+        <div class="config-box" data-config="telegram" onclick="openConfigModal('telegram')">
+            <div class="config-header">
+                <div class="config-icon">💬</div>
+                <div class="config-status pending" id="status-telegram">7</div>
+            </div>
+            <div class="config-title">Telegram Notifications</div>
+            <div class="config-description">
+                Send appointment notifications, reminders, and alerts directly to Telegram chats or channels.
+            </div>
+            <div class="config-fields-preview" id="fields-telegram">
+                <div class="field-tag">Bot Token</div>
+                <div class="field-tag">Chat ID</div>
+                <div class="field-tag">Message Templates</div>
+            </div>
+            <div class="config-action">Click to setup Telegram bot</div>
+        </div>
+
+        <!-- Twilio SMS -->
+        <div class="config-box" data-config="twilio" onclick="openConfigModal('twilio')">
+            <div class="config-header">
+                <div class="config-icon">📱</div>
+                <div class="config-status pending" id="status-twilio">8</div>
+            </div>
+            <div class="config-title">SMS Notifications</div>
+            <div class="config-description">
+                Send SMS reminders, confirmations, and updates to clients via Twilio messaging service.
+            </div>
+            <div class="config-fields-preview" id="fields-twilio">
+                <div class="field-tag">Account SID</div>
+                <div class="field-tag">Auth Token</div>
+                <div class="field-tag">Phone Number</div>
+            </div>
+            <div class="config-action">Click to setup SMS notifications</div>
+        </div>
+
+        <!-- Calendly Integration -->
+        <div class="config-box" data-config="calendly" onclick="openConfigModal('calendly')">
+            <div class="config-header">
+                <div class="config-icon">📅</div>
+                <div class="config-status pending" id="status-calendly">9</div>
+            </div>
+            <div class="config-title">Calendly Integration</div>
+            <div class="config-description">
+                Sync appointments with Calendly for seamless online booking and schedule management.
+            </div>
+            <div class="config-fields-preview" id="fields-calendly">
+                <div class="field-tag">API Token</div>
+                <div class="field-tag">Scheduling URL</div>
+                <div class="field-tag">Event Types</div>
+            </div>
+            <div class="config-action">Click to connect Calendly</div>
+        </div>
+
+        <!-- SendGrid Email -->
+        <div class="config-box" data-config="sendgrid" onclick="openConfigModal('sendgrid')">
+            <div class="config-header">
+                <div class="config-icon">📧</div>
+                <div class="config-status pending" id="status-sendgrid">10</div>
+            </div>
+            <div class="config-title">SendGrid Email Service</div>
+            <div class="config-description">
+                Alternative email service for enhanced deliverability and email campaign management (optional if using Gmail).
+            </div>
+            <div class="config-fields-preview" id="fields-sendgrid">
+                <div class="field-tag">API Key</div>
+                <div class="field-tag">Sender Verification</div>
+                <div class="field-tag">Email Templates</div>
+            </div>
+            <div class="config-action">Click to setup SendGrid email</div>
+        </div>
+
+        <!-- Facebook Integration -->
+        <div class="config-box" data-config="facebook" onclick="openConfigModal('facebook')">
+            <div class="config-header">
+                <div class="config-icon">📘</div>
+                <div class="config-status pending" id="status-facebook">11</div>
+            </div>
+            <div class="config-title">Facebook Business Page</div>
+            <div class="config-description">
+                Post updates, share content, and engage with customers on your Facebook business page automatically.
+            </div>
+            <div class="config-fields-preview" id="fields-facebook">
+                <div class="field-tag">Page Access Token</div>
+                <div class="field-tag">Page ID</div>
+                <div class="field-tag">Post Scheduling</div>
+            </div>
+            <div class="config-action">Click to connect Facebook page</div>
+        </div>
+
+        <!-- Twitter/X Integration -->
+        <div class="config-box" data-config="twitter" onclick="openConfigModal('twitter')">
+            <div class="config-header">
+                <div class="config-icon">🐦</div>
+                <div class="config-status pending" id="status-twitter">12</div>
+            </div>
+            <div class="config-title">Twitter/X Integration</div>
+            <div class="config-description">
+                Share clinic updates, health tips, and promotional content on Twitter/X to reach more pet owners.
+            </div>
+            <div class="config-fields-preview" id="fields-twitter">
+                <div class="field-tag">API Key</div>
+                <div class="field-tag">API Secret</div>
+                <div class="field-tag">Access Tokens</div>
+            </div>
+            <div class="config-action">Click to connect Twitter/X</div>
+        </div>
+
+        <!-- Slack Integration -->
+        <div class="config-box" data-config="slack" onclick="openConfigModal('slack')">
+            <div class="config-header">
+                <div class="config-icon">💼</div>
+                <div class="config-status pending" id="status-slack">13</div>
+            </div>
+            <div class="config-title">Slack Team Notifications</div>
+            <div class="config-description">
+                Send internal notifications, alerts, and updates to your team's Slack workspace channels.
+            </div>
+            <div class="config-fields-preview" id="fields-slack">
+                <div class="field-tag">Bot Token</div>
+                <div class="field-tag">Channel IDs</div>
+                <div class="field-tag">Notification Types</div>
+            </div>
+            <div class="config-action">Click to setup Slack notifications</div>
         </div>
 
         <!-- Payment & Advanced -->
@@ -776,7 +925,15 @@
             clinic: {},
             communication: {},
             operations: {},
-            credentials: {},
+            google: {},
+            openai: {},
+            telegram: {},
+            twilio: {},
+            calendly: {},
+            sendgrid: {},
+            facebook: {},
+            twitter: {},
+            slack: {},
             advanced: {}
         };
 
@@ -957,10 +1114,59 @@
                     }
                 ]
             },
-            credentials: {
-                title: "Credentials & API Keys",
-                icon: "key",
-                isCredentialSection: true
+            google: {
+                title: "Google Services",
+                icon: "chrome",
+                isCredentialSection: true,
+                credentialType: 'google'
+            },
+            openai: {
+                title: "OpenAI API",
+                icon: "brain",
+                isCredentialSection: true,
+                credentialType: 'openai'
+            },
+            telegram: {
+                title: "Telegram Bot",
+                icon: "message-circle",
+                isCredentialSection: true,
+                credentialType: 'telegram'
+            },
+            twilio: {
+                title: "Twilio SMS",
+                icon: "smartphone",
+                isCredentialSection: true,
+                credentialType: 'twilio'
+            },
+            calendly: {
+                title: "Calendly Integration",
+                icon: "calendar",
+                isCredentialSection: true,
+                credentialType: 'calendly'
+            },
+            sendgrid: {
+                title: "SendGrid Email",
+                icon: "mail",
+                isCredentialSection: true,
+                credentialType: 'sendgrid'
+            },
+            facebook: {
+                title: "Facebook Business",
+                icon: "facebook",
+                isCredentialSection: true,
+                credentialType: 'facebook'
+            },
+            twitter: {
+                title: "Twitter/X",
+                icon: "twitter",
+                isCredentialSection: true,
+                credentialType: 'twitter'
+            },
+            slack: {
+                title: "Slack Notifications",
+                icon: "slack",
+                isCredentialSection: true,
+                credentialType: 'slack'
             },
             advanced: {
                 title: "Payment & Advanced Settings",
@@ -1146,7 +1352,7 @@
 
             // Generate form content
             if (template.isCredentialSection) {
-                generateCredentialForm();
+                generateCredentialForm(template.credentialType);
             } else {
                 generateRegularForm(template);
             }
@@ -1185,30 +1391,28 @@
             populateFormValues(currentConfig);
         }
 
-        // Generate credential management form
-        function generateCredentialForm() {
+        // Generate individual credential form
+        function generateCredentialForm(credentialType) {
+            const config = credentialConfigs[credentialType];
+            const status = credentialStates[credentialType];
+            const isConnected = status === 'connected';
+            
             let formHTML = `
                 <div class="form-section">
                     <div class="form-section-title">
                         <i data-lucide="shield-check"></i>
-                        Service Integrations
+                        ${config.name} Setup
                     </div>
                     <p style="color: var(--text-secondary); margin-bottom: 24px;">
-                        Connect the services you want to use. Required services are needed for core functionality.
+                        ${config.description} ${config.required ? '<span style="color: var(--error);">*Required</span>' : '<span style="color: var(--text-muted);">Optional</span>'}
                     </p>
-            `;
-
-            Object.entries(credentialConfigs).forEach(([key, config]) => {
-                const status = credentialStates[key];
-                const isConnected = status === 'connected';
-                
-                formHTML += `
+                    
                     <div class="credential-section">
                         <div class="credential-header">
                             <div class="credential-info">
-                                <div class="credential-icon ${key}">${config.icon}</div>
+                                <div class="credential-icon ${credentialType}">${config.icon}</div>
                                 <div class="credential-details">
-                                    <h4>${config.name} ${config.required ? '<span style="color: var(--error);">*</span>' : ''}</h4>
+                                    <h4>${config.name}</h4>
                                     <p>${config.description}</p>
                                 </div>
                             </div>
@@ -1218,14 +1422,13 @@
                             </div>
                         </div>
                         
-                        <div id="credential-content-${key}">
-                            ${generateCredentialContent(key, config, isConnected)}
+                        <div id="credential-content-${credentialType}">
+                            ${generateCredentialContent(credentialType, config, isConnected)}
                         </div>
                     </div>
-                `;
-            });
+                </div>
+            `;
 
-            formHTML += '</div>';
             document.getElementById('modalBody').innerHTML = formHTML;
         }
 
@@ -1396,6 +1599,12 @@
                     ${isConnected ? 'Connected' : 'Not Connected'}
                 `;
                 
+                // Update the workbench box if we're connected
+                if (isConnected) {
+                    updateConfigBox(service);
+                    updateProgress();
+                }
+                
                 if (typeof lucide !== 'undefined') {
                     lucide.createIcons();
                 }
@@ -1454,11 +1663,11 @@
         function saveConfiguration() {
             if (!currentConfig) return;
 
-            if (currentConfig === 'credentials') {
-                // For credentials, just update the config status
-                const connectedCount = Object.values(credentialStates).filter(state => state === 'connected').length;
-                if (connectedCount > 0) {
-                    configData[currentConfig] = { connectedServices: connectedCount };
+            // Handle individual credential configurations
+            if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(currentConfig)) {
+                // For individual credentials, check if it's connected
+                if (credentialStates[currentConfig] === 'connected') {
+                    configData[currentConfig] = { connected: true, connectedAt: new Date().toISOString() };
                     updateConfigBox(currentConfig);
                     updateProgress();
                 }
@@ -1519,16 +1728,12 @@
             status.classList.add('completed');
             status.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i>';
             
-            // Update field tags
-            if (configType === 'credentials') {
+            // Update field tags for individual credentials
+            if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(configType)) {
                 const tags = fieldsPreview.querySelectorAll('.field-tag');
-                const connectedServices = Object.entries(credentialStates).filter(([key, state]) => state === 'connected');
-                
-                tags.forEach((tag, index) => {
-                    if (index < connectedServices.length) {
-                        tag.classList.add('filled');
-                    }
-                });
+                if (credentialStates[configType] === 'connected') {
+                    tags.forEach(tag => tag.classList.add('filled'));
+                }
             } else {
                 const template = configTemplates[configType];
                 const data = configData[configType];
@@ -1558,9 +1763,11 @@
         // Update progress indicator
         function updateProgress() {
             const completedConfigs = Object.keys(configData).filter(key => {
-                if (key === 'credentials') {
-                    return Object.values(credentialStates).some(state => state === 'connected');
+                // For credential configs, check connection status
+                if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(key)) {
+                    return credentialStates[key] === 'connected';
                 }
+                // For regular configs, check if data exists
                 return Object.keys(configData[key]).length > 0;
             }).length;
             
@@ -1581,7 +1788,16 @@
             
             // Update generate button
             const generateBtn = document.getElementById('generateBtn');
-            if (completedConfigs === totalConfigs) {
+            // Require at least basic info + clinic + communication + operations + google + openai to generate
+            const requiredConfigs = ['business', 'clinic', 'communication', 'operations', 'google', 'openai'];
+            const requiredCompleted = requiredConfigs.every(config => {
+                if (['google', 'openai'].includes(config)) {
+                    return credentialStates[config] === 'connected';
+                }
+                return Object.keys(configData[config]).length > 0;
+            });
+            
+            if (requiredCompleted) {
                 generateBtn.classList.add('ready');
             } else {
                 generateBtn.classList.remove('ready');
