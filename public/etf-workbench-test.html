@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -764,7 +763,7 @@
             <i data-lucide="workflow" style="color: #FFD700;"></i>
             <h1>ETF Complete Configuration Workbench</h1>
         </div>
-        
+
         <div class="progress-indicator">
             <span>Progress:</span>
             <div class="progress-circle" id="progress-1"></div>
@@ -1276,18 +1275,15 @@
                                     { value: '24', text: 'Once daily' }
                                 ]
                             },
-                            { 
-                                name: 'dataRetentionYears', 
-                                label: 'Data Retention Period', 
-                                type: 'select', 
-                                required: false,
-                                options: [
-                                    { value: '3', text: '3 years' },
-                                    { value: '5', text: '5 years' },
-                                    { value: '7', text: '7 years' },
-                                    { value: '10', text: '10 years' }
-                                ]
-                            }
+                            { name: 'dataRetentionYears', label: 'Data Retention Period', type: 'select', required: false, options: [{ value: '3', text: '3 years' }, { value: '5', text: '5 years' }, { value: '7', text: '7 years' }, { value: '10', text: '10 years' }] }
+                        ]
+                    },
+                    {
+                        title: "Social Media Configuration",
+                        fields: [
+                            { name: 'facebookPageId', label: 'Facebook Page ID', type: 'text', required: false, placeholder: '1234567890123456' },
+                            { name: 'whatsappPhoneId', label: 'WhatsApp Phone Number ID', type: 'text', required: false, placeholder: '1234567890123456' },
+                            { name: 'businessWebsite', label: 'Business Website (Additional)', type: 'url', required: false, placeholder: 'https://yourclinic.com' }
                         ]
                     }
                 ]
@@ -1521,7 +1517,7 @@
         function openConfigModal(configType) {
             currentConfig = configType;
             const template = configTemplates[configType];
-            
+
             // Update modal title
             document.getElementById('modalTitle').innerHTML = `
                 <i data-lucide="${template.icon}"></i>
@@ -1534,10 +1530,10 @@
             } else {
                 generateRegularForm(template);
             }
-            
+
             // Show modal
             document.getElementById('configModal').classList.add('active');
-            
+
             // Re-initialize icons
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -1547,7 +1543,7 @@
         // Generate regular form
         function generateRegularForm(template) {
             let formHTML = '';
-            
+
             template.sections.forEach(section => {
                 formHTML += `
                     <div class="form-section">
@@ -1557,11 +1553,11 @@
                         </div>
                         <div class="form-grid">
                 `;
-                
+
                 section.fields.forEach(field => {
                     formHTML += generateFieldHTML(field);
                 });
-                
+
                 formHTML += '</div></div>';
             });
 
@@ -1574,7 +1570,7 @@
             const config = credentialConfigs[credentialType];
             const status = credentialStates[credentialType];
             const isConnected = status === 'connected';
-            
+
             let formHTML = `
                 <div class="form-section">
                     <div class="form-section-title">
@@ -1584,7 +1580,7 @@
                     <p style="color: var(--text-secondary); margin-bottom: 24px;">
                         ${config.description} ${config.required ? '<span style="color: var(--error);">*Required</span>' : '<span style="color: var(--text-muted);">Optional</span>'}
                     </p>
-                    
+
                     <div class="credential-section">
                         <div class="credential-header">
                             <div class="credential-info">
@@ -1599,7 +1595,7 @@
                                 ${isConnected ? 'Connected' : 'Not Connected'}
                             </div>
                         </div>
-                        
+
                         <div id="credential-content-${credentialType}">
                             ${generateCredentialContent(credentialType, config, isConnected)}
                         </div>
@@ -1700,7 +1696,7 @@
             const config = credentialConfigs[service];
             const btn = event.target;
             const originalHTML = btn.innerHTML;
-            
+
             // Validate fields
             let isValid = true;
             if (config.fields) {
@@ -1768,7 +1764,7 @@
                 const config = credentialConfigs[service];
                 const isConnected = credentialStates[service] === 'connected';
                 content.innerHTML = generateCredentialContent(service, config, isConnected);
-                
+
                 // Update status
                 const statusEl = content.parentElement.querySelector('.credential-status');
                 statusEl.className = `credential-status ${isConnected ? 'connected' : 'disconnected'}`;
@@ -1776,13 +1772,13 @@
                     <i data-lucide="${isConnected ? 'check-circle' : 'x-circle'}"></i>
                     ${isConnected ? 'Connected' : 'Not Connected'}
                 `;
-                
+
                 // Update the workbench box if we're connected
                 if (isConnected) {
                     updateConfigBox(service);
                     updateProgress();
                 }
-                
+
                 if (typeof lucide !== 'undefined') {
                     lucide.createIcons();
                 }
@@ -1863,7 +1859,7 @@
                     const element = document.getElementById(field.name);
                     if (element) {
                         const value = element.value.trim();
-                        
+
                         if (field.required && !value) {
                             isValid = false;
                             element.style.borderColor = 'var(--error)';
@@ -1882,14 +1878,14 @@
 
             // Save configuration data
             configData[currentConfig] = formData;
-            
+
             // Update UI
             updateConfigBox(currentConfig);
             updateProgress();
-            
+
             // Close modal
             closeConfigModal();
-            
+
             console.log('Configuration saved:', configData);
         }
 
@@ -1898,14 +1894,14 @@
             const box = document.querySelector(`[data-config="${configType}"]`);
             const status = document.getElementById(`status-${configType}`);
             const fieldsPreview = document.getElementById(`fields-${configType}`);
-            
+
             // Mark as completed
             box.classList.remove('active');
             box.classList.add('completed');
             status.classList.remove('pending');
             status.classList.add('completed');
             status.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i>';
-            
+
             // Update field tags for individual credentials
             if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(configType)) {
                 const tags = fieldsPreview.querySelectorAll('.field-tag');
@@ -1915,23 +1911,23 @@
             } else {
                 const template = configTemplates[configType];
                 const data = configData[configType];
-                
+
                 fieldsPreview.innerHTML = '';
                 template.sections.forEach(section => {
                     section.fields.forEach(field => {
                         const tag = document.createElement('div');
                         tag.className = 'field-tag';
                         tag.textContent = field.label;
-                        
+
                         if (data[field.name]) {
                             tag.classList.add('filled');
                         }
-                        
+
                         fieldsPreview.appendChild(tag);
                     });
                 });
             }
-            
+
             // Re-initialize icons
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -1948,9 +1944,9 @@
                 // For regular configs, check if data exists
                 return Object.keys(configData[key]).length > 0;
             }).length;
-            
+
             const totalConfigs = Object.keys(configTemplates).length;
-            
+
             // Update progress circles
             for (let i = 1; i <= totalConfigs; i++) {
                 const circle = document.getElementById(`progress-${i}`);
@@ -1960,10 +1956,10 @@
                     circle.classList.remove('completed');
                 }
             }
-            
+
             // Update progress text
             document.getElementById('progress-text').textContent = `${completedConfigs}/${totalConfigs} Complete`;
-            
+
             // Update generate button
             const generateBtn = document.getElementById('generateBtn');
             // Require at least basic info + clinic + communication + operations + google + openai to generate
@@ -1974,7 +1970,7 @@
                 }
                 return Object.keys(configData[config]).length > 0;
             });
-            
+
             if (requiredCompleted) {
                 generateBtn.classList.add('ready');
             } else {
@@ -1985,11 +1981,11 @@
         // Generate workflow (placeholder)
         document.getElementById('generateBtn').addEventListener('click', function() {
             if (!this.classList.contains('ready')) return;
-            
+
             const originalHTML = this.innerHTML;
             this.disabled = true;
             this.innerHTML = '<div class="loading"></div> Generating ETF Workflow...';
-            
+
             // Simulate workflow generation
             setTimeout(() => {
                 const configSummary = {
@@ -2000,11 +1996,11 @@
                     credentials: Object.entries(credentialStates).filter(([k,v]) => v === 'connected').map(([k,v]) => k),
                     advanced: configData.advanced
                 };
-                
+
                 alert('🎉 ETF Workflow generation complete!\n\nYour comprehensive configuration:\n' + JSON.stringify(configSummary, null, 2));
                 this.disabled = false;
                 this.innerHTML = originalHTML;
-                
+
                 // Re-initialize icons
                 if (typeof lucide !== 'undefined') {
                     lucide.createIcons();
