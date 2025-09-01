@@ -1,0 +1,1022 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETF Workbench - Visual Configuration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --text-primary: #ffffff;
+            --text-secondary: #b8bcc8;
+            --text-muted: #6b7280;
+            --border-color: #2d3748;
+            --border-light: #374151;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .workbench-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .workbench-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .workbench-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progress-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .progress-circle {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-color);
+            transition: var(--transition);
+        }
+
+        .progress-circle.completed {
+            background: var(--success);
+        }
+
+        .progress-circle.active {
+            background: var(--warning);
+        }
+
+        .generate-btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .generate-btn.ready {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .generate-btn.ready:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Workbench Canvas */
+        .workbench-canvas {
+            min-height: calc(100vh - 80px);
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(107, 91, 26, 0.05) 0%, transparent 50%),
+                linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            position: relative;
+            padding: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Configuration Boxes */
+        .config-box {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-box:hover {
+            border-color: var(--border-light);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .config-box.completed {
+            border-color: var(--success);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .config-box.active {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .config-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .config-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-gradient);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .config-status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .config-status.pending {
+            background: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        .config-status.completed {
+            background: var(--success);
+            color: white;
+        }
+
+        .config-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .config-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            flex-grow: 1;
+        }
+
+        .config-fields-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .field-tag {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .field-tag.filled {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .config-action {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .config-box:hover .config-action {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .required {
+            color: var(--error);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-light);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Connecting Lines (Future Enhancement) */
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, var(--border-color), transparent);
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .workbench-canvas {
+                grid-template-columns: 1fr;
+                padding: 20px;
+                gap: 20px;
+            }
+
+            .workbench-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .progress-indicator {
+                justify-content: center;
+            }
+        }
+
+        /* Summary Panel */
+        .summary-panel {
+            position: fixed;
+            right: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            padding: 24px;
+            transition: right 0.3s ease;
+            z-index: 50;
+            overflow-y: auto;
+        }
+
+        .summary-panel.open {
+            right: 0;
+        }
+
+        .summary-toggle {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            transition: var(--transition);
+            z-index: 60;
+        }
+
+        .summary-toggle:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="workbench-header">
+        <div class="workbench-title">
+            <i data-lucide="workflow" style="color: #FFD700;"></i>
+            <h1>ETF Configuration Workbench</h1>
+        </div>
+        
+        <div class="progress-indicator">
+            <span>Progress:</span>
+            <div class="progress-circle" id="progress-1"></div>
+            <div class="progress-circle" id="progress-2"></div>
+            <div class="progress-circle" id="progress-3"></div>
+            <div class="progress-circle" id="progress-4"></div>
+            <span id="progress-text">0/4 Complete</span>
+        </div>
+
+        <button class="generate-btn" id="generateBtn">
+            <i data-lucide="play"></i>
+            Generate Workflow
+        </button>
+    </div>
+
+    <!-- Workbench Canvas -->
+    <div class="workbench-canvas">
+        <!-- Business Information Box -->
+        <div class="config-box" data-config="business" onclick="openConfigModal('business')">
+            <div class="config-header">
+                <div class="config-icon">
+                    🏢
+                </div>
+                <div class="config-status pending" id="status-business">
+                    1
+                </div>
+            </div>
+            <div class="config-title">Business Information</div>
+            <div class="config-description">
+                Basic information about your business including name, contact details, and address.
+            </div>
+            <div class="config-fields-preview" id="fields-business">
+                <div class="field-tag">Business Name</div>
+                <div class="field-tag">Email</div>
+                <div class="field-tag">Phone</div>
+                <div class="field-tag">Address</div>
+                <div class="field-tag">Website</div>
+            </div>
+            <div class="config-action">
+                Click to configure business details
+            </div>
+        </div>
+
+        <!-- Clinic Configuration Box -->
+        <div class="config-box" data-config="clinic" onclick="openConfigModal('clinic')">
+            <div class="config-header">
+                <div class="config-icon">
+                    🏥
+                </div>
+                <div class="config-status pending" id="status-clinic">
+                    2
+                </div>
+            </div>
+            <div class="config-title">Clinic Configuration</div>
+            <div class="config-description">
+                Specific details about your veterinary clinic including staff, hours, and services.
+            </div>
+            <div class="config-fields-preview" id="fields-clinic">
+                <div class="field-tag">Clinic Name</div>
+                <div class="field-tag">Veterinarian</div>
+                <div class="field-tag">Manager</div>
+                <div class="field-tag">Hours</div>
+                <div class="field-tag">Services</div>
+            </div>
+            <div class="config-action">
+                Click to configure clinic details
+            </div>
+        </div>
+
+        <!-- Operational Settings Box -->
+        <div class="config-box" data-config="operations" onclick="openConfigModal('operations')">
+            <div class="config-header">
+                <div class="config-icon">
+                    ⚙️
+                </div>
+                <div class="config-status pending" id="status-operations">
+                    3
+                </div>
+            </div>
+            <div class="config-title">Operational Settings</div>
+            <div class="config-description">
+                Configure timezone, policies, and operational preferences for your automation.
+            </div>
+            <div class="config-fields-preview" id="fields-operations">
+                <div class="field-tag">Timezone</div>
+                <div class="field-tag">Cancellation Policy</div>
+                <div class="field-tag">Email Settings</div>
+                <div class="field-tag">Business Color</div>
+            </div>
+            <div class="config-action">
+                Click to configure operational settings
+            </div>
+        </div>
+
+        <!-- Contact Information Box -->
+        <div class="config-box" data-config="contact" onclick="openConfigModal('contact')">
+            <div class="config-header">
+                <div class="config-icon">
+                    📞
+                </div>
+                <div class="config-status pending" id="status-contact">
+                    4
+                </div>
+            </div>
+            <div class="config-title">Contact & Support</div>
+            <div class="config-description">
+                Emergency contacts, support information, and customer service details.
+            </div>
+            <div class="config-fields-preview" id="fields-contact">
+                <div class="field-tag">Emergency Contact</div>
+                <div class="field-tag">Support Email</div>
+                <div class="field-tag">Booking URL</div>
+                <div class="field-tag">Business Category</div>
+            </div>
+            <div class="config-action">
+                Click to configure contact information
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">
+                    <i data-lucide="settings"></i>
+                    Configuration
+                </div>
+                <button class="modal-close" onclick="closeConfigModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfigModal()">
+                    <i data-lucide="x"></i>
+                    Cancel
+                </button>
+                <button class="btn btn-primary" onclick="saveConfiguration()">
+                    <i data-lucide="save"></i>
+                    Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Toggle -->
+    <button class="summary-toggle" onclick="toggleSummary()" title="View Configuration Summary">
+        <i data-lucide="list"></i>
+    </button>
+
+    <!-- Summary Panel -->
+    <div class="summary-panel" id="summaryPanel">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary);">Configuration Summary</h3>
+        <div id="summaryContent">
+            <p style="color: var(--text-muted); font-style: italic;">No configurations saved yet. Start by clicking on the configuration boxes.</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration data storage
+        let configData = {
+            business: {},
+            clinic: {},
+            operations: {},
+            contact: {}
+        };
+
+        let currentConfig = null;
+
+        // Configuration templates
+        const configTemplates = {
+            business: {
+                title: "Business Information",
+                icon: "building-2",
+                fields: [
+                    { name: 'businessName', label: 'Business Name', type: 'text', required: true, placeholder: 'Happy Paws Veterinary Clinic' },
+                    { name: 'businessEmail', label: 'Business Email', type: 'email', required: true, placeholder: 'info@happypaws.com' },
+                    { name: 'businessPhone', label: 'Business Phone', type: 'tel', required: true, placeholder: '+1 (555) 123-4567' },
+                    { name: 'businessAddress', label: 'Business Address', type: 'textarea', required: false, placeholder: '123 Pet Street, Animal City, AC 12345' },
+                    { name: 'websiteUrl', label: 'Website URL', type: 'url', required: false, placeholder: 'https://happypaws.com' }
+                ]
+            },
+            clinic: {
+                title: "Clinic Configuration",
+                icon: "heart-pulse",
+                fields: [
+                    { name: 'clinicName', label: 'Clinic Display Name', type: 'text', required: true, placeholder: 'Happy Paws Veterinary Clinic' },
+                    { name: 'primaryVeterinarian', label: 'Primary Veterinarian', type: 'text', required: true, placeholder: 'Dr. Sarah Johnson' },
+                    { name: 'managerName', label: 'Manager Name', type: 'text', required: false, placeholder: 'John Smith' },
+                    { name: 'clinicHours', label: 'Clinic Hours', type: 'text', required: true, placeholder: 'Mon-Fri: 8AM-6PM, Sat: 9AM-3PM' },
+                    { name: 'servicesOffered', label: 'Services Offered', type: 'textarea', required: true, placeholder: 'Vaccinations, Surgery, Dental Care, Emergency Services, Grooming' }
+                ]
+            },
+            operations: {
+                title: "Operational Settings",
+                icon: "settings",
+                fields: [
+                    { 
+                        name: 'timezone', 
+                        label: 'Timezone', 
+                        type: 'select', 
+                        required: true,
+                        options: [
+                            { value: '', text: 'Select Your Timezone' },
+                            { value: 'America/New_York', text: 'Eastern Time (EST/EDT)' },
+                            { value: 'America/Chicago', text: 'Central Time (CST/CDT)' },
+                            { value: 'America/Denver', text: 'Mountain Time (MST/MDT)' },
+                            { value: 'America/Los_Angeles', text: 'Pacific Time (PST/PDT)' }
+                        ]
+                    },
+                    { 
+                        name: 'cancellationPolicy', 
+                        label: 'Cancellation Policy', 
+                        type: 'select', 
+                        required: true,
+                        options: [
+                            { value: '', text: 'Select Cancellation Policy' },
+                            { value: '24-hour', text: '24-hour notice required' },
+                            { value: '48-hour', text: '48-hour notice required' },
+                            { value: '72-hour', text: '72-hour notice required' }
+                        ]
+                    },
+                    { name: 'fromEmail', label: 'From Email Address', type: 'email', required: true, placeholder: 'noreply@happypaws.com' },
+                    { name: 'fromName', label: 'From Name', type: 'text', required: true, placeholder: 'Happy Paws Clinic' },
+                    { name: 'businessColor', label: 'Brand Color', type: 'color', required: false, placeholder: '#4CAF50' }
+                ]
+            },
+            contact: {
+                title: "Contact & Support",
+                icon: "phone",
+                fields: [
+                    { name: 'emergencyContact', label: 'Emergency Contact', type: 'tel', required: true, placeholder: '+1 (555) EMERGENCY' },
+                    { name: 'supportEmail', label: 'Support Email', type: 'email', required: true, placeholder: 'support@happypaws.com' },
+                    { name: 'bookingUrl', label: 'Online Booking URL', type: 'url', required: false, placeholder: 'https://booking.happypaws.com' },
+                    { 
+                        name: 'businessCategory', 
+                        label: 'Business Category', 
+                        type: 'select', 
+                        required: false,
+                        options: [
+                            { value: 'veterinary', text: 'Veterinary Clinic' },
+                            { value: 'animal-hospital', text: 'Animal Hospital' },
+                            { value: 'pet-grooming', text: 'Pet Grooming' },
+                            { value: 'mobile-vet', text: 'Mobile Veterinary' }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Initialize the workbench
+        function initializeWorkbench() {
+            updateProgress();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Open configuration modal
+        function openConfigModal(configType) {
+            currentConfig = configType;
+            const template = configTemplates[configType];
+            
+            // Update modal title
+            document.getElementById('modalTitle').innerHTML = `
+                <i data-lucide="${template.icon}"></i>
+                ${template.title}
+            `;
+
+            // Generate form content
+            let formHTML = '<div class="form-grid">';
+            template.fields.forEach(field => {
+                formHTML += generateFieldHTML(field);
+            });
+            formHTML += '</div>';
+
+            document.getElementById('modalBody').innerHTML = formHTML;
+            
+            // Populate existing values
+            populateFormValues(configType);
+            
+            // Show modal
+            document.getElementById('configModal').classList.add('active');
+            
+            // Re-initialize icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Generate HTML for form field
+        function generateFieldHTML(field) {
+            const requiredClass = field.required ? 'required' : '';
+            let inputHTML = '';
+
+            switch (field.type) {
+                case 'select':
+                    inputHTML = `<select id="${field.name}" name="${field.name}" ${field.required ? 'required' : ''}>`;
+                    field.options.forEach(option => {
+                        inputHTML += `<option value="${option.value}">${option.text}</option>`;
+                    });
+                    inputHTML += '</select>';
+                    break;
+                case 'textarea':
+                    inputHTML = `<textarea id="${field.name}" name="${field.name}" rows="3" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}"></textarea>`;
+                    break;
+                default:
+                    inputHTML = `<input type="${field.type}" id="${field.name}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}" ${field.type === 'color' ? 'value="#4CAF50"' : ''}>`;
+            }
+
+            return `
+                <div class="form-group">
+                    <label for="${field.name}">
+                        ${field.label} ${field.required ? '<span class="required">*</span>' : ''}
+                    </label>
+                    ${inputHTML}
+                </div>
+            `;
+        }
+
+        // Populate form with existing values
+        function populateFormValues(configType) {
+            const data = configData[configType];
+            Object.keys(data).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = data[key];
+                }
+            });
+        }
+
+        // Close configuration modal
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('active');
+            currentConfig = null;
+        }
+
+        // Save configuration
+        function saveConfiguration() {
+            if (!currentConfig) return;
+
+            const template = configTemplates[currentConfig];
+            const formData = {};
+            let isValid = true;
+
+            // Collect and validate form data
+            template.fields.forEach(field => {
+                const element = document.getElementById(field.name);
+                if (element) {
+                    const value = element.value.trim();
+                    
+                    if (field.required && !value) {
+                        isValid = false;
+                        element.style.borderColor = 'var(--error)';
+                    } else {
+                        element.style.borderColor = '';
+                        formData[field.name] = value;
+                    }
+                }
+            });
+
+            if (!isValid) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+
+            // Save configuration data
+            configData[currentConfig] = formData;
+            
+            // Update UI
+            updateConfigBox(currentConfig);
+            updateProgress();
+            updateSummary();
+            
+            // Close modal
+            closeConfigModal();
+            
+            console.log('Configuration saved:', configData);
+        }
+
+        // Update configuration box UI
+        function updateConfigBox(configType) {
+            const box = document.querySelector(`[data-config="${configType}"]`);
+            const status = document.getElementById(`status-${configType}`);
+            const fieldsPreview = document.getElementById(`fields-${configType}`);
+            
+            // Mark as completed
+            box.classList.remove('active');
+            box.classList.add('completed');
+            status.classList.remove('pending');
+            status.classList.add('completed');
+            status.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i>';
+            
+            // Update field tags
+            const template = configTemplates[configType];
+            const data = configData[configType];
+            
+            fieldsPreview.innerHTML = '';
+            template.fields.forEach(field => {
+                const tag = document.createElement('div');
+                tag.className = 'field-tag';
+                tag.textContent = field.label;
+                
+                if (data[field.name]) {
+                    tag.classList.add('filled');
+                }
+                
+                fieldsPreview.appendChild(tag);
+            });
+            
+            // Re-initialize icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Update progress indicator
+        function updateProgress() {
+            const completedConfigs = Object.keys(configData).filter(key => 
+                Object.keys(configData[key]).length > 0
+            ).length;
+            
+            const totalConfigs = Object.keys(configTemplates).length;
+            
+            // Update progress circles
+            for (let i = 1; i <= totalConfigs; i++) {
+                const circle = document.getElementById(`progress-${i}`);
+                if (i <= completedConfigs) {
+                    circle.classList.add('completed');
+                } else {
+                    circle.classList.remove('completed');
+                }
+            }
+            
+            // Update progress text
+            document.getElementById('progress-text').textContent = `${completedConfigs}/${totalConfigs} Complete`;
+            
+            // Update generate button
+            const generateBtn = document.getElementById('generateBtn');
+            if (completedConfigs === totalConfigs) {
+                generateBtn.classList.add('ready');
+            } else {
+                generateBtn.classList.remove('ready');
+            }
+        }
+
+        // Toggle summary panel
+        function toggleSummary() {
+            const panel = document.getElementById('summaryPanel');
+            panel.classList.toggle('open');
+            updateSummary();
+        }
+
+        // Update summary content
+        function updateSummary() {
+            const summaryContent = document.getElementById('summaryContent');
+            let html = '';
+            
+            Object.keys(configTemplates).forEach(configType => {
+                const template = configTemplates[configType];
+                const data = configData[configType];
+                
+                if (Object.keys(data).length > 0) {
+                    html += `
+                        <div style="margin-bottom: 20px; padding: 16px; background: var(--bg-tertiary); border-radius: var(--radius); border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="${template.icon}" style="width: 16px; height: 16px;"></i>
+                                ${template.title}
+                            </h4>
+                            ${Object.entries(data).map(([key, value]) => 
+                                `<div style="margin-bottom: 8px; color: var(--text-secondary); font-size: 0.85rem;">
+                                    <strong>${template.fields.find(f => f.name === key)?.label || key}:</strong> ${value}
+                                </div>`
+                            ).join('')}
+                        </div>
+                    `;
+                }
+            });
+            
+            if (html === '') {
+                html = '<p style="color: var(--text-muted); font-style: italic;">No configurations saved yet. Start by clicking on the configuration boxes.</p>';
+            }
+            
+            summaryContent.innerHTML = html;
+            
+            // Re-initialize icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Generate workflow (placeholder)
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            if (!this.classList.contains('ready')) return;
+            
+            const originalHTML = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<div style="width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div> Generating...';
+            
+            // Simulate workflow generation
+            setTimeout(() => {
+                alert('🎉 Workflow generation will be implemented next! Your configuration data:\n\n' + JSON.stringify(configData, null, 2));
+                this.disabled = false;
+                this.innerHTML = originalHTML;
+                
+                // Re-initialize icons
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 2000);
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeWorkbench);
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && currentConfig) {
+                closeConfigModal();
+            }
+        });
+
+        // Add spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
