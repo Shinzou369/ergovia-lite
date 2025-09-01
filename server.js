@@ -201,6 +201,8 @@ class N8NApiClient {
   }
 }
 
+const app = express();
+
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
@@ -247,7 +249,6 @@ if (!N8N_API_KEY) {
 
 const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
 
-const app = express();
 
 // Initialize SQLite database with error recovery
 let db;
@@ -1232,7 +1233,7 @@ app.get('/client-openai-dashboard', (req, res) => {
     // Log the workflow dependency mappings
     console.log(`\n🔗 Inter-workflow Dependencies Resolved:`);
     console.log(`   Original templates now reference personalized workflows`);
-    console.log(`   Example: If template referenced "WF3", it now references "[${client_data.name}] WF3"`);
+    console.log(`   Example: If template referenced "WF3", it now references "[${clientData.name}] WF3"`);
     if (personalizationResult.workflowIdMappings) {
       Object.entries(personalizationResult.workflowIdMappings).forEach(([original, personalized]) => {
         console.log(`   ${original} → ${personalized}`);
@@ -5490,7 +5491,7 @@ function analyzeWorkflowConfig(workflow) {
   });
 
   // Get automatically detected fields from workflow analysis
-  const autoDetectedFields = promptInstructions.configFields || [];
+  const autoDetectedFields = promptInstructions.fields || [];
 
   // Standard configuration fields for all ETF workflows
   const standardFields = [
