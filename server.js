@@ -197,6 +197,41 @@ class N8NApiClient {
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const userInfo = req.isAuthenticated() ? 
+    req.user?.emails?.[0]?.value || 'authenticated' : 'anonymous';
+
+  // Log request start
+  console.log(`📥 ${req.method} ${req.url} - ${userInfo} - ${req.ip}`);
+
+  // Track response time
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const statusSymbol = res.statusCode >= 400 ? '❌' : 
+                        res.statusCode >= 300 ? '⚠️' : '✅';
+    
+    console.log(`📤 ${statusSymbol} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms - ${userInfo}`);
+    
+    // Log slow requests
+    if (duration > 5000) {
+      console.warn(`🐌 Slow request detected: ${req.method} ${req.url} took ${duration}ms`);
+      logError(new Error(`Slow request: ${duration}ms`), {
+        type: 'performance_warning',
+        method: req.method,
+        url: req.url,
+        duration,
+        user: userInfo
+      });
+    }
+  });
+
+  next();
+});
+
+
     }
   }
 }
@@ -215,83 +250,250 @@ const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
 
 const app = express();
 
-// Initialize SQLite database
-const db = new sqlite3.Database('./taskforce.db', (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database');
+// Initialize SQLite database with error recovery
+let db;
+let dbConnectionAttempts = 0;
+const maxDbConnectionAttempts = 5;
+
+function initializeDatabase() {
+  return new Promise((resolve, reject) => {
+    dbConnectionAttempts++;
+    
+    db = new sqlite3.Database('./taskforce.db', (err) => {
+      if (err) {
+        console.error(`❌ Database connection attempt ${dbConnectionAttempts} failed:`, err.message);
+        
+        if (dbConnectionAttempts < maxDbConnectionAttempts) {
+          console.log(`🔄 Retrying database connection in 2 seconds...`);
+          setTimeout(() => {
+            initializeDatabase().then(resolve).catch(reject);
+          }, 2000);
+        } else {
+          logError(err, { type: 'database_connection_failed', attempts: dbConnectionAttempts });
+          reject(err);
+        }
+      } else {
+        console.log('✅ Connected to SQLite database');
+        
+        // Test database functionality
+        db.run("CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, timestamp TEXT)", (testErr) => {
+          if (testErr) {
+            console.error('❌ Database functionality test failed:', testErr.message);
+            logError(testErr, { type: 'database_test_failed' });
+            reject(testErr);
+          } else {
+            console.log('✅ Database functionality verified');
+            resolve(db);
+          }
+        });
+      }
+    });
+  });
+}
+
+// Handle database connection errors gracefully
+function handleDatabaseError(error, operation) {
+  logError(error, { operation, type: 'database_operation_failed' });
+  
+  // Try to reconnect if connection was lost
+  if (error.message.includes('SQLITE_BUSY') || error.message.includes('database is locked')) {
+    console.log('🔄 Database is busy, retrying operation...');
+    return { shouldRetry: true };
   }
+  
+  return { shouldRetry: false };
+}
+
+// Initialize database with retry logic
+initializeDatabase().catch(err => {
+  console.error('❌ Failed to initialize database after all attempts:', err.message);
+  console.error('🛑 Server cannot start without database connection');
+  process.exit(1);
 });
 
 // ========================================
-// ETF Database Setup
+// ETF Database Setup with Error Recovery
 // ========================================
 function initETFDatabase() {
-  const etfDB = new sqlite3.Database('etf_data.db');
+  return new Promise((resolve, reject) => {
+    let etfDB;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-  // Clients table
-  etfDB.run(`
-    CREATE TABLE IF NOT EXISTS etf_clients (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      company TEXT,
-      industry TEXT,
-      taskforce_type TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    function tryConnection() {
+      attempts++;
+      etfDB = new sqlite3.Database('etf_data.db', (err) => {
+        if (err) {
+          console.error(`❌ ETF Database connection attempt ${attempts} failed:`, err.message);
+          
+          if (attempts < maxAttempts) {
+            console.log(`🔄 Retrying ETF database connection...`);
+            setTimeout(tryConnection, 1000);
+          } else {
+            logError(err, { type: 'etf_database_connection_failed', attempts });
+            reject(err);
+          }
+          return;
+        }
 
-  // Deployments table
-  etfDB.run(`
-    CREATE TABLE IF NOT EXISTS etf_deployments (
-      id TEXT PRIMARY KEY,
-      client_id TEXT NOT NULL,
-      template_id TEXT NOT NULL,
-      n8n_workflow_id TEXT,
-      workflow_name TEXT,
-      taskforce_type TEXT NOT NULL,
-      status TEXT DEFAULT 'active',
-      config_data TEXT,
-      deployed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(client_id) REFERENCES etf_clients(id)
-    )
-  `);
+        console.log('✅ ETF Database connected');
 
-  // Client history table for tracking changes
-  etfDB.run(`
-    CREATE TABLE IF NOT EXISTS etf_client_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      client_id TEXT NOT NULL,
-      action TEXT NOT NULL,
-      details TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(client_id) REFERENCES etf_clients(id)
-    )
-  `);
+        // Create tables with error handling
+        const createTables = [
+          `CREATE TABLE IF NOT EXISTS etf_clients (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            company TEXT,
+            industry TEXT,
+            taskforce_type TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`,
+          `CREATE TABLE IF NOT EXISTS etf_deployments (
+            id TEXT PRIMARY KEY,
+            client_id TEXT NOT NULL,
+            template_id TEXT NOT NULL,
+            n8n_workflow_id TEXT,
+            workflow_name TEXT,
+            taskforce_type TEXT NOT NULL,
+            status TEXT DEFAULT 'active',
+            config_data TEXT,
+            deployed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(client_id) REFERENCES etf_clients(id)
+          )`,
+          `CREATE TABLE IF NOT EXISTS etf_client_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            details TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(client_id) REFERENCES etf_clients(id)
+          )`,
+          `CREATE TABLE IF NOT EXISTS etf_error_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT,
+            error_type TEXT NOT NULL,
+            error_message TEXT NOT NULL,
+            stack TEXT,
+            user_agent TEXT,
+            url TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`
+        ];
 
-  console.log('ETF Database initialized');
-  return etfDB;
+        let tablesCreated = 0;
+        let tableErrors = [];
+
+        createTables.forEach((sql, index) => {
+          etfDB.run(sql, (tableErr) => {
+            if (tableErr) {
+              tableErrors.push(`Table ${index + 1}: ${tableErr.message}`);
+              logError(tableErr, { type: 'etf_table_creation_failed', sql });
+            }
+            
+            tablesCreated++;
+            
+            if (tablesCreated === createTables.length) {
+              if (tableErrors.length > 0) {
+                console.error('⚠️ Some ETF tables failed to create:', tableErrors);
+              } else {
+                console.log('✅ All ETF tables created successfully');
+              }
+              
+              console.log('✅ ETF Database initialized');
+              resolve(etfDB);
+            }
+          });
+        });
+      });
+    }
+
+    tryConnection();
+  });
 }
 
-const etfDB = initETFDatabase();
+// Initialize ETF database with proper error handling
+let etfDB;
+initETFDatabase()
+  .then(database => {
+    etfDB = database;
+  })
+  .catch(err => {
+    console.error('❌ Failed to initialize ETF database:', err.message);
+    console.error('⚠️ ETF functionality will be disabled');
+    
+    // Create a mock database object to prevent crashes
+    etfDB = {
+      run: (sql, params, callback) => {
+        if (callback) callback(new Error('ETF database not available'));
+      },
+      get: (sql, params, callback) => {
+        if (callback) callback(new Error('ETF database not available'));
+      },
+      all: (sql, params, callback) => {
+        if (callback) callback(new Error('ETF database not available'));
+      }
+    };
+  });
 
 // Initialize monthly token reset scheduler
 initScheduler();
 
-// Validate required environment variables
+// Environment variable validation with detailed feedback
 const requiredEnvVars = [
-  'OPENAI_API_KEY',
-  'GOOGLE_CLIENT_ID', 
-  'GOOGLE_CLIENT_SECRET'
+  { name: 'OPENAI_API_KEY', description: 'OpenAI API key for chat functionality' },
+  { name: 'GOOGLE_CLIENT_ID', description: 'Google OAuth client ID for authentication' },
+  { name: 'GOOGLE_CLIENT_SECRET', description: 'Google OAuth client secret for authentication' }
 ];
 
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingEnvVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
-  console.error('Please check your .env file or environment configuration');
+const optionalEnvVars = [
+  { name: 'DEEPSEEK_API_KEY', description: 'DeepSeek API key for alternative AI model' },
+  { name: 'N8N_BASE_URL', description: 'N8N instance URL for ETF functionality' },
+  { name: 'N8N_API_KEY', description: 'N8N API key for workflow management' },
+  { name: 'SESSION_SECRET', description: 'Secret key for session encryption' },
+  { name: 'LEMONSQUEEZY_API_KEY', description: 'Payment processing API key' }
+];
+
+function validateEnvironment() {
+  const missing = [];
+  const warnings = [];
+
+  // Check required variables
+  requiredEnvVars.forEach(envVar => {
+    if (!process.env[envVar.name]) {
+      missing.push(`${envVar.name} - ${envVar.description}`);
+    }
+  });
+
+  // Check optional but important variables
+  optionalEnvVars.forEach(envVar => {
+    if (!process.env[envVar.name]) {
+      warnings.push(`${envVar.name} - ${envVar.description}`);
+    }
+  });
+
+  if (missing.length > 0) {
+    console.error('❌ Missing REQUIRED environment variables:');
+    missing.forEach(item => console.error(`   - ${item}`));
+    console.error('🔧 Please check your .env file or Replit Secrets');
+    
+    // Don't exit in development, but warn loudly
+    if (process.env.NODE_ENV === 'production') {
+      console.error('🛑 Cannot start in production without required environment variables');
+      process.exit(1);
+    }
+  }
+
+  if (warnings.length > 0) {
+    console.warn('⚠️ Missing OPTIONAL environment variables (some features may be disabled):');
+    warnings.forEach(item => console.warn(`   - ${item}`));
+  }
+
+  console.log('✅ Environment validation completed');
 }
+
+// Run environment validation
+validateEnvironment();
 
 // OpenAI configuration
 const openai = new OpenAI({
@@ -302,48 +504,6 @@ const openai = new OpenAI({
 passport.serializeUser((user, done) => {
   done(null, user);
 });
-
-
-// Daily subscription check to handle expired subscriptions
-function checkExpiredSubscriptions() {
-  const users = loadUsers();
-  const now = new Date();
-  let updatedAny = false;
-
-  Object.keys(users).forEach(userId => {
-    const user = users[userId];
-
-    // Check if monthly subscription has expired
-    if (user.subscriptionType === 'monthly' && 
-        user.subscriptionExpiresAt && 
-        user.isPremium && 
-        user.subscriptionStatus === 'active') {
-
-      const expirationDate = new Date(user.subscriptionExpiresAt);
-
-      if (now > expirationDate) {
-        console.log('🕐 Expiring subscription for user:', user.email, 'Expired at:', expirationDate);
-
-        user.isPremium = false;
-        user.subscriptionStatus = 'expired';
-        user.subscriptionEndDate = now.toISOString();
-        updatedAny = true;
-      }
-    }
-  });
-
-  if (updatedAny) {
-    saveUsers(users);
-    console.log('✅ Daily subscription check completed - expired subscriptions updated');
-  }
-}
-
-// Run subscription check every 24 hours
-setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000);
-
-// Run check on server start
-setTimeout(checkExpiredSubscriptions, 5000);
-
 
 passport.deserializeUser((user, done) => {
   done(null, user);
@@ -359,31 +519,47 @@ passport.use(new GoogleStrategy({
   return done(null, profile);
 }));
 
-app.use(session({
+// Session configuration with environment-based security
+const sessionConfig = {
   store: new FileStore({
     path: './sessions',
-    retries: 2,
-    factor: 1,
-    minTimeout: 50,
-    maxTimeout: 100,
-    logFn: function() {} // Disable logging to avoid spam
+    retries: 3,
+    factor: 2,
+    minTimeout: 100,
+    maxTimeout: 1000,
+    logFn: function() {}, // Disable logging to avoid spam
+    ttl: 7 * 24 * 60 * 60, // 7 days TTL for session files
+    reapInterval: 60 * 60 * 1000 // Clean up expired sessions every hour
   }),
   secret: process.env.SESSION_SECRET || (() => {
-    if (process.env.NODE_ENV !== 'development') {
-      console.warn('⚠️ SESSION_SECRET not set! Using fallback. Set SESSION_SECRET environment variable for production.');
+    const fallbackSecret = 'ergovia-ai-stable-secret-key-2024-production';
+    
+    if (process.env.NODE_ENV === 'production') {
+      console.error('🚨 SECURITY WARNING: SESSION_SECRET not set in production!');
+      console.error('🔧 Please set SESSION_SECRET environment variable immediately');
+      logError(new Error('Production session secret not configured'), { 
+        type: 'security_warning',
+        severity: 'critical'
+      });
+    } else {
+      console.warn('⚠️ Using fallback SESSION_SECRET for development');
     }
-    return 'ergovia-ai-stable-secret-key-2024-production';
+    
+    return fallbackSecret;
   })(),
   resave: false,
   saveUninitialized: false,
-  rolling: false, // Don't reset expiry on activity to maintain stable sessions
+  rolling: false,
+  name: 'ergovia.sid', // Custom session name
   cookie: {
-    secure: false, // Set to true in production with HTTPS
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
-    sameSite: 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
   }
-}));
+};
+
+app.use(session(sessionConfig));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -399,16 +575,138 @@ app.use((req, res, next) => {
   next();
 });
 
-// Security and parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Input validation and sanitization middleware
+function validateInput(req, res, next) {
+  try {
+    // Validate common injection patterns
+    const checkForInjection = (str) => {
+      if (typeof str !== 'string') return false;
+      const patterns = [
+        /<script[^>]*>.*?<\/script>/gi,
+        /javascript:/gi,
+        /on\w+\s*=/gi,
+        /eval\s*\(/gi,
+        /expression\s*\(/gi
+      ];
+      return patterns.some(pattern => pattern.test(str));
+    };
 
-// Security headers
+    // Recursively check object for malicious content
+    const sanitizeObject = (obj) => {
+      if (typeof obj === 'string') {
+        if (checkForInjection(obj)) {
+          throw new Error('Potentially malicious content detected');
+        }
+        return obj.trim();
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        const sanitized = {};
+        for (const [key, value] of Object.entries(obj)) {
+          sanitized[key] = sanitizeObject(value);
+        }
+        return sanitized;
+      }
+      return obj;
+    };
+
+    // Sanitize request body
+    if (req.body && typeof req.body === 'object') {
+      req.body = sanitizeObject(req.body);
+    }
+
+    // Sanitize query parameters
+    if (req.query && typeof req.query === 'object') {
+      req.query = sanitizeObject(req.query);
+    }
+
+    next();
+  } catch (error) {
+    logError(error, { url: req.url, method: req.method, type: 'input_validation' });
+    res.status(400).json({ error: 'Invalid input detected' });
+  }
+}
+
+// Security and parsing middleware
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf, encoding) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(validateInput);
+
+// Rate limiting configuration
+const rateLimit = {
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  clients: new Map()
+};
+
+// Simple rate limiting middleware
+function rateLimitMiddleware(req, res, next) {
+  const clientId = req.ip || 'unknown';
+  const now = Date.now();
+  
+  if (!rateLimit.clients.has(clientId)) {
+    rateLimit.clients.set(clientId, { count: 1, resetTime: now + rateLimit.windowMs });
+    return next();
+  }
+  
+  const client = rateLimit.clients.get(clientId);
+  
+  if (now > client.resetTime) {
+    // Reset window
+    client.count = 1;
+    client.resetTime = now + rateLimit.windowMs;
+    return next();
+  }
+  
+  if (client.count >= rateLimit.maxRequests) {
+    console.log(`🚫 Rate limit exceeded for ${clientId}`);
+    return res.status(429).json({ 
+      error: 'Too many requests', 
+      retryAfter: Math.ceil((client.resetTime - now) / 1000)
+    });
+  }
+  
+  client.count++;
+  next();
+}
+
+// Apply rate limiting to API routes
+app.use('/api/', rateLimitMiddleware);
+app.use('/chat', rateLimitMiddleware);
+
+// Security headers with additional protections
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Powered-By', 'ERGOVIA-AI');
+  
+  // Add CORS headers for production
+  const allowedOrigins = process.env.CORS_ORIGIN ? 
+    process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com'];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   next();
 });
 
@@ -499,6 +797,148 @@ app.get('/credential-design-doc', (req, res) => {
 // Get available templates from n8n
 app.get('/api/etf/templates', async (req, res) => {
   try {
+
+// System status and error recovery endpoint
+app.get('/api/system/status', async (req, res) => {
+  try {
+    const status = {
+      server: {
+        status: 'healthy',
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        version: process.version
+      },
+      database: { status: 'unknown' },
+      etf_database: { status: 'unknown' },
+      external_services: {}
+    };
+
+    // Check main database
+    try {
+      await new Promise((resolve, reject) => {
+        db.get("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table'", (err, row) => {
+          if (err) reject(err);
+          else {
+            status.database = { status: 'healthy', tables: row.count };
+            resolve();
+          }
+        });
+      });
+    } catch (error) {
+      status.database = { status: 'error', error: error.message };
+    }
+
+    // Check ETF database
+    try {
+      await new Promise((resolve, reject) => {
+        etfDB.get("SELECT COUNT(*) as count FROM sqlite_master WHERE type='table'", (err, row) => {
+          if (err) reject(err);
+          else {
+            status.etf_database = { status: 'healthy', tables: row.count };
+            resolve();
+          }
+        });
+      });
+    } catch (error) {
+      status.etf_database = { status: 'error', error: error.message };
+    }
+
+    // Check environment configuration
+    status.configuration = {
+      session_secret: !!process.env.SESSION_SECRET,
+      openai_key: !!process.env.OPENAI_API_KEY,
+      google_oauth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      n8n_configured: !!(N8N_BASE_URL && N8N_API_KEY),
+      environment: process.env.NODE_ENV || 'development'
+    };
+
+    res.json(status);
+  } catch (error) {
+    logError(error, { type: 'system_status_check' });
+    res.status(500).json({ 
+      error: 'Failed to get system status',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Error recovery endpoint for admin use
+app.post('/api/system/recover', async (req, res) => {
+  try {
+    const { action } = req.body;
+    const results = [];
+
+    switch (action) {
+      case 'restart_session_store':
+        // Clean up expired sessions
+        try {
+          const sessionDir = './sessions';
+          const files = fs.readdirSync(sessionDir);
+          let cleaned = 0;
+          
+          files.forEach(file => {
+            if (file.endsWith('.json')) {
+              const filePath = path.join(sessionDir, file);
+              const stats = fs.statSync(filePath);
+              const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
+              
+              if (ageHours > 168) { // 7 days
+                fs.unlinkSync(filePath);
+                cleaned++;
+              }
+            }
+          });
+          
+          results.push(`Cleaned ${cleaned} expired session files`);
+        } catch (error) {
+          results.push(`Session cleanup failed: ${error.message}`);
+        }
+        break;
+
+      case 'reset_rate_limits':
+        // Clear rate limiting cache
+        rateLimit.clients.clear();
+        results.push('Rate limiting cache cleared');
+        break;
+
+      case 'validate_databases':
+        // Validate database integrity
+        try {
+          await new Promise((resolve, reject) => {
+            db.get("PRAGMA integrity_check", (err, row) => {
+              if (err) reject(err);
+              else {
+                results.push(`Main database integrity: ${row.integrity_check}`);
+                resolve();
+              }
+            });
+          });
+        } catch (error) {
+          results.push(`Database validation failed: ${error.message}`);
+        }
+        break;
+
+      default:
+        return res.status(400).json({ error: 'Invalid recovery action' });
+    }
+
+    res.json({ 
+      success: true, 
+      action,
+      results,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logError(error, { type: 'system_recovery_failed', action: req.body.action });
+    res.status(500).json({ 
+      error: 'Recovery action failed',
+      details: error.message
+    });
+  }
+});
+
+
     const workflows = await n8nClient.getWorkflows();
 
     // Filter workflows with "PET" tag specifically (active AND inactive)
@@ -2419,15 +2859,86 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
     });
 });
 
-// Health check
-app.get('/health', (req, res) => {
+// Enhanced health check with service monitoring
+app.get('/health', async (req, res) => {
   console.log('🏥 Health check requested');
-  res.json({ 
+  
+  const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     port: process.env.PORT || 3000,
-    environment: process.env.NODE_ENV || 'development'
-  });
+    environment: process.env.NODE_ENV || 'development',
+    services: {},
+    database: { status: 'unknown' },
+    uptime: process.uptime()
+  };
+
+  // Check database health
+  try {
+    await new Promise((resolve, reject) => {
+      db.get("SELECT 1", (err) => {
+        if (err) {
+          healthStatus.database = { status: 'error', error: err.message };
+          reject(err);
+        } else {
+          healthStatus.database = { status: 'healthy' };
+          resolve();
+        }
+      });
+    });
+  } catch (error) {
+    healthStatus.status = 'degraded';
+    logError(error, { type: 'health_check_database' });
+  }
+
+  // Check N8N service health
+  if (N8N_BASE_URL && N8N_API_KEY) {
+    try {
+      const n8nResponse = await fetch(`${N8N_BASE_URL}/healthz`, { 
+        timeout: 5000,
+        headers: { 'X-N8N-API-KEY': N8N_API_KEY }
+      });
+      healthStatus.services.n8n = { 
+        status: n8nResponse.ok ? 'healthy' : 'error',
+        url: N8N_BASE_URL
+      };
+    } catch (error) {
+      healthStatus.services.n8n = { 
+        status: 'error', 
+        error: error.message,
+        url: N8N_BASE_URL
+      };
+      if (healthStatus.status === 'ok') healthStatus.status = 'degraded';
+    }
+  } else {
+    healthStatus.services.n8n = { status: 'not_configured' };
+  }
+
+  // Check OpenAI service health
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      const openaiResponse = await fetch('https://api.openai.com/v1/models', {
+        timeout: 5000,
+        headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` }
+      });
+      healthStatus.services.openai = { 
+        status: openaiResponse.ok ? 'healthy' : 'error'
+      };
+    } catch (error) {
+      healthStatus.services.openai = { 
+        status: 'error', 
+        error: error.message 
+      };
+      if (healthStatus.status === 'ok') healthStatus.status = 'degraded';
+    }
+  } else {
+    healthStatus.services.openai = { status: 'not_configured' };
+  }
+
+  const statusCode = healthStatus.status === 'ok' ? 200 : 
+                    healthStatus.status === 'degraded' ? 200 : 500;
+
+  res.status(statusCode).json(healthStatus);
 });
 
 // Debug endpoint
@@ -3196,6 +3707,50 @@ function updateCredentialValidity(userEmail, service, isValid) {
   }
 }
 
+// Daily subscription check to handle expired subscriptions
+function checkExpiredSubscriptions() {
+  try {
+    const users = loadUsers();
+    const now = new Date();
+    let updatedAny = false;
+
+    Object.keys(users).forEach(userId => {
+      const user = users[userId];
+
+      // Check if monthly subscription has expired
+      if (user.subscriptionType === 'monthly' && 
+          user.subscriptionExpiresAt && 
+          user.isPremium && 
+          user.subscriptionStatus === 'active') {
+
+        const expirationDate = new Date(user.subscriptionExpiresAt);
+
+        if (now > expirationDate) {
+          console.log('🕐 Expiring subscription for user:', user.email, 'Expired at:', expirationDate);
+
+          user.isPremium = false;
+          user.subscriptionStatus = 'expired';
+          user.subscriptionEndDate = now.toISOString();
+          updatedAny = true;
+        }
+      }
+    });
+
+    if (updatedAny) {
+      saveUsers(users);
+      console.log('✅ Daily subscription check completed - expired subscriptions updated');
+    }
+  } catch (error) {
+    console.error('❌ Error in subscription check:', error);
+  }
+}
+
+// Run subscription check every 24 hours
+setInterval(checkExpiredSubscriptions, 24 * 60 * 60 * 1000);
+
+// Run check on server start
+setTimeout(checkExpiredSubscriptions, 5000);
+
 async function handleOAuthCallback(service, code, userEmail) {
   // Mock OAuth handling - in production, exchange code for tokens
   return new Promise((resolve, reject) => {
@@ -3704,10 +4259,84 @@ app.get('/taskforce/:type/onboard', requireAuth, (req, res) => {
   res.redirect(`/?template=${type}&action=onboard`);
 });
 
+// Global error logging function
+function logError(error, context = {}) {
+  const timestamp = new Date().toISOString();
+  const errorLog = {
+    timestamp,
+    message: error.message,
+    stack: error.stack,
+    context
+  };
+
+  console.error('❌ [ERROR]', JSON.stringify(errorLog, null, 2));
+
+  // Save critical errors to file for debugging
+  try {
+    const errorLogFile = './error_logs.json';
+    let errorLogs = [];
+    
+    if (fs.existsSync(errorLogFile)) {
+      errorLogs = JSON.parse(fs.readFileSync(errorLogFile, 'utf8'));
+    }
+    
+    errorLogs.push(errorLog);
+    
+    // Keep only last 100 errors to prevent file bloat
+    if (errorLogs.length > 100) {
+      errorLogs = errorLogs.slice(-100);
+    }
+    
+    fs.writeFileSync(errorLogFile, JSON.stringify(errorLogs, null, 2));
+  } catch (fileError) {
+    console.error('Failed to save error log:', fileError.message);
+  }
+}
+
 // Enhanced error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  const context = {
+    url: req.url,
+    method: req.method,
+    userAgent: req.headers['user-agent'],
+    ip: req.ip,
+    authenticated: req.isAuthenticated(),
+    userEmail: req.user?.emails?.[0]?.value
+  };
+
+  logError(err, context);
+
+  // Don't leak internal errors to client
+  const isProduction = process.env.NODE_ENV === 'production';
+  const errorResponse = {
+    error: 'Internal server error',
+    timestamp: new Date().toISOString()
+  };
+
+  if (!isProduction) {
+    errorResponse.details = err.message;
+    errorResponse.stack = err.stack;
+  }
+
+  res.status(500).json(errorResponse);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logError(new Error(`Unhandled Promise Rejection: ${reason}`), { 
+    promise: promise.toString() 
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logError(error, { type: 'uncaughtException' });
+  
+  // Give time for logging then exit gracefully
+  setTimeout(() => {
+    console.log('🛑 Exiting due to uncaught exception');
+    process.exit(1);
+  }, 1000);
 });
 
 // ========================================
