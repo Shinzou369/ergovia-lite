@@ -132,6 +132,33 @@
             align-items: start;
         }
 
+        /* Section Headers */
+        .section-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin: 20px 0 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(255, 215, 0, 0.05) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
         /* Configuration Boxes */
         .config-box {
             background: var(--bg-secondary);
@@ -145,6 +172,17 @@
             display: flex;
             flex-direction: column;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Credential Box Styling */
+        .credential-box {
+            border-left: 4px solid var(--warning);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(245, 158, 11, 0.03) 100%);
+        }
+
+        .credential-box:hover {
+            border-left-color: #FFD700;
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
         }
 
         .config-box:hover {
@@ -626,6 +664,12 @@
 
     <!-- Workbench Canvas -->
     <div class="workbench-canvas">
+        <!-- BUSINESS INFORMATION SECTION -->
+        <div class="section-header">
+            <h2 class="section-title">📋 Business Information & Settings</h2>
+            <p class="section-subtitle">Essential business details and operational configurations</p>
+        </div>
+
         <!-- Business Information -->
         <div class="config-box" data-config="business" onclick="openConfigModal('business')">
             <div class="config-header">
@@ -707,11 +751,37 @@
             <div class="config-action">Click to configure operations</div>
         </div>
 
+        <!-- Payment & Advanced -->
+        <div class="config-box" data-config="advanced" onclick="openConfigModal('advanced')">
+            <div class="config-header">
+                <div class="config-icon">💳</div>
+                <div class="config-status pending" id="status-advanced">5</div>
+            </div>
+            <div class="config-title">Payment & Advanced Settings</div>
+            <div class="config-description">
+                Payment processing, advanced security settings, and optional integrations.
+            </div>
+            <div class="config-fields-preview" id="fields-advanced">
+                <div class="field-tag">Stripe Keys</div>
+                <div class="field-tag">Webhook Secret</div>
+                <div class="field-tag">API Rate Limit</div>
+                <div class="field-tag">Backup Frequency</div>
+                <div class="field-tag">No-Show Policy</div>
+            </div>
+            <div class="config-action">Click to configure advanced settings</div>
+        </div>
+
+        <!-- CREDENTIALS & INTEGRATIONS SECTION -->
+        <div class="section-header" style="margin-top: 60px;">
+            <h2 class="section-title">🔗 Service Integrations & API Credentials</h2>
+            <p class="section-subtitle">Connect external services and configure API integrations</p>
+        </div>
+
         <!-- Google Services -->
-        <div class="config-box" data-config="google" onclick="openConfigModal('google')">
+        <div class="config-box credential-box" data-config="google" onclick="openConfigModal('google')">
             <div class="config-header">
                 <div class="config-icon">🔗</div>
-                <div class="config-status pending" id="status-google">5</div>
+                <div class="config-status pending" id="status-google">6</div>
             </div>
             <div class="config-title">Google Services</div>
             <div class="config-description">
@@ -726,10 +796,10 @@
         </div>
 
         <!-- OpenAI API -->
-        <div class="config-box" data-config="openai" onclick="openConfigModal('openai')">
+        <div class="config-box credential-box" data-config="openai" onclick="openConfigModal('openai')">
             <div class="config-header">
                 <div class="config-icon">🤖</div>
-                <div class="config-status pending" id="status-openai">6</div>
+                <div class="config-status pending" id="status-openai">7</div>
             </div>
             <div class="config-title">OpenAI API</div>
             <div class="config-description">
@@ -744,10 +814,10 @@
         </div>
 
         <!-- Telegram Bot -->
-        <div class="config-box" data-config="telegram" onclick="openConfigModal('telegram')">
+        <div class="config-box credential-box" data-config="telegram" onclick="openConfigModal('telegram')">
             <div class="config-header">
                 <div class="config-icon">💬</div>
-                <div class="config-status pending" id="status-telegram">7</div>
+                <div class="config-status pending" id="status-telegram">8</div>
             </div>
             <div class="config-title">Telegram Notifications</div>
             <div class="config-description">
@@ -762,10 +832,10 @@
         </div>
 
         <!-- Twilio SMS -->
-        <div class="config-box" data-config="twilio" onclick="openConfigModal('twilio')">
+        <div class="config-box credential-box" data-config="twilio" onclick="openConfigModal('twilio')">
             <div class="config-header">
                 <div class="config-icon">📱</div>
-                <div class="config-status pending" id="status-twilio">8</div>
+                <div class="config-status pending" id="status-twilio">9</div>
             </div>
             <div class="config-title">SMS Notifications</div>
             <div class="config-description">
@@ -780,10 +850,10 @@
         </div>
 
         <!-- Calendly Integration -->
-        <div class="config-box" data-config="calendly" onclick="openConfigModal('calendly')">
+        <div class="config-box credential-box" data-config="calendly" onclick="openConfigModal('calendly')">
             <div class="config-header">
                 <div class="config-icon">📅</div>
-                <div class="config-status pending" id="status-calendly">9</div>
+                <div class="config-status pending" id="status-calendly">10</div>
             </div>
             <div class="config-title">Calendly Integration</div>
             <div class="config-description">
@@ -798,10 +868,10 @@
         </div>
 
         <!-- SendGrid Email -->
-        <div class="config-box" data-config="sendgrid" onclick="openConfigModal('sendgrid')">
+        <div class="config-box credential-box" data-config="sendgrid" onclick="openConfigModal('sendgrid')">
             <div class="config-header">
                 <div class="config-icon">📧</div>
-                <div class="config-status pending" id="status-sendgrid">10</div>
+                <div class="config-status pending" id="status-sendgrid">11</div>
             </div>
             <div class="config-title">SendGrid Email Service</div>
             <div class="config-description">
@@ -816,10 +886,10 @@
         </div>
 
         <!-- Facebook Integration -->
-        <div class="config-box" data-config="facebook" onclick="openConfigModal('facebook')">
+        <div class="config-box credential-box" data-config="facebook" onclick="openConfigModal('facebook')">
             <div class="config-header">
                 <div class="config-icon">📘</div>
-                <div class="config-status pending" id="status-facebook">11</div>
+                <div class="config-status pending" id="status-facebook">12</div>
             </div>
             <div class="config-title">Facebook Business Page</div>
             <div class="config-description">
@@ -834,10 +904,10 @@
         </div>
 
         <!-- Twitter/X Integration -->
-        <div class="config-box" data-config="twitter" onclick="openConfigModal('twitter')">
+        <div class="config-box credential-box" data-config="twitter" onclick="openConfigModal('twitter')">
             <div class="config-header">
                 <div class="config-icon">🐦</div>
-                <div class="config-status pending" id="status-twitter">12</div>
+                <div class="config-status pending" id="status-twitter">13</div>
             </div>
             <div class="config-title">Twitter/X Integration</div>
             <div class="config-description">
@@ -852,10 +922,10 @@
         </div>
 
         <!-- Slack Integration -->
-        <div class="config-box" data-config="slack" onclick="openConfigModal('slack')">
+        <div class="config-box credential-box" data-config="slack" onclick="openConfigModal('slack')">
             <div class="config-header">
                 <div class="config-icon">💼</div>
-                <div class="config-status pending" id="status-slack">13</div>
+                <div class="config-status pending" id="status-slack">14</div>
             </div>
             <div class="config-title">Slack Team Notifications</div>
             <div class="config-description">
@@ -867,26 +937,6 @@
                 <div class="field-tag">Notification Types</div>
             </div>
             <div class="config-action">Click to setup Slack notifications</div>
-        </div>
-
-        <!-- Payment & Advanced -->
-        <div class="config-box" data-config="advanced" onclick="openConfigModal('advanced')">
-            <div class="config-header">
-                <div class="config-icon">💳</div>
-                <div class="config-status pending" id="status-advanced">6</div>
-            </div>
-            <div class="config-title">Payment & Advanced</div>
-            <div class="config-description">
-                Payment processing, advanced security settings, and optional integrations.
-            </div>
-            <div class="config-fields-preview" id="fields-advanced">
-                <div class="field-tag">Stripe Keys</div>
-                <div class="field-tag">Webhook Secret</div>
-                <div class="field-tag">API Rate Limit</div>
-                <div class="field-tag">Backup Frequency</div>
-                <div class="field-tag">No-Show Policy</div>
-            </div>
-            <div class="config-action">Click to configure advanced settings</div>
         </div>
     </div>
 
