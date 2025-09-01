@@ -798,6 +798,78 @@ app.get('/credential-design-doc', (req, res) => {
 app.get('/api/etf/templates', async (req, res) => {
   try {
 
+// Manual OpenAI key generation for users
+app.post('/api/generate-personal-openai-key', async (req, res) => {
+  try {
+    const { business_name, business_email, token_limit, workflow_count } = req.body;
+
+    if (!business_name || !business_email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Business name and email are required'
+      });
+    }
+
+    console.log(`🔑 Manual OpenAI key generation requested for: ${business_name}`);
+
+    const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
+    const keyGenerator = new AutoKeyGenerator();
+
+    // Calculate appropriate token limit based on workflow count
+    const calculatedLimit = token_limit || (50000 + ((workflow_count || 1) * 25000));
+
+    const clientData = {
+      name: business_name,
+      email: business_email,
+      client_id: keyGenerator.generateClientId({ email: business_email, name: business_name })
+    };
+
+    const setupResult = await keyGenerator.setupClientOpenAI(clientData, {
+      tokenLimit: calculatedLimit,
+      workflowId: 'manual-generation',
+      autoActivate: true
+    });
+
+    if (setupResult.success) {
+      res.json({
+        success: true,
+        message: 'Personal OpenAI key generated successfully!',
+        client_id: setupResult.client_id,
+        key_preview: setupResult.key_preview,
+        token_limit: calculatedLimit,
+        dashboard_url: `/client-openai-dashboard?client_id=${setupResult.client_id}`,
+        features: [
+          'Dedicated API key for your business',
+          `${formatNumber(calculatedLimit)} monthly token budget`,
+          'Usage tracking and monitoring',
+          'Automatic monthly reset',
+          'Works with all ETF workflows'
+        ]
+      });
+    } else {
+      throw new Error(setupResult.error || 'Failed to generate key');
+    }
+
+  } catch (error) {
+    console.error('❌ Manual key generation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate personal OpenAI key',
+      details: error.message
+    });
+  }
+});
+
+function formatNumber(num) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+}
+
+
 // System status and error recovery endpoint
 app.get('/api/system/status', async (req, res) => {
   try {
@@ -1125,6 +1197,12 @@ app.post('/api/etf/deploy', async (req, res) => {
     const clientTag = `PET[${client_data.name}]`;
 
     // Skip credential creation - focus on placeholder personalization only
+
+// Serve client OpenAI dashboard
+app.get('/client-openai-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client-openai-dashboard.html'));
+});
+
     // Credentials will be left blank for manual configuration
 
     console.log(`🏷️ Creating client identification tag: "${clientTag}"`);
@@ -1150,14 +1228,16 @@ app.post('/api/etf/deploy', async (req, res) => {
       });
     }
 
-    // Generate OpenAI API key for this client
-    let openaiKeyGenerated = false;
+    // Auto-generate OpenAI API key with enhanced setup
+    const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
+    const keyGenerator = new AutoKeyGenerator();
+    
+    let openaiSetupResult = { success: false };
     try {
-      const assignedKey = assignKeyToClient(client_id, templateIds[0] || 'multiple_workflows', 100000);
-      console.log(`✅ Auto-generated OpenAI key for client ${client_id}`);
-      openaiKeyGenerated = true;
+      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(client_data, templateIds);
+      console.log(`✅ OpenAI access configured for client ${client_id}:`, openaiSetupResult);
     } catch (keyError) {
-      console.warn(`⚠️ Could not auto-generate OpenAI key for client ${client_id}:`, keyError.message);
+      console.warn(`⚠️ Could not configure OpenAI access for client ${client_id}:`, keyError.message);
     }
 
     // Save deployment records and attempt activation for each personalized workflow
@@ -1323,8 +1403,8 @@ app.post('/api/etf/deploy', async (req, res) => {
       workflows_with_no_trigger: noTriggerCount,
       failed_workflows: failedCount,
       tag_applied: clientTag,
-      openai_key_generated: openaiKeyGenerated,
-      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiKeyGenerated ? ' Personal OpenAI key generated.' : ''}`
+      openai_setup: openaiSetupResult,
+      message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiSetupResult.success ? ' Personal OpenAI access configured with budget tracking.' : ''}`
     });
 
   } catch (error) {

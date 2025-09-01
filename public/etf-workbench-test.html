@@ -785,8 +785,18 @@
 
         <button class="generate-btn" id="generateBtn">
             <i data-lucide="play"></i>
-            Generate Workflow
+            Generate ETF Workflows + OpenAI Key
         </button>
+    </div>
+
+    <div id="openai-generation-preview" style="margin-top: 15px; padding: 15px; background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; display: none;">
+        <h4 style="color: #FFD700; margin: 0 0 10px 0;">🔑 Included: Personal OpenAI API Key</h4>
+        <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
+            <li>Dedicated API key for your business</li>
+            <li>100K+ monthly token budget</li>
+            <li>Usage tracking & monitoring</li>
+            <li>Automatic integration with workflows</li>
+        </ul>
     </div>
 
     <!-- Workbench Canvas -->
@@ -1978,6 +1988,81 @@
             }
         }
 
+        // Helper to format token limit
+        function formatTokenLimit(limit) {
+            if (limit >= 1000000) return `${(limit / 1000000).toFixed(1)}M`;
+            if (limit >= 1000) return `${(limit / 1000).toFixed(0)}K`;
+            return limit.toString();
+        }
+
+        // Placeholder for actual API call
+        function deployETFWorkflows(clientData, configData) {
+            console.log("Simulating API call to deploy ETF workflows...");
+            console.log("Client Data:", clientData);
+            console.log("Configuration Data:", configData);
+
+            // Simulate API response
+            const simulatedApiResponse = {
+                client_id: `client_${Math.random().toString(36).substring(2, 10)}`,
+                total_processed: Math.floor(Math.random() * 10) + 5, // 5-14 workflows
+                activated_workflows: Math.floor(Math.random() * 5) + 2, // 2-6 activated
+                workflows_needing_credentials: Math.floor(Math.random() * 3), // 0-2 needing creds
+                failed_workflows: Math.floor(Math.random() * 2), // 0-1 failed
+                tag_applied: "default_tag",
+                openai_setup: configData.auto_generate_openai ? {
+                    success: true,
+                    key_preview: "sk-xxxxxxxxxxxxxxxxxxxx", // Simulated key preview
+                    token_limit: 100000, // Simulated 100K tokens
+                    message: "OpenAI API key generated and configured."
+                } : null
+            };
+
+            // Display results
+            displayDeploymentResults(simulatedApiResponse);
+        }
+
+        function displayDeploymentResults(data) {
+            const resultsDiv = document.createElement('div');
+            resultsDiv.style.marginTop = '30px';
+            resultsDiv.style.padding = '20px';
+            resultsDiv.style.border = '1px solid var(--border-color)';
+            resultsDiv.style.borderRadius = 'var(--radius-lg)';
+            resultsDiv.style.background = 'var(--bg-tertiary)';
+            resultsDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+
+            const openaiInfo = data.openai_setup && data.openai_setup.success ? 
+                `<div style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; padding: 15px; margin: 15px 0;">
+                    <h4 style="color: #FFD700; margin: 0 0 10px 0;">🔑 Personal OpenAI Key Generated!</h4>
+                    <p style="margin: 5px 0; color: var(--text-secondary);">Key Preview: ${data.openai_setup.key_preview}</p>
+                    <p style="margin: 5px 0; color: var(--text-secondary);">Monthly Budget: ${formatTokenLimit(data.openai_setup.token_limit)} tokens</p>
+                    <a href="/client-openai-dashboard?client_id=${data.client_id}" target="_blank" 
+                       style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: var(--primary); color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem;">
+                        📊 View Usage Dashboard
+                    </a>
+                </div>` : '';
+
+            resultsDiv.innerHTML = `
+                <div class="success-message">
+                    <h3>🎉 Deployment Successful!</h3>
+                    <p><strong>Client ID:</strong> ${data.client_id}</p>
+                    <p><strong>Workflows Deployed:</strong> ${data.total_processed}</p>
+                    <ul>
+                        <li>✅ Activated: ${data.activated_workflows}</li>
+                        <li>⚙️ Need Credentials: ${data.workflows_needing_credentials}</li>
+                        <li>❌ Failed: ${data.failed_workflows}</li>
+                    </ul>
+                    <p><strong>Tag Applied:</strong> ${data.tag_applied}</p>
+                    ${openaiInfo}
+                </div>
+            `;
+
+            // Append results to the page, for example, below the workbench canvas
+            const workbenchCanvas = document.querySelector('.workbench-canvas');
+            if (workbenchCanvas) {
+                workbenchCanvas.insertAdjacentElement('afterend', resultsDiv);
+            }
+        }
+
         // Generate workflow (placeholder)
         document.getElementById('generateBtn').addEventListener('click', function() {
             if (!this.classList.contains('ready')) return;
@@ -1986,27 +2071,74 @@
             this.disabled = true;
             this.innerHTML = '<div class="loading"></div> Generating ETF Workflow...';
 
-            // Simulate workflow generation
-            setTimeout(() => {
-                const configSummary = {
-                    business: configData.business,
-                    clinic: configData.clinic,
-                    communication: configData.communication,
-                    operations: configData.operations,
-                    credentials: Object.entries(credentialStates).filter(([k,v]) => v === 'connected').map(([k,v]) => k),
-                    advanced: configData.advanced
-                };
+            // Collect all data from workbench
+            const businessInfo = collectBoxData('business-info');
+            const clinicConfig = collectBoxData('clinic-config');
+            const communication = collectBoxData('communication');
+            const operational = collectBoxData('operational');
+            const credentials = collectCredentialsData();
+            const advanced = collectBoxData('advanced');
 
-                alert('🎉 ETF Workflow generation complete!\n\nYour comprehensive configuration:\n' + JSON.stringify(configSummary, null, 2));
+            // Validate required fields
+            const requiredFields = ['businessName', 'businessEmail', 'businessPhone']; // Corrected field names
+            const missingFields = requiredFields.filter(field => !businessInfo[field]);
+
+            if (missingFields.length > 0) {
+                alert(`Please fill in required fields: ${missingFields.join(', ')}`);
+                document.getElementById('openai-generation-preview').style.display = 'none'; // Hide preview if validation fails
                 this.disabled = false;
                 this.innerHTML = originalHTML;
+                return;
+            }
 
-                // Re-initialize icons
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+            // Combine all configuration data
+            const configData = {
+                ...businessInfo,
+                ...clinicConfig,
+                ...communication,
+                ...operational,
+                ...credentials,
+                ...advanced,
+                // Add flag for automatic OpenAI key generation
+                auto_generate_openai: true,
+                estimated_workflow_count: 8 // Estimated number of PET workflows
+            };
+
+            // Client data for identification
+            const clientData = {
+                name: businessInfo.businessName, // Corrected field name
+                email: businessInfo.businessEmail, // Corrected field name
+                phone: businessInfo.businessPhone // Corrected field name
+            };
+
+            console.log('Generating workflows with automatic OpenAI setup:', configData);
+
+            // Call ETF deployment API with OpenAI auto-generation
+            deployETFWorkflows(clientData, configData);
+
+            // Reset button after a short delay
+            setTimeout(() => {
+                this.disabled = false;
+                this.innerHTML = originalHTML;
             }, 3000);
         });
+
+        // Helper to collect data from config boxes (needed for generateWorkflows)
+        function collectBoxData(configType) {
+            return configData[configType] || {};
+        }
+
+        // Helper to collect credentials data
+        function collectCredentialsData() {
+            const creds = {};
+            for (const service in credentialStates) {
+                if (credentialStates[service] === 'connected') {
+                    creds[`${service}_connected`] = true;
+                    // Add specific credential details if needed, but for now just the status
+                }
+            }
+            return creds;
+        }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', initializeWorkbench);
