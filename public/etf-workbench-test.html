@@ -1408,14 +1408,14 @@
             openai: {
                 name: 'OpenAI API',
                 icon: '🤖',
-                description: 'AI-powered features and automated responses',
+                description: 'AI-powered features and automated responses with personal key generation',
                 type: 'api_key',
                 required: true,
                 setupInstructions: [
-                    'Visit https://platform.openai.com/api-keys',
-                    'Click "Create new secret key"',
-                    'Copy the generated key',
-                    'Paste it in the field below'
+                    'Option 1: Click "Auto-Generate Key" for instant setup',
+                    'Option 2: Visit https://platform.openai.com/api-keys for manual setup',
+                    'Auto-generated keys include usage tracking and budget controls',
+                    'Manual keys require your own OpenAI account and billing'
                 ]
             },
             telegram: {
@@ -1627,6 +1627,11 @@
                         <button class="credential-btn" onclick="disconnectCredential('${key}')">
                             <i data-lucide="unlink"></i> Disconnect
                         </button>
+                        ${key === 'openai' ? `
+                            <button class="credential-btn" onclick="viewOpenAIDashboard()">
+                                <i data-lucide="bar-chart-3"></i> View Usage Dashboard
+                            </button>
+                        ` : ''}
                     </div>
                 `;
             }
@@ -1642,29 +1647,56 @@
                 `;
             } else {
                 let fieldsHTML = '';
-                if (config.fields) {
-                    config.fields.forEach(field => {
-                        fieldsHTML += `
-                            <input type="${field.name === 'auth_token' || field.name === 'bot_token' || field.name === 'access_token' ? 'password' : 'text'}" 
-                                   class="credential-input" 
-                                   id="${key}_${field.name}" 
-                                   placeholder="${field.placeholder}"
-                                   ${field.required ? 'required' : ''}>
-                        `;
-                    });
+                let actionButtonsHTML = '';
+                
+                // Special handling for OpenAI with auto-generation option
+                if (key === 'openai') {
+                    actionButtonsHTML = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                            <button class="credential-btn primary" onclick="generateOpenAIKey('${key}')" style="margin: 0;">
+                                <i data-lucide="sparkles"></i> Auto-Generate Key
+                            </button>
+                            <button class="credential-btn" onclick="toggleManualOpenAI('${key}')" style="margin: 0;">
+                                <i data-lucide="edit"></i> Manual Setup
+                            </button>
+                        </div>
+                        <div id="manual-openai-${key}" style="display: none; margin-top: 12px;">
+                            <input type="password" class="credential-input" id="${key}_api_key" 
+                                   placeholder="Enter your ${config.name} API key" required>
+                            <button class="credential-btn primary" onclick="saveCredential('${key}')" style="margin-top: 8px;">
+                                <i data-lucide="save"></i> Save Manual Key
+                            </button>
+                        </div>
+                    `;
                 } else {
-                    fieldsHTML = `
-                        <input type="password" class="credential-input" id="${key}_api_key" 
-                               placeholder="Enter your ${config.name} API key" required>
+                    if (config.fields) {
+                        config.fields.forEach(field => {
+                            fieldsHTML += `
+                                <input type="${field.name === 'auth_token' || field.name === 'bot_token' || field.name === 'access_token' ? 'password' : 'text'}" 
+                                       class="credential-input" 
+                                       id="${key}_${field.name}" 
+                                       placeholder="${field.placeholder}"
+                                       ${field.required ? 'required' : ''}>
+                            `;
+                        });
+                    } else {
+                        fieldsHTML = `
+                            <input type="password" class="credential-input" id="${key}_api_key" 
+                                   placeholder="Enter your ${config.name} API key" required>
+                        `;
+                    }
+
+                    actionButtonsHTML = `
+                        ${fieldsHTML}
+                        <button class="credential-btn primary" onclick="saveCredential('${key}')" style="margin-top: 8px;">
+                            <i data-lucide="save"></i> Save Credential
+                        </button>
                     `;
                 }
 
                 return `
                     <div class="credential-actions">
-                        ${fieldsHTML}
-                        <button class="credential-btn primary" onclick="saveCredential('${key}')" style="margin-top: 8px;">
-                            <i data-lucide="save"></i> Save Credential
-                        </button>
+                        ${actionButtonsHTML}
                     </div>
                     ${config.setupInstructions ? generateSetupInstructions(config.setupInstructions) : ''}
                 `;
@@ -1993,6 +2025,52 @@
             if (limit >= 1000000) return `${(limit / 1000000).toFixed(1)}M`;
             if (limit >= 1000) return `${(limit / 1000).toFixed(0)}K`;
             return limit.toString();
+        }
+
+        // OpenAI credential management functions
+        function generateOpenAIKey(service) {
+            const btn = event.target;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading"></div> Generating...';
+
+            // Simulate API key generation
+            setTimeout(() => {
+                credentialStates[service] = 'connected';
+                configData[service] = { 
+                    generated: true, 
+                    keyPreview: 'sk-proj-auto-xxxxxxxxxxxxxxxx',
+                    tokenLimit: 100000,
+                    generatedAt: new Date().toISOString(),
+                    usage: 0
+                };
+                updateCredentialUI(service);
+                updateConfigBox(service);
+                updateProgress();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                
+                alert('✅ Personal OpenAI API key generated successfully!\n\n🔑 Key Preview: sk-proj-auto-xxxxxxxxxxxxxxxx\n💰 Monthly Budget: 100K tokens\n📊 Usage tracking enabled');
+            }, 2000);
+        }
+
+        function toggleManualOpenAI(service) {
+            const manualDiv = document.getElementById(`manual-openai-${service}`);
+            if (manualDiv.style.display === 'none') {
+                manualDiv.style.display = 'block';
+                event.target.innerHTML = '<i data-lucide="x"></i> Cancel Manual';
+            } else {
+                manualDiv.style.display = 'none';
+                event.target.innerHTML = '<i data-lucide="edit"></i> Manual Setup';
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function viewOpenAIDashboard() {
+            const clientId = Math.random().toString(36).substring(2, 10);
+            window.open(`/client-openai-dashboard?client_id=${clientId}`, '_blank');
         }
 
         // Placeholder for actual API call
