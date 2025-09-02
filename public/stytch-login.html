@@ -20,6 +20,8 @@
             padding: 20px;
             position: relative;
             overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .auth-page::before {
@@ -48,6 +50,7 @@
             padding: 48px;
             max-width: 520px;
             width: 100%;
+            margin: 0 auto;
             box-shadow: 
                 0 25px 50px rgba(0, 0, 0, 0.5),
                 0 0 0 1px rgba(255, 215, 0, 0.1),
@@ -56,6 +59,7 @@
             z-index: 1;
             backdrop-filter: blur(20px);
             animation: containerSlideIn 0.8s ease-out;
+            box-sizing: border-box;
         }
 
         @keyframes containerSlideIn {
@@ -89,6 +93,10 @@
             margin-bottom: 40px;
             position: relative;
             z-index: 2;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .auth-logo {
@@ -222,17 +230,22 @@
             gap: 24px;
             position: relative;
             z-index: 2;
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto;
         }
 
         .auth-method-tabs {
             display: flex;
             gap: 4px;
-            margin-bottom: 32px;
+            margin: 0 auto 32px auto;
             background: rgba(15, 15, 35, 0.8);
             padding: 8px;
             border-radius: 16px;
             border: 1px solid rgba(255, 215, 0, 0.1);
             backdrop-filter: blur(10px);
+            max-width: 320px;
+            width: 100%;
         }
 
         .auth-tab {
