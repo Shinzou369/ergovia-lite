@@ -1,107 +1,649 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Freezer BD/BC-548 Specifications</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f8f9fa;
-      color: #333;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stytch Affiliate Login</title>
+    <style>
+        :root {
+            --primary: #FFD700;
+            --secondary: #B8860B;
+            --accent: #FFA500;
+            --bg-primary: #0a0f1c;
+            --bg-secondary: #1a1f2e;
+            --bg-tertiary: #2a2f3e;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b8c8;
+            --text-muted: #6b7280;
+            --border-color: rgba(255, 215, 0, 0.2);
+            --border-light: rgba(255, 215, 0, 0.3);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s ease;
+        }
 
-    .container {
-      max-width: 900px;
-      margin: 40px auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #2c3e50;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
 
-    .product-image {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+        .auth-container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 48px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
 
-    .product-image img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+        }
 
-    h2 {
-      margin-top: 30px;
-      margin-bottom: 10px;
-      color: #34495e;
-    }
+        .auth-header {
+            margin-bottom: 36px;
+        }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
 
-    table, th, td {
-      border: 1px solid #ddd;
-    }
+        .auth-logo img {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            border-radius: 10px;
+        }
 
-    th, td {
-      padding: 12px;
-      text-align: left;
-    }
+        .auth-logo-text {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.02em;
+        }
 
-    th {
-      background-color: #f1f1f1;
-      color: #2c3e50;
-    }
-  </style>
+        .auth-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 32px;
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            padding: 6px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 32px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 14px 20px;
+            text-align: center;
+            border-radius: calc(var(--radius) - 6px);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .auth-tab.active {
+            background: var(--primary);
+            color: var(--bg-primary);
+        }
+
+        .auth-method {
+            display: none;
+        }
+
+        .auth-method.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border: none;
+            border-radius: var(--radius);
+            color: var(--bg-primary);
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--bg-primary);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #otp-verification {
+            display: none;
+        }
+
+        .otp-input {
+            font-size: 1.8rem;
+            letter-spacing: 0.3em;
+            text-align: center;
+            padding: 20px;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .message {
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .security-note {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 32px;
+            padding: 16px;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: var(--radius);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            line-height: 1.4;
+        }
+
+        .back-link {
+            margin-top: 24px;
+        }
+
+        .back-link a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .back-link a:hover {
+            color: var(--primary);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 520px) {
+            body {
+                padding: 16px;
+            }
+
+            .auth-container {
+                padding: 32px 24px;
+                max-width: 100%;
+            }
+
+            .auth-logo img {
+                width: 48px;
+                height: 48px;
+            }
+
+            .auth-logo-text {
+                font-size: 1.7rem;
+            }
+
+            .auth-title {
+                font-size: 1.4rem;
+            }
+
+            .auth-subtitle {
+                font-size: 1rem;
+            }
+
+            .auth-tabs {
+                max-width: 100%;
+            }
+
+            .form-input {
+                padding: 14px 16px;
+                font-size: 1rem;
+            }
+
+            .submit-btn {
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+
+            .otp-input {
+                font-size: 1.5rem;
+                padding: 16px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Commercial Chest Freezer BD/BC-548</h1>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="https://stytch.com/static/images/stytch-logo.svg" alt="Stytch Logo">
+                <div class="auth-logo-text">Stytch</div>
+            </div>
+            <h1 class="auth-title">Welcome to your Affiliate Portal</h1>
+            <p class="auth-subtitle">Enter your details below to sign in securely.</p>
+        </div>
 
-    <div class="product-image">
-      <img src="cee2be08-c4ad-40fd-8646-62ae7d5dac9c.png" alt="Freezer BD/BC-548">
+        <div id="message"></div>
+
+        <div class="auth-tabs">
+            <div class="auth-tab active" data-method="email">Email</div>
+            <div class="auth-tab" data-method="sms">SMS</div>
+        </div>
+
+        <form id="authForm">
+            <div id="email-method" class="auth-method active">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
+                </div>
+                <button type="submit" id="emailSubmit" class="submit-btn">Send Magic Link</button>
+            </div>
+
+            <div id="sms-method" class="auth-method">
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" class="form-input" placeholder="+1 (555) 123-4567" required>
+                </div>
+                <button type="submit" id="smsSubmit" class="submit-btn">Send SMS Code</button>
+            </div>
+
+            <div id="otp-verification">
+                <div class="form-group">
+                    <label for="otp" class="form-label">6-Digit OTP Code</label>
+                    <input type="text" id="otp" name="otp" class="form-input otp-input" placeholder="000000" maxlength="6" required>
+                </div>
+                <button type="button" id="otpSubmit" class="submit-btn">Verify & Sign In</button>
+            </div>
+        </form>
+
+        <div class="submit-btn-container">
+            <button type="button" class="submit-btn secondary" id="resendCode">
+                Resend Code
+            </button>
+        </div>
+
+        <div class="security-note">
+            🔒 Secure affiliate access powered by passwordless authentication
+        </div>
+
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
     </div>
 
-    <h2>Specifications</h2>
-    <table>
-      <tr>
-        <th>Feature</th>
-        <th>Details</th>
-      </tr>
-      <tr>
-        <td>Type</td>
-        <td>Big Double Door Commercial Supermarket Chest Freezer</td>
-      </tr>
-      <tr>
-        <td>Model</td>
-        <td>BD/BC-548</td>
-      </tr>
-      <tr>
-        <td>Dimensions (approx.)</td>
-        <td>0.25 m (W) × 0.15 m (H) <br> *(Based on image at 96 PPI)*</td>
-      </tr>
-      <tr>
-        <td>Capacity</td>
-        <td>548 Liters (nominal)</td>
-      </tr>
-      <tr>
-        <td>Application</td>
-        <td>Supermarkets, Stores, Commercial Use</td>
-      </tr>
-    </table>
-  </div>
+    <script>
+        let currentMethod = 'email';
+        let methodId = null;
+        let phoneNumber = null;
+
+        // Tab switching
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const method = tab.dataset.method;
+                switchMethod(method);
+            });
+        });
+
+        function switchMethod(method) {
+            currentMethod = method;
+
+            // Update tabs
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.method === method);
+            });
+
+            // Update forms
+            document.querySelectorAll('.auth-method').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(`${method}-method`).classList.add('active');
+
+            // Hide OTP verification
+            document.getElementById('otp-verification').style.display = 'none';
+            clearMessage();
+        }
+
+        // Form submission
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (currentMethod === 'email') {
+                await sendMagicLink();
+            } else if (currentMethod === 'sms') {
+                await sendSMSCode();
+            }
+        });
+
+        // OTP verification
+        document.getElementById('otpSubmit').addEventListener('click', async () => {
+            await verifyOTP();
+        });
+
+        // Resend code functionality
+        document.getElementById('resendCode').addEventListener('click', async () => {
+            if (phoneNumber) {
+                document.getElementById('phone').value = phoneNumber;
+                switchMethod('sms');
+                await sendSMSCode();
+            }
+        });
+
+        async function sendMagicLink() {
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('emailSubmit');
+
+            if (!email) {
+                showMessage('Please enter your email address', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, 'Sending Magic Link...');
+
+            try {
+                const response = await fetch('/api/auth/stytch/magic-links/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('🎉 Magic link sent! Check your email and click the link to access your affiliate portal.', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to send magic link', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(submitBtn, false, 'Send Magic Link');
+            }
+        }
+
+        async function sendSMSCode() {
+            const phone = document.getElementById('phone').value;
+            const submitBtn = document.getElementById('smsSubmit');
+
+            if (!phone) {
+                showMessage('Please enter your phone number', 'error');
+                return;
+            }
+
+            phoneNumber = phone; // Store for resend functionality
+            setLoading(submitBtn, true, 'Sending Code...');
+
+            try {
+                const response = await fetch('/api/auth/stytch/otp/sms/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone_number: phone })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    methodId = data.request_id;
+                    showMessage('📱 SMS code sent! Enter the 6-digit code below to access your affiliate portal.', 'success');
+
+                    // Show OTP verification
+                    document.getElementById('sms-method').style.display = 'none';
+                    document.getElementById('otp-verification').style.display = 'block';
+                } else {
+                    showMessage(data.error || 'Failed to send SMS code', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(submitBtn, false, 'Send SMS Code');
+            }
+        }
+
+        async function verifyOTP() {
+            const otp = document.getElementById('otp').value;
+            const submitBtn = document.getElementById('otpSubmit');
+
+            if (!otp || otp.length !== 6) {
+                showMessage('Please enter the complete 6-digit code', 'error');
+                return;
+            }
+
+            if (!methodId) {
+                showMessage('Please request a new code first', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, 'Verifying...');
+
+            try {
+                const response = await fetch('/api/auth/stytch/otp/authenticate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        method_id: methodId,
+                        code: otp 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('✅ Authentication successful! Redirecting to affiliate portal...', 'success');
+
+                    setTimeout(() => {
+                        if (data.needs_completion) {
+                            window.location.href = '/complete-signup';
+                        } else {
+                            // Affiliate users go directly to chat
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const returnTo = urlParams.get('return_to') || '/chat';
+                            window.location.href = returnTo;
+                        }
+                    }, 1500);
+                } else {
+                    showMessage(data.error || 'Invalid or expired code', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(submitBtn, false, 'Verify & Sign In');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        function clearMessage() {
+            document.getElementById('message').innerHTML = '';
+        }
+
+        function setLoading(button, loading, text) {
+            if (loading) {
+                button.disabled = true;
+                button.innerHTML = `<span class="loading"></span> ${text}`;
+            } else {
+                button.disabled = false;
+                button.innerHTML = text;
+            }
+        }
+
+        // Auto-format phone number
+        document.getElementById('phone').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 1 && !value.startsWith('1')) {
+                value = '1' + value;
+            }
+            if (value.length > 1) {
+                value = '+' + value;
+            }
+            if (value.length > 4) {
+                value = value.slice(0, 2) + ' (' + value.slice(2, 5) + ')';
+            }
+            if (value.length > 9) {
+                value = value.slice(0, 9) + ' ' + value.slice(9, 12);
+            }
+            if (value.length > 13) {
+                value = value.slice(0, 13) + '-' + value.slice(13, 17);
+            }
+            e.target.value = value;
+        });
+
+        // Auto-format OTP with better UX
+        document.getElementById('otp').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+
+            // Auto-submit when 6 digits are entered
+            if (e.target.value.length === 6) {
+                setTimeout(() => {
+                    verifyOTP();
+                }, 500);
+            }
+        });
+
+        // Check for URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        if (error) {
+            switch (error) {
+                case 'missing_token':
+                    showMessage('Authentication link is invalid or expired', 'error');
+                    break;
+                case 'auth_failed':
+                    showMessage('Authentication failed. Please try again.', 'error');
+                    break;
+                default:
+                    showMessage('Authentication error. Please try again.', 'error');
+            }
+        }
+
+        // Show welcome message if coming from role selection
+        const fromRole = urlParams.get('from');
+        if (fromRole === 'role-selection') {
+            showMessage('Please sign in to access your affiliate portal', 'success');
+        }
+    </script>
 </body>
 </html>
