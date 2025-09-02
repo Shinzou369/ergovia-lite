@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - ERGOVIA AI</title>
+    <link rel="stylesheet" href="common-styles.css">
+    <style>
+        .auth-page {
+            min-height: 100vh;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--ergovia-subtle);
+            opacity: 0.3;
+        }
+
+        .auth-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 48px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(20px);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .auth-logo img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+        }
+
+        .auth-logo-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: var(--ergovia-text-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: var(--font-heading);
+            color: var(--text-primary);
+            letter-spacing: 0.03em;
+            padding: 0 8px;
+        }
+
+        .auth-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--ergovia-primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .auth-method-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: var(--radius-lg);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .auth-tab.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .auth-method {
+            display: none;
+        }
+
+        .auth-method.active {
+            display: block;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--ergovia-gradient);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .google-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: white;
+            color: #333;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .google-btn:hover {
+            background: #f8f9fa;
+            border-color: #dadce0;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .message.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .back-link a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .back-link a:hover {
+            color: var(--ergovia-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <img src="LOGO.png" alt="ERGOVIA AI">
+                    <span class="auth-logo-text">ERGOVIA AI</span>
+                </div>
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to your account using your preferred method</p>
+            </div>
+
+            <div id="message"></div>
+
+            <div class="auth-method-tabs">
+                <button class="auth-tab active" data-method="email">Magic Link</button>
+                <button class="auth-tab" data-method="sms">SMS Code</button>
+            </div>
+
+            <form class="auth-form" id="authForm">
+                <!-- Email Magic Link Method -->
+                <div class="auth-method active" id="email-method">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-input"
+                            placeholder="Enter your email address"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="submit-btn" id="emailSubmit">
+                        Send Magic Link
+                    </button>
+                </div>
+
+                <!-- SMS OTP Method -->
+                <div class="auth-method" id="sms-method">
+                    <div class="form-group">
+                        <label class="form-label" for="phone">Phone Number</label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            class="form-input"
+                            placeholder="+1 (555) 123-4567"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="submit-btn" id="smsSubmit">
+                        Send SMS Code
+                    </button>
+                </div>
+
+                <!-- OTP Verification (hidden initially) -->
+                <div class="auth-method" id="otp-verification" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="otp">Enter 6-digit code</label>
+                        <input 
+                            type="text" 
+                            id="otp" 
+                            name="otp" 
+                            class="form-input"
+                            placeholder="000000"
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                        >
+                    </div>
+                    <button type="button" class="submit-btn" id="otpSubmit">
+                        Verify Code
+                    </button>
+                </div>
+            </form>
+
+            <div class="divider">or continue with</div>
+
+            <button class="google-btn" id="googleLogin">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continue with Google
+            </button>
+
+            <div class="back-link">
+                <a href="/">← Back to home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMethod = 'email';
+        let methodId = null;
+
+        // Tab switching
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const method = tab.dataset.method;
+                switchMethod(method);
+            });
+        });
+
+        function switchMethod(method) {
+            currentMethod = method;
+            
+            // Update tabs
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.method === method);
+            });
+            
+            // Update forms
+            document.querySelectorAll('.auth-method').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(`${method}-method`).classList.add('active');
+            
+            // Hide OTP verification
+            document.getElementById('otp-verification').style.display = 'none';
+            clearMessage();
+        }
+
+        // Form submission
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (currentMethod === 'email') {
+                await sendMagicLink();
+            } else if (currentMethod === 'sms') {
+                await sendSMSCode();
+            }
+        });
+
+        // OTP verification
+        document.getElementById('otpSubmit').addEventListener('click', async () => {
+            await verifyOTP();
+        });
+
+        // Google login
+        document.getElementById('googleLogin').addEventListener('click', () => {
+            window.location.href = '/auth/google';
+        });
+
+        async function sendMagicLink() {
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('emailSubmit');
+            
+            if (!email) {
+                showMessage('Please enter your email address', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, 'Sending...');
+            
+            try {
+                const response = await fetch('/api/auth/stytch/magic-links/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('Magic link sent! Check your email and click the link to sign in.', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to send magic link', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(submitBtn, false, 'Send Magic Link');
+            }
+        }
+
+        async function sendSMSCode() {
+            const phone = document.getElementById('phone').value;
+            const submitBtn = document.getElementById('smsSubmit');
+            
+            if (!phone) {
+                showMessage('Please enter your phone number', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, 'Sending...');
+            
+            try {
+                const response = await fetch('/api/auth/stytch/otp/sms/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone_number: phone })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    methodId = data.request_id;
+                    showMessage('SMS code sent! Enter the 6-digit code below.', 'success');
+                    
+                    // Show OTP verification
+                    document.getElementById('sms-method').style.display = 'none';
+                    document.getElementById('otp-verification').style.display = 'block';
+                } else {
+                    showMessage(data.error || 'Failed to send SMS code', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(submitBtn, false, 'Send SMS Code');
+            }
+        }
+
+        async function verifyOTP() {
+            const otp = document.getElementById('otp').value;
+            const submitBtn = document.getElementById('otpSubmit');
+            
+            if (!otp || otp.length !== 6) {
+                showMessage('Please enter the 6-digit code', 'error');
+                return;
+            }
+
+            if (!methodId) {
+                showMessage('Please request a new code first', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, 'Verifying...');
+            
+            try {
+                const response = await fetch('/api/auth/stytch/otp/authenticate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        method_id: methodId,
+                        code: otp 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('Authentication successful! Redirecting...', 'success');
+                    
+                    setTimeout(() => {
+                        if (data.needs_completion) {
+                            window.location.href = '/complete-signup';
+                        } else {
+                            window.location.href = '/chat';
+                        }
+                    }, 1500);
+                } else {
+                    showMessage(data.error || 'Invalid or expired code', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+            } finally {
+                setLoading(submitBtn, false, 'Verify Code');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        function clearMessage() {
+            document.getElementById('message').innerHTML = '';
+        }
+
+        function setLoading(button, loading, text) {
+            if (loading) {
+                button.disabled = true;
+                button.innerHTML = `<span class="loading"></span> ${text}`;
+            } else {
+                button.disabled = false;
+                button.innerHTML = text;
+            }
+        }
+
+        // Auto-format phone number
+        document.getElementById('phone').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 1 && !value.startsWith('1')) {
+                value = '1' + value;
+            }
+            if (value.length > 1) {
+                value = '+' + value;
+            }
+            if (value.length > 4) {
+                value = value.slice(0, 2) + ' (' + value.slice(2, 5) + ')';
+            }
+            if (value.length > 9) {
+                value = value.slice(0, 9) + ' ' + value.slice(9, 12);
+            }
+            if (value.length > 13) {
+                value = value.slice(0, 13) + '-' + value.slice(13, 17);
+            }
+            e.target.value = value;
+        });
+
+        // Auto-format OTP
+        document.getElementById('otp').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        // Check for URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        if (error) {
+            switch (error) {
+                case 'missing_token':
+                    showMessage('Authentication link is invalid or expired', 'error');
+                    break;
+                case 'auth_failed':
+                    showMessage('Authentication failed. Please try again.', 'error');
+                    break;
+                default:
+                    showMessage('Authentication error. Please try again.', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -23,6 +23,7 @@ const {
   getPoolStats 
 } = require('./utils/keyManager');
 const { initScheduler } = require('./utils/scheduler');
+const stytch = require('stytch');
 
 // ========================================
 // ETF Integration - N8N Configuration
@@ -451,7 +452,10 @@ const optionalEnvVars = [
   { name: 'N8N_BASE_URL', description: 'N8N instance URL for ETF functionality' },
   { name: 'N8N_API_KEY', description: 'N8N API key for workflow management' },
   { name: 'SESSION_SECRET', description: 'Secret key for session encryption' },
-  { name: 'LEMONSQUEEZY_API_KEY', description: 'Payment processing API key' }
+  { name: 'LEMONSQUEEZY_API_KEY', description: 'Payment processing API key' },
+  { name: 'STYTCH_PROJECT_ID', description: 'Stytch project ID for modern authentication' },
+  { name: 'STYTCH_SECRET', description: 'Stytch secret key for backend authentication' },
+  { name: 'STYTCH_PUBLIC_TOKEN', description: 'Stytch public token for frontend integration' }
 ];
 
 function validateEnvironment() {
@@ -499,6 +503,19 @@ validateEnvironment();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+// Stytch configuration
+let stytchClient = null;
+if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
+  stytchClient = stytch.Client({
+    project_id: process.env.STYTCH_PROJECT_ID,
+    secret: process.env.STYTCH_SECRET,
+    env: process.env.NODE_ENV === 'production' ? stytch.envs.live : stytch.envs.test
+  });
+  console.log('✅ Stytch client initialized');
+} else {
+  console.log('⚠️ Stytch not configured - missing STYTCH_PROJECT_ID or STYTCH_SECRET');
+}
 
 // Passport configuration
 passport.serializeUser((user, done) => {
@@ -3471,6 +3488,254 @@ app.get("/api/profile", (req, res) => {
     preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
     isComplete: userData?.isComplete || req.user.isComplete || false
   });
+});
+
+// ========================================
+// Stytch Authentication Routes
+// ========================================
+
+// Send magic link for passwordless login
+app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { email, signup_or_login_url } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const params = {
+      email: email,
+      login_magic_link_url: signup_or_login_url || `${req.protocol}://${req.get('host')}/api/auth/stytch/authenticate`,
+      signup_magic_link_url: signup_or_login_url || `${req.protocol}://${req.get('host')}/api/auth/stytch/authenticate`
+    };
+
+    const response = await stytchClient.magicLinks.email.loginOrCreate(params);
+
+    console.log('✅ Stytch magic link sent to:', email);
+
+    res.json({
+      success: true,
+      message: 'Magic link sent! Check your email.',
+      request_id: response.request_id
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch magic link error:', error);
+    res.status(500).json({
+      error: 'Failed to send magic link',
+      details: error.message
+    });
+  }
+});
+
+// Authenticate magic link token
+app.get('/api/auth/stytch/authenticate', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { token, stytch_token_type } = req.query;
+
+    if (!token) {
+      return res.redirect('/login?error=missing_token');
+    }
+
+    const response = await stytchClient.magicLinks.authenticate({
+      token: token,
+      session_duration_minutes: 60 * 24 * 7 // 7 days
+    });
+
+    const user = response.user;
+    const session = response.session;
+
+    // Create or update user in your system
+    const userData = {
+      stytch_user_id: user.user_id,
+      email: user.emails[0].email,
+      email_verified: user.emails[0].verified,
+      stytch_name: user.name?.first_name && user.name?.last_name ? 
+        `${user.name.first_name} ${user.name.last_name}` : null,
+      createdAt: user.created_at,
+      isComplete: !!(user.name?.first_name && user.name?.last_name),
+      authMethod: 'stytch',
+      stytch_session_id: session.session_id
+    };
+
+    // Store in your existing user system
+    const existingUser = findUserByEmail(userData.email);
+    if (existingUser) {
+      // Update existing user with Stytch data
+      existingUser.stytch_user_id = userData.stytch_user_id;
+      existingUser.stytch_session_id = userData.stytch_session_id;
+      existingUser.authMethod = 'stytch';
+      saveUser(existingUser);
+    } else {
+      // Create new user
+      const newUser = {
+        googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
+        ...userData
+      };
+      saveUser(newUser);
+    }
+
+    // Set session
+    req.session.stytch_session_id = session.session_id;
+    req.session.user = userData;
+
+    console.log('✅ Stytch authentication successful for:', userData.email);
+
+    // Redirect based on user completion status
+    if (userData.isComplete) {
+      res.redirect('/chat');
+    } else {
+      res.redirect('/complete-signup');
+    }
+
+  } catch (error) {
+    console.error('❌ Stytch authentication error:', error);
+    res.redirect('/login?error=auth_failed');
+  }
+});
+
+// Send OTP via SMS
+app.post('/api/auth/stytch/otp/sms/send', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { phone_number } = req.body;
+
+    if (!phone_number) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    const response = await stytchClient.otps.sms.loginOrCreate({
+      phone_number: phone_number
+    });
+
+    res.json({
+      success: true,
+      message: 'OTP sent to your phone!',
+      request_id: response.request_id
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch SMS OTP error:', error);
+    res.status(500).json({
+      error: 'Failed to send SMS OTP',
+      details: error.message
+    });
+  }
+});
+
+// Authenticate OTP code
+app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { method_id, code } = req.body;
+
+    if (!method_id || !code) {
+      return res.status(400).json({ error: 'Method ID and code are required' });
+    }
+
+    const response = await stytchClient.otps.authenticate({
+      method_id: method_id,
+      code: code,
+      session_duration_minutes: 60 * 24 * 7 // 7 days
+    });
+
+    const user = response.user;
+    const session = response.session;
+
+    // Handle user creation/update similar to magic link flow
+    const userData = {
+      stytch_user_id: user.user_id,
+      email: user.emails?.[0]?.email || '',
+      phone: user.phone_numbers?.[0]?.phone_number || '',
+      email_verified: user.emails?.[0]?.verified || false,
+      phone_verified: user.phone_numbers?.[0]?.verified || false,
+      authMethod: 'stytch',
+      stytch_session_id: session.session_id
+    };
+
+    req.session.stytch_session_id = session.session_id;
+    req.session.user = userData;
+
+    console.log('✅ Stytch OTP authentication successful for:', userData.email || userData.phone);
+
+    res.json({
+      success: true,
+      message: 'Authentication successful!',
+      user: userData,
+      needs_completion: !userData.email
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch OTP authentication error:', error);
+    res.status(400).json({
+      error: 'Invalid or expired code',
+      details: error.message
+    });
+  }
+});
+
+// Get current Stytch session
+app.get('/api/auth/stytch/session', async (req, res) => {
+  try {
+    if (!stytchClient || !req.session.stytch_session_id) {
+      return res.json({ authenticated: false });
+    }
+
+    const response = await stytchClient.sessions.get({
+      user_session: req.session.stytch_session_id
+    });
+
+    res.json({
+      authenticated: true,
+      session: response.session,
+      user: response.user
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch session check error:', error);
+    res.json({ authenticated: false });
+  }
+});
+
+// Revoke Stytch session (logout)
+app.post('/api/auth/stytch/logout', async (req, res) => {
+  try {
+    if (stytchClient && req.session.stytch_session_id) {
+      await stytchClient.sessions.revoke({
+        session_id: req.session.stytch_session_id
+      });
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destruction error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+
+      res.json({ success: true, message: 'Logged out successfully' });
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch logout error:', error);
+    res.status(500).json({
+      error: 'Logout failed',
+      details: error.message
+    });
+  }
 });
 
 // Enhanced Credential Management API
