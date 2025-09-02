@@ -507,7 +507,7 @@ const openai = new OpenAI({
 // Stytch configuration
 let stytchClient = null;
 if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
-  stytchClient = stytch.Client({
+  stytchClient = new stytch.Client({
     project_id: process.env.STYTCH_PROJECT_ID,
     secret: process.env.STYTCH_SECRET,
     env: process.env.NODE_ENV === 'production' ? stytch.envs.live : stytch.envs.test
