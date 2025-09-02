@@ -23,8 +23,8 @@ async function getUserProfile() {
   }
 }
 
-function initiateStytchLogin() {
-  window.location.href = '/stytch-login.html';
+function initiateGoogleLogin() {
+  window.location.href = '/auth/google';
 }
 
 function logout() {
@@ -188,8 +188,8 @@ function updateTopNavForGuest() {
   const authContainer = document.createElement('div');
   authContainer.className = 'auth-container';
   authContainer.innerHTML = `
-    <button class="login-btn" onclick="initiateStytchLogin()">Login</button>
-    <button class="signup-btn" onclick="initiateStytchLogin()">Sign Up</button>
+    <button class="login-btn" onclick="initiateGoogleLogin()">Login</button>
+    <button class="signup-btn" onclick="initiateGoogleLogin()">Sign Up</button>
   `;
 
   // Insert before existing nav items

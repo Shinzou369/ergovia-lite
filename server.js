@@ -4,6 +4,8 @@ const path = require("path");
 const OpenAI = require('openai');
 const session = require("express-session");
 const FileStore = require('session-file-store')(session);
+const passport = require("passport");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const fs = require('fs');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -143,7 +145,7 @@ class N8NApiClient {
 
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagToProcess;
-
+      
       if (typeof tag === 'string') {
         // Create or get the tag first
         tagToProcess = await this.createTag(tag);
@@ -196,15 +198,12 @@ class N8NApiClient {
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
-    }
-  }
-}
 
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
-  const userInfo = req.session?.user ? 
-    req.session.user.email || 'authenticated' : 'anonymous';
+  const userInfo = req.isAuthenticated() ? 
+    req.user?.emails?.[0]?.value || 'authenticated' : 'anonymous';
 
   // Log request start
   console.log(`📥 ${req.method} ${req.url} - ${userInfo} - ${req.ip}`);
@@ -214,9 +213,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - startTime;
     const statusSymbol = res.statusCode >= 400 ? '❌' : 
                         res.statusCode >= 300 ? '⚠️' : '✅';
-
+    
     console.log(`📤 ${statusSymbol} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms - ${userInfo}`);
-
+    
     // Log slow requests
     if (duration > 5000) {
       console.warn(`🐌 Slow request detected: ${req.method} ${req.url} took ${duration}ms`);
@@ -233,6 +232,10 @@ app.use((req, res, next) => {
   next();
 });
 
+
+    }
+  }
+}
 
 // Validate N8N configuration and exit if critical vars missing
 if (!N8N_BASE_URL) {
@@ -256,11 +259,11 @@ const maxDbConnectionAttempts = 5;
 function initializeDatabase() {
   return new Promise((resolve, reject) => {
     dbConnectionAttempts++;
-
+    
     db = new sqlite3.Database('./taskforce.db', (err) => {
       if (err) {
         console.error(`❌ Database connection attempt ${dbConnectionAttempts} failed:`, err.message);
-
+        
         if (dbConnectionAttempts < maxDbConnectionAttempts) {
           console.log(`🔄 Retrying database connection in 2 seconds...`);
           setTimeout(() => {
@@ -272,7 +275,7 @@ function initializeDatabase() {
         }
       } else {
         console.log('✅ Connected to SQLite database');
-
+        
         // Test database functionality
         db.run("CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, timestamp TEXT)", (testErr) => {
           if (testErr) {
@@ -292,13 +295,13 @@ function initializeDatabase() {
 // Handle database connection errors gracefully
 function handleDatabaseError(error, operation) {
   logError(error, { operation, type: 'database_operation_failed' });
-
+  
   // Try to reconnect if connection was lost
   if (error.message.includes('SQLITE_BUSY') || error.message.includes('database is locked')) {
     console.log('🔄 Database is busy, retrying operation...');
     return { shouldRetry: true };
   }
-
+  
   return { shouldRetry: false };
 }
 
@@ -323,7 +326,7 @@ function initETFDatabase() {
       etfDB = new sqlite3.Database('etf_data.db', (err) => {
         if (err) {
           console.error(`❌ ETF Database connection attempt ${attempts} failed:`, err.message);
-
+          
           if (attempts < maxAttempts) {
             console.log(`🔄 Retrying ETF database connection...`);
             setTimeout(tryConnection, 1000);
@@ -388,16 +391,16 @@ function initETFDatabase() {
               tableErrors.push(`Table ${index + 1}: ${tableErr.message}`);
               logError(tableErr, { type: 'etf_table_creation_failed', sql });
             }
-
+            
             tablesCreated++;
-
+            
             if (tablesCreated === createTables.length) {
               if (tableErrors.length > 0) {
                 console.error('⚠️ Some ETF tables failed to create:', tableErrors);
               } else {
                 console.log('✅ All ETF tables created successfully');
               }
-
+              
               console.log('✅ ETF Database initialized');
               resolve(etfDB);
             }
@@ -419,7 +422,7 @@ initETFDatabase()
   .catch(err => {
     console.error('❌ Failed to initialize ETF database:', err.message);
     console.error('⚠️ ETF functionality will be disabled');
-
+    
     // Create a mock database object to prevent crashes
     etfDB = {
       run: (sql, params, callback) => {
@@ -440,9 +443,8 @@ initScheduler();
 // Environment variable validation with detailed feedback
 const requiredEnvVars = [
   { name: 'OPENAI_API_KEY', description: 'OpenAI API key for chat functionality' },
-  { name: 'STYTCH_PROJECT_ID', description: 'Stytch project ID for modern authentication' },
-  { name: 'STYTCH_SECRET', description: 'Stytch secret key for backend authentication' },
-  { name: 'STYTCH_PUBLIC_TOKEN', description: 'Stytch public token for frontend integration' }
+  { name: 'GOOGLE_CLIENT_ID', description: 'Google OAuth client ID for authentication' },
+  { name: 'GOOGLE_CLIENT_SECRET', description: 'Google OAuth client secret for authentication' }
 ];
 
 const optionalEnvVars = [
@@ -451,10 +453,9 @@ const optionalEnvVars = [
   { name: 'N8N_API_KEY', description: 'N8N API key for workflow management' },
   { name: 'SESSION_SECRET', description: 'Secret key for session encryption' },
   { name: 'LEMONSQUEEZY_API_KEY', description: 'Payment processing API key' },
-  { name: 'ENCRYPTION_KEY', description: 'Key for encrypting sensitive data' },
-  { name: 'RATE_LIMIT_WINDOW_MS', description: 'Rate limiting window in milliseconds' },
-  { name: 'RATE_LIMIT_MAX_REQUESTS', description: 'Maximum requests allowed per window' },
-  { name: 'CORS_ORIGIN', description: 'Comma-separated list of allowed origins for CORS' }
+  { name: 'STYTCH_PROJECT_ID', description: 'Stytch project ID for modern authentication' },
+  { name: 'STYTCH_SECRET', description: 'Stytch secret key for backend authentication' },
+  { name: 'STYTCH_PUBLIC_TOKEN', description: 'Stytch public token for frontend integration' }
 ];
 
 function validateEnvironment() {
@@ -479,7 +480,7 @@ function validateEnvironment() {
     console.error('❌ Missing REQUIRED environment variables:');
     missing.forEach(item => console.error(`   - ${item}`));
     console.error('🔧 Please check your .env file or Replit Secrets');
-
+    
     // Don't exit in development, but warn loudly
     if (process.env.NODE_ENV === 'production') {
       console.error('🛑 Cannot start in production without required environment variables');
@@ -516,6 +517,25 @@ if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
   console.log('⚠️ Stytch not configured - missing STYTCH_PROJECT_ID or STYTCH_SECRET');
 }
 
+// Passport configuration
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.use(new GoogleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: "https://ergovia-ai.com/auth/google/callback"
+  //callbackURL: "/auth/google/callback"
+},
+(accessToken, refreshToken, profile, done) => {
+  return done(null, profile);
+}));
+
 // Session configuration with environment-based security
 const sessionConfig = {
   store: new FileStore({
@@ -530,7 +550,7 @@ const sessionConfig = {
   }),
   secret: process.env.SESSION_SECRET || (() => {
     const fallbackSecret = 'ergovia-ai-stable-secret-key-2024-production';
-
+    
     if (process.env.NODE_ENV === 'production') {
       console.error('🚨 SECURITY WARNING: SESSION_SECRET not set in production!');
       console.error('🔧 Please set SESSION_SECRET environment variable immediately');
@@ -541,7 +561,7 @@ const sessionConfig = {
     } else {
       console.warn('⚠️ Using fallback SESSION_SECRET for development');
     }
-
+    
     return fallbackSecret;
   })(),
   resave: false,
@@ -557,14 +577,16 @@ const sessionConfig = {
 };
 
 app.use(session(sessionConfig));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Debug middleware to track session issues
 app.use((req, res, next) => {
   if (req.session && req.sessionID) {
     console.log('Session Debug:', {
       sessionID: req.sessionID.substring(0, 8) + '...',
-      isAuthenticated: !!req.session.user,
-      userEmail: req.session.user?.email || 'none'
+      authenticated: req.isAuthenticated(),
+      userEmail: req.user?.emails?.[0]?.value || 'none'
     });
   }
   next();
@@ -646,21 +668,21 @@ const rateLimit = {
 function rateLimitMiddleware(req, res, next) {
   const clientId = req.ip || 'unknown';
   const now = Date.now();
-
+  
   if (!rateLimit.clients.has(clientId)) {
     rateLimit.clients.set(clientId, { count: 1, resetTime: now + rateLimit.windowMs });
     return next();
   }
-
+  
   const client = rateLimit.clients.get(clientId);
-
+  
   if (now > client.resetTime) {
     // Reset window
     client.count = 1;
     client.resetTime = now + rateLimit.windowMs;
     return next();
   }
-
+  
   if (client.count >= rateLimit.maxRequests) {
     console.log(`🚫 Rate limit exceeded for ${clientId}`);
     return res.status(429).json({ 
@@ -668,7 +690,7 @@ function rateLimitMiddleware(req, res, next) {
       retryAfter: Math.ceil((client.resetTime - now) / 1000)
     });
   }
-
+  
   client.count++;
   next();
 }
@@ -684,24 +706,24 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Powered-By', 'ERGOVIA-AI');
-
+  
   // Add CORS headers for production
   const allowedOrigins = process.env.CORS_ORIGIN ? 
     process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com'];
-
+  
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-
+  
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
+  
   next();
 });
 
@@ -914,7 +936,7 @@ app.get('/api/system/status', async (req, res) => {
     status.configuration = {
       session_secret: !!process.env.SESSION_SECRET,
       openai_key: !!process.env.OPENAI_API_KEY,
-      stytch_configured: !!(process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET && process.env.STYTCH_PUBLIC_TOKEN),
+      google_oauth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       n8n_configured: !!(N8N_BASE_URL && N8N_API_KEY),
       environment: process.env.NODE_ENV || 'development'
     };
@@ -942,20 +964,20 @@ app.post('/api/system/recover', async (req, res) => {
           const sessionDir = './sessions';
           const files = fs.readdirSync(sessionDir);
           let cleaned = 0;
-
+          
           files.forEach(file => {
             if (file.endsWith('.json')) {
               const filePath = path.join(sessionDir, file);
               const stats = fs.statSync(filePath);
               const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
-
+              
               if (ageHours > 168) { // 7 days
                 fs.unlinkSync(filePath);
                 cleaned++;
               }
             }
           });
-
+          
           results.push(`Cleaned ${cleaned} expired session files`);
         } catch (error) {
           results.push(`Session cleanup failed: ${error.message}`);
@@ -1226,10 +1248,10 @@ app.get('/client-openai-dashboard', (req, res) => {
     // Auto-generate OpenAI API key with enhanced setup
     const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
     const keyGenerator = new AutoKeyGenerator();
-
+    
     let openaiSetupResult = { success: false };
     try {
-      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(clientData, templateIds);
+      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(client_data, templateIds);
       console.log(`✅ OpenAI access configured for client ${client_id}:`, openaiSetupResult);
     } catch (keyError) {
       console.warn(`⚠️ Could not configure OpenAI access for client ${client_id}:`, keyError.message);
@@ -1523,7 +1545,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
   }
 });
 
-// Test endpoint to create tags
+// Test endpoint for creating tags
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
@@ -1556,7 +1578,7 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
   }
 });
 
-// Test endpoint to list tags
+// Test endpoint for listing tags
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
@@ -2372,7 +2394,8 @@ app.post('/api/client/ask-gpt', async (req, res) => {
       body: JSON.stringify({
         model: selectedModel,
         messages: finalMessages,
-        max_tokens: 1500
+        max_tokens: 1500,
+        temperature: 0.7
       })
     });
 
@@ -2827,7 +2850,7 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
-  if (!req.session?.user) {
+  if (!req.session.user) { // Changed from !req.user to !req.session.user
     return res.status(401).json({ error: 'Authentication required' });
   }
   next();
@@ -2835,21 +2858,21 @@ function requireAuth(req, res, next) {
 
 // Middleware to check if user has premium access
 function requirePremium(req, res, next) {
-  if (!req.session?.user) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   // First check session for user data, then fallback to saved data
-  let userData = req.session.user.savedUserData;
+  let userData = req.user.savedUserData;
   if (!userData) {
-    const userEmail = req.session.user.email;
+    const userEmail = req.user.emails?.[0]?.value;
     userData = findUserByEmail(userEmail);
   }
 
-  console.log('Premium check - User ID:', req.session.user.id, 'Email:', req.session.user.email, 'User record found:', !!userData);
+  console.log('Premium check - User ID:', req.user.id, 'Email:', req.user.emails?.[0]?.value, 'User record found:', !!userData);
 
   if (!userData) {
-    console.log('❌ No user record found for:', req.session.user.email || req.session.user.id);
+    console.log('❌ No user record found for:', req.user.emails?.[0]?.value || req.user.id);
     return res.status(403).json({ error: 'Premium access required' });
   }
 
@@ -2865,21 +2888,18 @@ function requirePremium(req, res, next) {
       userData.isPremium = false;
       userData.subscriptionStatus = 'expired';
 
-      // Update the session user data if available
-      if (req.session.user.savedUserData) {
-        req.session.user.savedUserData.isPremium = false;
-        req.session.user.savedUserData.subscriptionStatus = 'expired';
-      } else {
-        // If savedUserData wasn't in session, update it directly if found
-        if (userData.googleId) { // Assuming googleId is the key for findUserByEmail
-          const users = loadUsers();
-          if (users[userData.googleId]) {
-            users[userData.googleId].isPremium = false;
-            users[userData.googleId].subscriptionStatus = 'expired';
-            saveUsers(users);
-          }
-        }
+      // Update the session and savedUserData if available
+      if (req.user.savedUserData) {
+        req.user.savedUserData.isPremium = false;
+        req.user.savedUserData.subscriptionStatus = 'expired';
       }
+      if (req.session.user) {
+        req.session.user.isPremium = false;
+        req.session.user.subscriptionStatus = 'expired';
+      }
+
+      // Save updated user data
+      saveUser(userData);
 
       return res.status(403).json({ 
         error: 'Subscription expired', 
@@ -2894,7 +2914,7 @@ function requirePremium(req, res, next) {
     (userData.subscriptionStatus === 'active' || userData.hasUnlimitedAccess);
 
   if (!hasValidSubscription) {
-    console.log('❌ Premium access denied for user:', userData.email || req.session.user.id, 
+    console.log('❌ Premium access denied for user:', userData.email || req.user.id, 
                 'Premium:', userData.isPremium, 'Status:', userData.subscriptionStatus);
     return res.status(403).json({ error: 'Premium access required' });
   }
@@ -2906,7 +2926,7 @@ function requirePremium(req, res, next) {
 
 
 app.get('/api/taskforce/clients', requireAuth, (req, res) => {
-  const userId = req.session.user.googleId; // Use googleId from session
+  const userId = req.user.id; // Use req.user.id for authenticated user ID
 
   db.all('SELECT * FROM taskforce_clients WHERE user_id = ? ORDER BY created_at DESC', 
     [userId], (err, rows) => {
@@ -2921,7 +2941,7 @@ app.get('/api/taskforce/clients', requireAuth, (req, res) => {
 // Get specific taskforce client
 app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
   const { clientId } = req.params;
-  const userId = req.session.user.googleId; // Use googleId from session
+  const userId = req.user.id; // Use req.user.id for authenticated user ID
 
   db.get('SELECT * FROM taskforce_clients WHERE id = ? AND user_id = ?', 
     [clientId, userId], (err, row) => {
@@ -2939,7 +2959,7 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 // Enhanced health check with service monitoring
 app.get('/health', async (req, res) => {
   console.log('🏥 Health check requested');
-
+  
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -3247,8 +3267,8 @@ app.post('/chat', requirePremium, async (req, res) => {
     const data = await response.json();
 
     // Increment prompt count for authenticated users
-    if (req.session?.user) {
-      incrementUserPromptCount(req.session.user.id); // Use ID from session
+    if (req.isAuthenticated()) {
+      incrementUserPromptCount(req.user.id);
     }
 
     res.json({
@@ -3342,22 +3362,133 @@ function findUserByEmail(email) {
 
 function saveUser(userData) {
   const users = loadUsers();
-  users[userData.googleId || userData.stytch_user_id || userData.id] = userData; // Adapt key based on auth method
+  users[userData.googleId] = userData;
   saveUsers(users);
 }
 
-function updateUserRole(userId, role) {
+function updateUserRole(googleId, role) {
   const users = loadUsers();
-  const userKey = Object.keys(users).find(key => users[key].googleId === userId || users[key].stytch_user_id === userId || users[key].id === userId);
-
-  if (userKey && users[userKey]) {
-    users[userKey].role = role;
-    users[userKey].roleSelectedAt = new Date().toISOString();
+  if (users[googleId]) {
+    users[googleId].role = role;
+    users[googleId].roleSelectedAt = new Date().toISOString();
     saveUsers(users);
-    return users[userKey];
+    return users[googleId];
   }
   return null;
 }
+
+// Google OAuth routes with proper account selection
+app.get("/auth/google",
+  passport.authenticate("google", { 
+    scope: ["profile", "email"],
+    prompt: 'select_account'
+  })
+);
+
+// Separate signup route with forced account selection
+app.get("/auth/google/signup",
+  passport.authenticate("google", { 
+    scope: ["profile", "email"],
+    prompt: 'select_account consent'
+  })
+);
+
+// Separate login route with account selection
+app.get("/auth/google/login",
+  passport.authenticate("google", { 
+    scope: ["profile", "email"],
+    prompt: 'select_account'
+  })
+);
+
+app.get("/auth/google/callback",
+  passport.authenticate("google", {
+    failureRedirect: "/login-failed"
+  }),
+  (req, res) => {
+    if (req.user) {
+      const userEmail = req.user.emails?.[0]?.value;
+      const existingUser = findUserByEmail(userEmail);
+
+      // Check if this was a signup or login request
+      const authIntent = req.session.authIntent || 'login';
+
+      // Clear the auth intent after use
+      delete req.session.authIntent;
+
+      if (authIntent === 'signup') {
+        if (existingUser) {
+          // User already exists, show option to login instead
+          return res.redirect('/account-exists');
+        } else {
+          // New user, redirect to complete signup
+          return res.redirect('/complete-signup');
+        }
+      } else {
+        // Login flow
+        if (existingUser) {
+          // Check if user needs role selection
+          if (!existingUser.role || existingUser.needsRoleSelection) {
+            return res.redirect('/select-role');
+          }
+          return res.redirect('/confirm-login');
+        } else {
+          // No account exists, redirect to signup
+          return res.redirect('/no-account');
+        }
+      }
+    }
+    res.redirect('/login-failed');
+  }
+);
+
+// Set auth intent and clear any existing session
+app.get('/set-auth-intent/:type', (req, res) => {
+  // Clear any existing authentication
+  req.logout(() => {
+    req.session.destroy((err) => {
+      // Create new session with auth intent
+      req.session = req.sessionStore.createSession(req, {});
+      req.session.authIntent = req.params.type;
+
+      if (req.params.type === 'signup') {
+        res.redirect('/auth/google/signup');
+      } else {
+        res.redirect('/auth/google/login');
+      }
+    });
+  });
+});
+
+app.get("/logout", (req, res) => {
+  req.logout(() => {
+    res.redirect("/");
+  });
+});
+
+// API endpoint to get user profile data
+app.get("/api/profile", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  // First check session for user data, then fallback to saved data
+  let userData = req.user.savedUserData;
+  if (!userData) {
+    const userEmail = req.user.emails?.[0]?.value;
+    userData = findUserByEmail(userEmail);
+  }
+
+  res.json({
+    name: req.user.displayName,
+    email: req.user.emails?.[0]?.value,
+    picture: req.user.photos?.[0]?.value,
+    id: req.user.id,
+    preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
+    preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
+    isComplete: userData?.isComplete || req.user.isComplete || false
+  });
+});
 
 // ========================================
 // Stytch Authentication Routes
@@ -3425,8 +3556,8 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     // Create or update user in your system
     const userData = {
       stytch_user_id: user.user_id,
-      email: user.emails?.[0]?.email,
-      email_verified: user.emails?.[0]?.verified,
+      email: user.emails[0].email,
+      email_verified: user.emails[0].verified,
       stytch_name: user.name?.first_name && user.name?.last_name ? 
         `${user.name.first_name} ${user.name.last_name}` : null,
       createdAt: user.created_at,
@@ -3442,15 +3573,11 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
       existingUser.stytch_user_id = userData.stytch_user_id;
       existingUser.stytch_session_id = userData.stytch_session_id;
       existingUser.authMethod = 'stytch';
-      existingUser.isComplete = userData.isComplete; // Update completion status
-      existingUser.stytch_name = userData.stytch_name;
       saveUser(existingUser);
-      // Merge Stytch data into existing user object for session
-      Object.assign(userData, existingUser); 
     } else {
       // Create new user
       const newUser = {
-        id: userData.stytch_user_id, // Use Stytch ID as primary ID
+        googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
         ...userData
       };
       saveUser(newUser);
@@ -3458,7 +3585,7 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     // Set session
     req.session.stytch_session_id = session.session_id;
-    req.session.user = userData; // Store user data directly in session
+    req.session.user = userData;
 
     console.log('✅ Stytch authentication successful for:', userData.email);
 
@@ -3540,25 +3667,8 @@ app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
       stytch_session_id: session.session_id
     };
 
-    // Store in your existing user system or create new
-    const existingUser = findUserByEmail(userData.email);
-    if (existingUser) {
-      existingUser.stytch_user_id = userData.stytch_user_id;
-      existingUser.authMethod = 'stytch';
-      existingUser.phone = userData.phone;
-      existingUser.phone_verified = userData.phone_verified;
-      saveUser(existingUser);
-      Object.assign(userData, existingUser);
-    } else {
-      const newUser = {
-        id: userData.stytch_user_id,
-        ...userData
-      };
-      saveUser(newUser);
-    }
-
     req.session.stytch_session_id = session.session_id;
-    req.session.user = userData; // Store user data directly in session
+    req.session.user = userData;
 
     console.log('✅ Stytch OTP authentication successful for:', userData.email || userData.phone);
 
@@ -3566,7 +3676,7 @@ app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
       success: true,
       message: 'Authentication successful!',
       user: userData,
-      needs_completion: !userData.email // Redirect if email is missing, though it should be present
+      needs_completion: !userData.email
     });
 
   } catch (error) {
@@ -3631,8 +3741,12 @@ app.post('/api/auth/stytch/logout', async (req, res) => {
 // Enhanced Credential Management API
 
 // Get all user credentials
-app.get("/api/credentials", requireAuth, (req, res) => {
-  const userEmail = req.session.user.email;
+app.get("/api/credentials", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userEmail = req.user.emails?.[0]?.value;
   if (!userEmail) {
     return res.status(400).json({ error: "User email not found" });
   }
@@ -3656,10 +3770,14 @@ app.get("/api/credentials", requireAuth, (req, res) => {
 });
 
 // Save API key credential
-app.post("/api/credentials/:service/api-key", requireAuth, (req, res) => {
+app.post("/api/credentials/:service/api-key", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
   const { service } = req.params;
   const { apiKey, name } = req.body;
-  const userEmail = req.session.user.email;
+  const userEmail = req.user.emails?.[0]?.value;
 
   if (!apiKey) {
     return res.status(400).json({ error: "API key is required" });
@@ -3688,9 +3806,13 @@ app.post("/api/credentials/:service/api-key", requireAuth, (req, res) => {
 });
 
 // Test credential connection
-app.post("/api/credentials/:service/test", requireAuth, (req, res) => {
+app.post("/api/credentials/:service/test", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
   const { service } = req.params;
-  const userEmail = req.session.user.email;
+  const userEmail = req.user.emails?.[0]?.value;
 
   try {
     const credential = getUserCredential(userEmail, service);
@@ -3722,9 +3844,13 @@ app.post("/api/credentials/:service/test", requireAuth, (req, res) => {
 });
 
 // Delete credential
-app.delete("/api/credentials/:service", requireAuth, (req, res) => {
+app.delete("/api/credentials/:service", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
   const { service } = req.params;
-  const userEmail = req.session.user.email;
+  const userEmail = req.user.emails?.[0]?.value;
 
   try {
     deleteUserCredential(userEmail, service);
@@ -3739,13 +3865,17 @@ app.delete("/api/credentials/:service", requireAuth, (req, res) => {
 });
 
 // OAuth credential callback handler
-app.get("/api/credentials/:service/oauth/callback", requireAuth, (req, res) => {
+app.get("/api/credentials/:service/oauth/callback", (req, res) => {
   // This would handle OAuth callbacks for different services
   const { service } = req.params;
   const { code, state } = req.query;
 
+  if (!req.isAuthenticated()) {
+    return res.redirect('/login?error=not_authenticated');
+  }
+
   // Handle OAuth token exchange based on service
-  handleOAuthCallback(service, code, req.session.user.email)
+  handleOAuthCallback(service, code, req.user.emails?.[0]?.value)
     .then(credential => {
       res.redirect(`/workflow-builder?credential_added=${service}`);
     })
@@ -3987,43 +4117,53 @@ async function handleOAuthCallback(service, code, userEmail) {
 
 // Check authentication status endpoint
 app.get("/api/auth/status", (req, res) => {
-  if (req.session?.user) {
-    // User is authenticated with Stytch
-    const sessionUser = req.session.user;
-    let userData = findUserByEmail(sessionUser.email);
+  console.log('Auth status check - isAuthenticated:', req.isAuthenticated());
+  console.log('Session data:', req.session?.passport?.user ? 'Session exists' : 'No session');
 
-    if (!userData) {
-      // If user data not found in persistent storage, use session data
-      userData = sessionUser; 
-    } else {
-      // Merge session data into persistent data if necessary (e.g., for newly added fields)
-      Object.assign(userData, sessionUser);
-    }
-
-    res.json({
-      authenticated: true,
-      user: {
-        name: userData.stytch_name || userData.name || userData.preferredFirstName || 'User',
-        email: userData.email,
-        picture: userData.picture || null,
-        id: userData.stytch_user_id || userData.id, // Prefer Stytch ID if available
-        preferredFirstName: userData.preferredFirstName || null,
-        preferredLastName: userData.preferredLastName || null,
-        isComplete: userData.isComplete || false,
-        role: userData.role || null,
-        needsRoleSelection: userData.needsRoleSelection || false,
-        isPremium: userData.isPremium || false,
-        hasUnlimitedAccess: userData.hasUnlimitedAccess || false
-      }
-    });
-  } else {
-    res.json({ authenticated: false, user: null });
+  if (!req.isAuthenticated()) {
+    return res.json({ authenticated: false, user: null });
   }
+
+  // First check session for user data, then fallback to saved data
+  let userData = req.user.savedUserData;
+  if (!userData) {
+    const userEmail = req.user.emails?.[0]?.value;
+    userData = findUserByEmail(userEmail);
+    console.log('Found user data by email:', userEmail, !!userData);
+  }
+
+  const userResponse = {
+    name: req.user.displayName,
+    email: req.user.emails?.[0]?.value,
+    picture: req.user.photos?.[0]?.value,
+    preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
+    preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
+    isComplete: userData?.isComplete || req.user.isComplete || false,
+    isPremium: userData?.isPremium || false,
+    hasUnlimitedAccess: userData?.hasUnlimitedAccess || false,
+    subscriptionType: userData?.subscriptionType || null,
+    subscriptionStatus: userData?.subscriptionStatus || null,
+    subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
+    nextRenewalDate: userData?.nextRenewalDate || null,
+    role: userData?.role || null,
+    needsRoleSelection: userData?.needsRoleSelection || false
+  };
+
+  console.log('✅ Auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
+
+  res.json({ 
+    authenticated: true,
+    user: userResponse
+  });
 });
 
 // Get user threads
 app.get('/api/threads', requireAuth, async (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   const threads = getUserThreads(userId);
   res.json({ threads });
 });
@@ -4031,8 +4171,8 @@ app.get('/api/threads', requireAuth, async (req, res) => {
 // Check user authentication status
 app.get('/api/user/status', (req, res) => {
   res.json({ 
-    isAuthenticated: !!req.session?.user,
-    user: req.session?.user || null 
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user || null 
   });
 });
 
@@ -4059,7 +4199,7 @@ function saveTokenUsage(tokenUsage) {
 }
 
 function getUserTokenUsage(userId) {
-  const tokenUsage = loadTokenUsage();
+  const tokenUsage = loadUsage();
   return tokenUsage[userId] || { tokens: 0, prompts: 0 };
 }
 
@@ -4078,8 +4218,12 @@ function incrementUserPromptCount(userId) {
 }
 
 // Token usage API endpoints
-app.get("/api/token-usage", requireAuth, (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+app.get("/api/token-usage", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   const usage = getUserTokenUsage(userId);
 
   // Handle both old format (number) and new format (object)
@@ -4090,16 +4234,24 @@ app.get("/api/token-usage", requireAuth, (req, res) => {
   }
 });
 
-app.post("/api/token-usage", requireAuth, (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+app.post("/api/token-usage", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   const { usage } = req.body;
 
   updateUserTokenUsage(userId, usage);
   res.json({ success: true, usage });
 });
 
-app.post("/api/token-usage/increment", requireAuth, (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+app.post("/api/token-usage/increment", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   const currentUsage = getUserTokenUsage(userId);
 
   // Handle both old format (number) and new format (object)
@@ -4117,16 +4269,24 @@ app.post("/api/token-usage/increment", requireAuth, (req, res) => {
   res.json({ success: true, usage: newUsage });
 });
 
-app.post("/api/token-usage/increment-prompt", requireAuth, (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+app.post("/api/token-usage/increment-prompt", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   incrementUserPromptCount(userId);
   const currentUsage = getUserTokenUsage(userId);
 
   res.json({ success: true, usage: currentUsage });
 });
 
-app.post("/api/threads", requireAuth, (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+app.post("/api/threads", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   const { threads } = req.body;
 
   if (!Array.isArray(threads)) {
@@ -4137,8 +4297,12 @@ app.post("/api/threads", requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-app.delete("/api/threads/:threadId", requireAuth, (req, res) => {
-  const userId = req.session.user.id; // Use ID from session
+app.delete("/api/threads/:threadId", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.user.id;
   const threadId = parseInt(req.params.threadId);
 
   let threads = getUserThreads(userId);
@@ -4149,13 +4313,17 @@ app.delete("/api/threads/:threadId", requireAuth, (req, res) => {
 });
 
 // Complete signup route
-app.post("/api/complete-signup", requireAuth, (req, res) => {
+app.post("/api/complete-signup", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated", code: "AUTH_REQUIRED" });
+  }
+
   const { firstName, lastName } = req.body;
   const sanitizedFirstName = sanitizeUserInput(firstName);
   const sanitizedLastName = sanitizeUserInput(lastName);
 
   const validationErrors = validateUserData({
-    email: req.session.user.email, // Use email from session
+    email: req.user.emails?.[0]?.value,
     preferredFirstName: sanitizedFirstName,
     preferredLastName: sanitizedLastName
   });
@@ -4169,9 +4337,10 @@ app.post("/api/complete-signup", requireAuth, (req, res) => {
   }
 
   const userData = {
-    id: req.session.user.stytch_user_id || req.session.user.id, // Use Stytch ID if available
-    email: req.session.user.email,
-    authMethod: req.session.user.authMethod || 'stytch',
+    googleId: req.user.id,
+    email: req.user.emails?.[0]?.value,
+    googleName: req.user.displayName,
+    profilePicture: req.user.photos?.[0]?.value,
     preferredFirstName: firstName,
     preferredLastName: lastName,
     createdAt: new Date().toISOString(),
@@ -4184,31 +4353,49 @@ app.post("/api/complete-signup", requireAuth, (req, res) => {
   saveUser(userData);
 
   // Update the session user object with complete profile data
-  req.session.user = { ...req.session.user, ...userData };
+  req.user.preferredFirstName = firstName;
+  req.user.preferredLastName = lastName;
+  req.user.isComplete = true;
+  req.user.savedUserData = userData;
 
-  console.log('✅ User Signup Completed:', {
-    name: `${firstName} ${lastName}`,
-    email: userData.email,
-    id: userData.id,
-    timestamp: userData.createdAt
-  });
+  // Ensure session is marked as modified to trigger save
+  req.session.passport.user = req.user;
 
-  res.json({ 
-    success: true, 
-    message: "Signup completed successfully",
-    user: {
+  // Force session save before responding
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save error:', err);
+      return res.status(500).json({ error: "Session save failed" });
+    }
+
+    console.log('✅ New User Signup:', {
       name: `${firstName} ${lastName}`,
       email: userData.email,
-      picture: userData.picture || null,
-      preferredFirstName: firstName,
-      preferredLastName: lastName,
-      isComplete: true
-    }
+      id: userData.googleId,
+      timestamp: userData.createdAt
+    });
+
+    res.json({ 
+      success: true, 
+      message: "Signup completed successfully",
+      user: {
+        name: `${firstName} ${lastName}`,
+        email: userData.email,
+        picture: userData.profilePicture,
+        preferredFirstName: firstName,
+        preferredLastName: lastName,
+        isComplete: true
+      }
+    });
   });
 });
 
 // Role selection endpoint
-app.post("/api/select-role", requireAuth, (req, res) => {
+app.post("/api/select-role", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
   const { role } = req.body;
   const validRoles = ['affiliate', 'client'];
 
@@ -4219,16 +4406,18 @@ app.post("/api/select-role", requireAuth, (req, res) => {
     });
   }
 
-  const userId = req.session.user.id;
-  const updatedUser = updateUserRole(userId, role);
+  const googleId = req.user.id;
+  const updatedUser = updateUserRole(googleId, role);
 
   if (!updatedUser) {
     return res.status(404).json({ error: "User not found" });
   }
 
   // Update session data
-  req.session.user = { ...req.session.user, ...updatedUser, role: role, needsRoleSelection: false };
-  
+  req.user.role = role;
+  req.user.needsRoleSelection = false;
+  req.user.savedUserData = updatedUser;
+
   console.log('✅ Role Selected:', {
     name: `${updatedUser.preferredFirstName} ${updatedUser.preferredLastName}`,
     email: updatedUser.email,
@@ -4245,21 +4434,36 @@ app.post("/api/select-role", requireAuth, (req, res) => {
 });
 
 // Confirm login route
-app.post("/api/confirm-login", requireAuth, (req, res) => {
-  const userId = req.session.user.id;
-  const existingUser = findUserByEmail(req.session.user.email);
+app.post("/api/confirm-login", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userEmail = req.user.emails?.[0]?.value;
+  const existingUser = findUserByEmail(userEmail);
 
   if (!existingUser) {
     return res.status(404).json({ error: "User not found" });
   }
 
   // Load user data into session for consistent access
-  req.session.user = { ...req.session.user, ...existingUser };
+  req.user.preferredFirstName = existingUser.preferredFirstName;
+  req.user.preferredLastName = existingUser.preferredLastName;
+  req.user.isComplete = existingUser.isComplete;
+  req.user.savedUserData = existingUser;
 
-  console.log('✅ User Login Confirmed:', {
+  // Store user session data properly
+  req.session.user = {
+    googleId: existingUser.googleId,
+    email: existingUser.email,
+    isPremium: existingUser.isPremium,
+    hasUnlimitedAccess: existingUser.hasUnlimitedAccess
+  };
+
+  console.log('✅ User Login:', {
     name: `${existingUser.preferredFirstName} ${existingUser.preferredLastName}`,
     email: existingUser.email,
-    id: existingUser.id,
+    id: existingUser.googleId,
     isPremium: existingUser.isPremium,
     timestamp: new Date().toISOString()
   });
@@ -4272,22 +4476,34 @@ app.get("/signup", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "signup.html"));
 });
 
-app.get("/complete-signup", requireAuth, (req, res) => {
+app.get("/complete-signup", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/signup");
+  }
   res.sendFile(path.join(__dirname, "public", "complete-signup.html"));
 });
 
 // Confirm login route
-app.get("/confirm-login", requireAuth, (req, res) => {
+app.get("/confirm-login", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/signup");
+  }
   res.sendFile(path.join(__dirname, "public", "confirm-login.html"));
 });
 
 // Account exists route (for signup attempts with existing accounts)
-app.get("/account-exists", requireAuth, (req, res) => {
+app.get("/account-exists", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/signup");
+  }
   res.sendFile(path.join(__dirname, "public", "account-exists.html"));
 });
 
 // No account route (for login attempts without accounts)
-app.get("/no-account", requireAuth, (req, res) => {
+app.get("/no-account", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
   res.sendFile(path.join(__dirname, "public", "no-account.html"));
 });
 
@@ -4302,7 +4518,10 @@ app.get("/login", (req, res) => {
 });
 
 // Serve role selection page
-app.get("/select-role", requireAuth, (req, res) => {
+app.get("/select-role", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
   res.sendFile(path.join(__dirname, "public", "select-role.html"));
 });
 
@@ -4312,14 +4531,14 @@ app.get("/", (req, res) => {
 });
 
 // Serve token dashboard
-app.get("/token-dashboard", requireAuth, (req, res) => {
+app.get("/token-dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "token-dashboard.html"));
 });
 
 // Model configuration endpoints
 const modelConfigFile = 'model_config.json';
 
-app.post('/save-model-config', requireAuth, (req, res) => {
+app.post('/save-model-config', (req, res) => {
   try {
     const fs = require('fs');
     fs.writeFileSync(modelConfigFile, JSON.stringify(req.body, null, 2));
@@ -4357,7 +4576,7 @@ app.get('/model-config', (req, res) => {
 app.get('/api/user/profile', requireAuth, (req, res) => {
   try {
     const users = loadUsers();
-    const user = users[req.session.user.id]; // Access user ID from session
+    const user = users[req.session.user.googleId]; // Access googleId from session
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -4401,18 +4620,18 @@ function logError(error, context = {}) {
   try {
     const errorLogFile = './error_logs.json';
     let errorLogs = [];
-
+    
     if (fs.existsSync(errorLogFile)) {
       errorLogs = JSON.parse(fs.readFileSync(errorLogFile, 'utf8'));
     }
-
+    
     errorLogs.push(errorLog);
-
+    
     // Keep only last 100 errors to prevent file bloat
     if (errorLogs.length > 100) {
       errorLogs = errorLogs.slice(-100);
     }
-
+    
     fs.writeFileSync(errorLogFile, JSON.stringify(errorLogs, null, 2));
   } catch (fileError) {
     console.error('Failed to save error log:', fileError.message);
@@ -4426,8 +4645,8 @@ app.use((err, req, res, next) => {
     method: req.method,
     userAgent: req.headers['user-agent'],
     ip: req.ip,
-    isAuthenticated: !!req.session?.user,
-    userEmail: req.session.user?.email
+    authenticated: req.isAuthenticated(),
+    userEmail: req.user?.emails?.[0]?.value
   };
 
   logError(err, context);
@@ -4457,7 +4676,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   logError(error, { type: 'uncaughtException' });
-
+  
   // Give time for logging then exit gracefully
   setTimeout(() => {
     console.log('🛑 Exiting due to uncaught exception');
@@ -5449,8 +5668,8 @@ function generatePromptInstructions(workflow) {
   console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
 
   return {
-    fields: configFields,
-    promptInstructions: instructions.join('\n'),
+    instructions: instructions.join('\n'),
+    configFields: configFields,
     credentialsRequired: credentials.filter((c, index, self) => 
       index === self.findIndex(t => (t.service === c.service && t.type === c.type))
     ) // Remove duplicate credentials
@@ -5468,7 +5687,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (!workflowName || typeof workflowName !== 'string') {
     return 'general';
   }
-
+  
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
     if (typeof tag === 'string') {
@@ -5486,7 +5705,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
   if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
   if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
-
+  
   // Fallback to name-based classification
   if (name.includes('veterinary') || name.includes('pet') || name.includes('animal')) return 'veterinary';
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
@@ -5494,7 +5713,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
-
+  
   return 'general';;
 
   // Fallback to name-based detection
@@ -5563,6 +5782,95 @@ function analyzeWorkflowConfig(workflow) {
   };
 }
 
+function personalizeWorkflowNodes(nodes, configData, clientData, workflowIdMappings = {}) {
+  return nodes.map(node => {
+    let personalizedNode = JSON.parse(JSON.stringify(node));
+
+    // Personalize node parameters
+    if (personalizedNode.parameters) {
+      let paramString = JSON.stringify(personalizedNode.parameters);
+
+      // Replace workflow ID references with personalized workflow IDs
+      Object.entries(workflowIdMappings).forEach(([templateId, personalizedId]) => {
+        const regex = new RegExp(`"${templateId}"`, 'g');
+        paramString = paramString.replace(regex, `"${personalizedId}"`);
+      });
+
+      const personalizedParamString = personalizeString(paramString, configData, clientData);
+      personalizedNode.parameters = JSON.parse(personalizedParamString);
+    }
+
+    // Personalize node name
+    if (personalizedNode.name) {
+      personalizedNode.name = personalizeString(personalizedNode.name, configData, clientData);
+    }
+
+    // Skip credential personalization - leave credentials blank as requested
+    // Credentials will need to be manually configured in N8N
+
+    return personalizedNode;
+  });
+}
+
+function extractWebhookUrl(nodes) {
+  const webhookNodes = nodes.filter(node => node.type === 'n8n-nodes-base.webhook');
+  if (webhookNodes.length > 0) {
+    const webhookPath = webhookNodes[0].parameters?.path || '';
+    return `${N8N_BASE_URL}/webhook${webhookPath}`;
+  }
+  return null;
+}
+
+// Start server
+const port = process.env.PORT || 3000;
+
+const server = app.listen(port, '0.0.0.0', (err) => {
+  if (err) {
+    console.error('❌ Server failed to start:', err);
+    return;
+  }
+
+  console.log(`🚀 Server is running on port ${port}`);
+  console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
+  console.log(`📍 Local URL: http://localhost:${port}`);
+  console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
+
+  // Test basic route
+  console.log('🧪 Testing server health...');
+  setTimeout(() => {
+    const http = require('http');
+    const options = {
+      hostname: 'localhost',
+      port: port,
+      path: '/health',
+      method: 'GET'
+    };
+
+    const req = http.request(options, (res) => {
+      console.log(`✅ Health check status: ${res.statusCode}`);
+    });
+
+    req.on('error', (err) => {
+      console.log(`⚠️ Health check failed: ${err.message}`);
+    });
+
+    req.end();
+  }, 1000);
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+});
+
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+// Placeholder function for personalizeString, assuming it exists elsewhere
 function personalizeString(str, configData, clientData) {
   // This function should replace placeholders like {{BUSINESS_NAME}} with actual data
   // For example:
@@ -5702,52 +6010,3 @@ async function personalizeMultipleWorkflows(workflowIds, configData, clientData)
 
   return { results, errors, workflowIdMappings };
 }
-
-// Start server
-const port = process.env.PORT || 3000;
-
-const server = app.listen(port, '0.0.0.0', (err) => {
-  if (err) {
-    console.error('❌ Server failed to start:', err);
-    return;
-  }
-
-  console.log(`🚀 Server is running on port ${port}`);
-  console.log(`🌐 External access: Available on 0.0.0.0:${port}`);
-  console.log(`📍 Local URL: http://localhost:${port}`);
-  console.log(`🔗 Replit URL: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'your-username'}.repl.co`);
-
-  // Test basic route
-  console.log('🧪 Testing server health...');
-  setTimeout(() => {
-    const http = require('http');
-    const options = {
-      hostname: 'localhost',
-      port: port,
-      path: '/health',
-      method: 'GET'
-    };
-
-    const req = http.request(options, (res) => {
-      console.log(`✅ Health check status: ${res.statusCode}`);
-    });
-
-    req.on('error', (err) => {
-      console.log(`⚠️ Health check failed: ${err.message}`);
-    });
-
-    req.end();
-  }, 1000);
-});
-
-server.on('error', (err) => {
-  console.error('❌ Server error:', err);
-});
-
-process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-});
