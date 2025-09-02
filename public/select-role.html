@@ -262,6 +262,14 @@
         const redirectTo = authStatus.user.role === 'affiliate' ? '/chat' : '/taskforce';
         window.location.href = redirectTo;
       }
+      
+      // Check if user came from Stytch login with pending affiliate role
+      const pendingRole = sessionStorage.getItem('pendingRole');
+      if (pendingRole === 'affiliate' && authStatus.authenticated) {
+        // Auto-select affiliate role for Stytch users
+        sessionStorage.removeItem('pendingRole');
+        await selectRole('affiliate');
+      }
       // If authenticated and needs role selection, stay on this page
     });
   </script>

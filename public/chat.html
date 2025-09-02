@@ -838,39 +838,6 @@
         }
       }
 
-      // Initialize page - check authentication first
-      document.addEventListener('DOMContentLoaded', async () => {
-        const isAuthenticated = await checkAffiliateAuth();
-        if (!isAuthenticated) {
-          return; // Redirect already happened
-        }
-        
-        // If we reach here, user is authenticated as affiliate
-        // Continue with chat initialization
-        console.log('Initializing affiliate chat interface...ction, redirecting...');
-            window.location.href = '/select-role';
-            return false;
-          }
-          
-          // If user has client role, redirect to taskforce
-          if (authData.user.role === 'client') {
-            console.log('Client user accessing affiliate area, redirecting to taskforce...');
-            window.location.href = '/taskforce';
-            return false;
-          }
-          
-          // User is authenticated affiliate, allow access
-          console.log('Authenticated affiliate user, allowing access to chat');
-          return true;
-          
-        } catch (error) {
-          console.error('Error checking auth status:', error);
-          // On error, redirect to Stytch login to be safe
-          window.location.href = '/stytch-login.html';
-          return false;
-        }
-      }
-
       // Initialize page after DOM loads
       document.addEventListener("DOMContentLoaded", async () => {
         // Check authentication first for affiliate access
