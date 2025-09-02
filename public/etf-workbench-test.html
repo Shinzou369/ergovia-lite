@@ -789,7 +789,7 @@
         </button>
     </div>
 
-    
+
 
     <!-- Workbench Canvas -->
     <div class="workbench-canvas">
@@ -906,22 +906,23 @@
             <p class="section-subtitle">Connect external services and configure API integrations</p>
         </div>
 
-        <!-- Stytch Authentication -->
+        <!-- Google Authentication -->
         <div class="config-box credential-box" data-config="google" onclick="openConfigModal('google')">
             <div class="config-header">
                 <div class="config-icon">🔐</div>
                 <div class="config-status pending" id="status-google">6</div>
             </div>
-            <div class="config-title">Stytch Authentication</div>
+            <div class="config-title">Google Authentication</div>
             <div class="config-description">
-                Modern passwordless authentication with magic links, SMS OTP, and secure session management.
+                Secure Google OAuth authentication for user access and Google services integration.
             </div>
             <div class="config-fields-preview" id="fields-google">
-                <div class="field-tag">Magic Links</div>
-                <div class="field-tag">SMS OTP</div>
-                <div class="field-tag">Session Management</div>
+                <div class="field-tag">OAuth</div>
+                <div class="field-tag">Gmail</div>
+                <div class="field-tag">Sheets</div>
+                <div class="field-tag">Calendar</div>
             </div>
-            <div class="config-action">Click to setup Stytch authentication</div>
+            <div class="config-action">Click to connect Google account</div>
         </div>
 
         <!-- OpenAI API -->
@@ -1385,16 +1386,16 @@
         // Credential configurations
         const credentialConfigs = {
             google: {
-                name: 'Stytch Authentication',
-                icon: '🔐',
-                description: 'Modern passwordless authentication with magic links and OTP',
+                name: 'Google Authentication',
+                icon: '🔑',
+                description: 'Secure Google OAuth authentication for user access and Google services integration',
                 type: 'oauth',
                 required: true,
                 setupInstructions: [
-                    'Click "Connect with Stytch" below',
-                    'Enter your email for magic link authentication',
-                    'Or use phone number for SMS OTP verification',
-                    'Complete the passwordless authentication flow'
+                    'Click "Connect Google Account" below',
+                    'Authorize required permissions',
+                    'Grant access to Gmail, Sheets, Calendar',
+                    'Complete OAuth verification'
                 ]
             },
             openai: {
@@ -1585,12 +1586,10 @@
 
                     <div class="credential-section">
                         <div class="credential-header">
-                            <div class="credential-info">
-                                <div class="credential-icon ${credentialType}">${config.icon}</div>
-                                <div class="credential-details">
-                                    <h4>${config.name}</h4>
-                                    <p>${config.description}</p>
-                                </div>
+                            <div class="credential-icon ${credentialType}">${config.icon}</div>
+                            <div class="credential-details">
+                                <h4>${config.name}</h4>
+                                <p>${config.description}</p>
                             </div>
                             <div class="credential-status ${isConnected ? 'connected' : 'disconnected'}">
                                 <i data-lucide="${isConnected ? 'check-circle' : 'x-circle'}"></i>
@@ -1625,7 +1624,7 @@
                             </button>
                         ` : ''}
                         ${key === 'google' ? `
-                            <button class="credential-btn" onclick="viewStytchSession()">
+                            <button class="credential-btn" onclick="viewGoogleSession()">
                                 <i data-lucide="user-check"></i> View Session Info
                             </button>
                         ` : ''}
@@ -1634,44 +1633,41 @@
             }
 
             if (config.type === 'oauth') {
-                // Special handling for Stytch authentication
-                if (key === 'google') {
-                    return `
+                // Google OAuth
+                return `
+                    <div class="credential-form-container">
+                        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+                            Connect your Google account for secure authentication:
+                        </p>
+
                         <div class="credential-actions">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                                <button class="credential-btn primary" onclick="connectStytchMagicLink('${key}')" style="margin: 0;">
-                                    <i data-lucide="mail"></i> Magic Link
-                                </button>
-                                <button class="credential-btn primary" onclick="connectStytchSMS('${key}')" style="margin: 0;">
-                                    <i data-lucide="smartphone"></i> SMS OTP
-                                </button>
-                            </div>
-                            <div id="stytch-form-${key}" style="display: none; margin-top: 12px;">
-                                <input type="email" class="credential-input" id="${key}_email" 
-                                       placeholder="Enter your email address" style="margin-bottom: 8px;">
-                                <input type="tel" class="credential-input" id="${key}_phone" 
-                                       placeholder="Enter your phone number (+1234567890)" style="margin-bottom: 8px;">
-                                <button class="credential-btn primary" onclick="processStytchAuth('${key}')" style="margin-top: 8px;">
-                                    <i data-lucide="send"></i> Send Authentication
-                                </button>
-                            </div>
-                        </div>
-                        ${config.setupInstructions ? generateSetupInstructions(config.setupInstructions) : ''}
-                    `;
-                } else {
-                    return `
-                        <div class="credential-actions">
-                            <button class="credential-btn primary" onclick="connectOAuth('${key}')">
-                                <i data-lucide="external-link"></i> Connect with ${config.name}
+                            <button class="credential-btn primary" onclick="connectGoogleAuth('${key}')" style="margin-bottom: 12px;">
+                                <i data-lucide="key"></i> Connect Google Account
                             </button>
+                            <div class="credential-note" style="font-size: 12px; color: var(--text-muted); text-align: center;">
+                                Connect your Google account for secure authentication
+                            </div>
                         </div>
-                        ${config.setupInstructions ? generateSetupInstructions(config.setupInstructions) : ''}
-                    `;
-                }
+
+                        <div class="google-auth-status" style="margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 8px; text-align: center;">
+                            <div class="auth-icon" style="font-size: 2rem; margin-bottom: 12px;">🔑</div>
+                            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                                Connect your Google account to enable secure authentication and access to Google services
+                            </p>
+                            <div class="google-features" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: var(--text-muted);">
+                                <div>✅ Gmail Integration</div>
+                                <div>✅ Google Sheets</div>
+                                <div>✅ Calendar Access</div>
+                                <div>✅ Secure OAuth</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
             } else {
+                // API Key based credentials
                 let fieldsHTML = '';
                 let actionButtonsHTML = '';
-                
+
                 // Special handling for OpenAI with auto-generation option
                 if (key === 'openai') {
                     actionButtonsHTML = `
@@ -1741,185 +1737,59 @@
         }
 
         // Credential management functions
-        function connectOAuth(service) {
+        function connectGoogleAuth(service) {
+            console.log('🔗 Connecting Google Auth for:', service);
+
             const btn = event.target;
             const originalHTML = btn.innerHTML;
+
             btn.disabled = true;
             btn.innerHTML = '<div class="loading"></div> Connecting...';
 
-            // Simulate OAuth flow
-            setTimeout(() => {
-                credentialStates[service] = 'connected';
-                updateCredentialUI(service);
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-                alert(`Successfully connected to ${credentialConfigs[service].name}!`);
-            }, 2000);
-        }
-
-        // Stytch authentication functions
-        function connectStytchMagicLink(service) {
-            const formDiv = document.getElementById(`stytch-form-${service}`);
-            formDiv.style.display = 'block';
-            
-            // Show email field, hide phone field
-            const emailInput = document.getElementById(`${service}_email`);
-            const phoneInput = document.getElementById(`${service}_phone`);
-            emailInput.style.display = 'block';
-            phoneInput.style.display = 'none';
-            emailInput.required = true;
-            phoneInput.required = false;
-            
-            // Update placeholder and button text
-            const btn = document.querySelector(`#stytch-form-${service} .credential-btn`);
-            btn.innerHTML = '<i data-lucide="mail"></i> Send Magic Link';
-            
-            // Store auth method
-            window.stytchAuthMethod = 'magic_link';
-        }
-
-        function connectStytchSMS(service) {
-            const formDiv = document.getElementById(`stytch-form-${service}`);
-            formDiv.style.display = 'block';
-            
-            // Show phone field, hide email field
-            const emailInput = document.getElementById(`${service}_email`);
-            const phoneInput = document.getElementById(`${service}_phone`);
-            emailInput.style.display = 'none';
-            phoneInput.style.display = 'block';
-            emailInput.required = false;
-            phoneInput.required = true;
-            
-            // Update placeholder and button text
-            const btn = document.querySelector(`#stytch-form-${service} .credential-btn`);
-            btn.innerHTML = '<i data-lucide="smartphone"></i> Send SMS OTP';
-            
-            // Store auth method
-            window.stytchAuthMethod = 'sms_otp';
-        }
-
-        function processStytchAuth(service) {
-            const btn = event.target;
-            const originalHTML = btn.innerHTML;
-            const authMethod = window.stytchAuthMethod;
-            
-            let inputValue = '';
-            if (authMethod === 'magic_link') {
-                const emailInput = document.getElementById(`${service}_email`);
-                inputValue = emailInput.value.trim();
-                if (!inputValue || !inputValue.includes('@')) {
-                    alert('Please enter a valid email address.');
-                    return;
+            // Initiate Google OAuth flow
+            fetch('/api/auth/google-n8n-oauth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            } else if (authMethod === 'sms_otp') {
-                const phoneInput = document.getElementById(`${service}_phone`);
-                inputValue = phoneInput.value.trim();
-                if (!inputValue || inputValue.length < 10) {
-                    alert('Please enter a valid phone number.');
-                    return;
-                }
-            }
-            
-            btn.disabled = true;
-            btn.innerHTML = '<div class="loading"></div> Sending...';
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.authUrl) {
+                    // Open OAuth popup
+                    const popup = window.open(
+                        data.authUrl,
+                        'google-oauth',
+                        'width=500,height=600,scrollbars=yes,resizable=yes'
+                    );
 
-            // Simulate Stytch API call
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-                
-                if (authMethod === 'magic_link') {
-                    alert(`Magic link sent to ${inputValue}! Check your email and click the link to authenticate.`);
-                    // Simulate successful authentication after a delay
-                    setTimeout(() => {
-                        credentialStates[service] = 'connected';
-                        updateCredentialUI(service);
-                        updateConfigBox(service);
-                        updateProgress();
-                        alert('✅ Stytch authentication successful! You are now logged in.');
-                    }, 3000);
+                    // Monitor popup
+                    const checkClosed = setInterval(() => {
+                        if (popup.closed) {
+                            clearInterval(checkClosed);
+                            btn.disabled = false;
+                            btn.innerHTML = originalHTML;
+
+                            // Check if authentication was successful
+                            setTimeout(() => {
+                                credentialStates[service] = 'connected';
+                                updateCredentialUI(service);
+                                updateConfigBox(service);
+                                updateProgress();
+                                alert('✅ Google authentication successful! Your account is now connected.');
+                            }, 1000);
+                        }
+                    }, 1000);
                 } else {
-                    alert(`SMS OTP sent to ${inputValue}! Enter the code when received.`);
-                    // Show OTP input
-                    showOTPInput(service, inputValue);
+                    throw new Error('Failed to initiate OAuth flow');
                 }
-            }, 1500);
-        }
-
-        function showOTPInput(service, phoneNumber) {
-            const formDiv = document.getElementById(`stytch-form-${service}`);
-            formDiv.innerHTML = `
-                <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 0.9rem;">
-                    Enter the 6-digit code sent to ${phoneNumber}
-                </p>
-                <input type="text" class="credential-input" id="${service}_otp_code" 
-                       placeholder="Enter 6-digit code" maxlength="6" style="margin-bottom: 8px;">
-                <div style="display: flex; gap: 8px;">
-                    <button class="credential-btn primary" onclick="verifyOTP('${service}')" style="flex: 1;">
-                        <i data-lucide="check"></i> Verify Code
-                    </button>
-                    <button class="credential-btn" onclick="resendOTP('${service}', '${phoneNumber}')" style="flex: 1;">
-                        <i data-lucide="refresh-cw"></i> Resend
-                    </button>
-                </div>
-            `;
-            
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-        }
-
-        function verifyOTP(service) {
-            const otpInput = document.getElementById(`${service}_otp_code`);
-            const code = otpInput.value.trim();
-            
-            if (code.length !== 6) {
-                alert('Please enter a 6-digit code.');
-                return;
-            }
-            
-            const btn = event.target;
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<div class="loading"></div> Verifying...';
-
-            // Simulate OTP verification
-            setTimeout(() => {
-                credentialStates[service] = 'connected';
-                updateCredentialUI(service);
-                updateConfigBox(service);
-                updateProgress();
+            })
+            .catch(error => {
+                console.error('Google OAuth error:', error);
                 btn.disabled = false;
                 btn.innerHTML = originalHTML;
-                alert('✅ SMS OTP verified successfully! You are now authenticated.');
-            }, 1500);
-        }
-
-        function resendOTP(service, phoneNumber) {
-            const btn = event.target;
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<div class="loading"></div> Sending...';
-
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-                alert(`New SMS OTP sent to ${phoneNumber}!`);
-            }, 1000);
-        }
-
-        function viewStytchSession() {
-            // Simulate session info display
-            const sessionInfo = {
-                user_id: 'user_live_' + Math.random().toString(36).substring(2, 10),
-                email: 'user@example.com',
-                phone: '+1234567890',
-                authenticated_at: new Date().toISOString(),
-                session_duration: '7 days',
-                auth_method: window.stytchAuthMethod || 'magic_link'
-            };
-            
-            alert(`Stytch Session Info:\n\nUser ID: ${sessionInfo.user_id}\nEmail: ${sessionInfo.email}\nAuth Method: ${sessionInfo.auth_method}\nAuthenticated: ${new Date(sessionInfo.authenticated_at).toLocaleString()}\nSession Duration: ${sessionInfo.session_duration}`);
+                alert('❌ Google authentication failed. Please try again.');
+            });
         }
 
         function saveCredential(service) {
@@ -1937,6 +1807,10 @@
                         input.style.borderColor = 'var(--error)';
                     } else {
                         input.style.borderColor = '';
+                        // Store the value in configData
+                        if (input.value.trim()) {
+                            configData[service][field.name] = input.value.trim();
+                        }
                     }
                 });
             } else {
@@ -1946,6 +1820,7 @@
                     input.style.borderColor = 'var(--error)';
                 } else {
                     input.style.borderColor = '';
+                    configData[service]['api_key'] = input.value.trim();
                 }
             }
 
@@ -1983,6 +1858,8 @@
         function disconnectCredential(service) {
             if (confirm(`Are you sure you want to disconnect ${credentialConfigs[service].name}?`)) {
                 credentialStates[service] = 'disconnected';
+                // Clear saved credential data
+                configData[service] = {}; 
                 updateCredentialUI(service);
                 alert(`Disconnected from ${credentialConfigs[service].name}`);
             }
@@ -1995,7 +1872,7 @@
                 const isConnected = credentialStates[service] === 'connected';
                 content.innerHTML = generateCredentialContent(service, config, isConnected);
 
-                // Update status
+                // Update status display
                 const statusEl = content.parentElement.querySelector('.credential-status');
                 statusEl.className = `credential-status ${isConnected ? 'connected' : 'disconnected'}`;
                 statusEl.innerHTML = `
@@ -2071,6 +1948,7 @@
             if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(currentConfig)) {
                 // For individual credentials, check if it's connected
                 if (credentialStates[currentConfig] === 'connected') {
+                    // Save minimal data for connected credentials
                     configData[currentConfig] = { connected: true, connectedAt: new Date().toISOString() };
                     updateConfigBox(currentConfig);
                     updateProgress();
@@ -2122,23 +2000,26 @@
         // Update configuration box UI
         function updateConfigBox(configType) {
             const box = document.querySelector(`[data-config="${configType}"]`);
-            const status = document.getElementById(`status-${configType}`);
+            const statusEl = document.getElementById(`status-${configType}`);
             const fieldsPreview = document.getElementById(`fields-${configType}`);
 
-            // Mark as completed
-            box.classList.remove('active');
+            // Update status element
+            statusEl.classList.remove('pending');
+            statusEl.classList.add('completed');
+            statusEl.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i>';
             box.classList.add('completed');
-            status.classList.remove('pending');
-            status.classList.add('completed');
-            status.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i>';
+
 
             // Update field tags for individual credentials
             if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(configType)) {
                 const tags = fieldsPreview.querySelectorAll('.field-tag');
                 if (credentialStates[configType] === 'connected') {
                     tags.forEach(tag => tag.classList.add('filled'));
+                } else {
+                    tags.forEach(tag => tag.classList.remove('filled'));
                 }
             } else {
+                // Update field tags for regular configurations
                 const template = configTemplates[configType];
                 const data = configData[configType];
 
@@ -2158,7 +2039,7 @@
                 });
             }
 
-            // Re-initialize icons
+            // Re-initialize icons if lucide is available
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
@@ -2171,7 +2052,7 @@
                 if (['google', 'openai', 'telegram', 'twilio', 'calendly', 'sendgrid', 'facebook', 'twitter', 'slack'].includes(key)) {
                     return credentialStates[key] === 'connected';
                 }
-                // For regular configs, check if data exists
+                // For regular configs, check if data exists (at least one field populated)
                 return Object.keys(configData[key]).length > 0;
             }).length;
 
@@ -2192,12 +2073,14 @@
 
             // Update generate button
             const generateBtn = document.getElementById('generateBtn');
-            // Require at least basic info + clinic + communication + operations + google + openai to generate
+            // Define required configurations for enabling the generate button
             const requiredConfigs = ['business', 'clinic', 'communication', 'operations', 'google', 'openai'];
             const requiredCompleted = requiredConfigs.every(config => {
                 if (['google', 'openai'].includes(config)) {
+                    // For credentials, check if they are connected
                     return credentialStates[config] === 'connected';
                 }
+                // For regular configurations, check if they have any data saved
                 return Object.keys(configData[config]).length > 0;
             });
 
@@ -2225,6 +2108,7 @@
             // Simulate API key generation
             setTimeout(() => {
                 credentialStates[service] = 'connected';
+                // Store some mock data for the generated key
                 configData[service] = { 
                     generated: true, 
                     keyPreview: 'sk-proj-auto-xxxxxxxxxxxxxxxx',
@@ -2237,7 +2121,7 @@
                 updateProgress();
                 btn.disabled = false;
                 btn.innerHTML = originalHTML;
-                
+
                 alert('✅ Personal OpenAI API key generated successfully!\n\n🔑 Key Preview: sk-proj-auto-xxxxxxxxxxxxxxxx\n💰 Monthly Budget: 100K tokens\n📊 Usage tracking enabled');
             }, 2000);
         }
@@ -2260,6 +2144,18 @@
             const clientId = Math.random().toString(36).substring(2, 10);
             window.open(`/client-openai-dashboard?client_id=${clientId}`, '_blank');
         }
+        
+        function viewGoogleSession() {
+            const sessionInfo = {
+                user_id: 'google_user_' + Math.random().toString(36).substring(2, 10),
+                email: 'user@gmail.com',
+                authenticated_at: new Date().toISOString(),
+                session_duration: '7 days',
+            };
+
+            alert(`Google Session Info:\n\nUser ID: ${sessionInfo.user_id}\nEmail: ${sessionInfo.email}\nAuthenticated: ${new Date(sessionInfo.authenticated_at).toLocaleString()}\nSession Duration: ${sessionInfo.session_duration}`);
+        }
+
 
         // Placeholder for actual API call
         function deployETFWorkflows(clientData, configData) {
@@ -2331,26 +2227,26 @@
             const credentials = collectCredentialsData();
             const advanced = collectBoxData('advanced');
 
-            // Validate required fields
+            // Validate required fields from business info
             const requiredFields = ['businessName', 'businessEmail', 'businessPhone'];
             const missingFields = requiredFields.filter(field => !businessInfo[field]);
 
             if (missingFields.length > 0) {
-                alert(`Please fill in required fields: ${missingFields.join(', ')}`);
+                alert(`Please fill in required fields in the Business Information section: ${missingFields.join(', ')}`);
                 this.disabled = false;
                 this.innerHTML = originalHTML;
                 return;
             }
 
             // Combine all configuration data
-            const configData = {
+            const combinedConfigData = {
                 ...businessInfo,
                 ...clinicConfig,
                 ...communication,
                 ...operational,
-                ...credentials,
+                ...credentials, // This will include credential connection statuses
                 ...advanced,
-                estimated_workflow_count: 8 // Estimated number of PET workflows
+                estimated_workflow_count: 8 // Example: estimated number of workflows
             };
 
             // Client data for identification
@@ -2360,10 +2256,10 @@
                 phone: businessInfo.businessPhone
             };
 
-            console.log('Generating ETF workflows:', configData);
+            console.log('Generating ETF workflows with data:', combinedConfigData);
 
-            // Call ETF deployment API
-            deployETFWorkflows(clientData, configData);
+            // Call ETF deployment API simulation
+            deployETFWorkflows(clientData, combinedConfigData);
 
             // Reset button after a short delay
             setTimeout(() => {
@@ -2372,18 +2268,23 @@
             }, 3000);
         });
 
-        // Helper to collect data from config boxes (needed for generateWorkflows)
+        // Helper to collect data from config boxes
         function collectBoxData(configType) {
+            // Return the stored data for the given config type, or an empty object if not found
             return configData[configType] || {};
         }
 
         // Helper to collect credentials data
         function collectCredentialsData() {
             const creds = {};
+            // Iterate through all known credential services
             for (const service in credentialStates) {
+                // Check if the service is connected
                 if (credentialStates[service] === 'connected') {
+                    // Mark the service as connected in the collected data
                     creds[`${service}_connected`] = true;
-                    // Add specific credential details if needed, but for now just the status
+                    // Optionally, add more details from configData[service] if needed for deployment
+                    // For example: creds[`${service}_apiKey`] = configData[service].api_key;
                 }
             }
             return creds;
