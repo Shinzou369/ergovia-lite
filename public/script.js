@@ -172,19 +172,27 @@ function selectModel(prompt) {
   if (!prompt || typeof prompt !== 'string') {
     return getModelConfig()?.default_model || "gpt-3.5-turbo";
   }
+  
   const lower = prompt.toLowerCase();
-
-  // Load model configuration
   const modelConfig = getModelConfig();
+  
+  // Validate model config exists
+  if (!modelConfig || typeof modelConfig !== 'object') {
+    console.warn('Model configuration not available, using default model');
+    return "gpt-3.5-turbo";
+  }
 
   // Check for specific model triggers
-  for (const [model, triggers] of Object.entries(modelConfig.model_triggers || {})) {
-    if (triggers.some(trigger => lower.includes(trigger))) {
+  const modelTriggers = modelConfig.model_triggers || {};
+  for (const [model, triggers] of Object.entries(modelTriggers)) {
+    if (Array.isArray(triggers) && triggers.some(trigger => 
+      typeof trigger === 'string' && lower.includes(trigger.toLowerCase())
+    )) {
       return model;
     }
   }
 
-  // Default model
+  // Return default model
   return modelConfig.default_model || "gpt-3.5-turbo";
 }
 

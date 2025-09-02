@@ -5677,13 +5677,17 @@ function generatePromptInstructions(workflow) {
 }
 
 function escapeRegExp(string) {
-  if (typeof string !== 'string') {
+  if (typeof string !== 'string' || string === null || string === undefined) {
     return '';
   }
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape special characters for regex
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function extractTaskforceType(workflowName, workflowTags = []) {
+  if (!workflowName || typeof workflowName !== 'string') {
+    return 'general';
+  }
+  
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
     if (typeof tag === 'string') {
@@ -5692,15 +5696,25 @@ function extractTaskforceType(workflowName, workflowTags = []) {
       return tag.name.toLowerCase();
     }
     return '';
-  }).join(' ') : '';
+  }).filter(tag => tag !== '').join(' ') : '';
 
   // Check tags first for more accurate classification
-  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'dental';
+  if (tags.includes('veterinary') || tags.includes('pet') || tags.includes('animal')) return 'veterinary';
   if (tags.includes('dental') || tags.includes('clinic')) return 'dental';
   if (tags.includes('gym') || tags.includes('fitness') || tags.includes('workout')) return 'gym';
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
   if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
   if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
+  
+  // Fallback to name-based classification
+  if (name.includes('veterinary') || name.includes('pet') || name.includes('animal')) return 'veterinary';
+  if (name.includes('dental') || name.includes('clinic')) return 'dental';
+  if (name.includes('gym') || name.includes('fitness')) return 'gym';
+  if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
+  if (name.includes('tutor') || name.includes('education')) return 'tutoring';
+  if (name.includes('massage') || name.includes('spa')) return 'massage';
+  
+  return 'general';;
 
   // Fallback to name-based detection
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
