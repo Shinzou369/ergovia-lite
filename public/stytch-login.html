@@ -482,39 +482,59 @@
             setLoading(submitBtn, true, 'Sending Magic Link...');
 
             try {
-                console.log('📧 Sending magic link to:', email);
+                console.log('🔄 Starting magic link request for:', email);
+                console.log('🌐 Current URL:', window.location.href);
+                
+                const requestData = { email };
+                console.log('📤 Request payload:', requestData);
                 
                 const response = await fetch('/api/auth/stytch/magic-links/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify(requestData)
                 });
 
+                console.log('📡 Response status:', response.status, response.statusText);
+                
                 const data = await response.json();
-                console.log('📨 Magic link response:', data);
+                console.log('📨 Full magic link response:', data);
 
                 if (data.success) {
-                    showMessage('🎉 Magic link sent! Check your email and click the link to access your affiliate portal. <br><small>⚠️ Check your spam folder if you don\'t see it within a few minutes.</small>', 'success');
+                    showMessage('🎉 Magic link sent successfully! <br><br>📧 <strong>Check your email inbox</strong> for a message from Stytch/ERGOVIA-AI<br>📱 <strong>Check your spam/junk folder</strong> if you don\'t see it<br>🔗 <strong>Click the link in the email</strong> to complete authentication<br><br><small>⏰ The link expires in 1 hour</small>', 'success');
                     
-                    // Show additional debug info in development
-                    if (window.location.hostname === 'localhost' || window.location.hostname.includes('repl.co')) {
-                        console.log('✅ Magic link sent successfully:', {
-                            email: email,
-                            request_id: data.request_id,
-                            user_id: data.user_id
-                        });
-                    }
+                    console.log('✅ Magic link sent successfully to:', email);
+                    console.log('📋 Debug info:', {
+                        email: email,
+                        request_id: data.request_id,
+                        user_id: data.user_id,
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    // Show prominent reminder about checking email
+                    setTimeout(() => {
+                        console.log('⏰ REMINDER: Check your email for the magic link!');
+                        console.log('📧 Email sent to:', email);
+                        console.log('🔍 If not found, check spam folder and try with a different email provider');
+                    }, 3000);
                 } else {
-                    console.error('❌ Magic link failed:', data);
+                    console.error('❌ Magic link request failed:', data);
                     showMessage(data.error || 'Failed to send magic link', 'error');
                     
                     // Show additional error details for debugging
                     if (data.details) {
-                        console.error('Error details:', data.details);
+                        console.error('📝 Error details:', data.details);
+                    }
+                    if (data.stytch_error_type) {
+                        console.error('🔧 Stytch error type:', data.stytch_error_type);
                     }
                 }
             } catch (error) {
-                console.error('❌ Network error:', error);
+                console.error('❌ Network/request error:', error);
+                console.log('🔧 Debug - Request failed completely:', {
+                    error: error.message,
+                    email: email,
+                    timestamp: new Date().toISOString()
+                });
                 showMessage('Network error. Please check your connection and try again.', 'error');
             } finally {
                 setLoading(submitBtn, false, 'Send Magic Link');
