@@ -1411,23 +1411,20 @@
                 ]
             },
             telegram: {
-                name: 'Telegram Bot & Channel',
+                name: 'Telegram Bot',
                 icon: '💬',
-                description: 'Create Telegram bot and set up automated channel management',
-                type: 'bot_creation',
+                description: 'Send notifications via Telegram',
+                type: 'api_key',
                 required: true,
                 fields: [
-                    { name: 'bot_name', label: 'Bot Name', placeholder: 'YourClinicBot', required: true },
-                    { name: 'bot_username', label: 'Bot Username', placeholder: 'your_clinic_bot', required: true },
-                    { name: 'channel_name', label: 'Channel Name', placeholder: 'Your Clinic Updates', required: false },
-                    { name: 'channel_description', label: 'Channel Description', placeholder: 'Updates and notifications from Your Clinic', required: false },
-                    { name: 'admin_phone', label: 'Admin Phone Number', placeholder: '+1234567890', required: true }
+                    { name: 'bot_token', label: 'Bot Token', placeholder: '1234567890:ABC...', required: true },
+                    { name: 'chat_id', label: 'Chat ID', placeholder: '123456789 or @channel', required: true }
                 ],
                 setupInstructions: [
-                    'We will automatically create your Telegram bot',
-                    'Set up a dedicated channel for notifications',
-                    'Configure automated message templates',
-                    'Connect bot to your clinic workflows'
+                    'Message @BotFather on Telegram',
+                    'Send /newbot and follow instructions',
+                    'Copy the bot token provided',
+                    'Get your chat ID by messaging @userinfobot'
                 ]
             },
             twilio: {
