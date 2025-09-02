@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ergovia AI Workbench - Configuration</title>
+    <title>ETF Workbench - Complete Configuration</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
@@ -14,31 +15,28 @@
         }
 
         :root {
-            /* Ergovia AI Brand Colors - Brown to Gold */
             --primary-gradient: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
-            --secondary-gradient: linear-gradient(135deg, #6B5B1A 0%, #FFD700 100%);
-            --ergovia-navy: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 100%);
-            --ergovia-gold: linear-gradient(135deg, #8B7E2A 0%, #B8A548 50%, #FFD700 100%);
-            --ergovia-text-gradient: linear-gradient(135deg, #c6cfdb, #cdd5e0, #f4efe8, #ffffff);
-
-            --bg-primary: #0f0f0f;
-            --bg-secondary: #1a1a1a;
-            --bg-tertiary: #262626;
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
             --text-primary: #ffffff;
-            --text-secondary: #d4ac0d;
-            --text-muted: #b8860b;
-            --border-color: #404040;
-            --border-light: #525252;
-            --shadow-lg: 0 20px 25px -5px rgb(107 91 26 / 0.3), 0 8px 10px -6px rgb(107 91 26 / 0.2);
-            --shadow-xl: 0 25px 50px -12px rgb(107 91 26 / 0.4);
-            --radius: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+            --text-secondary: #b8bcc8;
+            --text-muted: #6b7280;
+            --border-color: #2d3748;
+            --border-light: #374151;
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
+            --radius: 8px;
+            --radius-lg: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
         }
 
         /* Header */
@@ -609,237 +607,293 @@
     </style>
 </head>
 <body>
-    <!-- Workbench Header -->
-    <header class="workbench-header">
+    <!-- Header -->
+    <div class="workbench-header">
         <div class="workbench-title">
-            <i data-lucide="puzzle"></i>
-            <h1>Ergovia AI Workbench</h1>
+            <i data-lucide="workflow" style="color: #FFD700;"></i>
+            <h1>ETF Complete Configuration Workbench</h1>
         </div>
+
         <div class="progress-indicator">
-            <span class="progress-circle completed"></span>
-            <span class="progress-circle completed"></span>
-            <span class="progress-circle active"></span>
-            <span class="progress-circle"></span>
-            <span class="progress-circle"></span>
-            <span>Configuration</span>
+            <span>Progress:</span>
+            <div class="progress-circle" id="progress-1"></div>
+            <div class="progress-circle" id="progress-2"></div>
+            <div class="progress-circle" id="progress-3"></div>
+            <div class="progress-circle" id="progress-4"></div>
+            <div class="progress-circle" id="progress-5"></div>
+            <div class="progress-circle" id="progress-6"></div>
+            <div class="progress-circle" id="progress-7"></div>
+            <div class="progress-circle" id="progress-8"></div>
+            <div class="progress-circle" id="progress-9"></div>
+            <span id="progress-text">0/9 Complete</span>
         </div>
-        <button class="generate-btn ready">
+
+        <button class="generate-btn" id="generateBtn">
             <i data-lucide="play"></i>
-            Start Setup
+            Generate ETF Workflows
         </button>
-    </header>
+    </div>
 
     <!-- Workbench Canvas -->
-    <main class="workbench-canvas">
-        <!-- Section: Credentials -->
-        <section class="section-header">
-            <h2 class="section-title">Connect Your Services</h2>
-            <p class="section-subtitle">Provide necessary credentials to enable your automated workflows.</p>
-        </section>
-
-        <div class="config-box credential-box" id="telegramConfig">
-            <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="message-circle"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
-            </div>
-            <h3 class="config-title">Telegram Bot</h3>
-            <p class="config-description">Connect your Telegram bot to receive real-time notifications and alerts.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag filled">Bot Token</span>
-                <span class="field-tag filled">Chat ID</span>
-            </div>
-            <div class="config-action">Configure</div>
+    <div class="workbench-canvas">
+        <!-- BUSINESS INFORMATION SECTION -->
+        <div class="section-header">
+            <h2 class="section-title">📋 Business Information & Settings</h2>
+            <p class="section-subtitle">Essential business details and operational configurations</p>
         </div>
 
-        <div class="config-box credential-box" id="twilioConfig">
+        <!-- Business Information -->
+        <div class="config-box" data-config="businessInfo" onclick="openModal('businessInfo')">
             <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="message-square"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
+                <div class="config-icon">🏢</div>
+                <div class="config-status pending" id="status-businessInfo">1</div>
             </div>
-            <h3 class="config-title">Twilio SMS</h3>
-            <p class="config-description">Enable SMS notifications and alerts through your Twilio account.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag filled">Account SID</span>
-                <span class="field-tag filled">Auth Token</span>
-                <span class="field-tag filled">Phone Number</span>
+            <div class="config-title">Business Information</div>
+            <div class="config-description">
+                Essential business details including company name, contact information, and location.
             </div>
-            <div class="config-action">Configure</div>
+            <div class="config-fields-preview" id="fields-businessInfo">
+                <div class="field-tag">Business Name</div>
+                <div class="field-tag">Email</div>
+                <div class="field-tag">Phone</div>
+                <div class="field-tag">Address</div>
+                <div class="field-tag">Website</div>
+            </div>
+            <div class="config-action">Click to configure business details</div>
         </div>
 
-        <div class="config-box credential-box" id="openaiConfig">
+        <!-- Operational Settings -->
+        <div class="config-box" data-config="operational" onclick="openModal('operational')">
             <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="brain"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
+                <div class="config-icon">⚙️</div>
+                <div class="config-status pending" id="status-operational">2</div>
             </div>
-            <h3 class="config-title">OpenAI API</h3>
-            <p class="config-description">Integrate OpenAI for advanced AI capabilities and natural language processing.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag filled">API Key</span>
+            <div class="config-title">Operational Settings</div>
+            <div class="config-description">
+                Business policies, timezone, scheduling preferences, and automated system configurations.
             </div>
-            <div class="config-action">Configure</div>
+            <div class="config-fields-preview" id="fields-operational">
+                <div class="field-tag">Timezone</div>
+                <div class="field-tag">Cancellation Policy</div>
+                <div class="field-tag">Reminder Interval</div>
+            </div>
+            <div class="config-action">Click to configure operations</div>
         </div>
 
-        <div class="config-box credential-box" id="googleConfig">
+        <!-- Email Configuration -->
+        <div class="config-box" data-config="email" onclick="openModal('email')">
             <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="cloud"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
+                <div class="config-icon">📧</div>
+                <div class="config-status pending" id="status-email">3</div>
             </div>
-            <h3 class="config-title">Google Workspace</h3>
-            <p class="config-description">Connect Google services for calendar, drive, and email automation.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag">OAuth Credentials</span>
+            <div class="config-title">Email Settings</div>
+            <div class="config-description">
+                Configure email settings, support contacts, and emergency communication channels.
             </div>
-            <div class="config-action">Connect</div>
+            <div class="config-fields-preview" id="fields-email">
+                <div class="field-tag">From Email</div>
+                <div class="field-tag">From Name</div>
+            </div>
+            <div class="config-action">Click to configure email settings</div>
         </div>
 
-        <div class="config-box credential-box" id="calendlyConfig">
-            <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="calendar-check"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
-            </div>
-            <h3 class="config-title">Calendly</h3>
-            <p class="config-description">Sync your scheduling and appointments with Calendly.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag">API Token</span>
-                <span class="field-tag">Scheduling URL</span>
-            </div>
-            <div class="config-action">Configure</div>
+        <!-- CREDENTIALS & INTEGRATIONS SECTION -->
+        <div class="section-header" style="margin-top: 60px;">
+            <h2 class="section-title">🔗 Service Integrations & API Credentials</h2>
+            <p class="section-subtitle">Connect external services and configure API integrations</p>
         </div>
 
-        <!-- Section: Business Configuration -->
-        <section class="section-header">
-            <h2 class="section-title">Business Settings</h2>
-            <p class="section-subtitle">Customize your workflow's operational parameters.</p>
-        </section>
-
-        <div class="config-box" id="businessInfoConfig">
+        <!-- Telegram Bot -->
+        <div class="config-box credential-box" data-config="telegram" onclick="openModal('telegram')">
             <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="building-2"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
+                <div class="config-icon">💬</div>
+                <div class="config-status pending" id="status-telegram">4</div>
             </div>
-            <h3 class="config-title">Business Details</h3>
-            <p class="config-description">Enter essential information about your business for personalized automation.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag filled">Business Name</span>
-                <span class="field-tag filled">Business Email</span>
-                <span class="field-tag">Business Phone</span>
+            <div class="config-title">Telegram Bot</div>
+            <div class="config-description">
+                Send appointment notifications, reminders, and alerts directly to Telegram chats or channels.
             </div>
-            <div class="config-action">Configure</div>
+            <div class="config-fields-preview" id="fields-telegram">
+                <div class="field-tag">Bot Token</div>
+                <div class="field-tag">Chat ID</div>
+            </div>
+            <div class="config-action">Click to setup Telegram bot</div>
         </div>
 
-        <div class="config-box" id="operationalConfig">
+        <!-- Twilio SMS -->
+        <div class="config-box credential-box" data-config="twilio" onclick="openModal('twilio')">
             <div class="config-header">
-                <div class="config-icon">
+                <div class="config-icon">📱</div>
+                <div class="config-status pending" id="status-twilio">5</div>
+            </div>
+            <div class="config-title">SMS Notifications</div>
+            <div class="config-description">
+                Send SMS reminders, confirmations, and updates to clients via Twilio messaging service.
+            </div>
+            <div class="config-fields-preview" id="fields-twilio">
+                <div class="field-tag">Account SID</div>
+                <div class="field-tag">Auth Token</div>
+                <div class="field-tag">Phone Number</div>
+            </div>
+            <div class="config-action">Click to setup SMS notifications</div>
+        </div>
+
+        <!-- OpenAI API -->
+        <div class="config-box credential-box" data-config="openai" onclick="openModal('openai')">
+            <div class="config-header">
+                <div class="config-icon">🤖</div>
+                <div class="config-status pending" id="status-openai">6</div>
+            </div>
+            <div class="config-title">OpenAI API</div>
+            <div class="config-description">
+                Enable AI-powered features including automated responses, content generation, and intelligent customer interactions.
+            </div>
+            <div class="config-fields-preview" id="fields-openai">
+                <div class="field-tag">API Key</div>
+            </div>
+            <div class="config-action">Click to setup OpenAI integration</div>
+        </div>
+
+        <!-- Google Services -->
+        <div class="config-box credential-box" data-config="google" onclick="openModal('google')">
+            <div class="config-header">
+                <div class="config-icon">🔐</div>
+                <div class="config-status pending" id="status-google">7</div>
+            </div>
+            <div class="config-title">Google Services</div>
+            <div class="config-description">
+                Connect Google services for calendar, drive, and email automation.
+            </div>
+            <div class="config-fields-preview" id="fields-google">
+                <div class="field-tag">OAuth Credentials</div>
+            </div>
+            <div class="config-action">Click to connect Google services</div>
+        </div>
+
+        <!-- Calendly Integration -->
+        <div class="config-box credential-box" data-config="calendly" onclick="openModal('calendly')">
+            <div class="config-header">
+                <div class="config-icon">📅</div>
+                <div class="config-status pending" id="status-calendly">8</div>
+            </div>
+            <div class="config-title">Calendly Integration</div>
+            <div class="config-description">
+                Sync appointments with Calendly for seamless online booking and schedule management.
+            </div>
+            <div class="config-fields-preview" id="fields-calendly">
+                <div class="field-tag">API Token</div>
+                <div class="field-tag">Scheduling URL</div>
+            </div>
+            <div class="config-action">Click to connect Calendly</div>
+        </div>
+
+        <!-- Social Media -->
+        <div class="config-box" data-config="social" onclick="openModal('social')">
+            <div class="config-header">
+                <div class="config-icon">📘</div>
+                <div class="config-status pending" id="status-social">9</div>
+            </div>
+            <div class="config-title">Social Media</div>
+            <div class="config-description">
+                Link social media accounts for automated posting and engagement.
+            </div>
+            <div class="config-fields-preview" id="fields-social">
+                <div class="field-tag">Facebook Page ID</div>
+                <div class="field-tag">WhatsApp ID</div>
+            </div>
+            <div class="config-action">Click to configure social media</div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">
                     <i data-lucide="settings"></i>
+                    Configuration
                 </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
+                <button class="modal-close" onclick="closeModal()">
+                    <i data-lucide="x"></i>
+                </button>
             </div>
-            <h3 class="config-title">Operational Settings</h3>
-            <p class="config-description">Set timezone, reminders, and other operational parameters.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag filled">Timezone</span>
-                <span class="field-tag">Reminders</span>
-                <span class="field-tag">Policy</span>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content will be loaded here -->
             </div>
-            <div class="config-action">Configure</div>
-        </div>
-
-        <div class="config-box" id="emailConfig">
-            <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="mail"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
-            </div>
-            <h3 class="config-title">Email Settings</h3>
-            <p class="config-description">Define your sender details for outgoing communications.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag filled">From Email</span>
-                <span class="field-tag filled">From Name</span>
-            </div>
-            <div class="config-action">Configure</div>
-        </div>
-
-        <div class="config-box" id="socialConfig">
-            <div class="config-header">
-                <div class="config-icon">
-                    <i data-lucide="share-2"></i>
-                </div>
-                <div class="config-status pending">
-                    <i data-lucide="minus"></i>
-                </div>
-            </div>
-            <h3 class="config-title">Social Media</h3>
-            <p class="config-description">Link social media accounts for automated posting and engagement.</p>
-            <div class="config-fields-preview">
-                <span class="field-tag">Facebook Page ID</span>
-                <span class="field-tag">WhatsApp ID</span>
-            </div>
-            <div class="config-action">Configure</div>
-        </div>
-
-        <!-- Modal for Configuration -->
-        <div class="modal-overlay" id="configModalOverlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title">
-                        <i data-lucide="cog"></i>
-                        Configure Service
-                    </h2>
-                    <button class="modal-close" id="modalCloseBtn">
-                        <i data-lucide="x"></i>
-                    </button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Dynamic content will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" id="modalCancelBtn">Cancel</button>
-                    <button class="btn btn-primary" id="modalSaveBtn">Save</button>
-                </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">
+                    <i data-lucide="x"></i>
+                    Cancel
+                </button>
+                <button class="btn btn-primary" onclick="saveConfiguration()">
+                    <i data-lucide="save"></i>
+                    Save Configuration
+                </button>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
-        const configBoxes = document.querySelectorAll('.config-box');
-        const modalOverlay = document.getElementById('configModalOverlay');
-        const modalBody = document.getElementById('modalBody');
-        const modalSaveBtn = document.getElementById('modalSaveBtn');
-        const modalCancelBtn = document.getElementById('modalCancelBtn');
-        const modalCloseBtn = document.getElementById('modalCloseBtn');
-        const generateBtn = document.querySelector('.generate-btn');
-        const progressCircles = document.querySelectorAll('.progress-circle');
-
         const mockData = {
+            businessInfo: {
+                fields: [
+                    { name: 'businessName', label: 'Business Name', type: 'text', required: true, placeholder: 'Happy Paws Veterinary Clinic' },
+                    { name: 'businessEmail', label: 'Business Email', type: 'email', required: true, placeholder: 'info@happypaws.com' },
+                    { name: 'businessPhone', label: 'Business Phone', type: 'tel', required: true, placeholder: '+1 (555) 123-4567' },
+                    { name: 'websiteUrl', label: 'Website URL', type: 'url', required: false, placeholder: 'https://happypaws.com' },
+                    { name: 'businessAddress', label: 'Business Address', type: 'textarea', required: false, placeholder: '123 Pet Street, Animal City, AC 12345' }
+                ],
+                status: 'pending'
+            },
+            operational: {
+                fields: [
+                    { 
+                        name: 'timezone', 
+                        label: 'Business Timezone', 
+                        type: 'select', 
+                        required: true,
+                        options: [
+                            { value: '', text: 'Select Your Timezone' },
+                            { value: 'America/New_York', text: 'Eastern Time (EST/EDT)' },
+                            { value: 'America/Chicago', text: 'Central Time (CST/CDT)' },
+                            { value: 'America/Denver', text: 'Mountain Time (MST/MDT)' },
+                            { value: 'America/Los_Angeles', text: 'Pacific Time (PST/PDT)' }
+                        ]
+                    },
+                    { 
+                        name: 'cancellationPolicy', 
+                        label: 'Cancellation Policy', 
+                        type: 'select', 
+                        required: true,
+                        options: [
+                            { value: '', text: 'Select Cancellation Policy' },
+                            { value: '24-hour', text: '24-hour notice required' },
+                            { value: '48-hour', text: '48-hour notice required' },
+                            { value: '72-hour', text: '72-hour notice required' }
+                        ]
+                    },
+                    { 
+                        name: 'reminderInterval', 
+                        label: 'Reminder Check Interval', 
+                        type: 'select', 
+                        required: false,
+                        options: [
+                            { value: '2', text: 'Every 2 hours' },
+                            { value: '4', text: 'Every 4 hours' },
+                            { value: '6', text: 'Every 6 hours' },
+                            { value: '12', text: 'Every 12 hours' }
+                        ]
+                    }
+                ],
+                status: 'pending'
+            },
+            email: {
+                fields: [
+                    { name: 'fromEmail', label: 'From Email Address', type: 'email', required: true, placeholder: 'noreply@happypaws.com' },
+                    { name: 'fromName', label: 'From Name', type: 'text', required: true, placeholder: 'Happy Paws Clinic' }
+                ],
+                status: 'pending'
+            },
             telegram: {
                 fields: [
                     { name: 'telegramBotToken', label: 'Telegram Bot Token', type: 'password', required: true, help: 'Get from @BotFather' },
@@ -863,57 +917,13 @@
             },
             google: {
                 fields: [],
-                status: 'pending'
+                status: 'pending',
+                isOAuth: true
             },
             calendly: {
                 fields: [
                     { name: 'calendlyApiKey', label: 'Calendly Personal Access Token', type: 'password', required: true, help: 'From Calendly Developer settings' },
                     { name: 'calendlyUrl', label: 'Calendly Scheduling URL', type: 'url', required: false }
-                ],
-                status: 'pending'
-            },
-            businessInfo: {
-                fields: [
-                    { name: 'businessName', label: 'Business Name', type: 'text', required: true },
-                    { name: 'businessEmail', label: 'Business Email', type: 'email', required: true },
-                    { name: 'businessPhone', label: 'Business Phone', type: 'tel', required: true },
-                    { name: 'websiteUrl', label: 'Website URL', type: 'url', required: false },
-                    { name: 'businessAddress', label: 'Business Address', type: 'text', required: false }
-                ],
-                status: 'pending'
-            },
-            operational: {
-                fields: [
-                    { name: 'timezone', label: 'Timezone', type: 'select', required: true, options: [
-                        { value: '', text: 'Select Your Timezone' },
-                        { value: 'America/New_York', text: 'Eastern Time (EST/EDT)' },
-                        { value: 'America/Chicago', text: 'Central Time (CST/CDT)' },
-                        { value: 'America/Denver', text: 'Mountain Time (MST/MDT)' },
-                        { value: 'America/Los_Angeles', text: 'Pacific Time (PST/PDT)' }
-                    ]},
-                    { name: 'reminderInterval', label: 'Reminder Check Interval', type: 'select', required: false, options: [
-                        { value: '1', text: 'Every Hour' },
-                        { value: '2', text: 'Every 2 Hours', selected: true },
-                        { value: '4', text: 'Every 4 Hours' }
-                    ]},
-                    { name: 'cancellationPolicy', label: 'Cancellation Policy', type: 'select', required: true, options: [
-                        { value: '', text: 'Select Policy' },
-                        { value: '24-hour', text: '24-hour notice' },
-                        { value: '48-hour', text: '48-hour notice' },
-                        { value: 'no-cancellation', text: 'No cancellation' }
-                    ]},
-                    { name: 'cancellationFee', label: 'Cancellation Fee', type: 'select', required: false, options: [
-                        { value: '', text: 'No fee' },
-                        { value: '25', text: '$25' },
-                        { value: '50', text: '$50' }
-                    ]}
-                ],
-                status: 'pending'
-            },
-            email: {
-                fields: [
-                    { name: 'fromEmail', label: 'From Email Address', type: 'email', required: true },
-                    { name: 'fromName', label: 'From Name', type: 'text', required: true }
                 ],
                 status: 'pending'
             },
@@ -927,24 +937,32 @@
             }
         };
 
-        function updateProgressIndicator() {
-            let completedCount = 0;
-            configBoxes.forEach((box, index) => {
-                const boxId = box.id;
-                const serviceName = boxId.replace('Config', '');
-                const status = mockData[serviceName]?.status || 'pending';
+        let currentService = null;
 
-                const circle = progressCircles[index];
-                circle.classList.remove('active', 'completed');
+        function updateProgressIndicator() {
+            const totalConfigs = Object.keys(mockData).length;
+            let completedCount = 0;
+            
+            Object.keys(mockData).forEach((service, index) => {
+                const status = mockData[service].status;
+                const circle = document.getElementById(`progress-${index + 1}`);
+                
                 if (status === 'completed') {
                     circle.classList.add('completed');
+                    circle.classList.remove('active');
                     completedCount++;
                 } else if (status === 'active') {
                     circle.classList.add('active');
+                    circle.classList.remove('completed');
+                } else {
+                    circle.classList.remove('completed', 'active');
                 }
             });
 
-            if (completedCount === configBoxes.length) {
+            document.getElementById('progress-text').textContent = `${completedCount}/${totalConfigs} Complete`;
+
+            const generateBtn = document.getElementById('generateBtn');
+            if (completedCount >= 6) { // Require at least 6 configurations
                 generateBtn.classList.add('ready');
             } else {
                 generateBtn.classList.remove('ready');
@@ -956,6 +974,29 @@
             if (!config) return;
 
             let html = `<form id="${serviceName}Form">`;
+
+            if (config.isOAuth && serviceName === 'google') {
+                html += `
+                    <div class="form-section">
+                        <div class="form-section-title">
+                            <i data-lucide="cloud"></i>
+                            Google OAuth Connection
+                        </div>
+                        <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                            Click the button below to authenticate with Google services.
+                        </p>
+                        <button id="connectGoogleBtn" class="btn btn-primary" type="button" style="width: auto;">
+                            <i data-lucide="external-link"></i>
+                            Connect Google Services
+                        </button>
+                        <div id="googleConnectStatus" style="margin-top: 10px; color: var(--text-secondary);"></div>
+                    </div>
+                `;
+                document.getElementById('modalBody').innerHTML = html + '</form>';
+                document.getElementById('connectGoogleBtn').addEventListener('click', handleGoogleConnect);
+                return;
+            }
+
             html += `<div class="form-grid-2">`;
 
             config.fields.forEach(field => {
@@ -966,101 +1007,96 @@
                 if (field.type === 'select') {
                     html += `<select id="${field.name}" name="${field.name}" ${field.required ? 'required' : ''}>`;
                     field.options.forEach(option => {
-                        html += `<option value="${option.value}" ${option.selected ? 'selected' : ''}>${option.text}</option>`;
+                        html += `<option value="${option.value}">${option.text}</option>`;
                     });
                     html += `</select>`;
+                } else if (field.type === 'textarea') {
+                    html += `<textarea id="${field.name}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}" rows="3"></textarea>`;
                 } else {
                     html += `<input type="${field.type}" id="${field.name}" name="${field.name}" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}">`;
                 }
                 if (field.help) {
-                    html += `<div class="form-help">${field.help}</div>`;
+                    html += `<div class="form-help" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">${field.help}</div>`;
                 }
                 html += `</div>`;
             });
 
             html += `</div></form>`;
-            modalBody.innerHTML = html;
-
-            // Add specific handlers for Google Connect
-            if (serviceName === 'google') {
-                modalBody.innerHTML += `
-                    <div class="form-group">
-                        <p>Click the button below to authenticate with Google.</p>
-                        <button id="connectGoogleBtn" class="btn btn-primary" style="width: auto;">
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1QzIyLjU2IDExLjQ3IDIyLjQ5IDEwLjcyIDIyLjM2IDEwaDE2LjAgVjE0LjI2SDE3Ljk3VjExLjY0VjE0LjI2SDE0LjI1VjE2LjYxVjE5LjUzSDIuMThDNC4wNCAxOS43NCA3LjczIDIyIDEyIDIyWiIgZmlsbD0iIzQyODVGNCIvPgo8cGF0aCBkPSJNMi4xOCA4LjA5QzQuMDQgMi44MyAxNS4wNCAyLjI2IDEyLjc5IDUuNjZDMTIuNzkgNS42NiAxMi41IDUuNjYgMTIuMjUgNS42NkM5LjA0IDUuNjYgNi41NyA3LjU0IDUuNjkgOS41NFY4LjA5WiIgZmlsbD0iIzM0QTg1MyIvPgo8cGF0aCBkPSJNMTIgMTcuNTZ যুক্তি৯.০৪ ১৭.৫৬ ৬.N.692.18 7.69C4.04 12.04 7.73 15 12 15Z" alt="Google" style="width: 20px; margin-right: 8px;"> Connect Google
-                        </button>
-                        <div id="googleConnectStatus" style="margin-top: 10px; color: var(--text-secondary);"></div>
-                    </div>
-                `;
-                document.getElementById('connectGoogleBtn').addEventListener('click', handleGoogleConnect);
-            }
+            document.getElementById('modalBody').innerHTML = html;
         }
 
         function openModal(serviceName) {
+            currentService = serviceName;
             renderModalContent(serviceName);
-            modalOverlay.style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
-            updateModalTitle(serviceName);
+            document.getElementById('configModal').classList.add('active');
+            
+            // Update modal title
+            const titles = {
+                businessInfo: 'Business Information',
+                operational: 'Operational Settings',
+                email: 'Email Settings',
+                telegram: 'Telegram Bot',
+                twilio: 'Twilio SMS',
+                openai: 'OpenAI API',
+                google: 'Google Services',
+                calendly: 'Calendly Integration',
+                social: 'Social Media'
+            };
+            document.getElementById('modalTitle').innerHTML = `
+                <i data-lucide="settings"></i>
+                ${titles[serviceName] || 'Configuration'}
+            `;
+
+            // Mark as active
+            if (mockData[serviceName].status !== 'completed') {
+                mockData[serviceName].status = 'active';
+                updateConfigBox(serviceName);
+                updateProgressIndicator();
+            }
+
+            // Re-initialize icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
 
         function closeModal() {
-            modalOverlay.style.display = 'none';
-            document.body.style.overflow = ''; // Restore background scrolling
+            document.getElementById('configModal').classList.remove('active');
+            currentService = null;
         }
 
-        function updateModalTitle(serviceName) {
-            const titleElement = modalOverlay.querySelector('.modal-title i');
-            const serviceIcons = {
-                telegram: 'message-circle',
-                twilio: 'message-square',
-                openai: 'brain',
-                google: 'cloud',
-                calendly: 'calendar-check',
-                businessInfo: 'building-2',
-                operational: 'settings',
-                email: 'mail',
-                social: 'share-2'
-            };
-            const iconName = serviceIcons[serviceName] || 'cog';
-            titleElement.className = `lucide lucide-${iconName}`;
-            modalOverlay.querySelector('.modal-title span').textContent = `Configure ${capitalize(serviceName.replace('Config', '').replace('Info', ' Information'))}`;
-        }
+        function saveConfiguration() {
+            if (!currentService) return;
 
-        function capitalize(str) {
-            return str.charAt(0).toUpperCase() + str.slice(1);
-        }
-
-        function handleSave() {
-            const activeForm = modalBody.querySelector('form');
-            if (!activeForm) return;
-
-            const serviceName = activeForm.id.replace('Form', '');
-            const config = mockData[serviceName];
+            const config = mockData[currentService];
             if (!config) return;
 
+            // Special handling for Google OAuth
+            if (config.isOAuth && currentService === 'google' && config.status !== 'completed') {
+                alert('Please connect your Google account first.');
+                return;
+            }
+
+            const form = document.getElementById(`${currentService}Form`);
+            if (!form) return;
+
             let allFieldsFilled = true;
-            const formData = new FormData(activeForm);
-            const updatedFields = {};
+            const formData = new FormData(form);
 
             config.fields.forEach(field => {
                 const value = formData.get(field.name);
                 if (field.required && (!value || value.trim() === '')) {
                     allFieldsFilled = false;
-                    // Highlight the input
-                    const inputElement = activeForm.querySelector(`[name="${field.name}"]`);
-                    if(inputElement) {
+                    const inputElement = form.querySelector(`[name="${field.name}"]`);
+                    if (inputElement) {
                         inputElement.style.borderColor = 'var(--error)';
-                        inputElement.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.2)';
                     }
                 } else {
-                    // Reset error style if field is valid or optional and empty
-                    const inputElement = activeForm.querySelector(`[name="${field.name}"]`);
-                     if(inputElement) {
+                    const inputElement = form.querySelector(`[name="${field.name}"]`);
+                    if (inputElement) {
                         inputElement.style.borderColor = '';
-                        inputElement.style.boxShadow = '';
                     }
                 }
-                updatedFields[field.name] = value;
             });
 
             if (!allFieldsFilled) {
@@ -1068,101 +1104,82 @@
                 return;
             }
 
-            // Special handling for Google connection
-            if (serviceName === 'google' && config.status !== 'completed') {
-                alert('Please connect your Google account first.');
-                return;
-            }
-
             config.status = 'completed';
-            mockData[serviceName] = { ...config, fields: updatedFields }; // Update fields with new values
-
-            const box = document.getElementById(serviceName + 'Config');
-            box.classList.add('completed');
-            box.classList.remove('pending', 'active');
-            const statusIcon = box.querySelector('.config-status');
-            statusIcon.innerHTML = '<i data-lucide="check"></i>';
-            statusIcon.style.backgroundColor = 'var(--success)';
-
-            closeModal();
+            updateConfigBox(currentService);
             updateProgressIndicator();
+            closeModal();
         }
 
         function handleGoogleConnect() {
             const statusDiv = document.getElementById('googleConnectStatus');
             statusDiv.textContent = 'Initiating Google connection...';
-            // In a real app, this would redirect to a Google OAuth URL
-            // For this mock, we simulate a successful connection after a short delay
+            
             setTimeout(() => {
                 statusDiv.textContent = '✓ Google account connected successfully!';
                 statusDiv.style.color = 'var(--success)';
-                const googleConfig = mockData.google;
-                if (googleConfig) {
-                    googleConfig.status = 'completed';
-                    const box = document.getElementById('googleConfig');
-                    box.classList.add('completed');
-                    box.classList.remove('pending', 'active');
-                    const statusIcon = box.querySelector('.config-status');
-                    statusIcon.innerHTML = '<i data-lucide="check"></i>';
-                    statusIcon.style.backgroundColor = 'var(--success)';
-                    updateProgressIndicator();
-                }
-                 // Close modal after successful connection
-                 closeModal();
+                mockData.google.status = 'completed';
+                updateConfigBox('google');
+                updateProgressIndicator();
+                closeModal();
             }, 1000);
         }
 
-        configBoxes.forEach(box => {
-            box.addEventListener('click', () => {
-                const serviceName = box.id.replace('Config', '');
-                openModal(serviceName);
-                // Set box to active when modal is opened
-                const currentStatus = mockData[serviceName]?.status || 'pending';
-                if (currentStatus !== 'completed') {
-                    mockData[serviceName].status = 'active';
-                    box.classList.add('active');
-                    box.classList.remove('pending');
-                    box.querySelector('.config-status').innerHTML = '<i data-lucide="circle-dot"></i>';
-                    box.querySelector('.config-status').style.backgroundColor = 'var(--warning)';
-                    updateProgressIndicator();
-                }
-            });
+        function updateConfigBox(serviceName) {
+            const box = document.querySelector(`[data-config="${serviceName}"]`);
+            const status = document.getElementById(`status-${serviceName}`);
+            const fieldsPreview = document.getElementById(`fields-${serviceName}`);
+
+            if (mockData[serviceName].status === 'completed') {
+                box.classList.add('completed');
+                box.classList.remove('active', 'pending');
+                status.classList.add('completed');
+                status.classList.remove('pending');
+                status.innerHTML = '<i data-lucide="check" style="width: 12px; height: 12px;"></i>';
+
+                // Update field tags
+                const tags = fieldsPreview.querySelectorAll('.field-tag');
+                tags.forEach(tag => tag.classList.add('filled'));
+            } else if (mockData[serviceName].status === 'active') {
+                box.classList.add('active');
+                box.classList.remove('pending');
+                status.innerHTML = '<i data-lucide="circle-dot" style="width: 12px; height: 12px;"></i>';
+            }
+
+            // Re-initialize icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Generate workflow handler
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            if (!this.classList.contains('ready')) return;
+
+            const originalHTML = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<div class="loading"></div> Generating ETF Workflows...';
+
+            // Simulate workflow generation
+            setTimeout(() => {
+                alert('🎉 ETF Workflows generated successfully! Your automated system is now ready.');
+                this.disabled = false;
+                this.innerHTML = originalHTML;
+            }, 3000);
         });
 
-        modalSaveBtn.addEventListener('click', handleSave);
-        modalCancelBtn.addEventListener('click', closeModal);
-        modalCloseBtn.addEventListener('click', closeModal);
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            updateProgressIndicator();
+        });
 
-        // Close modal if clicking outside the content
-        modalOverlay.addEventListener('click', (event) => {
-            if (event.target === modalOverlay) {
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && currentService) {
                 closeModal();
             }
-        });
-
-        // Initialize progress indicator and icons
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            updateProgressIndicator();
-
-            // Mock data initialization for display
-            configBoxes.forEach((box, index) => {
-                const serviceName = box.id.replace('Config', '');
-                const config = mockData[serviceName];
-                if (config) {
-                    if (config.status === 'completed') {
-                        box.classList.add('completed');
-                        box.classList.remove('pending', 'active');
-                        box.querySelector('.config-status').innerHTML = '<i data-lucide="check"></i>';
-                        box.querySelector('.config-status').style.backgroundColor = 'var(--success)';
-                    } else if (config.status === 'active') {
-                         box.classList.add('active');
-                         box.classList.remove('pending');
-                         box.querySelector('.config-status').innerHTML = '<i data-lucide="circle-dot"></i>';
-                         box.querySelector('.config-status').style.backgroundColor = 'var(--warning)';
-                    }
-                }
-            });
         });
     </script>
 </body>
