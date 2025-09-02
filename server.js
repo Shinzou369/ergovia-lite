@@ -3498,6 +3498,7 @@ app.get("/api/profile", (req, res) => {
 app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
   try {
     if (!stytchClient) {
+      console.error('❌ Stytch client not configured');
       return res.status(500).json({ error: 'Stytch not configured' });
     }
 
@@ -3507,27 +3508,65 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.get('host');
+    
     const params = {
       email: email,
-      login_magic_link_url: signup_or_login_url || `${req.protocol}://${req.get('host')}/api/auth/stytch/authenticate`,
-      signup_magic_link_url: signup_or_login_url || `${req.protocol}://${req.get('host')}/api/auth/stytch/authenticate`
+      login_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
+      signup_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
+      expiration_minutes: 60 // Link expires in 1 hour
     };
+
+    console.log('🔄 Sending Stytch magic link to:', email);
+    console.log('📧 Magic link URLs:', {
+      login: params.login_magic_link_url,
+      signup: params.signup_magic_link_url
+    });
 
     const response = await stytchClient.magicLinks.email.loginOrCreate(params);
 
-    console.log('✅ Stytch magic link sent to:', email);
+    console.log('✅ Stytch magic link sent successfully:', {
+      email: email,
+      request_id: response.request_id,
+      user_id: response.user_id
+    });
 
     res.json({
       success: true,
-      message: 'Magic link sent! Check your email.',
-      request_id: response.request_id
+      message: 'Magic link sent! Check your email (including spam folder).',
+      request_id: response.request_id,
+      user_id: response.user_id
     });
 
   } catch (error) {
-    console.error('❌ Stytch magic link error:', error);
+    console.error('❌ Stytch magic link error:', {
+      message: error.message,
+      status_code: error.status_code,
+      error_type: error.error_type,
+      error_url: error.error_url
+    });
+    
+    // Provide more specific error messages
+    let userMessage = 'Failed to send magic link';
+    if (error.status_code === 400) {
+      userMessage = 'Invalid email address or request parameters';
+    } else if (error.status_code === 429) {
+      userMessage = 'Too many requests. Please wait a moment and try again.';
+    } else if (error.status_code === 401) {
+      userMessage = 'Authentication service configuration error';
+    }
+
     res.status(500).json({
-      error: 'Failed to send magic link',
-      details: error.message
+      error: userMessage,
+      details: error.message,
+      stytch_error_type: error.error_type
     });
   }
 });
