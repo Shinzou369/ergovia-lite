@@ -769,7 +769,7 @@ app.use((req, res, next) => {
 // Serve static files
 app.use(express.static('public'));
 
-// Taskforce onboarding routes - redirect all to ETF onboarding
+// Taskforce onboarding routes - redirect all to ETF workbench
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {
   res.redirect('/etf-onboard?type=dental');
 });
@@ -794,9 +794,18 @@ app.get('/taskforce/massage/onboard', (req, res) => {
 // ETF Routes
 // ========================================
 
-// ETF Onboarding page
+// ETF Workbench (New Onboarding UI)
 app.get('/etf-onboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-onboard.html'));
+});
+
+// ETF Workbench alternative routes
+app.get('/etf-workbench', (req, res) => {
+  res.redirect('/etf-onboard');
+});
+
+app.get('/etf-workbench-test', (req, res) => {
+  res.redirect('/etf-onboard');
 });
 
 // ETF Admin dashboard

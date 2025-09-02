@@ -296,7 +296,7 @@
                   </div>`;
               } else {
                 // No deployment - show Get Started
-                onclickAction = `onclick="window.location.href='/taskforce/pet-clinic/onboard'"`;
+                onclickAction = `onclick="window.location.href='/etf-onboard?type=pet-clinic'"`;
                 overlayContent = `<div class="coming-soon-overlay">
                     <i class="overlay-icon" data-lucide="rocket"></i>
                     <span class="overlay-text">Get Started!</span>
@@ -305,7 +305,7 @@
               }
             } else {
               // Other templates - always show Get Started for now
-              onclickAction = `onclick="window.location.href='/etf-onboard'"`;
+              onclickAction = `onclick="window.location.href='/etf-onboard?type=${template.id}'"`;
               overlayContent = `<div class="coming-soon-overlay">
                   <i class="overlay-icon" data-lucide="rocket"></i>
                   <span class="overlay-text">Get Started!</span>
