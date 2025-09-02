@@ -413,6 +413,13 @@
         <div class="back-link">
             <a href="/">← Back to Home</a>
         </div>
+
+        <!-- Debug Panel (only shows when there are issues) -->
+        <div id="debug-panel" style="display: none; margin-top: 24px; padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius); font-size: 0.85rem;">
+            <h4 style="color: var(--error); margin-bottom: 12px;">🔧 Debug Information</h4>
+            <div id="debug-content"></div>
+            <button onclick="testStytchConfig()" style="margin-top: 12px; padding: 8px 16px; background: var(--error); color: white; border: none; border-radius: 6px; cursor: pointer;">Test Stytch Config</button>
+        </div>
     </div>
 
     <script>
@@ -518,7 +525,7 @@
                     }, 3000);
                 } else {
                     console.error('❌ Magic link request failed:', data);
-                    showMessage(data.error || 'Failed to send magic link', 'error');
+                    handleMagicLinkError(data);
                     
                     // Show additional error details for debugging
                     if (data.details) {
@@ -680,6 +687,83 @@
                 }, 500);
             }
         });
+
+        // Test Stytch configuration function
+        async function testStytchConfig() {
+            try {
+                console.log('🧪 Testing Stytch configuration...');
+                const response = await fetch('/api/auth/stytch/test-config');
+                const data = await response.json();
+
+                const debugContent = document.getElementById('debug-content');
+                
+                if (data.success) {
+                    debugContent.innerHTML = `
+                        <div style="color: var(--success);">✅ Stytch Configuration: Working</div>
+                        <div>Project ID: ${data.project_id}</div>
+                        <div>Environment: ${data.environment}</div>
+                        <div>Redirect URL: ${data.redirect_url}</div>
+                        <div style="margin-top: 8px; font-weight: bold;">Next Steps:</div>
+                        <ul style="margin: 4px 0; padding-left: 20px;">
+                            ${data.next_steps.map(step => `<li>${step}</li>`).join('')}
+                        </ul>
+                    `;
+                } else {
+                    debugContent.innerHTML = `
+                        <div style="color: var(--error);">❌ Configuration Error</div>
+                        <div>Error: ${data.error}</div>
+                        <div>Details: ${data.details || 'N/A'}</div>
+                        <div>Status Code: ${data.status_code || 'N/A'}</div>
+                        ${data.troubleshooting ? `
+                            <div style="margin-top: 8px; font-weight: bold;">Troubleshooting:</div>
+                            <ul style="margin: 4px 0; padding-left: 20px;">
+                                ${data.troubleshooting.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    `;
+                }
+
+                document.getElementById('debug-panel').style.display = 'block';
+
+            } catch (error) {
+                console.error('❌ Config test failed:', error);
+                const debugContent = document.getElementById('debug-content');
+                debugContent.innerHTML = `
+                    <div style="color: var(--error);">❌ Network Error</div>
+                    <div>Could not reach test endpoint: ${error.message}</div>
+                `;
+                document.getElementById('debug-panel').style.display = 'block';
+            }
+        }
+
+        // Enhanced error handling for magic link
+        function handleMagicLinkError(data) {
+            showMessage(data.error || 'Failed to send magic link', 'error');
+            
+            // Show debug panel for configuration errors
+            if (data.stytch_error_type || data.status_code || data.debug) {
+                const debugContent = document.getElementById('debug-content');
+                let debugHtml = `<div style="color: var(--error);">Error Details:</div>`;
+                
+                if (data.stytch_error_type) {
+                    debugHtml += `<div>Stytch Error Type: ${data.stytch_error_type}</div>`;
+                }
+                if (data.status_code) {
+                    debugHtml += `<div>Status Code: ${data.status_code}</div>`;
+                }
+                if (data.debug && data.debug.hint) {
+                    debugHtml += `<div style="margin-top: 8px; font-weight: bold;">Hint:</div>`;
+                    debugHtml += `<div>${data.debug.hint}</div>`;
+                }
+                if (data.debug && data.debug.redirect_url) {
+                    debugHtml += `<div style="margin-top: 8px;">Redirect URL: ${data.debug.redirect_url}</div>`;
+                    debugHtml += `<div style="color: var(--warning); font-size: 0.8rem;">⚠️ Add this URL to your Stytch dashboard redirect URLs</div>`;
+                }
+
+                debugContent.innerHTML = debugHtml;
+                document.getElementById('debug-panel').style.display = 'block';
+            }
+        }
 
         // Check for URL parameters
         const urlParams = new URLSearchParams(window.location.search);

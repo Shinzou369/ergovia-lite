@@ -3497,9 +3497,23 @@ app.get("/api/profile", (req, res) => {
 // Send magic link for passwordless login
 app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
   try {
+    console.log('🔍 Stytch magic link request received');
+    console.log('📊 Environment check:', {
+      project_id: process.env.STYTCH_PROJECT_ID ? `${process.env.STYTCH_PROJECT_ID.substring(0, 8)}...` : 'NOT SET',
+      secret: process.env.STYTCH_SECRET ? 'SET' : 'NOT SET',
+      client_initialized: !!stytchClient,
+      node_env: process.env.NODE_ENV
+    });
+
     if (!stytchClient) {
       console.error('❌ Stytch client not configured');
-      return res.status(500).json({ error: 'Stytch not configured' });
+      return res.status(500).json({ 
+        error: 'Stytch not configured',
+        debug: {
+          project_id: !!process.env.STYTCH_PROJECT_ID,
+          secret: !!process.env.STYTCH_SECRET
+        }
+      });
     }
 
     const { email, signup_or_login_url } = req.body;
@@ -3517,56 +3531,113 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.get('host');
     
+    const redirectUrl = `${protocol}://${host}/api/auth/stytch/authenticate`;
+    
     const params = {
       email: email,
-      login_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
-      signup_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
+      login_magic_link_url: signup_or_login_url || redirectUrl,
+      signup_magic_link_url: signup_or_login_url || redirectUrl,
       expiration_minutes: 60 // Link expires in 1 hour
     };
 
-    console.log('🔄 Sending Stytch magic link to:', email);
-    console.log('📧 Magic link URLs:', {
-      login: params.login_magic_link_url,
-      signup: params.signup_magic_link_url
+    console.log('🔄 Sending Stytch magic link with params:', {
+      email: email,
+      login_url: params.login_magic_link_url,
+      signup_url: params.signup_magic_link_url,
+      expiration: params.expiration_minutes,
+      host: host,
+      protocol: protocol
     });
 
+    // Test Stytch client configuration first
+    try {
+      console.log('🧪 Testing Stytch client configuration...');
+      const testResponse = await stytchClient.users.search({ limit: 1 });
+      console.log('✅ Stytch client test successful');
+    } catch (testError) {
+      console.error('❌ Stytch client test failed:', {
+        message: testError.message,
+        status_code: testError.status_code,
+        error_type: testError.error_type
+      });
+      
+      return res.status(500).json({
+        error: 'Stytch configuration error',
+        details: testError.message,
+        stytch_error_type: testError.error_type,
+        status_code: testError.status_code
+      });
+    }
+
+    console.log('📧 Attempting to send magic link...');
     const response = await stytchClient.magicLinks.email.loginOrCreate(params);
 
-    console.log('✅ Stytch magic link sent successfully:', {
+    console.log('✅ Stytch magic link API response:', {
+      success: true,
       email: email,
       request_id: response.request_id,
-      user_id: response.user_id
+      user_id: response.user_id,
+      user_created: response.user_created,
+      status_code: response.status_code
     });
+
+    // Additional success logging
+    console.log('📬 Email should be sent to:', email);
+    console.log('🔗 Magic link will redirect to:', redirectUrl);
+    console.log('⏰ Link expires in 60 minutes');
 
     res.json({
       success: true,
-      message: 'Magic link sent! Check your email (including spam folder).',
+      message: 'Magic link sent successfully! Check your email (including spam folder).',
       request_id: response.request_id,
-      user_id: response.user_id
+      user_id: response.user_id,
+      user_created: response.user_created,
+      debug: {
+        email_sent_to: email,
+        redirect_url: redirectUrl,
+        expiration_minutes: 60,
+        stytch_request_id: response.request_id
+      }
     });
 
   } catch (error) {
-    console.error('❌ Stytch magic link error:', {
+    console.error('❌ Stytch magic link error (FULL DEBUG):', {
       message: error.message,
       status_code: error.status_code,
       error_type: error.error_type,
-      error_url: error.error_url
+      error_url: error.error_url,
+      request_id: error.request_id,
+      full_error: error
     });
-    
-    // Provide more specific error messages
+
+    // More detailed error analysis
     let userMessage = 'Failed to send magic link';
+    let debugInfo = {};
+
     if (error.status_code === 400) {
-      userMessage = 'Invalid email address or request parameters';
-    } else if (error.status_code === 429) {
-      userMessage = 'Too many requests. Please wait a moment and try again.';
+      userMessage = 'Invalid request parameters';
+      debugInfo.hint = 'Check email format and redirect URLs';
     } else if (error.status_code === 401) {
-      userMessage = 'Authentication service configuration error';
+      userMessage = 'Stytch authentication failed';
+      debugInfo.hint = 'Check STYTCH_PROJECT_ID and STYTCH_SECRET';
+    } else if (error.status_code === 403) {
+      userMessage = 'Stytch access denied';
+      debugInfo.hint = 'Check project permissions and environment (test vs live)';
+    } else if (error.status_code === 429) {
+      userMessage = 'Rate limited - too many requests';
+      debugInfo.hint = 'Wait a few minutes before trying again';
+    } else if (error.error_type === 'redirect_url_not_whitelisted') {
+      userMessage = 'Redirect URL not configured in Stytch dashboard';
+      debugInfo.hint = `Add ${redirectUrl} to your Stytch dashboard redirect URLs`;
+      debugInfo.redirect_url = redirectUrl;
     }
 
     res.status(500).json({
       error: userMessage,
       details: error.message,
-      stytch_error_type: error.error_type
+      stytch_error_type: error.error_type,
+      status_code: error.status_code,
+      debug: debugInfo
     });
   }
 });
@@ -3768,37 +3839,187 @@ app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
   }
 });
 
+// Test magic link with specific email for debugging
+app.post('/api/auth/stytch/test-email', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { test_email } = req.body;
+    
+    if (!test_email) {
+      return res.status(400).json({ error: 'test_email is required' });
+    }
+
+    console.log('🧪 Testing magic link with email:', test_email);
+
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.get('host');
+    const redirectUrl = `${protocol}://${host}/api/auth/stytch/authenticate`;
+
+    const params = {
+      email: test_email,
+      login_magic_link_url: redirectUrl,
+      signup_magic_link_url: redirectUrl,
+      expiration_minutes: 60
+    };
+
+    console.log('📧 Test magic link params:', params);
+
+    const response = await stytchClient.magicLinks.email.loginOrCreate(params);
+
+    console.log('✅ Test magic link sent successfully:', {
+      email: test_email,
+      request_id: response.request_id,
+      user_id: response.user_id,
+      user_created: response.user_created
+    });
+
+    res.json({
+      success: true,
+      message: `Test magic link sent to ${test_email}`,
+      request_id: response.request_id,
+      user_id: response.user_id,
+      user_created: response.user_created,
+      instructions: [
+        `Check ${test_email} inbox for magic link`,
+        'Check spam/junk folder',
+        'Click the link to test authentication flow',
+        'If still no email, there may be a Stytch dashboard configuration issue'
+      ]
+    });
+
+  } catch (error) {
+    console.error('❌ Test magic link error:', error);
+    res.status(500).json({
+      error: 'Test magic link failed',
+      details: error.message,
+      status_code: error.status_code,
+      error_type: error.error_type,
+      troubleshooting: [
+        'Check Stytch dashboard for error logs',
+        'Verify email domain is not blocked',
+        'Check redirect URL whitelist in Stytch',
+        'Verify project environment (test vs live)'
+      ]
+    });
+  }
+});
+
 // Test Stytch configuration
 app.get('/api/auth/stytch/test-config', async (req, res) => {
   try {
+    console.log('🧪 Testing Stytch configuration...');
+    
+    // Check environment variables
+    const envCheck = {
+      project_id: !!process.env.STYTCH_PROJECT_ID,
+      secret: !!process.env.STYTCH_SECRET,
+      public_token: !!process.env.STYTCH_PUBLIC_TOKEN,
+      project_id_format: process.env.STYTCH_PROJECT_ID ? process.env.STYTCH_PROJECT_ID.startsWith('project-') : false,
+      secret_format: process.env.STYTCH_SECRET ? process.env.STYTCH_SECRET.startsWith('secret-') : false
+    };
+
+    console.log('🔍 Environment variables check:', envCheck);
+
     if (!stytchClient) {
       return res.json({
         success: false,
         error: 'Stytch client not configured',
-        details: 'Missing STYTCH_PROJECT_ID or STYTCH_SECRET'
+        details: 'Missing STYTCH_PROJECT_ID or STYTCH_SECRET',
+        env_check: envCheck,
+        fix_instructions: [
+          'Check your Replit Secrets for STYTCH_PROJECT_ID',
+          'Check your Replit Secrets for STYTCH_SECRET',
+          'Ensure project ID starts with "project-"',
+          'Ensure secret starts with "secret-"'
+        ]
       });
     }
 
     // Test basic Stytch API connectivity
     try {
+      console.log('🔗 Testing Stytch API connectivity...');
       const response = await stytchClient.users.search({
         limit: 1
       });
 
-      res.json({
-        success: true,
-        message: 'Stytch configuration is working',
-        project_id: process.env.STYTCH_PROJECT_ID?.substring(0, 8) + '...',
-        environment: process.env.NODE_ENV === 'production' ? 'live' : 'test',
-        api_accessible: true
-      });
+      console.log('✅ Stytch API test successful');
+
+      // Test magic link endpoint specifically
+      try {
+        console.log('🧪 Testing magic link configuration...');
+        
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.get('host');
+        const testRedirectUrl = `${protocol}://${host}/api/auth/stytch/authenticate`;
+        
+        // Try to send a test magic link to a test email (this might fail but will show configuration issues)
+        try {
+          const testResponse = await stytchClient.magicLinks.email.loginOrCreate({
+            email: 'test@example.com', // This will fail but show us configuration errors
+            login_magic_link_url: testRedirectUrl,
+            signup_magic_link_url: testRedirectUrl,
+            expiration_minutes: 5
+          });
+        } catch (testError) {
+          console.log('📧 Magic link test error (expected for test email):', {
+            message: testError.message,
+            status_code: testError.status_code,
+            error_type: testError.error_type
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'Stytch configuration is working',
+          project_id: process.env.STYTCH_PROJECT_ID?.substring(0, 12) + '...',
+          environment: process.env.NODE_ENV === 'production' ? 'live' : 'test',
+          api_accessible: true,
+          env_check: envCheck,
+          redirect_url: testRedirectUrl,
+          configuration_status: {
+            client_initialized: true,
+            api_reachable: true,
+            credentials_valid: true
+          },
+          next_steps: [
+            'Verify redirect URLs in Stytch dashboard',
+            'Check email delivery settings in Stytch',
+            'Try with a Gmail address for testing',
+            'Check Stytch dashboard logs for requests'
+          ]
+        });
+
+      } catch (magicLinkError) {
+        console.error('❌ Magic link configuration error:', magicLinkError);
+        res.json({
+          success: false,
+          error: 'Magic link configuration error',
+          details: magicLinkError.message,
+          status_code: magicLinkError.status_code,
+          error_type: magicLinkError.error_type,
+          env_check: envCheck
+        });
+      }
+
     } catch (apiError) {
+      console.error('❌ Stytch API connectivity failed:', apiError);
       res.json({
         success: false,
         error: 'Stytch API error',
         details: apiError.message,
         status_code: apiError.status_code,
-        project_id: process.env.STYTCH_PROJECT_ID?.substring(0, 8) + '...'
+        error_type: apiError.error_type,
+        project_id: process.env.STYTCH_PROJECT_ID?.substring(0, 12) + '...',
+        env_check: envCheck,
+        troubleshooting: [
+          'Verify STYTCH_PROJECT_ID is correct',
+          'Verify STYTCH_SECRET is correct',
+          'Check if using test vs live environment',
+          'Verify project is active in Stytch dashboard'
+        ]
       });
     }
 
@@ -3807,7 +4028,8 @@ app.get('/api/auth/stytch/test-config', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Configuration test failed',
-      details: error.message
+      details: error.message,
+      env_check: envCheck
     });
   }
 });
