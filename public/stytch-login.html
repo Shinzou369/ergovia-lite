@@ -1,30 +1,53 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stytch Affiliate Login</title>
+    <title>ERGOVIA-AI Affiliate Login</title>
+    <link rel="icon" href="CHROME.png" type="image/png">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Questrial:wght@400&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
         :root {
-            --primary: #FFD700;
-            --secondary: #B8860B;
-            --accent: #FFA500;
-            --bg-primary: #0a0f1c;
-            --bg-secondary: #1a1f2e;
-            --bg-tertiary: #2a2f3e;
+            /* ERGOVIA-AI Brand Colors - Brown to Yellow Gradient */
+            --primary-gradient: linear-gradient(180deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
+            --secondary-gradient: linear-gradient(180deg, #6B5B1A 0%, #FFD700 100%);
+            --ergovia-navy: linear-gradient(180deg, #6B5B1A 0%, #8B7E2A 100%);
+            --ergovia-gold: linear-gradient(180deg, #8B7E2A 0%, #B8A548 50%, #FFD700 100%);
+            --ergovia-text-gradient: linear-gradient(180deg, #6B5B1A, #8B7E2A, #B8A548, #FFD700);
+            
+            --font-heading: 'Questrial', 'Inter', system-ui, sans-serif;
+            --font-body: 'Questrial', 'Inter', system-ui, sans-serif;
+            
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+            --bg-chat: #1e2139;
+            
             --text-primary: #ffffff;
-            --text-secondary: #b0b8c8;
+            --text-secondary: #b8bcc8;
             --text-muted: #6b7280;
-            --border-color: rgba(255, 215, 0, 0.2);
-            --border-light: rgba(255, 215, 0, 0.3);
+            
+            --border-color: #2d3748;
+            --border-light: #374151;
+            
             --success: #10b981;
             --error: #ef4444;
             --warning: #f59e0b;
+            
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --shadow-xl: 0 20px 25px -5px rgba(107, 91, 26, 0.3), 0 8px 10px -6px rgba(107, 91, 26, 0.2);
+            
             --radius: 12px;
             --radius-lg: 16px;
-            --transition: all 0.3s ease;
+            --radius-xl: 24px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            --primary: #B8A548;
+            --secondary: #FFD700;
+            --accent: #8B7E2A;
         }
 
         * {
@@ -34,7 +57,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font-body);
             background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             color: var(--text-primary);
             min-height: 100vh;
@@ -42,15 +65,16 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            line-height: 1.6;
         }
 
         .auth-container {
             background: var(--bg-secondary);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-xl);
             padding: 48px;
             max-width: 480px;
             width: 100%;
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-xl);
             border: 1px solid var(--border-color);
             position: relative;
             overflow: hidden;
@@ -64,7 +88,7 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+            background: var(--primary-gradient);
         }
 
         .auth-header {
@@ -89,10 +113,11 @@
         .auth-logo-text {
             font-size: 2rem;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, var(--secondary) 100%);
+            background: var(--ergovia-text-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            font-family: var(--font-heading);
             letter-spacing: 0.02em;
         }
 
@@ -137,7 +162,7 @@
         }
 
         .auth-tab.active {
-            background: var(--primary);
+            background: var(--primary-gradient);
             color: var(--bg-primary);
         }
 
@@ -173,12 +198,13 @@
             font-size: 1.05rem;
             transition: var(--transition);
             text-align: center;
+            font-family: var(--font-body);
         }
 
         .form-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 0 3px rgba(184, 165, 72, 0.1);
         }
 
         .form-input::placeholder {
@@ -188,7 +214,7 @@
         .submit-btn {
             width: 100%;
             padding: 16px 28px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: var(--primary-gradient);
             border: none;
             border-radius: var(--radius);
             color: var(--bg-primary);
@@ -199,11 +225,13 @@
             position: relative;
             overflow: hidden;
             margin-top: 8px;
+            font-family: var(--font-body);
         }
 
         .submit-btn:hover {
+            background: var(--ergovia-gold);
             transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 8px 25px rgba(184, 165, 72, 0.4);
         }
 
         .submit-btn:disabled {
@@ -264,9 +292,9 @@
             font-size: 0.85rem;
             margin-top: 32px;
             padding: 16px;
-            background: rgba(255, 215, 0, 0.05);
+            background: rgba(107, 91, 26, 0.1);
             border-radius: var(--radius);
-            border: 1px solid rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(107, 91, 26, 0.2);
             line-height: 1.4;
         }
 
@@ -338,11 +366,11 @@
     <div class="auth-container">
         <div class="auth-header">
             <div class="auth-logo">
-                <img src="https://stytch.com/static/images/stytch-logo.svg" alt="Stytch Logo">
-                <div class="auth-logo-text">Stytch</div>
+                <img src="CHROME.png" alt="ERGOVIA-AI Logo">
+                <div class="auth-logo-text">ERGOVIA-AI</div>
             </div>
-            <h1 class="auth-title">Welcome to your Affiliate Portal</h1>
-            <p class="auth-subtitle">Enter your details below to sign in securely.</p>
+            <h1 class="auth-title">Affiliate Portal Access</h1>
+            <p class="auth-subtitle">Secure passwordless authentication for ERGOVIA-AI affiliates</p>
         </div>
 
         <div id="message"></div>
@@ -377,12 +405,6 @@
                 <button type="button" id="otpSubmit" class="submit-btn">Verify & Sign In</button>
             </div>
         </form>
-
-        <div class="submit-btn-container">
-            <button type="button" class="submit-btn secondary" id="resendCode">
-                Resend Code
-            </button>
-        </div>
 
         <div class="security-note">
             🔒 Secure affiliate access powered by passwordless authentication
@@ -441,15 +463,6 @@
             await verifyOTP();
         });
 
-        // Resend code functionality
-        document.getElementById('resendCode').addEventListener('click', async () => {
-            if (phoneNumber) {
-                document.getElementById('phone').value = phoneNumber;
-                switchMethod('sms');
-                await sendSMSCode();
-            }
-        });
-
         async function sendMagicLink() {
             const email = document.getElementById('email').value;
             const submitBtn = document.getElementById('emailSubmit');
@@ -491,7 +504,7 @@
                 return;
             }
 
-            phoneNumber = phone; // Store for resend functionality
+            phoneNumber = phone;
             setLoading(submitBtn, true, 'Sending Code...');
 
             try {
@@ -555,7 +568,6 @@
                         if (data.needs_completion) {
                             window.location.href = '/complete-signup';
                         } else {
-                            // Affiliate users go directly to chat
                             const urlParams = new URLSearchParams(window.location.search);
                             const returnTo = urlParams.get('return_to') || '/chat';
                             window.location.href = returnTo;
