@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Automation Setup - ERGOVIA-AI</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .automation-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .automation-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .automation-form {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-section {
+            margin-bottom: 32px;
+        }
+
+        .form-section h3 {
+            color: var(--primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .feature-card.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .feature-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .setup-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 24px;
+            transition: all 0.2s ease;
+        }
+
+        .setup-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .setup-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .bot-preview {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
+            white-space: pre-line;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="automation-container">
+        <div class="automation-header">
+            <h1>🤖 Setup Your Telegram Automation</h1>
+            <p>Configure your personal business bot with smart automation features</p>
+        </div>
+
+        <div class="automation-form">
+            <div class="form-section">
+                <h3>📊 Business Information</h3>
+                
+                <div class="form-group">
+                    <label for="businessName">Business Name</label>
+                    <input type="text" id="businessName" placeholder="e.g., Happy Paws Veterinary Clinic" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="businessType">Business Type</label>
+                    <select id="businessType" onchange="updateFeatures()">
+                        <option value="general">General Business</option>
+                        <option value="dental">Dental/Pet Clinic</option>
+                        <option value="gym">Gym/Fitness</option>
+                        <option value="restaurant">Restaurant/Food</option>
+                        <option value="retail">Retail/Shop</option>
+                        <option value="service">Service Provider</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="businessHours">Business Hours</label>
+                    <textarea id="businessHours" rows="3" placeholder="Monday-Friday: 9AM-5PM&#10;Saturday: 10AM-3PM&#10;Sunday: Closed"></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>🚀 Automation Features</h3>
+                <p>Select the features you want your bot to handle automatically:</p>
+                
+                <div class="feature-grid" id="featureGrid">
+                    <!-- Features will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>💬 Custom Responses</h3>
+                
+                <div class="form-group">
+                    <label for="welcomeMessage">Welcome Message</label>
+                    <textarea id="welcomeMessage" rows="3" placeholder="Welcome to our business! How can we help you today?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="contactInfo">Contact Information</label>
+                    <textarea id="contactInfo" rows="3" placeholder="📞 Phone: +1-555-123-4567&#10;📧 Email: contact@business.com&#10;📍 Address: 123 Business St"></textarea>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <h4>🔍 Bot Preview</h4>
+                <div class="bot-preview" id="botPreview">
+                    Enter your business information above to see a preview of your bot...
+                </div>
+            </div>
+
+            <button class="setup-btn" onclick="setupAutomation()" id="setupBtn">
+                🚀 Create My Automation Bot
+            </button>
+
+            <div id="setupResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const features = {
+            general: [
+                { id: 'hours', name: 'Business Hours', desc: 'Respond to hour inquiries' },
+                { id: 'contact', name: 'Contact Info', desc: 'Share contact details' },
+                { id: 'services', name: 'Service Info', desc: 'Describe your services' },
+                { id: 'faq', name: 'FAQ Responses', desc: 'Answer common questions' }
+            ],
+            dental: [
+                { id: 'appointment', name: 'Appointment Booking', desc: 'Schedule appointments' },
+                { id: 'emergency', name: 'Emergency Info', desc: 'Emergency contact details' },
+                { id: 'services', name: 'Dental Services', desc: 'List dental services' },
+                { id: 'reminders', name: 'Appointment Reminders', desc: 'Send appointment reminders' },
+                { id: 'hours', name: 'Clinic Hours', desc: 'Operating hours info' }
+            ],
+            gym: [
+                { id: 'classes', name: 'Class Schedule', desc: 'Show class timetables' },
+                { id: 'membership', name: 'Membership Info', desc: 'Membership plans & pricing' },
+                { id: 'booking', name: 'Class Booking', desc: 'Book classes/sessions' },
+                { id: 'hours', name: 'Gym Hours', desc: 'Operating hours' }
+            ],
+            restaurant: [
+                { id: 'menu', name: 'Menu Display', desc: 'Show menu items' },
+                { id: 'ordering', name: 'Order Taking', desc: 'Process orders' },
+                { id: 'reservation', name: 'Reservations', desc: 'Table booking' },
+                { id: 'hours', name: 'Restaurant Hours', desc: 'Opening hours & days' }
+            ],
+            retail: [
+                { id: 'inventory', name: 'Product Info', desc: 'Product availability' },
+                { id: 'orders', name: 'Order Status', desc: 'Check order status' },
+                { id: 'hours', name: 'Store Hours', desc: 'Store operating hours' },
+                { id: 'location', name: 'Store Location', desc: 'Store locations & directions' }
+            ],
+            service: [
+                { id: 'booking', name: 'Service Booking', desc: 'Schedule service appointments' },
+                { id: 'quotes', name: 'Quote Requests', desc: 'Handle quote requests' },
+                { id: 'hours', name: 'Service Hours', desc: 'Service availability' },
+                { id: 'portfolio', name: 'Work Portfolio', desc: 'Show previous work' }
+            ]
+        };
+
+        let selectedFeatures = [];
+
+        function updateFeatures() {
+            const businessType = document.getElementById('businessType').value;
+            const featureGrid = document.getElementById('featureGrid');
+            
+            featureGrid.innerHTML = '';
+            selectedFeatures = [];
+
+            features[businessType].forEach(feature => {
+                const featureCard = document.createElement('div');
+                featureCard.className = 'feature-card';
+                featureCard.onclick = () => toggleFeature(feature.id, featureCard);
+                
+                featureCard.innerHTML = `
+                    <h4>${feature.name}</h4>
+                    <p>${feature.desc}</p>
+                `;
+                
+                featureGrid.appendChild(featureCard);
+            });
+            
+            updatePreview();
+        }
+
+        function toggleFeature(featureId, cardElement) {
+            if (selectedFeatures.includes(featureId)) {
+                selectedFeatures = selectedFeatures.filter(f => f !== featureId);
+                cardElement.classList.remove('selected');
+            } else {
+                selectedFeatures.push(featureId);
+                cardElement.classList.add('selected');
+            }
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const businessName = document.getElementById('businessName').value || 'Your Business';
+            const businessType = document.getElementById('businessType').value;
+            const welcomeMessage = document.getElementById('welcomeMessage').value || 'Welcome! How can we help you today?';
+            
+            const typeEmojis = {
+                general: '🏢',
+                dental: '🦷',
+                gym: '💪',
+                restaurant: '🍽️',
+                retail: '🛒',
+                service: '🔧'
+            };
+
+            const preview = `🤖 Welcome to ${businessName} Bot! ${typeEmojis[businessType]}
+
+${welcomeMessage}
+
+📋 Available Commands:
+/start - Start the bot and see menu
+/help - Get help and available commands
+${selectedFeatures.map(f => {
+                const feature = features[businessType].find(feat => feat.id === f);
+                return `/${f} - ${feature.desc}`;
+            }).join('\n')}
+
+Type /help for more options or use the menu below.`;
+
+            document.getElementById('botPreview').textContent = preview;
+        }
+
+        async function setupAutomation() {
+            const businessName = document.getElementById('businessName').value;
+            const businessType = document.getElementById('businessType').value;
+            const businessHours = document.getElementById('businessHours').value;
+            const welcomeMessage = document.getElementById('welcomeMessage').value;
+            const contactInfo = document.getElementById('contactInfo').value;
+
+            if (!businessName.trim()) {
+                alert('Please enter a business name');
+                return;
+            }
+
+            const setupBtn = document.getElementById('setupBtn');
+            setupBtn.disabled = true;
+            setupBtn.innerHTML = '⏳ Setting up automation...';
+
+            try {
+                const response = await fetch('/api/telegram/create-automation-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        business_name: businessName,
+                        business_type: businessType,
+                        business_hours: businessHours,
+                        welcome_message: welcomeMessage,
+                        contact_info: contactInfo,
+                        features: selectedFeatures
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('setupResult').innerHTML = `
+                        <div class="success-message">
+                            <h3>🎉 Automation Bot Created Successfully!</h3>
+                            <p><strong>Bot:</strong> @${result.bot_username}</p>
+                            <p><strong>Features:</strong> ${result.features.join(', ')}</p>
+                            <p>Your bot is now ready to handle customer inquiries automatically!</p>
+                            <br>
+                            <a href="/chat" style="color: var(--primary); text-decoration: none; font-weight: 600;">→ Go to Dashboard</a>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Setup failed');
+                }
+
+            } catch (error) {
+                document.getElementById('setupResult').innerHTML = `
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--error); padding: 16px; border-radius: var(--radius); margin-top: 20px;">
+                        <strong>Setup Failed:</strong> ${error.message}
+                    </div>
+                `;
+            }
+
+            setupBtn.disabled = false;
+            setupBtn.innerHTML = '🚀 Create My Automation Bot';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateFeatures();
+            
+            // Update preview when inputs change
+            ['businessName', 'businessType', 'welcomeMessage'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updatePreview);
+            });
+        });
+    </script>
+</body>
+</html>

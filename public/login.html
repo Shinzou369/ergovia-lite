@@ -192,6 +192,30 @@
       box-shadow: var(--shadow);
     }
 
+    .telegram-auth-btn {
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #0088cc, #00a0e4);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: var(--transition);
+      margin-bottom: 24px;
+    }
+
+    .telegram-auth-btn:hover {
+      background: linear-gradient(135deg, #0077b3, #0088cc);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+    }
+
     .google-auth-btn:active {
       transform: translateY(0);
     }
@@ -376,6 +400,17 @@
         <span>or</span>
       </div>
 
+      <button class="telegram-auth-btn" onclick="loginWithTelegram()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16l-1.58 7.44c-.12.54-.43.67-.87.42l-2.4-1.77-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.43 4.46-4.03c.19-.17-.04-.27-.3-.1L9.28 13.38l-2.38-.75c-.52-.16-.53-.52.11-.77l9.28-3.58c.43-.16.81.1.67.77z"/>
+        </svg>
+        Continue with Telegram
+      </button>
+
+      <div class="divider">
+        <span>or</span>
+      </div>
+
       <div class="auth-links">
         <p>Don't have an account? <a href="/signup" class="auth-link">Sign up</a></p>
       </div>
@@ -389,6 +424,10 @@
   <script>
     function loginWithGoogle() {
       window.location.href = '/set-auth-intent/login';
+    }
+
+    function loginWithTelegram() {
+      window.location.href = '/telegram-auth';
     }
 
     // Check for error parameter
