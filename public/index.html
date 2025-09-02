@@ -738,7 +738,7 @@
     </nav>
 
     <!-- Login Button -->
-    <button class="login-btn" onclick="initiateGoogleLogin()" title="Already have an account? Login">
+    <button class="login-btn" onclick="window.location.href='/stytch-login.html'" title="Already have an account? Login">
       <i data-lucide="log-in" id="login-icon"></i>
     </button>
 
@@ -832,9 +832,9 @@
         window.location.href = '/taskforce.html';
       }
 
-      // Google login function
-      function initiateGoogleLogin() {
-        window.location.href = '/auth/google';
+      // Stytch login function
+      function initiateStytchLogin() {
+        window.location.href = '/stytch-login.html';
       }
 
       // Initialize page after DOM loads
