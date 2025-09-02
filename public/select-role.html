@@ -215,6 +215,15 @@
   <script>
     async function selectRole(role) {
       try {
+        // For affiliates, redirect to Stytch login first
+        if (role === 'affiliate') {
+          // Store the role selection intent and redirect to Stytch
+          sessionStorage.setItem('pendingRole', 'affiliate');
+          window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat') + '&from=role-selection';
+          return;
+        }
+
+        // For clients, use existing Google OAuth flow
         const response = await fetch('/api/select-role', {
           method: 'POST',
           headers: {
@@ -226,10 +235,8 @@
         const data = await response.json();
 
         if (data.success) {
-          // Redirect based on role - affiliates go to chat, clients go to taskforce
-          if (role === 'affiliate') {
-            window.location.href = '/chat';
-          } else if (role === 'client') {
+          // Clients go to taskforce
+          if (role === 'client') {
             window.location.href = '/taskforce';
           } else {
             window.location.href = data.redirectTo;

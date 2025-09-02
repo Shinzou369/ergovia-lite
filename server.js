@@ -3589,18 +3589,27 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email);
 
-    // Redirect based on user completion status and role
+    // For Stytch users, automatically assign affiliate role
+    const existingUser = findUserByEmail(userData.email);
+    if (existingUser) {
+      existingUser.role = 'affiliate';
+      existingUser.needsRoleSelection = false;
+      saveUser(existingUser);
+    } else {
+      // Create new user with affiliate role
+      const newUser = {
+        googleId: userData.stytch_user_id,
+        ...userData,
+        role: 'affiliate',
+        needsRoleSelection: false
+      };
+      saveUser(newUser);
+    }
+
+    // Redirect based on completion status
     if (userData.isComplete) {
-      // Get existing user data to check role
-      const existingUser = findUserByEmail(userData.email);
-      if (existingUser && existingUser.role) {
-        // User has role, redirect to appropriate page
-        const targetPage = existingUser.role === 'affiliate' ? '/chat' : '/taskforce';
-        res.redirect(targetPage);
-      } else {
-        // User needs role selection
-        res.redirect('/select-role');
-      }
+      // Affiliate users go directly to chat
+      res.redirect('/chat');
     } else {
       res.redirect('/complete-signup');
     }
@@ -3681,11 +3690,32 @@ app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
 
     console.log('✅ Stytch OTP authentication successful for:', userData.email || userData.phone);
 
+    // For Stytch users, automatically assign affiliate role
+    const existingUser = findUserByEmail(userData.email || userData.phone);
+    if (existingUser) {
+      existingUser.role = 'affiliate';
+      existingUser.needsRoleSelection = false;
+      existingUser.authMethod = 'stytch';
+      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
+      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
+      saveUser(existingUser);
+    } else {
+      // Create new user with affiliate role
+      const newUser = {
+        googleId: userData.stytch_user_id,
+        ...userData,
+        role: 'affiliate',
+        needsRoleSelection: false
+      };
+      saveUser(newUser);
+    }
+
     res.json({
       success: true,
       message: 'Authentication successful!',
-      user: userData,
-      needs_completion: !userData.email
+      user: { ...userData, role: 'affiliate' },
+      needs_completion: !userData.email,
+      redirect_to: '/chat'
     });
 
   } catch (error) {

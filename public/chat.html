@@ -807,16 +807,47 @@
           const response = await fetch('/api/auth/status');
           const authData = await response.json();
           
-          // If user is not authenticated, redirect to Stytch login with return URL
+          // If user is not authenticated, redirect to Stytch login for affiliates
           if (!authData.authenticated) {
-            console.log('User not authenticated, redirecting to Stytch login...');
-            window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat');
+            console.log('Affiliate not authenticated, redirecting to Stytch login...');
+            window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat') + '&from=affiliate-access';
             return false;
           }
           
           // If user is authenticated but doesn't have affiliate role, redirect to role selection
           if (!authData.user.role || authData.user.needsRoleSelection) {
-            console.log('User needs role selection, redirecting...');
+            console.log('User needs role selection...');
+            window.location.href = '/select-role';
+            return false;
+          }
+          
+          // If user has a role but it's not affiliate, redirect to appropriate page
+          if (authData.user.role && authData.user.role !== 'affiliate') {
+            console.log('User is not an affiliate, redirecting to appropriate page...');
+            window.location.href = authData.user.role === 'client' ? '/taskforce' : '/select-role';
+            return false;
+          }
+          
+          console.log('✅ Affiliate authenticated successfully');
+          return true;
+          
+        } catch (error) {
+          console.error('Auth check error:', error);
+          window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat') + '&error=network';
+          return false;
+        }
+      }
+
+      // Initialize page - check authentication first
+      document.addEventListener('DOMContentLoaded', async () => {
+        const isAuthenticated = await checkAffiliateAuth();
+        if (!isAuthenticated) {
+          return; // Redirect already happened
+        }
+        
+        // If we reach here, user is authenticated as affiliate
+        // Continue with chat initialization
+        console.log('Initializing affiliate chat interface...ction, redirecting...');
             window.location.href = '/select-role';
             return false;
           }
