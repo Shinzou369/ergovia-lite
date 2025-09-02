@@ -3589,9 +3589,18 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email);
 
-    // Redirect based on user completion status
+    // Redirect based on user completion status and role
     if (userData.isComplete) {
-      res.redirect('/chat');
+      // Get existing user data to check role
+      const existingUser = findUserByEmail(userData.email);
+      if (existingUser && existingUser.role) {
+        // User has role, redirect to appropriate page
+        const targetPage = existingUser.role === 'affiliate' ? '/chat' : '/taskforce';
+        res.redirect(targetPage);
+      } else {
+        // User needs role selection
+        res.redirect('/select-role');
+      }
     } else {
       res.redirect('/complete-signup');
     }
@@ -4528,6 +4537,12 @@ app.get("/select-role", (req, res) => {
 // Serve the frontend
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Chat page route with affiliate authentication check
+app.get("/chat", (req, res) => {
+  // For now, serve the chat page directly - authentication will be handled by client-side JavaScript
+  res.sendFile(path.join(__dirname, "public", "chat.html"));
 });
 
 // Serve token dashboard

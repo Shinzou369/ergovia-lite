@@ -226,8 +226,14 @@
         const data = await response.json();
 
         if (data.success) {
-          // Redirect based on role
-          window.location.href = data.redirectTo;
+          // Redirect based on role - affiliates go to chat, clients go to taskforce
+          if (role === 'affiliate') {
+            window.location.href = '/chat';
+          } else if (role === 'client') {
+            window.location.href = '/taskforce';
+          } else {
+            window.location.href = data.redirectTo;
+          }
         } else {
           alert('Error selecting role: ' + data.error);
         }

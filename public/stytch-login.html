@@ -521,7 +521,10 @@
                         if (data.needs_completion) {
                             window.location.href = '/complete-signup';
                         } else {
-                            window.location.href = '/chat';
+                            // Check if user came from affiliate flow or should go to role selection
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const returnTo = urlParams.get('return_to') || '/select-role';
+                            window.location.href = returnTo;
                         }
                     }, 1500);
                 } else {

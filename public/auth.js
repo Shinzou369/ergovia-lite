@@ -62,9 +62,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function updateUIForLoggedInUser(user) {
   // Check if user needs role selection
   if (!user.role || user.needsRoleSelection) {
-    // Redirect to role selection page
-    window.location.href = '/select-role';
-    return;
+    // Only redirect to role selection if we're not already there
+    if (!window.location.pathname.includes('select-role')) {
+      window.location.href = '/select-role';
+      return;
+    }
+  }
+
+  // If user has a role, check if they're on the right page
+  if (user.role) {
+    const currentPath = window.location.pathname;
+    
+    // Affiliate users should be on chat page, client users on taskforce
+    if (user.role === 'affiliate' && currentPath === '/chat') {
+      // Affiliate on correct page, continue with initialization
+    } else if (user.role === 'client' && currentPath === '/taskforce') {
+      // Client on correct page, continue with initialization  
+    } else if (currentPath === '/select-role') {
+      // User is on role selection page, let them complete it
+      return;
+    } else {
+      // User is on wrong page for their role, redirect appropriately
+      const targetPage = user.role === 'affiliate' ? '/chat' : '/taskforce';
+      if (currentPath !== targetPage) {
+        console.log(`Redirecting ${user.role} to appropriate page: ${targetPage}`);
+        window.location.href = targetPage;
+        return;
+      }
+    }
   }
 
   // Set global login state

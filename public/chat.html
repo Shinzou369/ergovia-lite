@@ -801,13 +801,60 @@
         }
       }
 
+      // Check if user needs authentication for affiliate access
+      async function checkAffiliateAuth() {
+        try {
+          const response = await fetch('/api/auth/status');
+          const authData = await response.json();
+          
+          // If user is not authenticated, redirect to Stytch login with return URL
+          if (!authData.authenticated) {
+            console.log('User not authenticated, redirecting to Stytch login...');
+            window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat');
+            return false;
+          }
+          
+          // If user is authenticated but doesn't have affiliate role, redirect to role selection
+          if (!authData.user.role || authData.user.needsRoleSelection) {
+            console.log('User needs role selection, redirecting...');
+            window.location.href = '/select-role';
+            return false;
+          }
+          
+          // If user has client role, redirect to taskforce
+          if (authData.user.role === 'client') {
+            console.log('Client user accessing affiliate area, redirecting to taskforce...');
+            window.location.href = '/taskforce';
+            return false;
+          }
+          
+          // User is authenticated affiliate, allow access
+          console.log('Authenticated affiliate user, allowing access to chat');
+          return true;
+          
+        } catch (error) {
+          console.error('Error checking auth status:', error);
+          // On error, redirect to Stytch login to be safe
+          window.location.href = '/stytch-login.html';
+          return false;
+        }
+      }
+
       // Initialize page after DOM loads
-      document.addEventListener("DOMContentLoaded", () => {
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Check authentication first for affiliate access
+        const isAuthorized = await checkAffiliateAuth();
+        
+        if (!isAuthorized) {
+          // Authentication check will handle redirect
+          return;
+        }
+        
         // Initialize Lucide icons AFTER DOM is loaded
         lucide.createIcons();
 
         // Simple initialization without content protection
-        console.log("ERGOVIA-AI initialized successfully");
+        console.log("ERGOVIA-AI chat initialized for authenticated affiliate");
 
         // Load auth.js functionality after protection is in place
         setTimeout(() => {
