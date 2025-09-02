@@ -4,7 +4,7 @@ modules = ["nodejs-20", "python-3.11", "web:v2-20230623-0b7a606"]
 
 [nix]
 channel = "stable-23_11"
-packages = ["run", "pup"]
+packages = ["pup", "run"]
 
 [deployment]
 publicDir = "public"
