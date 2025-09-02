@@ -3567,7 +3567,7 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     };
 
     // Store in your existing user system
-    const existingUser = findUserByEmail(userData.email);
+    let existingUser = findUserByEmail(userData.email);
     if (existingUser) {
       // Update existing user with Stytch data
       existingUser.stytch_user_id = userData.stytch_user_id;
@@ -3590,7 +3590,9 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     console.log('✅ Stytch authentication successful for:', userData.email);
 
     // For Stytch users, automatically assign affiliate role
-    const existingUser = findUserByEmail(userData.email);
+    if (!existingUser) {
+      existingUser = findUserByEmail(userData.email);
+    }
     if (existingUser) {
       existingUser.role = 'affiliate';
       existingUser.needsRoleSelection = false;
