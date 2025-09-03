@@ -3724,7 +3724,8 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     const return_to = req.session.stytch_return_to || '/chat';
 
     if (!token) {
-      return res.redirect('/chat?error=missing_token');
+      // If no token, show auth page instead of error
+      return res.redirect('/stytch-auth?return_to=' + encodeURIComponent(return_to));
     }
 
     const response = await stytchClient.magicLinks.authenticate({
