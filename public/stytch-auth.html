@@ -647,6 +647,14 @@
             }
         });
 
+        // Direct button click handler for email submit (backup)
+        document.getElementById('emailSubmit').addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (currentMethod === 'email') {
+                await sendMagicLink();
+            }
+        });
+
         // OTP verification
         document.getElementById('otpSubmit').addEventListener('click', async () => {
             await verifyOTP();
