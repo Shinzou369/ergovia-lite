@@ -506,15 +506,30 @@ const openai = new OpenAI({
 
 // Stytch configuration
 let stytchClient = null;
-if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
-  stytchClient = new stytch.Client({
-    project_id: process.env.STYTCH_PROJECT_ID,
-    secret: process.env.STYTCH_SECRET,
-    env: process.env.NODE_ENV === 'production' ? stytch.envs.live : stytch.envs.test
-  });
-  console.log('✅ Stytch client initialized');
-} else {
-  console.log('⚠️ Stytch not configured - missing STYTCH_PROJECT_ID or STYTCH_SECRET');
+try {
+  if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
+    const stytchEnv = process.env.NODE_ENV === 'production' ? stytch.envs.live : stytch.envs.test;
+    
+    stytchClient = new stytch.Client({
+      project_id: process.env.STYTCH_PROJECT_ID,
+      secret: process.env.STYTCH_SECRET,
+      env: stytchEnv
+    });
+    
+    console.log('✅ Stytch client initialized successfully:', {
+      project_id: process.env.STYTCH_PROJECT_ID.substring(0, 8) + '...',
+      environment: stytchEnv,
+      secret_length: process.env.STYTCH_SECRET.length
+    });
+  } else {
+    console.log('⚠️ Stytch not configured - missing environment variables:', {
+      STYTCH_PROJECT_ID: process.env.STYTCH_PROJECT_ID ? 'SET' : 'MISSING',
+      STYTCH_SECRET: process.env.STYTCH_SECRET ? 'SET' : 'MISSING'
+    });
+  }
+} catch (error) {
+  console.error('❌ Failed to initialize Stytch client:', error.message);
+  stytchClient = null;
 }
 
 // Passport configuration
@@ -1382,6 +1397,45 @@ app.get('/client-openai-dashboard', (req, res) => {
           `${workflow.new_name}: ${workflow.activation_error}`,
           'error'
         );
+
+
+// Test Stytch configuration endpoint
+app.get('/api/auth/stytch/test', async (req, res) => {
+  try {
+    const testResult = {
+      client_initialized: !!stytchClient,
+      project_id_set: !!process.env.STYTCH_PROJECT_ID,
+      secret_set: !!process.env.STYTCH_SECRET,
+      environment: process.env.NODE_ENV || 'development'
+    };
+
+    if (stytchClient && process.env.STYTCH_PROJECT_ID) {
+      // Test a simple API call to verify connection
+      try {
+        const projectResponse = await stytchClient.projects.get();
+        testResult.api_connection = 'success';
+        testResult.project_name = projectResponse.project?.project_name || 'unknown';
+      } catch (apiError) {
+        testResult.api_connection = 'failed';
+        testResult.api_error = apiError.message;
+        testResult.api_status_code = apiError.status_code;
+      }
+    } else {
+      testResult.api_connection = 'not_tested';
+      testResult.reason = 'Client not initialized or missing credentials';
+    }
+
+    console.log('🧪 Stytch test result:', testResult);
+    res.json(testResult);
+  } catch (error) {
+    console.error('❌ Stytch test error:', error);
+    res.status(500).json({
+      error: 'Test failed',
+      details: error.message
+    });
+  }
+});
+
       } else if (workflow.activation_status === 'activated') {
         logDeploymentEvent(
           client_id,
@@ -3516,21 +3570,41 @@ app.get("/api/profile", (req, res) => {
 // Send magic link for passwordless login
 app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
   try {
+    console.log('🔄 Magic link request received:', {
+      body: req.body,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'user-agent': req.headers['user-agent']
+      }
+    });
+
     if (!stytchClient) {
       console.error('❌ Stytch client not configured');
-      return res.status(500).json({ error: 'Stytch not configured' });
+      return res.status(500).json({ 
+        success: false,
+        error: 'Stytch not configured',
+        details: 'STYTCH_PROJECT_ID or STYTCH_SECRET missing'
+      });
     }
 
     const { email, signup_or_login_url } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      console.error('❌ No email provided in request');
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email is required' 
+      });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      console.error('❌ Invalid email format:', email);
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid email format' 
+      });
     }
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
@@ -3548,13 +3622,19 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       login: params.login_magic_link_url,
       signup: params.signup_magic_link_url
     });
+    console.log('🔧 Stytch client config:', {
+      project_id: process.env.STYTCH_PROJECT_ID ? 'SET' : 'MISSING',
+      secret: process.env.STYTCH_SECRET ? 'SET' : 'MISSING',
+      env: process.env.NODE_ENV
+    });
 
     const response = await stytchClient.magicLinks.email.loginOrCreate(params);
 
     console.log('✅ Stytch magic link sent successfully:', {
       email: email,
       request_id: response.request_id,
-      user_id: response.user_id
+      user_id: response.user_id,
+      status_code: response.status_code
     });
 
     res.json({
@@ -3569,23 +3649,38 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       message: error.message,
       status_code: error.status_code,
       error_type: error.error_type,
-      error_url: error.error_url
+      error_url: error.error_url,
+      stack: error.stack
     });
     
     // Provide more specific error messages
     let userMessage = 'Failed to send magic link';
+    let statusCode = 500;
+    
     if (error.status_code === 400) {
       userMessage = 'Invalid email address or request parameters';
+      statusCode = 400;
     } else if (error.status_code === 429) {
       userMessage = 'Too many requests. Please wait a moment and try again.';
+      statusCode = 429;
     } else if (error.status_code === 401) {
       userMessage = 'Authentication service configuration error';
+      statusCode = 500;
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      userMessage = 'Network error connecting to Stytch. Please try again.';
+      statusCode = 503;
     }
 
-    res.status(500).json({
+    res.status(statusCode).json({
+      success: false,
       error: userMessage,
       details: error.message,
-      stytch_error_type: error.error_type
+      stytch_error_type: error.error_type,
+      debug_info: {
+        project_id_set: !!process.env.STYTCH_PROJECT_ID,
+        secret_set: !!process.env.STYTCH_SECRET,
+        client_initialized: !!stytchClient
+      }
     });
   }
 });
