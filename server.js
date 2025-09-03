@@ -3724,7 +3724,7 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     const return_to = req.session.stytch_return_to || '/chat';
 
     if (!token) {
-      return res.redirect('/login?error=missing_token');
+      return res.redirect('/chat?error=missing_token');
     }
 
     const response = await stytchClient.magicLinks.authenticate({
@@ -3802,6 +3802,7 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     
     // Redirect based on completion status
     if (userData.isComplete) {
+      // Clear any error parameters and redirect to success URL
       res.redirect(redirectUrl);
     } else {
       res.redirect(`/complete-signup?return_to=${encodeURIComponent(redirectUrl)}`);
@@ -4349,14 +4350,34 @@ async function handleOAuthCallback(service, code, userEmail) {
 
 // Check authentication status endpoint
 app.get("/api/auth/status", (req, res) => {
-  const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
-    !!(req.user || req.session?.user || req.session?.stytch_session_id);
+  // Check Google OAuth authentication
+  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   
-  console.log('Auth status check - isAuthenticated:', isAuthenticated);
-  console.log('Session data:', req.session?.passport?.user ? 'Session exists' : 'No session');
+  // Check Stytch authentication
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
+  
+  const isAuthenticated = isGoogleAuth || isStytchAuth;
+  
+  console.log('Auth status check - Google:', isGoogleAuth, 'Stytch:', isStytchAuth, 'Overall:', isAuthenticated);
 
   if (!isAuthenticated) {
     return res.json({ authenticated: false, user: null });
+  }
+
+  // Handle Stytch user data
+  if (isStytchAuth && !isGoogleAuth) {
+    const stytchUser = req.session.user;
+    return res.json({
+      authenticated: true,
+      user: {
+        name: stytchUser.stytch_name || stytchUser.email,
+        email: stytchUser.email,
+        authMethod: 'stytch',
+        role: 'affiliate', // Stytch users are affiliates
+        isPremium: false,
+        isComplete: stytchUser.isComplete || true
+      }
+    });
   }
 
   // First check session for user data, then fallback to saved data
@@ -4765,9 +4786,26 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Chat page route with affiliate authentication check
+// Chat page route with authentication check
 app.get("/chat", (req, res) => {
-  // For now, serve the chat page directly - authentication will be handled by client-side JavaScript
+  // Check if user is authenticated via any method
+  const isAuthenticated = req.isAuthenticated() || 
+    req.session?.stytch_session_id || 
+    req.session?.user;
+
+  if (!isAuthenticated) {
+    // Check for Stytch error parameter to avoid infinite redirect
+    const hasError = req.query.error;
+    if (hasError) {
+      // User came from failed auth, show login page with error
+      return res.redirect(`/stytch-auth?error=${req.query.error}&return_to=/chat`);
+    } else {
+      // Normal case - redirect to auth
+      return res.redirect('/stytch-auth?return_to=/chat');
+    }
+  }
+
+  // User is authenticated, serve the chat page
   res.sendFile(path.join(__dirname, "public", "chat.html"));
 });
 
