@@ -4,25 +4,7 @@ async function checkAuthStatus() {
     const response = await fetch('/api/auth/status');
     const data = await response.json();
     
-    // Also check Stytch session if not authenticated via Google
-    if (!data.authenticated) {
-      try {
-        const stytchResponse = await fetch('/api/auth/stytch/session');
-        const stytchData = await stytchResponse.json();
-        if (stytchData.authenticated) {
-          return { 
-            authenticated: true, 
-            user: {
-              name: stytchData.user.name?.first_name + ' ' + stytchData.user.name?.last_name,
-              email: stytchData.user.emails?.[0]?.email,
-              authMethod: 'stytch'
-            }
-          };
-        }
-      } catch (stytchError) {
-        console.log('Stytch session check failed:', stytchError);
-      }
-    }
+    console.log('Auth status check result:', data);
     
     return data;
   } catch (error) {

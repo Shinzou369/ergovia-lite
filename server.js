@@ -2905,9 +2905,13 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
-  // Check authentication using multiple methods
-  const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
-    !!(req.user || req.session?.user || req.session?.stytch_session_id);
+  // Check Google OAuth authentication
+  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
+  
+  // Check Stytch authentication
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
+  
+  const isAuthenticated = isGoogleAuth || isStytchAuth;
 
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -4789,10 +4793,21 @@ app.get("/", (req, res) => {
 
 // Chat page route with authentication check
 app.get("/chat", (req, res) => {
-  // Check if user is authenticated via any method
-  const isAuthenticated = req.isAuthenticated() || 
-    req.session?.stytch_session_id || 
-    req.session?.user;
+  // Check Google OAuth authentication
+  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
+  
+  // Check Stytch authentication
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
+  
+  const isAuthenticated = isGoogleAuth || isStytchAuth;
+  
+  console.log('Chat route auth check:', {
+    googleAuth: isGoogleAuth,
+    stytchAuth: isStytchAuth,
+    stytchSessionId: !!req.session?.stytch_session_id,
+    sessionUser: !!req.session?.user,
+    authenticated: isAuthenticated
+  });
 
   if (!isAuthenticated) {
     // Check for Stytch error parameter to avoid infinite redirect
