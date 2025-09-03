@@ -3610,10 +3610,15 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.get('host');
     
+    // Use the production domain for Stytch URLs to match dashboard configuration
+    const baseUrl = process.env.NODE_ENV === 'production' ? 
+      'https://ergovia-ai.com' : 
+      `${protocol}://${host}`;
+    
     const params = {
       email: email,
-      login_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
-      signup_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`
+      login_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`,
+      signup_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`
     };
 
     console.log('🔄 Sending Stytch magic link to:', email);
