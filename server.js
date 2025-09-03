@@ -2850,7 +2850,11 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
-  if (!req.session.user) { // Changed from !req.user to !req.session.user
+  // Check authentication using multiple methods
+  const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
+    !!(req.user || req.session?.user || req.session?.stytch_session_id);
+
+  if (!isAuthenticated) {
     return res.status(401).json({ error: 'Authentication required' });
   }
   next();
@@ -2858,21 +2862,36 @@ function requireAuth(req, res, next) {
 
 // Middleware to check if user has premium access
 function requirePremium(req, res, next) {
-  if (!req.isAuthenticated()) {
+  // Check if user is authenticated using multiple methods
+  const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
+    !!(req.user || req.session?.user || req.session?.stytch_session_id);
+
+  if (!isAuthenticated) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  // Get user from various sources (Google OAuth, Stytch, or session)
+  let currentUser = req.user || req.session?.user;
+  if (!currentUser && req.session?.stytch_session_id) {
+    // For Stytch users, create a user object from session data
+    currentUser = req.session.user || {};
+  }
+
+  if (!currentUser) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   // First check session for user data, then fallback to saved data
-  let userData = req.user.savedUserData;
+  let userData = currentUser.savedUserData;
   if (!userData) {
-    const userEmail = req.user.emails?.[0]?.value;
+    const userEmail = currentUser.emails?.[0]?.value || currentUser.email;
     userData = findUserByEmail(userEmail);
   }
 
-  console.log('Premium check - User ID:', req.user.id, 'Email:', req.user.emails?.[0]?.value, 'User record found:', !!userData);
+  console.log('Premium check - User Email:', currentUser.emails?.[0]?.value || currentUser.email, 'User record found:', !!userData);
 
   if (!userData) {
-    console.log('❌ No user record found for:', req.user.emails?.[0]?.value || req.user.id);
+    console.log('❌ No user record found for:', currentUser.emails?.[0]?.value || currentUser.email || 'unknown');
     return res.status(403).json({ error: 'Premium access required' });
   }
 
@@ -2889,9 +2908,9 @@ function requirePremium(req, res, next) {
       userData.subscriptionStatus = 'expired';
 
       // Update the session and savedUserData if available
-      if (req.user.savedUserData) {
-        req.user.savedUserData.isPremium = false;
-        req.user.savedUserData.subscriptionStatus = 'expired';
+      if (currentUser.savedUserData) {
+        currentUser.savedUserData.isPremium = false;
+        currentUser.savedUserData.subscriptionStatus = 'expired';
       }
       if (req.session.user) {
         req.session.user.isPremium = false;
@@ -2914,7 +2933,7 @@ function requirePremium(req, res, next) {
     (userData.subscriptionStatus === 'active' || userData.hasUnlimitedAccess);
 
   if (!hasValidSubscription) {
-    console.log('❌ Premium access denied for user:', userData.email || req.user.id, 
+    console.log('❌ Premium access denied for user:', userData.email || 'unknown', 
                 'Premium:', userData.isPremium, 'Status:', userData.subscriptionStatus);
     return res.status(403).json({ error: 'Premium access required' });
   }
@@ -4197,10 +4216,13 @@ async function handleOAuthCallback(service, code, userEmail) {
 
 // Check authentication status endpoint
 app.get("/api/auth/status", (req, res) => {
-  console.log('Auth status check - isAuthenticated:', req.isAuthenticated());
+  const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
+    !!(req.user || req.session?.user || req.session?.stytch_session_id);
+  
+  console.log('Auth status check - isAuthenticated:', isAuthenticated);
   console.log('Session data:', req.session?.passport?.user ? 'Session exists' : 'No session');
 
-  if (!req.isAuthenticated()) {
+  if (!isAuthenticated) {
     return res.json({ authenticated: false, user: null });
   }
 
