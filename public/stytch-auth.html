@@ -700,7 +700,7 @@
                         showMessage(`🎉 <strong>Magic link sent successfully!</strong><br><br>
                             📧 <strong>Check your email inbox</strong> for a message from ERGOVIA-AI<br>
                             📱 <strong>Check spam/junk folder</strong> if you don't see it within 2 minutes<br>
-                            🔗 <strong>Click the link in the email</strong> to complete secure authentication<br><br>
+                            🔗 <strong>Click the link in the email</strong> to access your affiliate portal<br><br>
                             <small>⏰ The magic link expires in 1 hour for security</small>`, 'success');
                     }, 600);
                     
@@ -816,15 +816,14 @@
                     setSuccess(submitBtn, '🎉 Verified! Redirecting...');
                     
                     setTimeout(() => {
-                        showMessage('✅ <strong>Authentication successful!</strong><br>🚀 Redirecting to your secure affiliate portal...', 'success');
+                        showMessage('✅ <strong>Authentication successful!</strong><br>🚀 Redirecting to your affiliate dashboard...', 'success');
 
                         setTimeout(() => {
                             if (data.needs_completion) {
                                 window.location.href = '/complete-signup';
                             } else {
-                                const urlParams = new URLSearchParams(window.location.search);
-                                const returnTo = urlParams.get('return_to') || '/chat';
-                                window.location.href = returnTo;
+                                // Redirect to chat dashboard for affiliate users
+                                window.location.href = '/chat';
                             }
                         }, 1500);
                     }, 600);

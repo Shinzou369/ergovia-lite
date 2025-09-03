@@ -3764,12 +3764,11 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
       saveUser(newUser);
     }
 
-    // Redirect based on completion status
+    // Redirect based on completion status - affiliate users always go to chat
     if (userData.isComplete) {
-      // Affiliate users go directly to chat
       res.redirect('/chat');
     } else {
-      res.redirect('/complete-signup');
+      res.redirect('/complete-signup?return_to=/chat');
     }
 
   } catch (error) {

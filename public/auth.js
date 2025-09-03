@@ -78,8 +78,8 @@ async function updateUIForLoggedInUser(user) {
       // Affiliate on correct page, continue with initialization
     } else if (user.role === 'client' && currentPath === '/taskforce') {
       // Client on correct page, continue with initialization  
-    } else if (currentPath === '/select-role') {
-      // User is on role selection page, let them complete it
+    } else if (currentPath === '/select-role' || currentPath === '/complete-signup') {
+      // User is on role selection or signup completion page, let them complete it
       return;
     } else {
       // User is on wrong page for their role, redirect appropriately
