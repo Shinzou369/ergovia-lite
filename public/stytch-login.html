@@ -248,10 +248,67 @@
             border-top: 2px solid transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin-right: 8px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* Enhanced button states for better visual feedback */
+        .submit-btn:active {
+            transform: translateY(0px) scale(0.98);
+        }
+
+        .submit-btn.loading {
+            opacity: 0.8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn.loading:hover {
+            transform: none;
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Success state animation */
+        .submit-btn.success {
+            background: var(--success) !important;
+            animation: successPulse 0.6s ease-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Enhanced loading overlay for forms */
+        .form-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 15, 35, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius);
+            backdrop-filter: blur(4px);
+        }
+
+        .form-loading-overlay.active {
+            display: flex;
+        }
+
+        .form-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(184, 165, 72, 0.3);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
         #otp-verification {
@@ -380,13 +437,18 @@
             <div class="auth-tab" data-method="sms">SMS</div>
         </div>
 
-        <form id="authForm">
+        <form id="authForm" style="position: relative;">
             <div id="email-method" class="auth-method active">
                 <div class="form-group">
                     <label for="email" class="form-label">Email Address</label>
                     <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
                 </div>
-                <button type="submit" id="emailSubmit" class="submit-btn">Send Magic Link</button>
+                <button type="submit" id="emailSubmit" class="submit-btn">
+                    <span class="btn-text">Send Magic Link</span>
+                </button>
+                <div class="form-loading-overlay" id="email-loading">
+                    <div class="form-loading-spinner"></div>
+                </div>
             </div>
 
             <div id="sms-method" class="auth-method">
@@ -394,7 +456,12 @@
                     <label for="phone" class="form-label">Phone Number</label>
                     <input type="tel" id="phone" name="phone" class="form-input" placeholder="+1 (555) 123-4567" required>
                 </div>
-                <button type="submit" id="smsSubmit" class="submit-btn">Send SMS Code</button>
+                <button type="submit" id="smsSubmit" class="submit-btn">
+                    <span class="btn-text">Send SMS Code</span>
+                </button>
+                <div class="form-loading-overlay" id="sms-loading">
+                    <div class="form-loading-spinner"></div>
+                </div>
             </div>
 
             <div id="otp-verification">
@@ -402,7 +469,12 @@
                     <label for="otp" class="form-label">6-Digit OTP Code</label>
                     <input type="text" id="otp" name="otp" class="form-input otp-input" placeholder="000000" maxlength="6" required>
                 </div>
-                <button type="button" id="otpSubmit" class="submit-btn">Verify & Sign In</button>
+                <button type="button" id="otpSubmit" class="submit-btn">
+                    <span class="btn-text">Verify & Sign In</span>
+                </button>
+                <div class="form-loading-overlay" id="otp-loading">
+                    <div class="form-loading-spinner"></div>
+                </div>
             </div>
         </form>
 
@@ -479,10 +551,13 @@
                 return;
             }
 
-            setLoading(submitBtn, true, 'Sending Magic Link...');
+            setLoading(submitBtn, true, 'Sending Magic Link...', true);
 
             try {
                 console.log('🔄 Starting magic link request for:', email);
+                
+                // Add artificial delay for better UX feedback
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
                 const requestData = { email };
                 console.log('📤 Request payload:', requestData);
@@ -499,11 +574,15 @@
                 console.log('📨 Magic link response:', data);
 
                 if (data.success) {
-                    showMessage(`🎉 Magic link sent successfully!<br><br>
-                        📧 <strong>Check your email inbox</strong> for a message from Stytch/ERGOVIA-AI<br>
-                        📱 <strong>Check your spam/junk folder</strong> if you don't see it<br>
-                        🔗 <strong>Click the link in the email</strong> to complete authentication<br><br>
-                        <small>⏰ The link expires in 1 hour</small>`, 'success');
+                    setSuccess(submitBtn, 'Magic Link Sent!');
+                    
+                    setTimeout(() => {
+                        showMessage(`🎉 Magic link sent successfully!<br><br>
+                            📧 <strong>Check your email inbox</strong> for a message from Stytch/ERGOVIA-AI<br>
+                            📱 <strong>Check your spam/junk folder</strong> if you don't see it<br>
+                            🔗 <strong>Click the link in the email</strong> to complete authentication<br><br>
+                            <small>⏰ The link expires in 1 hour</small>`, 'success');
+                    }, 600);
                     
                     console.log('✅ Magic link sent successfully to:', email);
                 } else {
@@ -525,7 +604,9 @@
                 console.error('❌ Network/request error:', error);
                 showMessage('Network error. Please check your connection and try again.', 'error');
             } finally {
-                setLoading(submitBtn, false, 'Send Magic Link');
+                setTimeout(() => {
+                    setLoading(submitBtn, false, 'Send Magic Link');
+                }, 800);
             }
         }
 
@@ -539,9 +620,12 @@
             }
 
             phoneNumber = phone;
-            setLoading(submitBtn, true, 'Sending Code...');
+            setLoading(submitBtn, true, 'Sending Code...', true);
 
             try {
+                // Add artificial delay for better UX feedback
+                await new Promise(resolve => setTimeout(resolve, 700));
+                
                 const response = await fetch('/api/auth/stytch/otp/sms/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -552,11 +636,20 @@
 
                 if (data.success) {
                     methodId = data.request_id;
-                    showMessage('📱 SMS code sent! Enter the 6-digit code below to access your affiliate portal.', 'success');
+                    setSuccess(submitBtn, 'Code Sent!');
+                    
+                    setTimeout(() => {
+                        showMessage('📱 SMS code sent! Enter the 6-digit code below to access your affiliate portal.', 'success');
 
-                    // Show OTP verification
-                    document.getElementById('sms-method').style.display = 'none';
-                    document.getElementById('otp-verification').style.display = 'block';
+                        // Show OTP verification with smooth transition
+                        document.getElementById('sms-method').style.display = 'none';
+                        document.getElementById('otp-verification').style.display = 'block';
+                        
+                        // Focus on OTP input
+                        setTimeout(() => {
+                            document.getElementById('otp').focus();
+                        }, 100);
+                    }, 600);
                 } else {
                     showMessage(data.error || 'Failed to send SMS code', 'error');
                 }
@@ -564,7 +657,9 @@
                 console.error('❌ SMS OTP error:', error);
                 showMessage('Network error. Please try again.', 'error');
             } finally {
-                setLoading(submitBtn, false, 'Send SMS Code');
+                setTimeout(() => {
+                    setLoading(submitBtn, false, 'Send SMS Code');
+                }, 1000);
             }
         }
 
@@ -582,9 +677,12 @@
                 return;
             }
 
-            setLoading(submitBtn, true, 'Verifying...');
+            setLoading(submitBtn, true, 'Verifying...', true);
 
             try {
+                // Add artificial delay for better UX feedback
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
                 const response = await fetch('/api/auth/stytch/otp/authenticate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -597,17 +695,21 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    showMessage('✅ Authentication successful! Redirecting to affiliate portal...', 'success');
-
+                    setSuccess(submitBtn, 'Verified! Redirecting...');
+                    
                     setTimeout(() => {
-                        if (data.needs_completion) {
-                            window.location.href = '/complete-signup';
-                        } else {
-                            const urlParams = new URLSearchParams(window.location.search);
-                            const returnTo = urlParams.get('return_to') || '/chat';
-                            window.location.href = returnTo;
-                        }
-                    }, 1500);
+                        showMessage('✅ Authentication successful! Redirecting to affiliate portal...', 'success');
+
+                        setTimeout(() => {
+                            if (data.needs_completion) {
+                                window.location.href = '/complete-signup';
+                            } else {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const returnTo = urlParams.get('return_to') || '/chat';
+                                window.location.href = returnTo;
+                            }
+                        }, 1500);
+                    }, 600);
                 } else {
                     showMessage(data.error || 'Invalid or expired code', 'error');
                 }
@@ -615,7 +717,9 @@
                 console.error('❌ OTP verification error:', error);
                 showMessage('Network error. Please try again.', 'error');
             } finally {
-                setLoading(submitBtn, false, 'Verify & Sign In');
+                setTimeout(() => {
+                    setLoading(submitBtn, false, 'Verify & Sign In');
+                }, 1200);
             }
         }
 
@@ -628,14 +732,50 @@
             document.getElementById('message').innerHTML = '';
         }
 
-        function setLoading(button, loading, text) {
+        function setLoading(button, loading, text, showOverlay = false) {
+            const btnText = button.querySelector('.btn-text');
+            const methodId = button.id.replace('Submit', '');
+            const overlay = document.getElementById(`${methodId}-loading`);
+            
             if (loading) {
                 button.disabled = true;
-                button.innerHTML = `<span class="loading"></span> ${text}`;
+                button.classList.add('loading');
+                
+                if (showOverlay && overlay) {
+                    overlay.classList.add('active');
+                } else {
+                    btnText.innerHTML = `<span class="loading"></span>${text}`;
+                }
+                
+                // Add visual feedback
+                button.style.transform = 'translateY(1px)';
+                
+                // Haptic feedback simulation with visual pulse
+                setTimeout(() => {
+                    button.style.transform = 'translateY(0px)';
+                }, 100);
+                
             } else {
                 button.disabled = false;
-                button.innerHTML = text;
+                button.classList.remove('loading');
+                btnText.innerHTML = text;
+                
+                if (overlay) {
+                    overlay.classList.remove('active');
+                }
+                
+                button.style.transform = '';
             }
+        }
+
+        function setSuccess(button, text) {
+            const btnText = button.querySelector('.btn-text');
+            button.classList.add('success');
+            btnText.innerHTML = `✅ ${text}`;
+            
+            setTimeout(() => {
+                button.classList.remove('success');
+            }, 2000);
         }
 
         // Auto-format phone number (improved version)
