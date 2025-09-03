@@ -3768,50 +3768,6 @@ app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
   }
 });
 
-// Test Stytch configuration
-app.get('/api/auth/stytch/test-config', async (req, res) => {
-  try {
-    if (!stytchClient) {
-      return res.json({
-        success: false,
-        error: 'Stytch client not configured',
-        details: 'Missing STYTCH_PROJECT_ID or STYTCH_SECRET'
-      });
-    }
-
-    // Test basic Stytch API connectivity
-    try {
-      const response = await stytchClient.users.search({
-        limit: 1
-      });
-
-      res.json({
-        success: true,
-        message: 'Stytch configuration is working',
-        project_id: process.env.STYTCH_PROJECT_ID?.substring(0, 8) + '...',
-        environment: process.env.NODE_ENV === 'production' ? 'live' : 'test',
-        api_accessible: true
-      });
-    } catch (apiError) {
-      res.json({
-        success: false,
-        error: 'Stytch API error',
-        details: apiError.message,
-        status_code: apiError.status_code,
-        project_id: process.env.STYTCH_PROJECT_ID?.substring(0, 8) + '...'
-      });
-    }
-
-  } catch (error) {
-    console.error('❌ Stytch config test error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Configuration test failed',
-      details: error.message
-    });
-  }
-});
-
 // Get current Stytch session
 app.get('/api/auth/stytch/session', async (req, res) => {
   try {
