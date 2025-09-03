@@ -3610,10 +3610,8 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.get('host');
     
-    // Use the production domain for Stytch URLs to match dashboard configuration
-    const baseUrl = process.env.NODE_ENV === 'production' ? 
-      'https://ergovia-ai.com' : 
-      `${protocol}://${host}`;
+    // Use workspace.ernagabriel2077.repl.co for Stytch URLs
+    const baseUrl = 'https://workspace.ernagabriel2077.repl.co';
     
     const params = {
       email: email,
