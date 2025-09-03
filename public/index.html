@@ -760,9 +760,9 @@
             Partner with us and earn recurring commissions by promoting ERGOVIA-AI's powerful automation solutions to businesses worldwide.
           </p>
 
-          <div class="cta-button" onclick="window.location.href='/stytch-auth'">
-            Join Our Network
-          </div>
+          <a href="#" class="cta-button primary" onclick="startAffiliateFlow(event)">
+              Get Started as Affiliate
+            </a>
 
           <ul class="features-list">
             <li><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 8 18 12 13 7 9 11 2 3"></polyline><path d="M18 8v6l4 4"></path></svg> Recurring Commissions</li>
@@ -836,6 +836,21 @@
       function initiateGoogleLogin() {
         window.location.href = '/auth/google';
       }
+
+      // Function to start the affiliate flow (Stytch authentication)
+      function startAffiliateFlow(event) {
+        event.preventDefault(); // Prevent default link behavior
+        // Here you would integrate Stytch SDK to initiate the login/signup flow
+        // This might involve calling a Stytch function like:
+        // Stytch.magicLink.show({ email: affiliateEmail, ... });
+        // For now, we'll just log a message and redirect to a placeholder.
+        console.log("Initiating Stytch authentication for affiliate...");
+        // Placeholder for Stytch SDK integration.
+        // After successful Stytch auth, you'd redirect to the dashboard.
+        // For demonstration, we'll redirect to a generic auth page.
+        window.location.href = '/stytch-auth';
+      }
+
 
       // Initialize page after DOM loads
       document.addEventListener("DOMContentLoaded", () => {

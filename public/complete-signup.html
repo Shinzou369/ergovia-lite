@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -223,12 +222,12 @@
       .complete-signup-container {
         padding: 24px;
       }
-      
+
       .user-info {
         flex-direction: column;
         text-align: center;
       }
-      
+
       .user-details {
         text-align: center;
       }
@@ -275,7 +274,7 @@
       try {
         const response = await fetch('/api/auth/status');
         const data = await response.json();
-        
+
         if (data.authenticated && data.user) {
           const userInfoDiv = document.getElementById('user-info');
           userInfoDiv.innerHTML = `
@@ -285,7 +284,7 @@
               <div class="user-name">${data.user.name || 'Google User'}</div>
             </div>
           `;
-          
+
           // Pre-fill form if Google name is available
           if (data.user.name) {
             const nameParts = data.user.name.split(' ');
@@ -331,10 +330,20 @@
 
         if (data.success) {
           showMessage('Account setup completed successfully! Redirecting...', 'success');
-          
+
           // Wait a moment then redirect to dashboard
           setTimeout(() => {
-            window.location.href = '/';
+            // Check for return_to parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnTo = urlParams.get('return_to');
+
+            if (returnTo) {
+              window.location.href = decodeURIComponent(returnTo);
+            } else if (data.redirectTo) {
+              window.location.href = data.redirectTo;
+            } else {
+              window.location.href = '/select-role';
+            }
           }, 1500);
         } else {
           throw new Error(data.error || 'Signup completion failed');
@@ -342,7 +351,7 @@
       } catch (error) {
         console.error('Error completing signup:', error);
         showMessage(error.message || 'Error completing signup. Please try again.', 'error');
-        
+
         // Reset button
         btn.disabled = false;
         btn.innerHTML = 'Complete Setup';

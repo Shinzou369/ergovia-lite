@@ -464,6 +464,18 @@
 
         <div id="message"></div>
 
+        <!-- Affiliate Information Form (shown for affiliate flow) -->
+        <div id="affiliate-info" style="display: none;">
+            <div class="form-group">
+                <label for="first-name" class="form-label">First Name</label>
+                <input type="text" id="first-name" name="first-name" class="form-input" placeholder="Your first name" required>
+            </div>
+            <div class="form-group">
+                <label for="last-name" class="form-label">Last Name</label>
+                <input type="text" id="last-name" name="last-name" class="form-input" placeholder="Your last name" required>
+            </div>
+        </div>
+
         <!-- Configuration Status -->
         <div id="config-status" class="status-display" style="display: none;">
             <div class="status-item">
@@ -538,6 +550,8 @@
         let methodId = null;
         let phoneNumber = null;
         let debugVisible = false;
+        let isAffiliateFlow = false;
+        let returnTo = '/chat';
 
         // Auto-check service status on load
         document.addEventListener('DOMContentLoaded', () => {
@@ -546,9 +560,23 @@
             // Handle URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const error = urlParams.get('error');
+            const flow = urlParams.get('flow');
+            const returnToParam = urlParams.get('return_to');
             
             if (error) {
                 handleURLError(error);
+            }
+
+            // Check if this is affiliate flow
+            if (flow === 'affiliate') {
+                isAffiliateFlow = true;
+                document.getElementById('affiliate-info').style.display = 'block';
+                document.querySelector('.auth-title').textContent = 'Join as ERGOVIA-AI Affiliate';
+                document.querySelector('.auth-subtitle').textContent = 'Create your affiliate account with secure passwordless authentication';
+            }
+
+            if (returnToParam) {
+                returnTo = returnToParam;
             }
 
             // Pre-fill email if provided
@@ -557,7 +585,7 @@
                 document.getElementById('email').value = email;
             }
 
-            console.log('🔄 Stytch auth page loaded');
+            console.log('🔄 Stytch auth page loaded', { isAffiliateFlow, returnTo });
         });
 
         function handleURLError(error) {
@@ -669,6 +697,24 @@
                 return;
             }
 
+            // For affiliate flow, validate name fields
+            if (isAffiliateFlow) {
+                const firstName = document.getElementById('first-name').value.trim();
+                const lastName = document.getElementById('last-name').value.trim();
+                
+                if (!firstName) {
+                    showMessage('Please enter your first name', 'error');
+                    document.getElementById('first-name').focus();
+                    return;
+                }
+                
+                if (!lastName) {
+                    showMessage('Please enter your last name', 'error');
+                    document.getElementById('last-name').focus();
+                    return;
+                }
+            }
+
             // Basic email validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
@@ -684,10 +730,23 @@
                 // Show immediate feedback
                 showMessage('📤 Sending magic link to your email...', 'info');
                 
+                // Prepare request body
+                const requestBody = { 
+                    email,
+                    flow: isAffiliateFlow ? 'affiliate' : 'general',
+                    return_to: returnTo
+                };
+
+                // Add name data for affiliate flow
+                if (isAffiliateFlow) {
+                    requestBody.first_name = document.getElementById('first-name').value.trim();
+                    requestBody.last_name = document.getElementById('last-name').value.trim();
+                }
+                
                 const response = await fetch('/api/auth/stytch/magic-links/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify(requestBody)
                 });
 
                 console.log('📡 Magic link response status:', response.status);

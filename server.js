@@ -3588,7 +3588,7 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       });
     }
 
-    const { email, signup_or_login_url } = req.body;
+    const { email, signup_or_login_url, flow, first_name, last_name, return_to } = req.body;
 
     if (!email) {
       console.error('❌ No email provided in request');
@@ -3626,9 +3626,17 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
     
     const params = {
       email: email,
-      login_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`,
-      signup_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`
+      login_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate?flow=${flow || 'general'}&return_to=${encodeURIComponent(return_to || '/chat')}`,
+      signup_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate?flow=${flow || 'general'}&return_to=${encodeURIComponent(return_to || '/chat')}`
     };
+
+    // Add name data for Stytch user creation if provided
+    if (first_name || last_name) {
+      params.attributes = {
+        first_name: first_name || '',
+        last_name: last_name || ''
+      };
+    }
 
     console.log('🔄 Sending Stytch magic link to:', email);
     console.log('📧 Magic link URLs:', {
@@ -3705,7 +3713,7 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
       return res.status(500).json({ error: 'Stytch not configured' });
     }
 
-    const { token, stytch_token_type } = req.query;
+    const { token, stytch_token_type, flow, return_to } = req.query;
 
     if (!token) {
       return res.redirect('/login?error=missing_token');
@@ -3755,30 +3763,40 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email);
 
-    // For Stytch users, automatically assign affiliate role
+    // Handle role assignment based on flow
+    const userRole = flow === 'affiliate' ? 'affiliate' : 'affiliate'; // Default to affiliate for Stytch users
+    
     if (!existingUser) {
       existingUser = findUserByEmail(userData.email);
     }
     if (existingUser) {
-      existingUser.role = 'affiliate';
+      existingUser.role = userRole;
       existingUser.needsRoleSelection = false;
+      existingUser.authMethod = 'stytch';
+      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
+      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
       saveUser(existingUser);
     } else {
-      // Create new user with affiliate role
+      // Create new user with specified role
       const newUser = {
         googleId: userData.stytch_user_id,
         ...userData,
-        role: 'affiliate',
+        role: userRole,
         needsRoleSelection: false
       };
       saveUser(newUser);
     }
 
-    // Redirect based on completion status - affiliate users always go to chat
+    console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
+
+    // Determine redirect URL
+    const redirectUrl = return_to ? decodeURIComponent(return_to) : '/chat';
+    
+    // Redirect based on completion status
     if (userData.isComplete) {
-      res.redirect('/chat');
+      res.redirect(redirectUrl);
     } else {
-      res.redirect('/complete-signup?return_to=/chat');
+      res.redirect(`/complete-signup?return_to=${encodeURIComponent(redirectUrl)}`);
     }
 
   } catch (error) {

@@ -172,10 +172,10 @@ function selectModel(prompt) {
   if (!prompt || typeof prompt !== 'string') {
     return getModelConfig()?.default_model || "gpt-3.5-turbo";
   }
-  
+
   const lower = prompt.toLowerCase();
   const modelConfig = getModelConfig();
-  
+
   // Validate model config exists
   if (!modelConfig || typeof modelConfig !== 'object') {
     console.warn('Model configuration not available, using default model');
@@ -681,6 +681,28 @@ function initializeWebsiteCards() {
   });
 }
 
+// Affiliate Flow Starter
+function startAffiliateFlow(event) {
+  event.preventDefault();
+
+  // Check if user is already authenticated
+  fetch('/api/auth/status')
+    .then(response => response.json())
+    .then(data => {
+      if (data.authenticated && data.user.role === 'affiliate') {
+        // Already authenticated affiliate - go to dashboard
+        window.location.href = '/chat';
+      } else {
+        // Not authenticated or not an affiliate - start Stytch flow
+        window.location.href = '/stytch-auth.html?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+      }
+    })
+    .catch(error => {
+      console.log('Auth check failed, proceeding to Stytch auth');
+      window.location.href = '/stytch-auth.html?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+    });
+}
+
 // Export functions for global access
 window.sendMessage = sendMessage;
 window.newChat = newChat;
@@ -692,3 +714,4 @@ window.toggleTheme = toggleTheme;
 window.toggleSidebar = toggleSidebar;
 window.openCustomerService = openCustomerService;
 window.handleTokenUsageClick = handleTokenUsageClick;
+window.startAffiliateFlow = startAffiliateFlow; // Export the new function
