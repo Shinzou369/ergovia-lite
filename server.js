@@ -3612,30 +3612,21 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       });
     }
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const host = req.get('host');
-    
-    // Determine base URL based on environment
-    let baseUrl;
-    if (process.env.RENDER_SERVICE_NAME || host.includes('onrender.com')) {
-      // Running on Render
-      baseUrl = `${protocol}://${host}`;
-    } else if (host.includes('repl.co')) {
-      // Running on Replit
-      baseUrl = 'https://workspace.ernagabriel2077.repl.co';
-    } else {
-      // Local development or other environment
-      baseUrl = `${protocol}://${host}`;
-    }
+    // Use consistent redirect URLs that are configured in Stytch dashboard
+    const baseUrl = process.env.NODE_ENV === 'production' ? 
+      'https://ergovia-ai.com' : 
+      'https://workspace.ernagabriel2077.repl.co';
     
     // Store flow and return_to in session to avoid query parameter issues
     req.session.stytch_flow = flow || 'general';
     req.session.stytch_return_to = return_to || '/chat';
     
+    const redirectUrl = `${baseUrl}/api/auth/stytch/authenticate`;
+    
     const params = {
       email: email,
-      login_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`,
-      signup_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`
+      login_magic_link_url: signup_or_login_url || redirectUrl,
+      signup_magic_link_url: signup_or_login_url || redirectUrl
     };
 
     // Add name data for Stytch user creation if provided
