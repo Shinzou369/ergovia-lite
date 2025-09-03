@@ -202,8 +202,6 @@ class N8NApiClient {
   }
 }
 
-const app = express();
-
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
@@ -237,6 +235,7 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Validate N8N configuration and exit if critical vars missing
 if (!N8N_BASE_URL) {
   console.error('❌ N8N_BASE_URL environment variable is not set');
@@ -248,6 +247,8 @@ if (!N8N_API_KEY) {
 }
 
 const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
+
+const app = express();
 
 // Initialize SQLite database with error recovery
 let db;
