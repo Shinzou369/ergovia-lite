@@ -3613,8 +3613,7 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
     const params = {
       email: email,
       login_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
-      signup_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`,
-      expiration_minutes: 60 // Link expires in 1 hour
+      signup_magic_link_url: signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`
     };
 
     console.log('🔄 Sending Stytch magic link to:', email);
