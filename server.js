@@ -3611,8 +3611,18 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.get('host');
     
-    // Use workspace.ernagabriel2077.repl.co for Stytch URLs
-    const baseUrl = 'https://workspace.ernagabriel2077.repl.co';
+    // Determine base URL based on environment
+    let baseUrl;
+    if (process.env.RENDER_SERVICE_NAME || host.includes('onrender.com')) {
+      // Running on Render
+      baseUrl = `${protocol}://${host}`;
+    } else if (host.includes('repl.co')) {
+      // Running on Replit
+      baseUrl = 'https://workspace.ernagabriel2077.repl.co';
+    } else {
+      // Local development or other environment
+      baseUrl = `${protocol}://${host}`;
+    }
     
     const params = {
       email: email,
