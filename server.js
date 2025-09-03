@@ -3624,10 +3624,14 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       baseUrl = `${protocol}://${host}`;
     }
     
+    // Store flow and return_to in session to avoid query parameter issues
+    req.session.stytch_flow = flow || 'general';
+    req.session.stytch_return_to = return_to || '/chat';
+    
     const params = {
       email: email,
-      login_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate?flow=${flow || 'general'}&return_to=${encodeURIComponent(return_to || '/chat')}`,
-      signup_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate?flow=${flow || 'general'}&return_to=${encodeURIComponent(return_to || '/chat')}`
+      login_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`,
+      signup_magic_link_url: signup_or_login_url || `${baseUrl}/api/auth/stytch/authenticate`
     };
 
     // Add name data for Stytch user creation if provided
@@ -3713,7 +3717,11 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
       return res.status(500).json({ error: 'Stytch not configured' });
     }
 
-    const { token, stytch_token_type, flow, return_to } = req.query;
+    const { token, stytch_token_type } = req.query;
+    
+    // Get flow and return_to from session instead of query params
+    const flow = req.session.stytch_flow || 'general';
+    const return_to = req.session.stytch_return_to || '/chat';
 
     if (!token) {
       return res.redirect('/login?error=missing_token');
