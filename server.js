@@ -145,7 +145,7 @@ class N8NApiClient {
 
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagToProcess;
-      
+
       if (typeof tag === 'string') {
         // Create or get the tag first
         tagToProcess = await this.createTag(tag);
@@ -198,6 +198,9 @@ class N8NApiClient {
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
+    }
+  }
+}
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -213,9 +216,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - startTime;
     const statusSymbol = res.statusCode >= 400 ? '❌' : 
                         res.statusCode >= 300 ? '⚠️' : '✅';
-    
+
     console.log(`📤 ${statusSymbol} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms - ${userInfo}`);
-    
+
     // Log slow requests
     if (duration > 5000) {
       console.warn(`🐌 Slow request detected: ${req.method} ${req.url} took ${duration}ms`);
@@ -232,10 +235,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-    }
-  }
-}
 
 // Validate N8N configuration and exit if critical vars missing
 if (!N8N_BASE_URL) {
@@ -259,11 +258,11 @@ const maxDbConnectionAttempts = 5;
 function initializeDatabase() {
   return new Promise((resolve, reject) => {
     dbConnectionAttempts++;
-    
+
     db = new sqlite3.Database('./taskforce.db', (err) => {
       if (err) {
         console.error(`❌ Database connection attempt ${dbConnectionAttempts} failed:`, err.message);
-        
+
         if (dbConnectionAttempts < maxDbConnectionAttempts) {
           console.log(`🔄 Retrying database connection in 2 seconds...`);
           setTimeout(() => {
@@ -275,7 +274,7 @@ function initializeDatabase() {
         }
       } else {
         console.log('✅ Connected to SQLite database');
-        
+
         // Test database functionality
         db.run("CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, timestamp TEXT)", (testErr) => {
           if (testErr) {
@@ -295,13 +294,13 @@ function initializeDatabase() {
 // Handle database connection errors gracefully
 function handleDatabaseError(error, operation) {
   logError(error, { operation, type: 'database_operation_failed' });
-  
+
   // Try to reconnect if connection was lost
   if (error.message.includes('SQLITE_BUSY') || error.message.includes('database is locked')) {
     console.log('🔄 Database is busy, retrying operation...');
     return { shouldRetry: true };
   }
-  
+
   return { shouldRetry: false };
 }
 
@@ -326,7 +325,7 @@ function initETFDatabase() {
       etfDB = new sqlite3.Database('etf_data.db', (err) => {
         if (err) {
           console.error(`❌ ETF Database connection attempt ${attempts} failed:`, err.message);
-          
+
           if (attempts < maxAttempts) {
             console.log(`🔄 Retrying ETF database connection...`);
             setTimeout(tryConnection, 1000);
@@ -391,16 +390,16 @@ function initETFDatabase() {
               tableErrors.push(`Table ${index + 1}: ${tableErr.message}`);
               logError(tableErr, { type: 'etf_table_creation_failed', sql });
             }
-            
+
             tablesCreated++;
-            
+
             if (tablesCreated === createTables.length) {
               if (tableErrors.length > 0) {
                 console.error('⚠️ Some ETF tables failed to create:', tableErrors);
               } else {
                 console.log('✅ All ETF tables created successfully');
               }
-              
+
               console.log('✅ ETF Database initialized');
               resolve(etfDB);
             }
@@ -422,7 +421,7 @@ initETFDatabase()
   .catch(err => {
     console.error('❌ Failed to initialize ETF database:', err.message);
     console.error('⚠️ ETF functionality will be disabled');
-    
+
     // Create a mock database object to prevent crashes
     etfDB = {
       run: (sql, params, callback) => {
@@ -480,7 +479,7 @@ function validateEnvironment() {
     console.error('❌ Missing REQUIRED environment variables:');
     missing.forEach(item => console.error(`   - ${item}`));
     console.error('🔧 Please check your .env file or Replit Secrets');
-    
+
     // Don't exit in development, but warn loudly
     if (process.env.NODE_ENV === 'production') {
       console.error('🛑 Cannot start in production without required environment variables');
@@ -550,7 +549,7 @@ const sessionConfig = {
   }),
   secret: process.env.SESSION_SECRET || (() => {
     const fallbackSecret = 'ergovia-ai-stable-secret-key-2024-production';
-    
+
     if (process.env.NODE_ENV === 'production') {
       console.error('🚨 SECURITY WARNING: SESSION_SECRET not set in production!');
       console.error('🔧 Please set SESSION_SECRET environment variable immediately');
@@ -561,7 +560,7 @@ const sessionConfig = {
     } else {
       console.warn('⚠️ Using fallback SESSION_SECRET for development');
     }
-    
+
     return fallbackSecret;
   })(),
   resave: false,
@@ -668,21 +667,21 @@ const rateLimit = {
 function rateLimitMiddleware(req, res, next) {
   const clientId = req.ip || 'unknown';
   const now = Date.now();
-  
+
   if (!rateLimit.clients.has(clientId)) {
     rateLimit.clients.set(clientId, { count: 1, resetTime: now + rateLimit.windowMs });
     return next();
   }
-  
+
   const client = rateLimit.clients.get(clientId);
-  
+
   if (now > client.resetTime) {
     // Reset window
     client.count = 1;
     client.resetTime = now + rateLimit.windowMs;
     return next();
   }
-  
+
   if (client.count >= rateLimit.maxRequests) {
     console.log(`🚫 Rate limit exceeded for ${clientId}`);
     return res.status(429).json({ 
@@ -690,7 +689,7 @@ function rateLimitMiddleware(req, res, next) {
       retryAfter: Math.ceil((client.resetTime - now) / 1000)
     });
   }
-  
+
   client.count++;
   next();
 }
@@ -706,24 +705,24 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Powered-By', 'ERGOVIA-AI');
-  
+
   // Add CORS headers for production
   const allowedOrigins = process.env.CORS_ORIGIN ? 
     process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com'];
-  
+
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -803,8 +802,6 @@ app.get('/etf-onboard', (req, res) => {
 app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
 });
-
-// Credential routes removed - files deleted
 
 // Credential Design Documentation
 app.get('/credential-design-doc', (req, res) => {
@@ -964,20 +961,20 @@ app.post('/api/system/recover', async (req, res) => {
           const sessionDir = './sessions';
           const files = fs.readdirSync(sessionDir);
           let cleaned = 0;
-          
+
           files.forEach(file => {
             if (file.endsWith('.json')) {
               const filePath = path.join(sessionDir, file);
               const stats = fs.statSync(filePath);
               const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
-              
+
               if (ageHours > 168) { // 7 days
                 fs.unlinkSync(filePath);
                 cleaned++;
               }
             }
           });
-          
+
           results.push(`Cleaned ${cleaned} expired session files`);
         } catch (error) {
           results.push(`Session cleanup failed: ${error.message}`);
@@ -1056,7 +1053,7 @@ app.post('/api/system/recover', async (req, res) => {
           active: workflow.active,
           config_fields: workflowAnalysis.fields || [],
           prompt_instructions: workflowAnalysis.promptInstructions || '',
-          credentials_required: workflowAnalysis.credentialsRequired || [],
+          credentials_required: workflowAnalysis.credentials_required || [],
           created_at: workflow.created_at,
           updated_at: workflow.updated_at
         };
@@ -1211,7 +1208,7 @@ app.post('/api/etf/deploy', async (req, res) => {
     }
 
     // Tag all successfully created workflows with a client identifier
-    const clientTag = `PET[${client_data.name}]`;
+    const clientTag = `PET[${clientData.name}]`;
 
     // Skip credential creation - focus on placeholder personalization only
 
@@ -1238,7 +1235,7 @@ app.get('/client-openai-dashboard', (req, res) => {
     // Log the workflow dependency mappings
     console.log(`\n🔗 Inter-workflow Dependencies Resolved:`);
     console.log(`   Original templates now reference personalized workflows`);
-    console.log(`   Example: If template referenced "WF3", it now references "[${client_data.name}] WF3"`);
+    console.log(`   Example: If template referenced "WF3", it now references "[${clientData.name}] WF3"`);
     if (personalizationResult.workflowIdMappings) {
       Object.entries(personalizationResult.workflowIdMappings).forEach(([original, personalized]) => {
         console.log(`   ${original} → ${personalized}`);
@@ -1248,10 +1245,10 @@ app.get('/client-openai-dashboard', (req, res) => {
     // Auto-generate OpenAI API key with enhanced setup
     const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
     const keyGenerator = new AutoKeyGenerator();
-    
+
     let openaiSetupResult = { success: false };
     try {
-      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(client_data, templateIds);
+      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(clientData, templateIds);
       console.log(`✅ OpenAI access configured for client ${client_id}:`, openaiSetupResult);
     } catch (keyError) {
       console.warn(`⚠️ Could not configure OpenAI access for client ${client_id}:`, keyError.message);
@@ -2394,8 +2391,7 @@ app.post('/api/client/ask-gpt', async (req, res) => {
       body: JSON.stringify({
         model: selectedModel,
         messages: finalMessages,
-        max_tokens: 1500,
-        temperature: 0.7
+        max_tokens: 1500
       })
     });
 
@@ -2959,7 +2955,7 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 // Enhanced health check with service monitoring
 app.get('/health', async (req, res) => {
   console.log('🏥 Health check requested');
-  
+
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -3530,9 +3526,9 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
 
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.get('host');
-    
+
     const redirectUrl = `${protocol}://${host}/api/auth/stytch/authenticate`;
-    
+
     const params = {
       email: email,
       login_magic_link_url: signup_or_login_url || redirectUrl,
@@ -3560,7 +3556,7 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
         status_code: testError.status_code,
         error_type: testError.error_type
       });
-      
+
       return res.status(500).json({
         error: 'Stytch configuration error',
         details: testError.message,
@@ -3847,7 +3843,7 @@ app.post('/api/auth/stytch/test-email', async (req, res) => {
     }
 
     const { test_email } = req.body;
-    
+
     if (!test_email) {
       return res.status(400).json({ error: 'test_email is required' });
     }
@@ -3885,8 +3881,8 @@ app.post('/api/auth/stytch/test-email', async (req, res) => {
       instructions: [
         `Check ${test_email} inbox for magic link`,
         'Check spam/junk folder',
-        'Click the link to test authentication flow',
-        'If still no email, there may be a Stytch dashboard configuration issue'
+        'Look for sender: Stytch or your app name',
+        'Click the magic link in the email'
       ]
     });
 
@@ -3900,7 +3896,7 @@ app.post('/api/auth/stytch/test-email', async (req, res) => {
       troubleshooting: [
         'Check Stytch dashboard for error logs',
         'Verify email domain is not blocked',
-        'Check redirect URL whitelist in Stytch',
+        'Check Stytch dashboard email delivery settings',
         'Verify project environment (test vs live)'
       ]
     });
@@ -3911,7 +3907,7 @@ app.post('/api/auth/stytch/test-email', async (req, res) => {
 app.get('/api/auth/stytch/test-config', async (req, res) => {
   try {
     console.log('🧪 Testing Stytch configuration...');
-    
+
     // Check environment variables
     const envCheck = {
       project_id: !!process.env.STYTCH_PROJECT_ID,
@@ -3950,11 +3946,11 @@ app.get('/api/auth/stytch/test-config', async (req, res) => {
       // Test magic link endpoint specifically
       try {
         console.log('🧪 Testing magic link configuration...');
-        
+
         const protocol = req.headers['x-forwarded-proto'] || 'https';
         const host = req.get('host');
         const testRedirectUrl = `${protocol}://${host}/api/auth/stytch/authenticate`;
-        
+
         // Try to send a test magic link to a test email (this might fail but will show configuration issues)
         try {
           const testResponse = await stytchClient.magicLinks.email.loginOrCreate({
@@ -4972,18 +4968,18 @@ function logError(error, context = {}) {
   try {
     const errorLogFile = './error_logs.json';
     let errorLogs = [];
-    
+
     if (fs.existsSync(errorLogFile)) {
       errorLogs = JSON.parse(fs.readFileSync(errorLogFile, 'utf8'));
     }
-    
+
     errorLogs.push(errorLog);
-    
+
     // Keep only last 100 errors to prevent file bloat
     if (errorLogs.length > 100) {
       errorLogs = errorLogs.slice(-100);
     }
-    
+
     fs.writeFileSync(errorLogFile, JSON.stringify(errorLogs, null, 2));
   } catch (fileError) {
     console.error('Failed to save error log:', fileError.message);
@@ -5028,7 +5024,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   logError(error, { type: 'uncaughtException' });
-  
+
   // Give time for logging then exit gracefully
   setTimeout(() => {
     console.log('🛑 Exiting due to uncaught exception');
@@ -6039,7 +6035,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (!workflowName || typeof workflowName !== 'string') {
     return 'general';
   }
-  
+
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
     if (typeof tag === 'string') {
@@ -6057,7 +6053,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
   if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
   if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
-  
+
   // Fallback to name-based classification
   if (name.includes('veterinary') || name.includes('pet') || name.includes('animal')) return 'veterinary';
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
@@ -6065,7 +6061,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
-  
+
   return 'general';;
 
   // Fallback to name-based detection
@@ -6356,7 +6352,7 @@ async function personalizeMultipleWorkflows(workflowIds, configData, clientData)
   }
 
   console.log(`\n📋 Workflow ID Mappings:`);
-  Object.entries(workflowIdMappings).forEach(([original, personalized]) => {
+    Object.entries(workflowIdMappings).forEach(([original, personalized]) => {
     console.log(`   ${original} → ${personalized}`);
   });
 
