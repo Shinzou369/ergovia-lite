@@ -50,7 +50,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check if we're on auth-related pages - don't interfere with those flows
   const authPages = ['/stytch-logged-in', '/stytch-auth', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login'];
-  if (authPages.some(page => window.location.pathname === page || window.location.pathname.startsWith(page))) {
+  const currentPath = window.location.pathname;
+  
+  // Special handling for stytch-auth page with affiliate flow
+  if (currentPath === '/stytch-auth' && window.location.search.includes('flow=affiliate') && authStatus.authenticated && authStatus.user?.role === 'affiliate') {
+    console.log('Affiliate already authenticated, redirecting from auth page to chat...');
+    window.location.href = '/chat';
+    window.authCheckInProgress = false;
+    return;
+  }
+  
+  if (authPages.some(page => currentPath === page || currentPath.startsWith(page))) {
     console.log('On authentication page, skipping auth redirect logic');
     window.authCheckInProgress = false;
     return;

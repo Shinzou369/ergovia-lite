@@ -558,11 +558,20 @@
             try {
                 const response = await fetch('/api/auth/status');
                 const authData = await response.json();
-                
+
                 if (authData.authenticated && authData.user) {
                     console.log('✅ User already authenticated, redirecting...');
+
+                    // For affiliate flow specifically, redirect to chat immediately
+                    if (flow === 'affiliate' && authData.user.role === 'affiliate') {
+                        console.log('✅ Affiliate already logged in, redirecting to chat...');
+                        window.location.href = '/chat';
+                        return;
+                    }
+
+                    // For general flow or other roles
                     showMessage('✅ <strong>Already logged in!</strong><br>🚀 Redirecting to your dashboard...', 'success');
-                    
+
                     setTimeout(() => {
                         const redirectTo = authData.user.role === 'affiliate' ? '/chat' : '/taskforce';
                         window.location.href = redirectTo;
@@ -572,7 +581,7 @@
             } catch (error) {
                 console.log('Auth check failed, continuing with login flow');
             }
-            
+
             checkServiceStatus();
 
             // Handle URL parameters

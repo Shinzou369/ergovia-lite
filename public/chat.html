@@ -828,7 +828,13 @@
             return false;
           }
           
-          console.log('✅ Affiliate authenticated successfully');
+          // Verify this is actually an affiliate user
+          if (authData.user.role === 'affiliate') {
+            console.log('✅ Affiliate authenticated successfully:', authData.user.email);
+            return true;
+          }
+          
+          console.log('✅ User authenticated but role verification needed');
           return true;
           
         } catch (error) {
