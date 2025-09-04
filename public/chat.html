@@ -807,10 +807,10 @@
           const response = await fetch('/api/auth/status');
           const authData = await response.json();
           
-          // If user is not authenticated, redirect to Stytch login for affiliates
+          // If user is not authenticated, show login prompt instead of auto-redirecting
           if (!authData.authenticated) {
-            console.log('Affiliate not authenticated, redirecting to Stytch login...');
-            window.location.href = '/stytch-auth.html?return_to=' + encodeURIComponent('/chat') + '&from=affiliate-access';
+            console.log('Affiliate not authenticated - showing login options');
+            showLoginPrompt();
             return false;
           }
           
@@ -837,6 +837,43 @@
           console.warn('Network error during auth check, but not redirecting immediately');
           return false;
         }
+      }
+
+      function showLoginPrompt() {
+        // Create a login prompt overlay instead of auto-redirecting
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        `;
+        
+        overlay.innerHTML = `
+          <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; max-width: 400px;">
+            <h3>Authentication Required</h3>
+            <p>You need to be logged in to access the affiliate chat.</p>
+            <div style="margin-top: 1rem;">
+              <button onclick="window.location.href='/stytch-auth.html?return_to=' + encodeURIComponent('/chat')" 
+                      style="background: #4CAF50; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer;">
+                Login
+              </button>
+              <button onclick="this.closest('.login-overlay').remove()" 
+                      style="background: #f44336; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer;">
+                Cancel
+              </button>
+            </div>
+          </div>
+        `;
+        
+        overlay.className = 'login-overlay';
+        document.body.appendChild(overlay);
       }
 
       // Initialize page after DOM loads

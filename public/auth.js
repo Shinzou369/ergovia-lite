@@ -181,6 +181,8 @@ function showLoginOption() {
 
   // Clear token counter
   tokenCounter = null;
+  
+  // Don't automatically redirect to auth - let users browse freely
 }
 
 function updateTopNavForUser(user) {
