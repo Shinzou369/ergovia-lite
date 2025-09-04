@@ -3627,12 +3627,10 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       signup_magic_link_url: signup_or_login_url || redirectUrl
     };
 
-    // Add name data for Stytch user creation if provided
+    // Store name data in session for use after authentication
     if (first_name || last_name) {
-      params.attributes = {
-        first_name: first_name || '',
-        last_name: last_name || ''
-      };
+      req.session.stytch_user_first_name = first_name || '';
+      req.session.stytch_user_last_name = last_name || '';
     }
 
     console.log('🔄 Sending Stytch magic link to:', email);
@@ -3729,15 +3727,22 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     const user = response.user;
     const session = response.session;
 
+    // Get name data from session if available
+    const sessionFirstName = req.session.stytch_user_first_name;
+    const sessionLastName = req.session.stytch_user_last_name;
+    
     // Create or update user in your system
     const userData = {
       stytch_user_id: user.user_id,
       email: user.emails[0].email,
       email_verified: user.emails[0].verified,
       stytch_name: user.name?.first_name && user.name?.last_name ? 
-        `${user.name.first_name} ${user.name.last_name}` : null,
+        `${user.name.first_name} ${user.name.last_name}` : 
+        (sessionFirstName && sessionLastName ? `${sessionFirstName} ${sessionLastName}` : null),
+      first_name: user.name?.first_name || sessionFirstName || '',
+      last_name: user.name?.last_name || sessionLastName || '',
       createdAt: user.created_at,
-      isComplete: !!(user.name?.first_name && user.name?.last_name),
+      isComplete: !!(user.name?.first_name && user.name?.last_name) || !!(sessionFirstName && sessionLastName),
       authMethod: 'stytch',
       stytch_session_id: session.session_id
     };
@@ -3762,6 +3767,10 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     // Set session
     req.session.stytch_session_id = session.session_id;
     req.session.user = userData;
+    
+    // Clean up temporary name data from session
+    delete req.session.stytch_user_first_name;
+    delete req.session.stytch_user_last_name;
 
     console.log('✅ Stytch authentication successful for:', userData.email);
 
