@@ -825,7 +825,7 @@
 
       // Redirect functions
       function redirectToAffiliate() {
-        window.location.href = '/stytch-auth'; // Redirect to Stytch auth for affiliates
+        window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
       }
 
       function redirectToClient() {
@@ -840,15 +840,8 @@
       // Function to start the affiliate flow (Stytch authentication)
       function startAffiliateFlow(event) {
         event.preventDefault(); // Prevent default link behavior
-        // Here you would integrate Stytch SDK to initiate the login/signup flow
-        // This might involve calling a Stytch function like:
-        // Stytch.magicLink.show({ email: affiliateEmail, ... });
-        // For now, we'll just log a message and redirect to a placeholder.
         console.log("Initiating Stytch authentication for affiliate...");
-        // Placeholder for Stytch SDK integration.
-        // After successful Stytch auth, you'd redirect to the dashboard.
-        // For demonstration, we'll redirect to a generic auth page.
-        window.location.href = '/stytch-auth';
+        window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
       }
 
 
@@ -859,15 +852,7 @@
           const authData = await response.json();
           
           if (authData.authenticated) {
-            // User is logged in, redirect based on their role
-            if (authData.user.role === 'affiliate') {
-              window.location.href = '/chat';
-            } else if (authData.user.role === 'client') {
-              window.location.href = '/taskforce.html';
-            } else {
-              // Role not set, go to role selection
-              window.location.href = '/select-role';
-            }
+            // User is logged in, show login button for quick access
             return true; // User is authenticated
           }
           

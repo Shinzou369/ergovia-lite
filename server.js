@@ -4780,89 +4780,9 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Chat page route with authentication check
-app.get("/chat", async (req, res) => {
-  // Check Google OAuth authentication
-  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-  
-  // Check Stytch authentication
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
-  
-  const isAuthenticated = isGoogleAuth || isStytchAuth;
-  
-  console.log('Chat route auth check:', {
-    googleAuth: isGoogleAuth,
-    stytchAuth: isStytchAuth,
-    stytchSessionId: !!req.session?.stytch_session_id,
-    sessionUser: !!req.session?.user,
-    authenticated: isAuthenticated
-  });
-
-  if (!isAuthenticated) {
-    // Check for Stytch error parameter to avoid infinite redirect
-    const hasError = req.query.error;
-    if (hasError) {
-      // User came from failed auth, show login page with error
-      return res.redirect(`/stytch-auth?error=${req.query.error}&return_to=/chat`);
-    } else {
-      // Normal case - redirect to auth
-      return res.redirect('/stytch-auth?return_to=/chat');
-    }
-  }
-
-  // User is authenticated, now check if they need profile completion or role selection
-  let userData = null;
-  
-  if (isStytchAuth && !isGoogleAuth) {
-    // Stytch user - get data from session
-    userData = req.session.user;
-  } else if (isGoogleAuth) {
-    // Google user - get data from saved user data
-    userData = req.user.savedUserData;
-    if (!userData) {
-      const userEmail = req.user.emails?.[0]?.value;
-      userData = findUserByEmail(userEmail);
-    }
-  }
-
-  // Check if user needs profile completion (for Google users)
-  if (isGoogleAuth && (!userData || !userData.isComplete)) {
-    return res.redirect('/complete-signup');
-  }
-
-  // Check if user needs role selection
-  if (userData && userData.needsRoleSelection) {
-    return res.redirect('/select-role');
-  }
-
-  // For Stytch users, automatically assign affiliate role if not already set
-  if (isStytchAuth && userData && !userData.role) {
-    const userEmail = userData.email;
-    let existingUser = findUserByEmail(userEmail);
-    if (existingUser) {
-      existingUser.role = 'affiliate';
-      existingUser.needsRoleSelection = false;
-      saveUser(existingUser);
-    } else {
-      // Create new user record for Stytch user
-      const newUser = {
-        googleId: userData.stytch_user_id,
-        email: userData.email,
-        preferredFirstName: userData.first_name || userData.stytch_name?.split(' ')[0] || '',
-        preferredLastName: userData.last_name || userData.stytch_name?.split(' ')[1] || '',
-        isComplete: true,
-        role: 'affiliate',
-        needsRoleSelection: false,
-        authMethod: 'stytch',
-        stytch_user_id: userData.stytch_user_id,
-        createdAt: new Date().toISOString()
-      };
-      saveUser(newUser);
-    }
-  }
-
-  // User is fully authenticated and setup, serve the chat page
-  console.log('✅ Serving chat page for authenticated user:', userData?.email || 'unknown');
+// Chat page route - serve directly without authentication check
+app.get("/chat", (req, res) => {
+  console.log('✅ Serving chat page');
   res.sendFile(path.join(__dirname, "public", "chat.html"));
 });
 

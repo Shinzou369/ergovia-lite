@@ -684,23 +684,9 @@ function initializeWebsiteCards() {
 // Affiliate Flow Starter
 function startAffiliateFlow(event) {
   event.preventDefault();
-
-  // Check if user is already authenticated
-  fetch('/api/auth/status')
-    .then(response => response.json())
-    .then(data => {
-      if (data.authenticated && data.user.role === 'affiliate') {
-        // Already authenticated affiliate - go to dashboard
-        window.location.href = '/chat';
-      } else {
-        // Not authenticated or not an affiliate - start Stytch flow
-        window.location.href = '/stytch-auth.html?flow=affiliate&return_to=' + encodeURIComponent('/chat');
-      }
-    })
-    .catch(error => {
-      console.log('Auth check failed, proceeding to Stytch auth');
-      window.location.href = '/stytch-auth.html?flow=affiliate&return_to=' + encodeURIComponent('/chat');
-    });
+  
+  // Always redirect to Stytch auth - let Stytch handle the authentication state
+  window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
 }
 
 // Export functions for global access
