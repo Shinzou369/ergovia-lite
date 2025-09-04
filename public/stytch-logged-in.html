@@ -383,15 +383,14 @@
                     }
 
                 } else {
-                    console.warn('⚠️ User not authenticated, redirecting to auth page');
+                    console.warn('⚠️ User not authenticated on logged-in page');
                     document.getElementById('user-email').innerHTML = `
-                        <div style="color: var(--error);">Authentication required</div>
-                        <small>Redirecting to login...</small>
+                        <div style="color: var(--error);">Authentication verification in progress...</div>
+                        <small>Please wait or click continue if authenticated</small>
                     `;
                     
-                    setTimeout(() => {
-                        window.location.href = '/stytch-auth';
-                    }, 3000);
+                    // Don't auto-redirect from logged-in page - user came here from successful auth
+                    // Instead, just show the continue button to let them proceed manually
                 }
             } catch (error) {
                 console.error('❌ Error checking auth status:', error);
@@ -402,14 +401,8 @@
             }
         });
 
-        // Auto-redirect after successful display
-        setTimeout(() => {
-            const continueBtn = document.getElementById('continue-btn');
-            if (continueBtn && continueBtn.href) {
-                console.log('🔄 Auto-redirecting to dashboard...');
-                window.location.href = continueBtn.href;
-            }
-        }, 5000); // 5 second delay to show success message
+        // Don't auto-redirect - let user click the button when ready
+        // This prevents redirect loops and gives user control
     </script>
 </body>
 </html>

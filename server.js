@@ -3831,6 +3831,7 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     // Store the intended destination in session for the confirmation page
     req.session.intended_destination = return_to ? decodeURIComponent(return_to) : '/chat';
+    req.session.stytch_auth_completed = true; // Mark authentication as completed
     
     // Always redirect to confirmation page first to prevent redirect loops
     res.redirect('/stytch-logged-in');

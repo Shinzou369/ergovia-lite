@@ -48,6 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   const authStatus = await checkAuthStatus();
 
+  // Check if we're on the stytch-logged-in page - don't interfere with that flow
+  if (window.location.pathname === '/stytch-logged-in') {
+    console.log('On Stytch logged-in confirmation page, skipping auth redirect logic');
+    window.authCheckInProgress = false;
+    return;
+  }
+
   if (authStatus.authenticated) {
     // User is logged in - show main interface
     console.log('✅ User authenticated:', authStatus.user.email, 'Method:', authStatus.user.authMethod);
