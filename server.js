@@ -3612,10 +3612,15 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       });
     }
 
-    // Use dynamic redirect URL based on request
+    // Use dynamic redirect URL based on request, with production domain override
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers.host;
-    const redirectUrl = signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`;
+    
+    // Use production domain if deployed
+    const isDevelopment = host.includes('repl.co') || host.includes('localhost');
+    const finalHost = isDevelopment ? host : 'ergovia-ai.com';
+    
+    const redirectUrl = signup_or_login_url || `${protocol}://${finalHost}/api/auth/stytch/authenticate`;
     
     // Store flow and return_to in session to avoid query parameter issues
     req.session.stytch_flow = flow || 'general';

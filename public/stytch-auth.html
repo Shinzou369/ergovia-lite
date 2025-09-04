@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,32 +12,32 @@
             /* ERGOVIA-AI Brand Colors */
             --primary-gradient: linear-gradient(180deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
             --ergovia-text-gradient: linear-gradient(180deg, #6B5B1A, #8B7E2A, #B8A548, #FFD700);
-            
+
             --font-heading: 'Questrial', 'Inter', system-ui, sans-serif;
             --font-body: 'Questrial', 'Inter', system-ui, sans-serif;
-            
+
             --bg-primary: #0f0f23;
             --bg-secondary: #1a1a2e;
             --bg-tertiary: #16213e;
-            
+
             --text-primary: #ffffff;
             --text-secondary: #b8bcc8;
             --text-muted: #6b7280;
-            
+
             --border-color: #2d3748;
             --border-light: #374151;
-            
+
             --success: #10b981;
             --error: #ef4444;
             --warning: #f59e0b;
-            
+
             --shadow-xl: 0 20px 25px -5px rgba(107, 91, 26, 0.3), 0 8px 10px -6px rgba(107, 91, 26, 0.2);
-            
+
             --radius: 12px;
             --radius-lg: 16px;
             --radius-xl: 24px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            
+
             --primary: #B8A548;
         }
 
@@ -556,13 +555,13 @@
         // Auto-check service status on load
         document.addEventListener('DOMContentLoaded', () => {
             checkServiceStatus();
-            
+
             // Handle URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const error = urlParams.get('error');
             const flow = urlParams.get('flow');
             const returnToParam = urlParams.get('return_to');
-            
+
             if (error) {
                 handleURLError(error);
             }
@@ -638,14 +637,14 @@
                 const data = await response.json();
 
                 document.getElementById('config-status').style.display = 'block';
-                
+
                 const serviceStatus = data.client_initialized && data.project_id_set && data.secret_set;
                 document.getElementById('service-status').textContent = serviceStatus ? '✅ Online' : '❌ Offline';
                 document.getElementById('service-status').className = `status-value ${serviceStatus ? 'status-success' : 'status-error'}`;
-                
+
                 document.getElementById('env-status').textContent = data.environment;
                 document.getElementById('env-status').className = 'status-value';
-                
+
                 const apiStatus = data.api_connection === 'success' ? '✅ Connected' : 
                                 data.api_connection === 'failed' ? `❌ Failed` : 
                                 '⚠️ Testing...';
@@ -701,13 +700,13 @@
             if (isAffiliateFlow) {
                 const firstName = document.getElementById('first-name').value.trim();
                 const lastName = document.getElementById('last-name').value.trim();
-                
+
                 if (!firstName) {
                     showMessage('Please enter your first name', 'error');
                     document.getElementById('first-name').focus();
                     return;
                 }
-                
+
                 if (!lastName) {
                     showMessage('Please enter your last name', 'error');
                     document.getElementById('last-name').focus();
@@ -726,10 +725,10 @@
 
             try {
                 console.log('🔄 Starting magic link request for:', email);
-                
+
                 // Show immediate feedback
                 showMessage('📤 Sending magic link to your email...', 'info');
-                
+
                 // Prepare request body
                 const requestBody = { 
                     email,
@@ -742,7 +741,7 @@
                     requestBody.first_name = document.getElementById('first-name').value.trim();
                     requestBody.last_name = document.getElementById('last-name').value.trim();
                 }
-                
+
                 const response = await fetch('/api/auth/stytch/magic-links/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -755,9 +754,9 @@
                 if (data.success) {
                     // Store email for returning user detection
                     localStorage.setItem('stytch_user_email', email);
-                    
+
                     setSuccess(submitBtn, '✅ Magic Link Sent!');
-                    
+
                     setTimeout(() => {
                         showMessage(`🎉 <strong>Magic link sent successfully!</strong><br><br>
                             📧 <strong>Check your email inbox</strong> for a message from ERGOVIA-AI<br>
@@ -765,12 +764,12 @@
                             🔗 <strong>Click the link in the email</strong> to access your affiliate portal<br><br>
                             <small>⏰ The magic link expires in 1 hour for security</small>`, 'success');
                     }, 600);
-                    
+
                     console.log('✅ Magic link sent successfully to:', email);
                 } else {
                     console.error('❌ Magic link request failed:', data);
                     let errorMessage = data.error || 'Failed to send magic link';
-                    
+
                     // Handle specific error cases with user-friendly messages
                     if (data.error && data.error.includes('no_match_for_provided_magic_link_url')) {
                         errorMessage = 'Service configuration issue. Please contact support or try SMS instead.';
@@ -779,7 +778,7 @@
                     } else if (data.error && data.error.includes('Invalid email')) {
                         errorMessage = 'Please enter a valid email address';
                     }
-                    
+
                     showMessage(`❌ ${errorMessage}`, 'error');
                 }
             } catch (error) {
@@ -806,7 +805,7 @@
 
             try {
                 showMessage('📤 Sending SMS verification code...', 'info');
-                
+
                 const response = await fetch('/api/auth/stytch/otp/sms/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -818,14 +817,14 @@
                 if (data.success) {
                     methodId = data.request_id;
                     setSuccess(submitBtn, '✅ Code Sent!');
-                    
+
                     setTimeout(() => {
                         showMessage('📱 <strong>SMS code sent!</strong><br>Enter the 6-digit code below to access your secure portal.', 'success');
 
                         // Show OTP verification with smooth transition
                         document.getElementById('sms-method').style.display = 'none';
                         document.getElementById('otp-verification').style.display = 'block';
-                        
+
                         // Focus on OTP input
                         setTimeout(() => {
                             document.getElementById('otp').focus();
@@ -862,7 +861,7 @@
 
             try {
                 showMessage('🔐 Verifying your code...', 'info');
-                
+
                 const response = await fetch('/api/auth/stytch/otp/authenticate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -876,7 +875,7 @@
 
                 if (data.success) {
                     setSuccess(submitBtn, '🎉 Verified! Redirecting...');
-                    
+
                     setTimeout(() => {
                         showMessage('✅ <strong>Authentication successful!</strong><br>🚀 Redirecting to your affiliate dashboard...', 'success');
 
@@ -884,8 +883,15 @@
                             if (data.needs_completion) {
                                 window.location.href = '/complete-signup';
                             } else {
-                                // Redirect to chat dashboard for affiliate users
-                                window.location.href = '/chat';
+                                // For production, redirect to the correct domain
+                                const redirectUrl = data.redirect_to || returnTo || '/chat';
+                                if (window.location.hostname.includes('repl.co')) {
+                                    // Development - use relative redirect
+                                    window.location.href = redirectUrl;
+                                } else {
+                                    // Production - use full URL
+                                    window.location.href = `https://ergovia-ai.com${redirectUrl}`;
+                                }
                             }
                         }, 1500);
                     }, 600);
@@ -913,16 +919,16 @@
 
         function setLoading(button, loading, text) {
             const btnText = button.querySelector('.btn-text');
-            
+
             if (loading) {
                 button.disabled = true;
                 btnText.innerHTML = `<span class="loading"></span>${text}`;
                 button.style.transform = 'translateY(1px)';
-                
+
                 setTimeout(() => {
                     button.style.transform = 'translateY(0px)';
                 }, 100);
-                
+
             } else {
                 button.disabled = false;
                 btnText.innerHTML = text;
@@ -934,7 +940,7 @@
             const btnText = button.querySelector('.btn-text');
             button.classList.add('success');
             btnText.innerHTML = text;
-            
+
             setTimeout(() => {
                 button.classList.remove('success');
             }, 2000);
@@ -944,7 +950,7 @@
             debugVisible = !debugVisible;
             const debugInfo = document.getElementById('debug-info');
             debugInfo.style.display = debugVisible ? 'block' : 'none';
-            
+
             if (debugVisible && document.getElementById('debug-content').textContent === 'Loading service status...') {
                 checkServiceStatus();
             }
@@ -953,12 +959,12 @@
         // Auto-format phone number
         document.getElementById('phone').addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
-            
+
             // Add country code if not present
             if (value.length >= 1 && !value.startsWith('1')) {
                 value = '1' + value;
             }
-            
+
             // Format as +1 (XXX) XXX-XXXX
             if (value.length > 1) {
                 value = '+' + value;
@@ -972,7 +978,7 @@
             if (value.length > 13) {
                 value = value.slice(0, 13) + '-' + value.slice(13, 17);
             }
-            
+
             e.target.value = value;
         });
 
@@ -1003,7 +1009,7 @@
                     verifyOTP();
                 }
             }
-            
+
             // Tab key switches between email and SMS
             if (e.key === 'Tab' && e.altKey) {
                 e.preventDefault();
