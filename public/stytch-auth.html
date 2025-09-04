@@ -753,6 +753,9 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    // Store email for returning user detection
+                    localStorage.setItem('stytch_user_email', email);
+                    
                     setSuccess(submitBtn, '✅ Magic Link Sent!');
                     
                     setTimeout(() => {

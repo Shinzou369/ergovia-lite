@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -183,12 +182,12 @@
       .confirm-login-container {
         padding: 24px;
       }
-      
+
       .user-info {
         flex-direction: column;
         text-align: center;
       }
-      
+
       .user-details {
         text-align: center;
       }
@@ -228,7 +227,7 @@
       try {
         const response = await fetch('/api/auth/status');
         const data = await response.json();
-        
+
         if (data.authenticated && data.user) {
           const userInfoDiv = document.getElementById('user-info');
           userInfoDiv.innerHTML = `
@@ -268,11 +267,24 @@
         const data = await response.json();
 
         if (data.success) {
-          showMessage('Login confirmed! Redirecting to dashboard...', 'success');
-          
-          // Wait a moment then redirect to dashboard
+          // Store email for returning user detection if provided
+          if (data.storeEmail && data.email) {
+            localStorage.setItem('google_user_email', data.email);
+          }
+
+          showMessage('Login confirmed! Redirecting...', 'success');
+
           setTimeout(() => {
-            window.location.href = '/';
+            // Check user's role to determine redirect
+            checkAuthStatus().then(authData => {
+              if (authData.authenticated && authData.user.role === 'client') {
+                window.location.href = '/taskforce';
+              } else {
+                window.location.href = '/chat';
+              }
+            }).catch(() => {
+              window.location.href = '/chat';
+            });
           }, 1500);
         } else {
           throw new Error(data.error || 'Login confirmation failed');
@@ -280,7 +292,7 @@
       } catch (error) {
         console.error('Error confirming login:', error);
         showMessage(error.message || 'Error confirming login. Please try again.', 'error');
-        
+
         // Reset button
         btn.disabled = false;
         btn.innerHTML = 'Continue to Dashboard';
@@ -290,6 +302,12 @@
     function showMessage(text, type) {
       const messageDiv = document.getElementById('message');
       messageDiv.innerHTML = `<div class="${type}-message">${text}</div>`;
+    }
+
+    // Helper function to check authentication status (assuming it exists elsewhere or needs to be defined)
+    async function checkAuthStatus() {
+        const response = await fetch('/api/auth/status');
+        return await response.json();
     }
 
     // Load user info on page load

@@ -3612,16 +3612,14 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
       });
     }
 
-    // Use consistent redirect URLs that are configured in Stytch dashboard
-    const baseUrl = process.env.NODE_ENV === 'production' ? 
-      'https://ergovia-ai.com' : 
-      'https://workspace.ernagabriel2077.repl.co';
+    // Use dynamic redirect URL based on request
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const redirectUrl = signup_or_login_url || `${protocol}://${host}/api/auth/stytch/authenticate`;
     
     // Store flow and return_to in session to avoid query parameter issues
     req.session.stytch_flow = flow || 'general';
     req.session.stytch_return_to = return_to || '/chat';
-    
-    const redirectUrl = `${baseUrl}/api/auth/stytch/authenticate`;
     
     const params = {
       email: email,
@@ -3793,16 +3791,11 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
 
-    // Determine redirect URL
+    // Always redirect to chat for affiliate users (Stytch users are always affiliates)
     const redirectUrl = return_to ? decodeURIComponent(return_to) : '/chat';
     
-    // Redirect based on completion status
-    if (userData.isComplete) {
-      // Clear any error parameters and redirect to success URL
-      res.redirect(redirectUrl);
-    } else {
-      res.redirect(`/complete-signup?return_to=${encodeURIComponent(redirectUrl)}`);
-    }
+    // For Stytch users, always redirect to chat since they're affiliates
+    res.redirect(redirectUrl);
 
   } catch (error) {
     console.error('❌ Stytch authentication error:', error);
@@ -4720,7 +4713,12 @@ app.post("/api/confirm-login", (req, res) => {
     timestamp: new Date().toISOString()
   });
 
-  res.json({ success: true, message: "Login confirmed" });
+  res.json({ 
+    success: true, 
+    message: "Login confirmed",
+    storeEmail: true,
+    email: existingUser.email
+  });
 });
 
 // Serve signup and login pages
