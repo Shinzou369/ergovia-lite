@@ -3803,8 +3803,8 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email);
 
-    // Handle role assignment based on flow
-    const userRole = flow === 'affiliate' ? 'affiliate' : 'affiliate'; // Default to affiliate for Stytch users
+    // Handle role assignment based on flow - Stytch users default to affiliate
+    const userRole = 'affiliate'; // All Stytch users are affiliates
     
     if (!existingUser) {
       existingUser = findUserByEmail(userData.email);
@@ -3813,16 +3813,20 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
       existingUser.role = userRole;
       existingUser.needsRoleSelection = false;
       existingUser.authMethod = 'stytch';
+      existingUser.isPremium = existingUser.isPremium || false;
+      existingUser.hasUnlimitedAccess = existingUser.hasUnlimitedAccess || false;
       if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
       if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
       saveUser(existingUser);
     } else {
-      // Create new user with specified role
+      // Create new user with affiliate role
       const newUser = {
         googleId: userData.stytch_user_id,
         ...userData,
         role: userRole,
-        needsRoleSelection: false
+        needsRoleSelection: false,
+        isPremium: false,
+        hasUnlimitedAccess: false
       };
       saveUser(newUser);
     }

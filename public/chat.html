@@ -807,6 +807,8 @@
           const response = await fetch('/api/auth/status');
           const authData = await response.json();
           
+          console.log('🔍 Auth check result:', authData);
+          
           // If user is not authenticated, show login prompt instead of auto-redirecting
           if (!authData.authenticated) {
             console.log('Affiliate not authenticated - showing login options');
@@ -814,11 +816,39 @@
             return false;
           }
           
-          // If user is authenticated but doesn't have affiliate role, redirect to role selection
-          if (!authData.user.role || authData.user.needsRoleSelection) {
-            console.log('User needs role selection...');
-            window.location.href = '/select-role';
-            return false;
+          // If user is authenticated but doesn't have a role yet, auto-assign affiliate role for Stytch users
+          if (authData.authenticated && (!authData.user.role || authData.user.needsRoleSelection)) {
+            console.log('Authenticated user without role - checking auth method...');
+            
+            // For Stytch users accessing chat, automatically assign affiliate role
+            if (authData.user.authMethod === 'stytch') {
+              console.log('Stytch user detected, auto-assigning affiliate role...');
+              try {
+                const roleResponse = await fetch('/api/select-role', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ role: 'affiliate' })
+                });
+                
+                if (roleResponse.ok) {
+                  console.log('✅ Auto-assigned affiliate role to Stytch user');
+                  return true; // Continue with page load
+                } else {
+                  console.warn('Failed to auto-assign role');
+                  window.location.href = '/select-role';
+                  return false;
+                }
+              } catch (roleError) {
+                console.error('Error auto-assigning role:', roleError);
+                window.location.href = '/select-role';
+                return false;
+              }
+            } else {
+              // For Google OAuth users, redirect to role selection
+              console.log('Non-Stytch user needs role selection...');
+              window.location.href = '/select-role';
+              return false;
+            }
           }
           
           // If user has a role but it's not affiliate, redirect to appropriate page
@@ -834,7 +864,7 @@
             return true;
           }
           
-          console.log('✅ User authenticated but role verification needed');
+          console.log('✅ User authenticated, allowing access');
           return true;
           
         } catch (error) {

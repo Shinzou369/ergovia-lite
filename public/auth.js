@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const currentPath = window.location.pathname;
   
   // Special handling for stytch-auth page with affiliate flow
-  if (currentPath === '/stytch-auth' && window.location.search.includes('flow=affiliate') && authStatus.authenticated && authStatus.user?.role === 'affiliate') {
-    console.log('Affiliate already authenticated, redirecting from auth page to chat...');
+  if (currentPath === '/stytch-auth' && window.location.search.includes('flow=affiliate') && authStatus.authenticated) {
+    console.log('Stytch user already authenticated, redirecting to chat...');
     window.location.href = '/chat';
     window.authCheckInProgress = false;
     return;
