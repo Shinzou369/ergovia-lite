@@ -1236,6 +1236,11 @@ app.get('/client-openai-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client-openai-dashboard.html'));
 });
 
+// Serve Stytch logged-in confirmation page
+app.get('/stytch-logged-in', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'stytch-logged-in.html'));
+});
+
     // Credentials will be left blank for manual configuration
 
     console.log(`🏷️ Creating client identification tag: "${clientTag}"`);
@@ -3824,11 +3829,11 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
 
-    // Always redirect to chat for affiliate users (Stytch users are always affiliates)
-    const redirectUrl = return_to ? decodeURIComponent(return_to) : '/chat';
+    // Store the intended destination in session for the confirmation page
+    req.session.intended_destination = return_to ? decodeURIComponent(return_to) : '/chat';
     
-    // For Stytch users, always redirect to chat since they're affiliates
-    res.redirect(redirectUrl);
+    // Always redirect to confirmation page first to prevent redirect loops
+    res.redirect('/stytch-logged-in');
 
   } catch (error) {
     console.error('❌ Stytch authentication error:', error);
