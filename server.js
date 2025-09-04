@@ -4870,9 +4870,21 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Chat page route - serve directly without authentication check
+// Chat page route - require authentication for affiliates
 app.get("/chat", (req, res) => {
-  console.log('✅ Serving chat page');
+  console.log('📄 Chat page requested');
+  
+  // Check if user is authenticated
+  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
+  const isAuthenticated = isGoogleAuth || isStytchAuth;
+
+  if (!isAuthenticated) {
+    console.log('❌ Unauthenticated user trying to access chat - redirecting to Stytch auth');
+    return res.redirect('/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat'));
+  }
+
+  console.log('✅ Authenticated user accessing chat page');
   res.sendFile(path.join(__dirname, "public", "chat.html"));
 });
 

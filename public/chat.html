@@ -357,6 +357,151 @@
         font-family: var(--font-heading);
         font-weight: 800;
       }
+
+      /* Profile Button Styles */
+      .user-profile-btn {
+        position: relative;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 8px 16px;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: var(--transition);
+        margin-right: 12px;
+      }
+
+      .user-profile-btn:hover {
+        background: var(--bg-secondary);
+        border-color: var(--primary);
+      }
+
+      .profile-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .user-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+
+      .user-role {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+
+      .premium-badge {
+        font-size: 0.8rem;
+      }
+
+      .profile-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        min-width: 150px;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: var(--transition);
+      }
+
+      .user-profile-btn:hover .profile-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition);
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .dropdown-item:last-child {
+        border-bottom: none;
+      }
+
+      .dropdown-item:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .dropdown-item i {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 520px) {
+        body {
+          padding: 16px;
+        }
+
+        .auth-container {
+          padding: 32px 24px;
+          max-width: 100%;
+        }
+
+        .auth-logo img {
+          width: 48px;
+          height: 48px;
+        }
+
+        .auth-logo-text {
+          font-size: 1.7rem;
+        }
+
+        .auth-title {
+          font-size: 1.4rem;
+        }
+
+        .auth-subtitle {
+          font-size: 1rem;
+        }
+
+        .auth-tabs {
+          max-width: 100%;
+        }
+
+        .form-input {
+          padding: 14px 16px;
+          font-size: 1rem;
+        }
+
+        .submit-btn {
+          padding: 14px 24px;
+          font-size: 1rem;
+        }
+
+        .otp-input {
+          font-size: 1.5rem;
+          padding: 16px;
+        }
+
+        .user-profile-btn {
+          padding: 6px 12px;
+        }
+
+        .user-name {
+          font-size: 0.8rem;
+        }
+
+        .user-role {
+          display: none;
+        }
+      }
     </style>
 
     <link rel="stylesheet" href="style.css" />
@@ -808,10 +953,125 @@
 
           console.log('🔍 Auth check result:', authData);
 
-          // If user is not authenticated, don't show login prompt immediately
-          // Let auth.js handle the authentication flow properly
+          // If user is not authenticated, redirect to Stytch auth
           if (!authData.authenticated) {
-            console.log('User not authenticated - will be handled by auth.js');
+            console.log('User not authenticated - redirecting to Stytch auth');
+            window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
             return false;
           }
-</original>
+
+          // User is authenticated, update UI to show profile
+          updateAuthenticatedUI(authData.user);
+          return true;
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          // On error, redirect to auth
+          window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+          return false;
+        }
+      }
+
+      // Update UI for authenticated users
+      function updateAuthenticatedUI(user) {
+        console.log('Updating UI for authenticated user:', user.email);
+
+        // Remove login/signup buttons and add profile button
+        const navRight = document.querySelector('.nav-right');
+        if (navRight) {
+          // Remove existing auth buttons
+          const existingAuth = navRight.querySelector('.login-btn, .signup-btn');
+          if (existingAuth) {
+            existingAuth.parentElement.remove();
+          }
+
+          // Add profile button if not already present
+          if (!navRight.querySelector('.user-profile-btn')) {
+            const profileBtn = document.createElement('button');
+            profileBtn.className = 'user-profile-btn';
+            profileBtn.innerHTML = `
+              <div class="profile-info">
+                <span class="user-name">${user.preferredFirstName || user.name?.split(' ')[0] || 'User'}</span>
+                <span class="user-role">${user.role === 'affiliate' ? '💼 Affiliate' : '🚀 Client'}</span>
+                ${user.isPremium ? '<span class="premium-badge">👑</span>' : ''}
+              </div>
+              <div class="profile-dropdown">
+                <div class="dropdown-item" onclick="window.location.href='/token-dashboard'">
+                  <i data-lucide="bar-chart-3"></i> Dashboard
+                </div>
+                <div class="dropdown-item" onclick="logout()">
+                  <i data-lucide="log-out"></i> Logout
+                </div>
+              </div>
+            `;
+
+            // Insert before the theme button
+            const themeBtn = navRight.querySelector('.theme-btn');
+            navRight.insertBefore(profileBtn, themeBtn);
+          }
+        }
+      }
+
+      // Logout function
+      async function logout() {
+        try {
+          console.log('🚪 Logging out user...');
+
+          // Call Stytch logout endpoint
+          await fetch('/api/auth/stytch/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          // Clear local data
+          if (typeof clearUserData !== 'undefined') {
+            clearUserData();
+          }
+
+          // Redirect to home
+          window.location.href = '/';
+        } catch (error) {
+          console.error('Logout error:', error);
+          // Force redirect even if logout call fails
+          window.location.href = '/';
+        }
+      }
+
+      // Run authentication check immediately when page loads
+      document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🔐 Chat page loaded - checking authentication');
+        await checkAffiliateAuth();
+      });
+
+
+      // --- Placeholder functions (ensure these are defined in auth.js or script.js) ---
+      // These are placeholders to ensure the code runs without immediate errors
+      // if they are not yet defined in the included JS files.
+
+      function sendMessage() { console.log('sendMessage called'); }
+      function newChat() { console.log('newChat called'); }
+      function loadThread(threadId) { console.log('loadThread called with:', threadId); }
+      function deleteThread(threadId) { console.log('deleteThread called with:', threadId); }
+      function showPaymentModal() { console.log('showPaymentModal called'); }
+      function hidePaymentModal() { console.log('hidePaymentModal called'); }
+      function toggleTheme() { console.log('toggleTheme called'); }
+      function openCustomerService() { console.log('openCustomerService called'); }
+      function handleTokenUsageClick() { console.log('handleTokenUsageClick called'); }
+      function startAffiliateFlow() { console.log('startAffiliateFlow called'); }
+      function clearUserData() { console.log('clearUserData called'); } // Added placeholder for clearUserData
+
+      // Export functions for global access
+      window.sendMessage = sendMessage;
+      window.newChat = newChat;
+      window.loadThread = loadThread;
+      window.deleteThread = deleteThread;
+      window.showPaymentModal = showPaymentModal;
+      window.hidePaymentModal = hidePaymentModal;
+      window.toggleTheme = toggleTheme;
+      window.toggleSidebar = toggleSidebar;
+      window.openCustomerService = openCustomerService;
+      window.handleTokenUsageClick = handleTokenUsageClick;
+      window.startAffiliateFlow = startAffiliateFlow;
+      window.logout = logout; // Export logout function
+    </script>
+  </body>
+</html>

@@ -30,12 +30,26 @@ function initiateGoogleLogin() {
   window.location.href = '/auth/google';
 }
 
-function logout() {
-  // Clear user data before redirecting
-  if (typeof clearUserData !== 'undefined') {
-    clearUserData();
+async function logout() {
+  try {
+    // Clear user data before redirecting
+    if (typeof clearUserData !== 'undefined') {
+      clearUserData();
+    }
+    
+    // Call Stytch logout endpoint
+    await fetch('/api/auth/stytch/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    // Also handle Google logout if applicable
+    window.location.href = '/logout';
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Force redirect even if logout call fails
+    window.location.href = '/';
   }
-  window.location.href = '/logout';
 }
 
 // Check auth status on page load
@@ -48,8 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   const authStatus = await checkAuthStatus();
 
-  // Check if we're on auth-related pages - don't interfere with those flows
-  const authPages = ['/stytch-logged-in', '/stytch-auth', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login'];
+  // Check if we're on auth-related pages or chat page - don't interfere with those flows
+  const authPages = ['/stytch-logged-in', '/stytch-auth', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login', '/chat'];
   const currentPath = window.location.pathname;
   
   // Special handling for stytch-auth page with affiliate flow
