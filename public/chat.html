@@ -810,7 +810,7 @@
           // If user is not authenticated, redirect to Stytch login for affiliates
           if (!authData.authenticated) {
             console.log('Affiliate not authenticated, redirecting to Stytch login...');
-            window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat') + '&from=affiliate-access';
+            window.location.href = '/stytch-auth.html?return_to=' + encodeURIComponent('/chat') + '&from=affiliate-access';
             return false;
           }
           
