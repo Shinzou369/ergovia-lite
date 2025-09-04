@@ -833,7 +833,8 @@
           
         } catch (error) {
           console.error('Auth check error:', error);
-          window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat') + '&error=network';
+          // Don't immediately redirect on network errors - user might still be authenticated locally
+          console.warn('Network error during auth check, but not redirecting immediately');
           return false;
         }
       }

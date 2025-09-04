@@ -48,9 +48,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   const authStatus = await checkAuthStatus();
 
-  // Check if we're on the stytch-logged-in page - don't interfere with that flow
-  if (window.location.pathname === '/stytch-logged-in') {
-    console.log('On Stytch logged-in confirmation page, skipping auth redirect logic');
+  // Check if we're on auth-related pages - don't interfere with those flows
+  const authPages = ['/stytch-logged-in', '/stytch-auth', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login'];
+  if (authPages.some(page => window.location.pathname === page || window.location.pathname.startsWith(page))) {
+    console.log('On authentication page, skipping auth redirect logic');
     window.authCheckInProgress = false;
     return;
   }
