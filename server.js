@@ -4781,7 +4781,7 @@ app.get("/", (req, res) => {
 });
 
 // Chat page route with authentication check
-app.get("/chat", (req, res) => {
+app.get("/chat", async (req, res) => {
   // Check Google OAuth authentication
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   
@@ -4810,7 +4810,59 @@ app.get("/chat", (req, res) => {
     }
   }
 
-  // User is authenticated, serve the chat page
+  // User is authenticated, now check if they need profile completion or role selection
+  let userData = null;
+  
+  if (isStytchAuth && !isGoogleAuth) {
+    // Stytch user - get data from session
+    userData = req.session.user;
+  } else if (isGoogleAuth) {
+    // Google user - get data from saved user data
+    userData = req.user.savedUserData;
+    if (!userData) {
+      const userEmail = req.user.emails?.[0]?.value;
+      userData = findUserByEmail(userEmail);
+    }
+  }
+
+  // Check if user needs profile completion (for Google users)
+  if (isGoogleAuth && (!userData || !userData.isComplete)) {
+    return res.redirect('/complete-signup');
+  }
+
+  // Check if user needs role selection
+  if (userData && userData.needsRoleSelection) {
+    return res.redirect('/select-role');
+  }
+
+  // For Stytch users, automatically assign affiliate role if not already set
+  if (isStytchAuth && userData && !userData.role) {
+    const userEmail = userData.email;
+    let existingUser = findUserByEmail(userEmail);
+    if (existingUser) {
+      existingUser.role = 'affiliate';
+      existingUser.needsRoleSelection = false;
+      saveUser(existingUser);
+    } else {
+      // Create new user record for Stytch user
+      const newUser = {
+        googleId: userData.stytch_user_id,
+        email: userData.email,
+        preferredFirstName: userData.first_name || userData.stytch_name?.split(' ')[0] || '',
+        preferredLastName: userData.last_name || userData.stytch_name?.split(' ')[1] || '',
+        isComplete: true,
+        role: 'affiliate',
+        needsRoleSelection: false,
+        authMethod: 'stytch',
+        stytch_user_id: userData.stytch_user_id,
+        createdAt: new Date().toISOString()
+      };
+      saveUser(newUser);
+    }
+  }
+
+  // User is fully authenticated and setup, serve the chat page
+  console.log('✅ Serving chat page for authenticated user:', userData?.email || 'unknown');
   res.sendFile(path.join(__dirname, "public", "chat.html"));
 });
 
