@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en" data-theme="dark">
   <head>
@@ -806,140 +805,13 @@
         try {
           const response = await fetch('/api/auth/status');
           const authData = await response.json();
-          
+
           console.log('🔍 Auth check result:', authData);
-          
-          // If user is not authenticated, show login prompt instead of auto-redirecting
+
+          // If user is not authenticated, don't show login prompt immediately
+          // Let auth.js handle the authentication flow properly
           if (!authData.authenticated) {
-            console.log('Affiliate not authenticated - showing login options');
-            showLoginPrompt();
+            console.log('User not authenticated - will be handled by auth.js');
             return false;
           }
-          
-          // If user is authenticated but doesn't have a role yet, auto-assign affiliate role for Stytch users
-          if (authData.authenticated && (!authData.user.role || authData.user.needsRoleSelection)) {
-            console.log('Authenticated user without role - checking auth method...');
-            
-            // For Stytch users accessing chat, automatically assign affiliate role
-            if (authData.user.authMethod === 'stytch') {
-              console.log('Stytch user detected, auto-assigning affiliate role...');
-              try {
-                const roleResponse = await fetch('/api/select-role', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ role: 'affiliate' })
-                });
-                
-                if (roleResponse.ok) {
-                  console.log('✅ Auto-assigned affiliate role to Stytch user');
-                  return true; // Continue with page load
-                } else {
-                  console.warn('Failed to auto-assign role');
-                  window.location.href = '/select-role';
-                  return false;
-                }
-              } catch (roleError) {
-                console.error('Error auto-assigning role:', roleError);
-                window.location.href = '/select-role';
-                return false;
-              }
-            } else {
-              // For Google OAuth users, redirect to role selection
-              console.log('Non-Stytch user needs role selection...');
-              window.location.href = '/select-role';
-              return false;
-            }
-          }
-          
-          // If user has a role but it's not affiliate, redirect to appropriate page
-          if (authData.user.role && authData.user.role !== 'affiliate') {
-            console.log('User is not an affiliate, redirecting to appropriate page...');
-            window.location.href = authData.user.role === 'client' ? '/taskforce' : '/select-role';
-            return false;
-          }
-          
-          // Verify this is actually an affiliate user
-          if (authData.user.role === 'affiliate') {
-            console.log('✅ Affiliate authenticated successfully:', authData.user.email);
-            return true;
-          }
-          
-          console.log('✅ User authenticated, allowing access');
-          return true;
-          
-        } catch (error) {
-          console.error('Auth check error:', error);
-          // Don't immediately redirect on network errors - user might still be authenticated locally
-          console.warn('Network error during auth check, but not redirecting immediately');
-          return false;
-        }
-      }
-
-      function showLoginPrompt() {
-        // Create a login prompt overlay instead of auto-redirecting
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10000;
-        `;
-        
-        overlay.innerHTML = `
-          <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; max-width: 400px;">
-            <h3>Authentication Required</h3>
-            <p>You need to be logged in to access the affiliate chat.</p>
-            <div style="margin-top: 1rem;">
-              <button onclick="window.location.href='/stytch-auth.html?return_to=' + encodeURIComponent('/chat')" 
-                      style="background: #4CAF50; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer;">
-                Login
-              </button>
-              <button onclick="this.closest('.login-overlay').remove()" 
-                      style="background: #f44336; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 4px; cursor: pointer;">
-                Cancel
-              </button>
-            </div>
-          </div>
-        `;
-        
-        overlay.className = 'login-overlay';
-        document.body.appendChild(overlay);
-      }
-
-      // Initialize page after DOM loads
-      document.addEventListener("DOMContentLoaded", async () => {
-        // Check authentication first for affiliate access
-        const isAuthorized = await checkAffiliateAuth();
-        
-        if (!isAuthorized) {
-          // Authentication check will handle redirect
-          return;
-        }
-        
-        // Initialize Lucide icons AFTER DOM is loaded
-        lucide.createIcons();
-
-        // Simple initialization without content protection
-        console.log("ERGOVIA-AI chat initialized for authenticated affiliate");
-
-        // Load auth.js functionality after protection is in place
-        setTimeout(() => {
-          if (typeof initializeAuth === "function") {
-            initializeAuth();
-          }
-        }, 100);
-      });
-    </script>
-  <script>
-    function redirectToLemonSqueezy() {
-      window.location.href = 'https://ergovia-ai.lemonsqueezy.com/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d';
-    }
-    </script>
-  </body>
-</html>
+</original>

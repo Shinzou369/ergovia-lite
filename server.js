@@ -4394,11 +4394,15 @@ app.get("/api/auth/status", (req, res) => {
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   
   // Check Stytch authentication with proper session validation
-  const isStytchAuth = !!(req.session?.stytch_session_id && req.session?.user);
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
   
   const isAuthenticated = isGoogleAuth || isStytchAuth;
   
-  console.log('Auth status check - Google:', isGoogleAuth, 'Stytch:', isStytchAuth, 'Overall:', isAuthenticated);
+  console.log('Auth status check - Google:', isGoogleAuth, 'Stytch:', isStytchAuth, 'Overall:', isAuthenticated, 'Session data:', {
+    hasStytchSessionId: !!req.session?.stytch_session_id,
+    hasUser: !!req.session?.user,
+    userStytchId: !!req.session?.user?.stytch_user_id
+  });
 
   if (!isAuthenticated) {
     return res.json({ authenticated: false, user: null });
