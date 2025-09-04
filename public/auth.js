@@ -43,19 +43,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.authCheckInProgress) return;
   window.authCheckInProgress = true;
   
+  // Wait a bit for any redirect authentication to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   const authStatus = await checkAuthStatus();
 
   if (authStatus.authenticated) {
     // User is logged in - show main interface
-    console.log('User logged in:', authStatus.user);
+    console.log('✅ User authenticated:', authStatus.user.email, 'Method:', authStatus.user.authMethod);
+    // Store user data globally for easy access
+    window.currentUser = authStatus.user;
     // Update UI to show user info
     updateUIForLoggedInUser(authStatus.user);
   } else {
     // User not logged in - show login option (log only once per session)
     if (!window.authLoggedOnce) {
-      console.log('User not logged in');
+      console.log('User not authenticated');
       window.authLoggedOnce = true;
     }
+    window.currentUser = null;
     showLoginOption();
   }
   

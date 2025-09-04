@@ -3759,19 +3759,38 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
       existingUser.stytch_user_id = userData.stytch_user_id;
       existingUser.stytch_session_id = userData.stytch_session_id;
       existingUser.authMethod = 'stytch';
+      if (userData.first_name) existingUser.preferredFirstName = userData.first_name;
+      if (userData.last_name) existingUser.preferredLastName = userData.last_name;
+      if (userData.stytch_name) existingUser.stytch_name = userData.stytch_name;
+      existingUser.isComplete = userData.isComplete;
       saveUser(existingUser);
     } else {
-      // Create new user
+      // Create new user with role assignment
       const newUser = {
         googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
-        ...userData
+        ...userData,
+        preferredFirstName: userData.first_name,
+        preferredLastName: userData.last_name,
+        role: 'affiliate',
+        needsRoleSelection: false,
+        isPremium: false,
+        hasUnlimitedAccess: false
       };
       saveUser(newUser);
     }
 
-    // Set session
+    // Set session with proper structure
     req.session.stytch_session_id = session.session_id;
     req.session.user = userData;
+    
+    // Force session save to ensure persistence
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+      } else {
+        console.log('✅ Session saved successfully for:', userData.email);
+      }
+    });
     
     // Clean up temporary name data from session
     delete req.session.stytch_user_first_name;
@@ -3950,10 +3969,13 @@ app.get('/api/auth/stytch/session', async (req, res) => {
 // Revoke Stytch session (logout)
 app.post('/api/auth/stytch/logout', async (req, res) => {
   try {
+    const userEmail = req.session?.user?.email;
+    
     if (stytchClient && req.session.stytch_session_id) {
       await stytchClient.sessions.revoke({
         session_id: req.session.stytch_session_id
       });
+      console.log('✅ Revoked Stytch session for:', userEmail);
     }
 
     req.session.destroy((err) => {
@@ -3962,14 +3984,19 @@ app.post('/api/auth/stytch/logout', async (req, res) => {
         return res.status(500).json({ error: 'Logout failed' });
       }
 
+      console.log('✅ Session destroyed for:', userEmail);
       res.json({ success: true, message: 'Logged out successfully' });
     });
 
   } catch (error) {
     console.error('❌ Stytch logout error:', error);
-    res.status(500).json({
-      error: 'Logout failed',
-      details: error.message
+    // Still try to destroy session even if Stytch revocation fails
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destruction error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ success: true, message: 'Logged out successfully (partial)' });
     });
   }
 });
@@ -4356,8 +4383,8 @@ app.get("/api/auth/status", (req, res) => {
   // Check Google OAuth authentication
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   
-  // Check Stytch authentication
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
+  // Check Stytch authentication with proper session validation
+  const isStytchAuth = !!(req.session?.stytch_session_id && req.session?.user);
   
   const isAuthenticated = isGoogleAuth || isStytchAuth;
   
@@ -4370,20 +4397,54 @@ app.get("/api/auth/status", (req, res) => {
   // Handle Stytch user data
   if (isStytchAuth && !isGoogleAuth) {
     const stytchUser = req.session.user;
+    
+    // Load or create persistent user data for Stytch users
+    let persistentUser = findUserByEmail(stytchUser.email);
+    if (!persistentUser) {
+      // Create persistent user record for Stytch user
+      persistentUser = {
+        googleId: stytchUser.stytch_user_id,
+        email: stytchUser.email,
+        preferredFirstName: stytchUser.first_name || '',
+        preferredLastName: stytchUser.last_name || '',
+        stytch_name: stytchUser.stytch_name,
+        isComplete: !!(stytchUser.first_name && stytchUser.last_name),
+        role: 'affiliate',
+        needsRoleSelection: false,
+        authMethod: 'stytch',
+        stytch_user_id: stytchUser.stytch_user_id,
+        stytch_session_id: stytchUser.stytch_session_id,
+        createdAt: new Date().toISOString(),
+        isPremium: false,
+        hasUnlimitedAccess: false
+      };
+      saveUser(persistentUser);
+      console.log('✅ Created persistent user record for Stytch user:', stytchUser.email);
+    } else {
+      // Update existing user with current session info
+      persistentUser.stytch_session_id = stytchUser.stytch_session_id;
+      persistentUser.authMethod = 'stytch';
+      saveUser(persistentUser);
+    }
+
     return res.json({
       authenticated: true,
       user: {
-        name: stytchUser.stytch_name || stytchUser.email,
-        email: stytchUser.email,
+        name: persistentUser.stytch_name || persistentUser.preferredFirstName + ' ' + persistentUser.preferredLastName || persistentUser.email,
+        email: persistentUser.email,
+        preferredFirstName: persistentUser.preferredFirstName,
+        preferredLastName: persistentUser.preferredLastName,
         authMethod: 'stytch',
-        role: 'affiliate', // Stytch users are affiliates
-        isPremium: false,
-        isComplete: stytchUser.isComplete || true
+        role: persistentUser.role,
+        isPremium: persistentUser.isPremium || false,
+        hasUnlimitedAccess: persistentUser.hasUnlimitedAccess || false,
+        isComplete: persistentUser.isComplete,
+        needsRoleSelection: persistentUser.needsRoleSelection || false
       }
     });
   }
 
-  // First check session for user data, then fallback to saved data
+  // Handle Google OAuth user data
   let userData = req.user.savedUserData;
   if (!userData) {
     const userEmail = req.user.emails?.[0]?.value;
@@ -4405,7 +4466,8 @@ app.get("/api/auth/status", (req, res) => {
     subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
     nextRenewalDate: userData?.nextRenewalDate || null,
     role: userData?.role || null,
-    needsRoleSelection: userData?.needsRoleSelection || false
+    needsRoleSelection: userData?.needsRoleSelection || false,
+    authMethod: 'google'
   };
 
   console.log('✅ Auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
