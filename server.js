@@ -6205,7 +6205,7 @@ function analyzeWorkflowConfig(workflow) {
   ];
 
   // Combine all fields and remove duplicates
-  const allFields = [...standardFields, ...customFields, ...auto  );
+  const allFields = [...standardFields, ...customFields, ...autoDetectedFields];
 
   console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
 
