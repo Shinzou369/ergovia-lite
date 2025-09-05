@@ -2186,29 +2186,65 @@
             resultsDiv.style.background = 'var(--bg-tertiary)';
             resultsDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
 
+            // Build workflow details if available
+            let workflowDetails = '';
+            if (data.duplicated_workflows && data.duplicated_workflows.length > 0) {
+                workflowDetails = '<h4>📋 Duplicated Workflows:</h4><ul style="margin: 10px 0; padding-left: 20px;">';
+                data.duplicated_workflows.forEach(workflow => {
+                    const statusIcon = workflow.activation_status === 'activated' ? '✅' : 
+                                     workflow.activation_status === 'needs_credentials' ? '⚙️' : 
+                                     workflow.activation_status === 'failed' ? '❌' : '⚠️';
+                    workflowDetails += `<li>${statusIcon} <strong>${workflow.new_name}</strong> (ID: ${workflow.new_id}) - ${workflow.activation_status}</li>`;
+                });
+                workflowDetails += '</ul>';
+            }
+
+            // Build OpenAI setup info
+            let openaiInfo = '';
+            if (data.openai_setup && data.openai_setup.success) {
+                openaiInfo = `
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 15px; margin: 15px 0;">
+                        <h4 style="color: var(--success); margin: 0 0 10px 0;">🤖 OpenAI Setup Complete</h4>
+                        <p style="margin: 5px 0; color: var(--text-secondary);">Personal OpenAI access configured with budget tracking and usage monitoring.</p>
+                    </div>
+                `;
+            }
+
             resultsDiv.innerHTML = `
                 <div class="success-message">
-                    <h3>🎉 Workflows Deployed Successfully!</h3>
+                    <h3>🎉 Pet Clinic AI Workflows Deployed Successfully!</h3>
                     <p><strong>Client ID:</strong> ${data.client_id}</p>
-                    <p><strong>Workflows Deployed:</strong> ${data.total_processed}</p>
-                    <ul>
-                        <li>✅ Activated: ${data.activated_workflows}</li>
-                        <li>⚙️ Need Credentials: ${data.workflows_needing_credentials}</li>
-                        <li>❌ Failed: ${data.failed_workflows}</li>
+                    <p><strong>Total Workflows Processed:</strong> ${data.total_processed || data.total_workflows || 0}</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>✅ <strong>Activated:</strong> ${data.activated_workflows || 0}</li>
+                        <li>⚙️ <strong>Need Credentials:</strong> ${data.workflows_needing_credentials || 0}</li>
+                        <li>⚠️ <strong>No Trigger:</strong> ${data.workflows_with_no_trigger || 0}</li>
+                        <li>❌ <strong>Failed:</strong> ${data.failed_workflows || 0}</li>
                     </ul>
-                    <p><strong>Tag Applied:</strong> ${data.tag_applied}</p>
+                    <p><strong>Tag Applied:</strong> ${data.tag_applied || data.tag || 'pet_clinic'}</p>
+                    
+                    ${workflowDetails}
+                    ${openaiInfo}
+                    
                     <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 15px; margin: 15px 0;">
                         <h4 style="color: var(--success); margin: 0 0 10px 0;">📋 Next Steps</h4>
-                        <p style="margin: 5px 0; color: var(--text-secondary);">Your ETF workflows have been deployed and are ready to use with your configured credentials.</p>
+                        <p style="margin: 5px 0; color: var(--text-secondary);">
+                            Your Pet Clinic AI workflows have been successfully deployed to N8N! They are now running with your configured credentials and ready to automate your veterinary practice.
+                        </p>
+                        ${data.activated_workflows > 0 ? '<p style="margin: 5px 0; color: var(--text-secondary);">✅ Active workflows are already processing data and ready to use.</p>' : ''}
+                        ${data.workflows_needing_credentials > 0 ? '<p style="margin: 5px 0; color: var(--warning);">⚙️ Some workflows need additional credential configuration in N8N.</p>' : ''}
                     </div>
                 </div>
             `;
 
-            // Append results to the page, for example, below the workbench canvas
+            // Append results to the page
             const workbenchCanvas = document.querySelector('.workbench-canvas');
             if (workbenchCanvas) {
                 workbenchCanvas.insertAdjacentElement('afterend', resultsDiv);
             }
+
+            // Scroll to results
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         // Deploy Pet Clinic AI
@@ -2241,38 +2277,50 @@
             // Combine all configuration data similar to original onboard
             const combinedConfigData = {
                 // Business details
-                businessName: businessInfo.businessName,
-                businessEmail: businessInfo.businessEmail,
-                businessPhone: businessInfo.businessPhone,
-                websiteUrl: businessInfo.websiteUrl,
-                businessAddress: businessInfo.businessAddress,
+                business_name: businessInfo.businessName,
+                business_email: businessInfo.businessEmail,
+                business_phone: businessInfo.businessPhone,
+                business_website: businessInfo.websiteUrl,
+                business_address: businessInfo.businessAddress,
                 
                 // Clinic configuration
-                clinicName: clinicConfig.clinicName || businessInfo.businessName,
-                primary_veterinarian: clinicConfig.primaryVeterinarian,
-                managerName: clinicConfig.managerName,
-                clinicHours: clinicConfig.clinicHours,
-                servicesOffered: clinicConfig.servicesOffered,
-                vetLicense: clinicConfig.vetLicense,
+                clinic_name: clinicConfig.clinicName || businessInfo.businessName,
+                veterinarian_name: clinicConfig.primaryVeterinarian,
+                manager_name: clinicConfig.managerName,
+                clinic_hours: clinicConfig.clinicHours,
+                services_offered: clinicConfig.servicesOffered,
+                vet_license: clinicConfig.vetLicense,
                 
                 // Communication
-                from_email: communication.fromEmail,
-                from_name: communication.fromName,
-                supportEmail: communication.supportEmail,
-                emergencyContact: communication.emergencyContact,
+                from_email: communication.fromEmail || businessInfo.businessEmail,
+                from_name: communication.fromName || businessInfo.businessName,
+                support_email: communication.supportEmail || businessInfo.businessEmail,
+                emergency_contact: communication.emergencyContact,
                 
                 // Operations
                 timezone: operational.timezone,
                 cancellation_policy: operational.cancellationPolicy,
-                businessColor: operational.businessColor,
+                business_color: operational.businessColor,
                 reminder_interval: operational.reminderInterval,
                 data_retention_years: operational.dataRetentionYears,
                 
                 // Credentials (only include connected ones)
-                ...credentials,
+                google_connected: credentials.google_connected || false,
+                openai_connected: credentials.openai_connected || false,
+                telegram_connected: credentials.telegram_connected || false,
+                twilio_connected: credentials.twilio_connected || false,
+                calendly_connected: credentials.calendly_connected || false,
+                sendgrid_connected: credentials.sendgrid_connected || false,
+                facebook_connected: credentials.facebook_connected || false,
+                twitter_connected: credentials.twitter_connected || false,
+                slack_connected: credentials.slack_connected || false,
                 
                 // Advanced settings
-                ...advanced
+                stripe_publishable_key: advanced.stripePublishableKey,
+                stripe_secret_key: advanced.stripeSecretKey,
+                webhook_secret: advanced.webhookSecret,
+                api_rate_limit: advanced.apiRateLimit,
+                backup_frequency: advanced.backupFrequency
             };
 
             // Client data for identification
@@ -2285,7 +2333,7 @@
             console.log('Deploying Pet Clinic AI with data:', combinedConfigData);
 
             try {
-                // Deploy using the same API as original onboard
+                // Deploy using the same API as original onboard - this will actually duplicate workflows
                 const response = await fetch('/api/etf/deploy', {
                     method: 'POST',
                     headers: {
@@ -2297,24 +2345,21 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
 
                 if (result.success) {
-                    displayDeploymentResults({
-                        client_id: result.client_id || `client_${Math.random().toString(36).substring(2, 10)}`,
-                        total_processed: result.total_workflows || 8,
-                        activated_workflows: result.activated_workflows || 6,
-                        workflows_needing_credentials: result.workflows_needing_credentials || 0,
-                        failed_workflows: result.failed_workflows || 0,
-                        tag_applied: result.tag || "pet_clinic"
-                    });
+                    displayDeploymentResults(result);
                 } else {
                     throw new Error(result.error || 'Deployment failed');
                 }
 
             } catch (error) {
                 console.error('Deployment error:', error);
-                alert(`Deployment failed: ${error.message}`);
+                alert(`❌ Deployment failed: ${error.message}`);
             } finally {
                 this.disabled = false;
                 this.innerHTML = originalHTML;
