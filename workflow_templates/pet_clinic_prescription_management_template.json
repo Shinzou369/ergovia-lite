@@ -3,89 +3,52 @@
   "nodes": [
     {
       "parameters": {
+        "path": "prescription-form-{{CLINIC_ID}}",
         "formTitle": "{{CLINIC_NAME}} - New Prescription Entry",
         "formDescription": "Log new prescriptions for automated refill tracking",
         "formFields": {
           "values": [
             {
               "fieldLabel": "Patient ID",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Enter patient/chart ID"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Pet Name",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Pet's name"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Owner Name",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Owner's full name"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Owner Phone",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "+1 (555) 123-4567"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Medication Name",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Medication name and dosage"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Quantity Dispensed",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Amount given (e.g., 30 tablets)"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Days Supply",
               "fieldType": "number",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "30"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Refills Authorized",
               "fieldType": "number",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Number of refills (0-5)"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Prescribing Veterinarian",
-              "fieldType": "text",
-              "requiredField": true,
-              "fieldOptions": {
-                "placeholder": "Dr. Name"
-              }
+              "requiredField": true
             },
             {
               "fieldLabel": "Special Instructions",
-              "fieldType": "textarea",
-              "requiredField": false,
-              "fieldOptions": {
-                "placeholder": "Any special dosing instructions or notes"
-              }
+              "fieldType": "textarea"
             }
           ]
         },
@@ -101,12 +64,17 @@
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2,
       "position": [
-        -400,
-        200
+        192,
+        240
       ],
-      "webhookId": "prescription-form-{{CLINIC_ID}}",
-      "id": "prescription-form-trigger",
-      "credentials": {}
+      "webhookId": "{{PRESCRIPTION_FORM_WEBHOOK_ID}}",
+      "id": "{{NODE_ID_NEW_PRESCRIPTION_FORM}}",
+      "credentials": {
+        "formTriggerAuth": {
+          "id": "{{FORM_TRIGGER_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Form Auth"
+        }
+      }
     },
     {
       "parameters": {
@@ -141,10 +109,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        -120,
-        200
+        464,
+        240
       ],
-      "id": "log-prescription-entry",
+      "id": "{{NODE_ID_LOG_PRESCRIPTION_HUB}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -166,14 +134,15 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        160,
-        200
+        752,
+        240
       ],
-      "id": "vet-notification-email",
+      "id": "{{NODE_ID_SEND_CONFIRMATION_VET}}",
+      "webhookId": "{{EMAIL_SEND_WEBHOOK_ID}}",
       "credentials": {
         "smtp": {
           "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+          "name": "{{CLINIC_NAME}} SMTP"
         }
       }
     },
@@ -182,37 +151,33 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 10,
-              "triggerAtMinute": 0
+              "triggerAtHour": 10
             }
           ]
-        },
-        "timezone": "{{TIMEZONE}}"
+        }
       },
       "name": "⏰ Daily Refill Check",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -400,
-        500
+        192,
+        544
       ],
-      "id": "daily-refill-scheduler"
+      "id": "{{NODE_ID_DAILY_REFILL_CHECK}}"
     },
     {
       "parameters": {
         "operation": "getAll",
-        "documentId": "{{PRESCRIPTION_SHEET_ID}}",
-        "sheetName": "{{PRESCRIPTION_SHEET_NAME}}",
-        "options": {}
+        "documentId": "{{PRESCRIPTION_SHEET_ID}}"
       },
       "name": "📋 Get All Prescriptions",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        -120,
-        500
+        464,
+        544
       ],
-      "id": "get-all-prescriptions",
+      "id": "{{NODE_ID_GET_ALL_PRESCRIPTIONS}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -228,10 +193,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        160,
-        500
+        752,
+        544
       ],
-      "id": "filter-refill-candidates"
+      "id": "{{NODE_ID_FILTER_REFILL_CANDIDATES}}"
     },
     {
       "parameters": {
@@ -244,10 +209,10 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        440,
-        500
+        1024,
+        544
       ],
-      "id": "send-refill-sms",
+      "id": "{{NODE_ID_SEND_REFILL_REMINDER_SMS}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -269,20 +234,16 @@
             "Contact Notes": "={{ $json.reminderType === 'urgent' ? 'URGENT: Medication runs out today' : 'Reminded: ' + $json.daysUntilRunsOut + ' days remaining' }}"
           }
         },
-        "options": {
-          "lookupColumn": "Patient ID",
-          "lookupValue": "={{ $json['Patient ID'] }}",
-          "range": "A:Z"
-        }
+        "options": {}
       },
       "name": "📝 Update Reminder Log",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        720,
-        500
+        1312,
+        544
       ],
-      "id": "update-reminder-log",
+      "id": "{{NODE_ID_UPDATE_REMINDER_LOG}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -299,11 +260,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -900,
-        0
+        -832,
+        -32
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
+      "id": "{{NODE_ID_WORKFLOW_DESCRIPTION_NOTE}}",
       "name": "PET WF13 - Workflow Description"
     }
   ],
@@ -378,6 +339,86 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{PRESCRIPTION_SHEET_ID_VAR_ID}}",
+      "key": "PRESCRIPTION_SHEET_ID",
+      "value": "{{PRESCRIPTION_SHEET_ID}}"
+    },
+    {
+      "id": "{{PRESCRIPTION_SHEET_NAME_VAR_ID}}",
+      "key": "PRESCRIPTION_SHEET_NAME",
+      "value": "{{PRESCRIPTION_SHEET_NAME}}"
+    },
+    {
+      "id": "{{VET_EMAIL_VAR_ID}}",
+      "key": "VET_EMAIL",
+      "value": "{{VET_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    },
+    {
+      "id": "{{CLINIC_COLOR_VAR_ID}}",
+      "key": "CLINIC_COLOR",
+      "value": "{{CLINIC_COLOR}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    },
+    {
+      "id": "{{CLINIC_ID_VAR_ID}}",
+      "key": "CLINIC_ID",
+      "value": "{{CLINIC_ID}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{FORM_TRIGGER_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Form Auth",
+      "type": "formTriggerAuth",
+      "data": {}
+    },
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{SMTP_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} SMTP",
+      "type": "smtp",
+      "data": {}
+    },
+    {
+      "id": "{{TWILIO_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Twilio SMS",
+      "type": "twilioApi",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "Prescription Management",
+    "Refill Reminders",
+    "Medication Tracking",
+    "Client Communication"
+  ]
 }
