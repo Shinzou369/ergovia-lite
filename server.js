@@ -651,6 +651,10 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Add cookie parser for Stytch session handling
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 app.use(validateInput);
 
 // Add session validation middleware to all routes
@@ -3560,22 +3564,22 @@ app.get("/api/profile", (req, res) => {
 });
 
 // Legacy Stytch endpoints for backward compatibility
-app.post('/api/auth/stytch/magic-links/send', (req, res) => {
+app.post('/api/auth/stytch/magic-links/send', (req, res, next) => {
   // Redirect to new auth route
   req.url = '/auth/magic-links/send';
-  authRoutes(req, res);
+  authRoutes(req, res, next);
 });
 
-app.get('/api/auth/stytch/authenticate', (req, res) => {
+app.get('/api/auth/stytch/authenticate', (req, res, next) => {
   // Redirect to new auth route
   req.url = '/auth/callback';
-  authRoutes(req, res);
+  authRoutes(req, res, next);
 });
 
-app.post('/api/auth/stytch/logout', (req, res) => {
+app.post('/api/auth/stytch/logout', (req, res, next) => {
   // Redirect to new auth route
   req.url = '/auth/logout';
-  authRoutes(req, res);
+  authRoutes(req, res, next);
 });
 
 // Enhanced Credential Management API

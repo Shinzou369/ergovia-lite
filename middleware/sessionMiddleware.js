@@ -24,7 +24,7 @@ try {
  */
 async function validateSession(req, res, next) {
   try {
-    const sessionJWT = req.cookies.stytch_session;
+    const sessionJWT = req.cookies?.stytch_session;
     
     if (!sessionJWT) {
       // No session cookie found
