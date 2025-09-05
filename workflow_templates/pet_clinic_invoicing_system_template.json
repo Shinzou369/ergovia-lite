@@ -466,11 +466,18 @@
   },
   "pinData": {},
   "meta": {
-    "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
+    "templateCredsSetupCompleted": true,
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "id": "{{WORKFLOW_ID}}",
+  "tags": ["{{WORKFLOW_TAG}}"],
+  "name": "{{CLINIC_NAME}} - Invoicing System"
 }
-{
   "nodes": [
     {
       "parameters": {},
