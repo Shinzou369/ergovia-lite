@@ -770,16 +770,23 @@
                     requestBody.last_name = document.getElementById('last-name').value.trim();
                 }
 
-                const response = await fetch('/api/auth/stytch/magic-links/send', {
+                const response = await fetch('/auth/magic-links/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody)
                 });
 
                 console.log('📡 Magic link response status:', response.status);
-                const data = await response.json();
+                
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.error('❌ Failed to parse response:', parseError);
+                    throw new Error('Invalid server response');
+                }
 
-                if (data.success) {
+                if (response.ok && data.success) {
                     // Store email for returning user detection
                     localStorage.setItem('stytch_user_email', email);
 
@@ -796,15 +803,17 @@
                     console.log('✅ Magic link sent successfully to:', email);
                 } else {
                     console.error('❌ Magic link request failed:', data);
-                    let errorMessage = data.error || 'Failed to send magic link';
+                    let errorMessage = data?.error || 'Failed to send magic link';
 
                     // Handle specific error cases with user-friendly messages
-                    if (data.error && data.error.includes('no_match_for_provided_magic_link_url')) {
-                        errorMessage = 'Service configuration issue. Please contact support or try SMS instead.';
-                    } else if (data.error && data.error.includes('project_not_found')) {
-                        errorMessage = 'Authentication service unavailable. Please try again or contact support.';
-                    } else if (data.error && data.error.includes('Invalid email')) {
+                    if (errorMessage.includes('no_match_for_provided_magic_link_url')) {
+                        errorMessage = 'Service configuration issue. Please contact support.';
+                    } else if (errorMessage.includes('project_not_found')) {
+                        errorMessage = 'Authentication service unavailable. Please try again later.';
+                    } else if (errorMessage.includes('Invalid email')) {
                         errorMessage = 'Please enter a valid email address';
+                    } else if (response.status === 500) {
+                        errorMessage = 'Server error. Please try again in a moment.';
                     }
 
                     showMessage(`❌ ${errorMessage}`, 'error');
@@ -813,9 +822,8 @@
                 console.error('❌ Network/request error:', error);
                 showMessage('❌ Network error. Please check your connection and try again.', 'error');
             } finally {
-                setTimeout(() => {
-                    setLoading(submitBtn, false, '🚀 Send Magic Link');
-                }, 1000);
+                // Reset button state
+                setLoading(submitBtn, false, '🚀 Send Magic Link');
             }
         }
 
@@ -950,6 +958,7 @@
 
             if (loading) {
                 button.disabled = true;
+                button.classList.add('loading');
                 btnText.innerHTML = `<span class="loading"></span>${text}`;
                 button.style.transform = 'translateY(1px)';
 
@@ -959,6 +968,7 @@
 
             } else {
                 button.disabled = false;
+                button.classList.remove('loading');
                 btnText.innerHTML = text;
                 button.style.transform = '';
             }

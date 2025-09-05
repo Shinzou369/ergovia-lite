@@ -107,7 +107,14 @@ router.get('/callback', async (req, res) => {
 // Send magic link endpoint
 router.post('/magic-links/send', async (req, res) => {
   try {
+    console.log('🔄 Magic link endpoint called with:', {
+      body: req.body,
+      headers: req.headers.host,
+      protocol: req.headers['x-forwarded-proto']
+    });
+
     if (!stytchClient) {
+      console.error('❌ Stytch client not initialized');
       return res.status(500).json({ 
         success: false,
         error: 'Authentication service not configured'
@@ -117,6 +124,7 @@ router.post('/magic-links/send', async (req, res) => {
     const { email, first_name, last_name, return_to } = req.body;
 
     if (!email) {
+      console.error('❌ Email missing from request');
       return res.status(400).json({ 
         success: false,
         error: 'Email is required' 
@@ -133,10 +141,20 @@ router.post('/magic-links/send', async (req, res) => {
     }
 
     // Use dynamic redirect URL
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
     const host = req.headers.host;
-    const finalHost = host.includes('repl.co') || host.includes('localhost') ? host : 'ergovia-ai.com';
+    
+    // For development and production
+    let finalHost;
+    if (host && (host.includes('repl.co') || host.includes('localhost'))) {
+      finalHost = host;
+    } else {
+      finalHost = 'ergovia-ai.com';
+    }
+    
     const redirectUrl = `${protocol}://${finalHost}/auth/callback`;
+    
+    console.log('🔗 Magic link redirect URL:', redirectUrl);
     
     // Store return_to in session
     req.session.stytch_return_to = return_to || '/chat';
@@ -154,14 +172,24 @@ router.post('/magic-links/send', async (req, res) => {
     }
 
     console.log('🔄 Sending Stytch magic link to:', email);
+    console.log('📋 Magic link params:', JSON.stringify(params, null, 2));
+    
     const response = await stytchClient.magicLinks.email.loginOrCreate(params);
 
-    console.log('✅ Stytch magic link sent successfully:', response.request_id);
+    console.log('✅ Stytch magic link sent successfully:', {
+      request_id: response.request_id,
+      user_id: response.user_id,
+      email_id: response.email_id
+    });
 
     res.json({
       success: true,
       message: 'Magic link sent! Check your email (including spam folder).',
-      request_id: response.request_id
+      request_id: response.request_id,
+      debug_info: {
+        redirect_url: redirectUrl,
+        email: email
+      }
     });
 
   } catch (error) {
