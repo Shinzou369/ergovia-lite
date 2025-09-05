@@ -74,84 +74,57 @@ async function handleSubmit() {
 }
 
 async function sendMessage(promptText) {
-  // Enhanced input validation
   if (!promptText?.trim() || isTyping) {
-    return;
-  }
-
-  // Sanitize input
-  const sanitizedText = promptText.trim().substring(0, 4000); // Limit length
-  if (sanitizedText !== promptText.trim()) {
-    console.warn('Input was truncated due to length limit');
-  }
-
-  // Check for potentially harmful content
-  const harmfulPatterns = [
-    /<script[^>]*>.*?<\/script>/gi,
-    /javascript:/gi,
-    /data:text\/html/gi
-  ];
-  
-  if (harmfulPatterns.some(pattern => pattern.test(sanitizedText))) {
-    addMessage("Invalid input detected. Please try again with different text.", "error");
     return;
   }
 
   const submitBtn = document.getElementById("submit-btn");
   const promptInput = document.getElementById("prompt-input");
 
-  if (!submitBtn || !promptInput) {
-    console.error("Required DOM elements not found");
-    return;
+  // Enhanced button state management
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="loading-spinner"></span>';
+  submitBtn.style.transform = "scale(0.95)";
+
+  // Enhanced fade out animations
+  const header = document.querySelector(".hero-section");
+  const quickChat = document.querySelector(".quick-chat");
+  const workspace = document.querySelector(".workspace");
+
+  if (header) {
+    header.classList.add("fade-out");
+  }
+  if (quickChat) {
+    quickChat.classList.add("fade-out");
+    // Add class to workspace to expand chat container
+    if (workspace) {
+      workspace.classList.add("no-quick-chat");
+    }
   }
 
-  try {
-    // Enhanced button state management
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="loading-spinner"></span>';
-    submitBtn.style.transform = "scale(0.95)";
-
-    // Enhanced fade out animations with error handling
-    const header = document.querySelector(".hero-section");
-    const quickChat = document.querySelector(".quick-chat");
-    const workspace = document.querySelector(".workspace");
-
-    if (header) {
-      header.classList.add("fade-out");
-    }
-    if (quickChat) {
-      quickChat.classList.add("fade-out");
-      // Add class to workspace to expand chat container
-      if (workspace) {
-        workspace.classList.add("no-quick-chat");
-      }
-    }
-
-    // Clear input with animation
-    try {
-      promptInput.style.transform = "scale(0.98)";
-      setTimeout(() => {
-        promptInput.value = "";
-        promptInput.style.transform = "scale(1)";
-      }, 150);
-    } catch (animError) {
-      console.warn("Animation error:", animError);
+  // Clear input with animation
+  if (promptInput) {
+    promptInput.style.transform = "scale(0.98)";
+    setTimeout(() => {
       promptInput.value = "";
-    }
+      promptInput.style.transform = "scale(1)";
+    }, 150);
+  }
 
-    // Add user message with animation
-    addMessage(sanitizedText, "user");
+  // Add user message with animation
+  addMessage(promptText, "user");
 
-    // Show typing indicator
-    showTypingIndicator();
+  // Show typing indicator
+  showTypingIndicator();
 
-    conversation.push({ role: "user", content: sanitizedText });
+  conversation.push({ role: "user", content: promptText });
 
-    const selectedModel = selectModel(sanitizedText);
+  const selectedModel = selectModel(promptText);
 
+  try {
     const response = await getGPTResponse(selectedModel, conversation);
 
-    if (response && response.message && response.message.content) {
+    if (response && response.message) {
       hideTypingIndicator();
       addMessage(response.message.content, "assistant");
       conversation.push(response.message);
@@ -160,11 +133,9 @@ async function sendMessage(promptText) {
       saveCurrentThread();
 
       // Update token usage
-      await updateTokenUsage().catch(usageError => {
-        console.warn("Token usage update failed:", usageError);
-      });
+      await updateTokenUsage();
     } else {
-      throw new Error("Invalid response format from API");
+      throw new Error("Invalid response format");
     }
   } catch (error) {
     console.error("Chat error:", error);
@@ -172,44 +143,26 @@ async function sendMessage(promptText) {
 
     let errorMessage = "I'm having trouble connecting right now. Please try again.";
 
-    // Enhanced error categorization
     if (error.message?.includes("403") || error.message?.includes("Premium")) {
       errorMessage = "You've reached your usage limit. Please upgrade to continue chatting.";
-      try {
-        showPaymentModal();
-      } catch (modalError) {
-        console.error("Payment modal error:", modalError);
-      }
-    } else if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
+      showPaymentModal();
+    } else if (error.message?.includes("401")) {
       errorMessage = "Please log in to continue using the chat.";
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
-    } else if (error.message?.includes("network") || error.message?.includes("fetch") || error.name === "TypeError") {
+    } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
       errorMessage = "Network connection issue. Please check your internet and try again.";
-    } else if (error.message?.includes("429")) {
-      errorMessage = "Too many requests. Please wait a moment before trying again.";
-    } else if (error.message?.includes("500")) {
-      errorMessage = "Server error. Our team has been notified. Please try again later.";
     }
 
     addMessage(errorMessage, "error");
   } finally {
-    // Reset button state with error handling
-    try {
-      isTyping = false;
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span class="submit-icon"><i data-lucide="send"></i></span>';
-        submitBtn.style.transform = "scale(1)";
-      }
+    // Reset button state
+    isTyping = false;
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="submit-icon"><i data-lucide="send"></i></span>';
+    submitBtn.style.transform = "scale(1)";
 
-      // Reinitialize icons
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-      }
-    } catch (resetError) {
-      console.error("Error resetting button state:", resetError);
+    // Reinitialize icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
     }
   }
 }

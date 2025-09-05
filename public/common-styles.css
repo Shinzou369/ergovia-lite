@@ -180,7 +180,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* Enhanced utility classes with accessibility support */
+/* Utility classes */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
@@ -206,28 +206,3 @@
 
 .w-full { width: 100%; }
 .h-full { height: 100%; }
-
-/* Accessibility utilities */
-.focus-ring {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  :root {
-    --primary-color: #000080;
-    --text-primary: #000000;
-    --bg-primary: #ffffff;
-    --border-color: #000000;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
