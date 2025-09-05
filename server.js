@@ -145,7 +145,7 @@ class N8NApiClient {
 
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagToProcess;
-      
+
       if (typeof tag === 'string') {
         // Create or get the tag first
         tagToProcess = await this.createTag(tag);
@@ -213,9 +213,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - startTime;
     const statusSymbol = res.statusCode >= 400 ? '❌' : 
                         res.statusCode >= 300 ? '⚠️' : '✅';
-    
+
     console.log(`📤 ${statusSymbol} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms - ${userInfo}`);
-    
+
     // Log slow requests
     if (duration > 5000) {
       console.warn(`🐌 Slow request detected: ${req.method} ${req.url} took ${duration}ms`);
@@ -259,11 +259,11 @@ const maxDbConnectionAttempts = 5;
 function initializeDatabase() {
   return new Promise((resolve, reject) => {
     dbConnectionAttempts++;
-    
+
     db = new sqlite3.Database('./taskforce.db', (err) => {
       if (err) {
         console.error(`❌ Database connection attempt ${dbConnectionAttempts} failed:`, err.message);
-        
+
         if (dbConnectionAttempts < maxDbConnectionAttempts) {
           console.log(`🔄 Retrying database connection in 2 seconds...`);
           setTimeout(() => {
@@ -275,7 +275,7 @@ function initializeDatabase() {
         }
       } else {
         console.log('✅ Connected to SQLite database');
-        
+
         // Test database functionality
         db.run("CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, timestamp TEXT)", (testErr) => {
           if (testErr) {
@@ -295,13 +295,13 @@ function initializeDatabase() {
 // Handle database connection errors gracefully
 function handleDatabaseError(error, operation) {
   logError(error, { operation, type: 'database_operation_failed' });
-  
+
   // Try to reconnect if connection was lost
   if (error.message.includes('SQLITE_BUSY') || error.message.includes('database is locked')) {
     console.log('🔄 Database is busy, retrying operation...');
     return { shouldRetry: true };
   }
-  
+
   return { shouldRetry: false };
 }
 
@@ -326,7 +326,7 @@ function initETFDatabase() {
       etfDB = new sqlite3.Database('etf_data.db', (err) => {
         if (err) {
           console.error(`❌ ETF Database connection attempt ${attempts} failed:`, err.message);
-          
+
           if (attempts < maxAttempts) {
             console.log(`🔄 Retrying ETF database connection...`);
             setTimeout(tryConnection, 1000);
@@ -391,16 +391,16 @@ function initETFDatabase() {
               tableErrors.push(`Table ${index + 1}: ${tableErr.message}`);
               logError(tableErr, { type: 'etf_table_creation_failed', sql });
             }
-            
+
             tablesCreated++;
-            
+
             if (tablesCreated === createTables.length) {
               if (tableErrors.length > 0) {
                 console.error('⚠️ Some ETF tables failed to create:', tableErrors);
               } else {
                 console.log('✅ All ETF tables created successfully');
               }
-              
+
               console.log('✅ ETF Database initialized');
               resolve(etfDB);
             }
@@ -422,7 +422,7 @@ initETFDatabase()
   .catch(err => {
     console.error('❌ Failed to initialize ETF database:', err.message);
     console.error('⚠️ ETF functionality will be disabled');
-    
+
     // Create a mock database object to prevent crashes
     etfDB = {
       run: (sql, params, callback) => {
@@ -480,7 +480,7 @@ function validateEnvironment() {
     console.error('❌ Missing REQUIRED environment variables:');
     missing.forEach(item => console.error(`   - ${item}`));
     console.error('🔧 Please check your .env file or Replit Secrets');
-    
+
     // Don't exit in development, but warn loudly
     if (process.env.NODE_ENV === 'production') {
       console.error('🛑 Cannot start in production without required environment variables');
@@ -505,7 +505,7 @@ const openai = new OpenAI({
 });
 
 // Import middleware and routes
-const { validateSession, requireAuth, redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
+const { validateSession, redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
 const authRoutes = require('./routes/authRoutes');
 
 // Passport configuration
@@ -541,7 +541,7 @@ const sessionConfig = {
   }),
   secret: process.env.SESSION_SECRET || (() => {
     const fallbackSecret = 'ergovia-ai-stable-secret-key-2024-production';
-    
+
     if (process.env.NODE_ENV === 'production') {
       console.error('🚨 SECURITY WARNING: SESSION_SECRET not set in production!');
       console.error('🔧 Please set SESSION_SECRET environment variable immediately');
@@ -552,7 +552,7 @@ const sessionConfig = {
     } else {
       console.warn('⚠️ Using fallback SESSION_SECRET for development');
     }
-    
+
     return fallbackSecret;
   })(),
   resave: false,
@@ -576,7 +576,7 @@ app.use((req, res, next) => {
   if (req.session && req.sessionID) {
     const hasStytchSession = !!(req.session.stytch_session_id || req.session.user?.stytch_user_id);
     const stytchEmail = req.session.user?.email;
-    
+
     console.log('Session Debug:', {
       sessionID: req.sessionID.substring(0, 8) + '...',
       googleAuth: req.isAuthenticated(),
@@ -667,21 +667,21 @@ const rateLimit = {
 function rateLimitMiddleware(req, res, next) {
   const clientId = req.ip || 'unknown';
   const now = Date.now();
-  
+
   if (!rateLimit.clients.has(clientId)) {
     rateLimit.clients.set(clientId, { count: 1, resetTime: now + rateLimit.windowMs });
     return next();
   }
-  
+
   const client = rateLimit.clients.get(clientId);
-  
+
   if (now > client.resetTime) {
     // Reset window
     client.count = 1;
     client.resetTime = now + rateLimit.windowMs;
     return next();
   }
-  
+
   if (client.count >= rateLimit.maxRequests) {
     console.log(`🚫 Rate limit exceeded for ${clientId}`);
     return res.status(429).json({ 
@@ -689,7 +689,7 @@ function rateLimitMiddleware(req, res, next) {
       retryAfter: Math.ceil((client.resetTime - now) / 1000)
     });
   }
-  
+
   client.count++;
   next();
 }
@@ -705,24 +705,24 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Powered-By', 'ERGOVIA-AI');
-  
+
   // Add CORS headers for production
   const allowedOrigins = process.env.CORS_ORIGIN ? 
     process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com'];
-  
+
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -966,20 +966,20 @@ app.post('/api/system/recover', async (req, res) => {
           const sessionDir = './sessions';
           const files = fs.readdirSync(sessionDir);
           let cleaned = 0;
-          
+
           files.forEach(file => {
             if (file.endsWith('.json')) {
               const filePath = path.join(sessionDir, file);
               const stats = fs.statSync(filePath);
               const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
-              
+
               if (ageHours > 168) { // 7 days
                 fs.unlinkSync(filePath);
                 cleaned++;
               }
             }
           });
-          
+
           results.push(`Cleaned ${cleaned} expired session files`);
         } catch (error) {
           results.push(`Session cleanup failed: ${error.message}`);
@@ -1255,7 +1255,7 @@ app.get('/stytch-logged-in', (req, res) => {
     // Auto-generate OpenAI API key with enhanced setup
     const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
     const keyGenerator = new AutoKeyGenerator();
-    
+
     let openaiSetupResult = { success: false };
     try {
       openaiSetupResult = await keyGenerator.setupETFClientOpenAI(client_data, templateIds);
@@ -1591,7 +1591,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
   }
 });
 
-// Test endpoint for creating tags
+// Test endpoint to create tags
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
@@ -1624,7 +1624,7 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
   }
 });
 
-// Test endpoint for listing tags
+// Test endpoint to list tags
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
@@ -2898,10 +2898,10 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 function requireAuth(req, res, next) {
   // Check Google OAuth authentication
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-  
+
   // Check Stytch authentication
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
-  
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
+
   const isAuthenticated = isGoogleAuth || isStytchAuth;
 
   if (!isAuthenticated) {
@@ -3028,7 +3028,7 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 // Enhanced health check with service monitoring
 app.get('/health', async (req, res) => {
   console.log('🏥 Health check requested');
-  
+
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -4339,7 +4339,7 @@ app.get("/", (req, res) => {
 // Chat page route - serve chat page without authentication requirement
 app.get("/chat", (req, res) => {
   console.log('📄 Chat page requested');
-  
+
   // Check if user is authenticated (for logging purposes)
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
@@ -4444,18 +4444,18 @@ function logError(error, context = {}) {
   try {
     const errorLogFile = './error_logs.json';
     let errorLogs = [];
-    
+
     if (fs.existsSync(errorLogFile)) {
       errorLogs = JSON.parse(fs.readFileSync(errorLogFile, 'utf8'));
     }
-    
+
     errorLogs.push(errorLog);
-    
+
     // Keep only last 100 errors to prevent file bloat
     if (errorLogs.length > 100) {
       errorLogs = errorLogs.slice(-100);
     }
-    
+
     fs.writeFileSync(errorLogFile, JSON.stringify(errorLogs, null, 2));
   } catch (fileError) {
     console.error('Failed to save error log:', fileError.message);
@@ -4500,7 +4500,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   logError(error, { type: 'uncaughtException' });
-  
+
   // Give time for logging then exit gracefully
   setTimeout(() => {
     console.log('🛑 Exiting due to uncaught exception');
@@ -5511,7 +5511,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (!workflowName || typeof workflowName !== 'string') {
     return 'general';
   }
-  
+
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
     if (typeof tag === 'string') {
@@ -5529,7 +5529,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
   if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
   if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
-  
+
   // Fallback to name-based classification
   if (name.includes('veterinary') || name.includes('pet') || name.includes('animal')) return 'veterinary';
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
@@ -5537,7 +5537,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
-  
+
   return 'general';;
 
   // Fallback to name-based detection
