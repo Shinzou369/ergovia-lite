@@ -4394,14 +4394,11 @@ async function handleOAuthCallback(service, code, userEmail) {
 
 // Check authentication status endpoint
 app.get("/api/auth/status", async (req, res) => {
-  // Check Google OAuth authentication
-  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-  
-  // Enhanced Stytch authentication check
+  // Check for Stytch authentication FIRST (affiliates)
   let isStytchAuth = false;
   let stytchUser = null;
   
-  // First check if we have a Stytch session ID
+  // Check if we have a Stytch session ID
   if (req.session?.stytch_session_id) {
     try {
       // Validate the session with Stytch
@@ -4429,50 +4426,40 @@ app.get("/api/auth/status", async (req, res) => {
     stytchUser = req.session.user;
     console.log('✅ Stytch user found in session:', stytchUser.email);
   }
-  
-  const isAuthenticated = isGoogleAuth || isStytchAuth;
-  
-  console.log('Auth status check - Google:', isGoogleAuth, 'Stytch:', isStytchAuth, 'Overall:', isAuthenticated, 'Session ID:', req.sessionID?.substring(0, 8) + '...', 'Session data:', {
-    hasStytchSessionId: !!req.session?.stytch_session_id,
-    hasUser: !!req.session?.user,
-    userStytchId: !!req.session?.user?.stytch_user_id,
-    userEmail: req.session?.user?.email
-  });
 
-  if (!isAuthenticated) {
-    return res.json({ authenticated: false, user: null });
-  }
-
-  // Handle Stytch user data
-  if (isStytchAuth && !isGoogleAuth) {
-    const stytchUser = req.session.user;
+  // If Stytch auth found, handle it immediately (don't check Google)
+  if (isStytchAuth) {
+    console.log('Auth status check - Stytch affiliate authenticated:', stytchUser.email);
+    
+    const sessionUser = req.session.user;
     
     // Load or create persistent user data for Stytch users
-    let persistentUser = findUserByEmail(stytchUser.email);
+    let persistentUser = findUserByEmail(sessionUser.email);
     if (!persistentUser) {
       // Create persistent user record for Stytch user
       persistentUser = {
-        googleId: stytchUser.stytch_user_id,
-        email: stytchUser.email,
-        preferredFirstName: stytchUser.first_name || '',
-        preferredLastName: stytchUser.last_name || '',
-        stytch_name: stytchUser.stytch_name,
-        isComplete: !!(stytchUser.first_name && stytchUser.last_name),
+        googleId: sessionUser.stytch_user_id,
+        email: sessionUser.email,
+        preferredFirstName: sessionUser.first_name || '',
+        preferredLastName: sessionUser.last_name || '',
+        stytch_name: sessionUser.stytch_name,
+        isComplete: !!(sessionUser.first_name && sessionUser.last_name),
         role: 'affiliate',
         needsRoleSelection: false,
         authMethod: 'stytch',
-        stytch_user_id: stytchUser.stytch_user_id,
-        stytch_session_id: stytchUser.stytch_session_id,
+        stytch_user_id: sessionUser.stytch_user_id,
+        stytch_session_id: sessionUser.stytch_session_id,
         createdAt: new Date().toISOString(),
         isPremium: false,
         hasUnlimitedAccess: false
       };
       saveUser(persistentUser);
-      console.log('✅ Created persistent user record for Stytch user:', stytchUser.email);
+      console.log('✅ Created persistent user record for Stytch affiliate:', sessionUser.email);
     } else {
       // Update existing user with current session info
-      persistentUser.stytch_session_id = stytchUser.stytch_session_id;
+      persistentUser.stytch_session_id = sessionUser.stytch_session_id;
       persistentUser.authMethod = 'stytch';
+      persistentUser.role = 'affiliate'; // Ensure Stytch users are always affiliates
       saveUser(persistentUser);
     }
 
@@ -4484,47 +4471,58 @@ app.get("/api/auth/status", async (req, res) => {
         preferredFirstName: persistentUser.preferredFirstName,
         preferredLastName: persistentUser.preferredLastName,
         authMethod: 'stytch',
-        role: persistentUser.role,
+        role: 'affiliate', // Always affiliate for Stytch users
         isPremium: persistentUser.isPremium || false,
         hasUnlimitedAccess: persistentUser.hasUnlimitedAccess || false,
         isComplete: persistentUser.isComplete,
-        needsRoleSelection: persistentUser.needsRoleSelection || false
+        needsRoleSelection: false // Stytch users don't need role selection
       }
     });
   }
 
-  // Handle Google OAuth user data
-  let userData = req.user.savedUserData;
-  if (!userData) {
-    const userEmail = req.user.emails?.[0]?.value;
-    userData = findUserByEmail(userEmail);
-    console.log('Found user data by email:', userEmail, !!userData);
+  // Check Google OAuth authentication ONLY if no Stytch auth (clients)
+  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
+  
+  if (isGoogleAuth) {
+    console.log('Auth status check - Google client authenticated:', req.user.emails?.[0]?.value);
+    
+    // Handle Google OAuth user data
+    let userData = req.user.savedUserData;
+    if (!userData) {
+      const userEmail = req.user.emails?.[0]?.value;
+      userData = findUserByEmail(userEmail);
+      console.log('Found user data by email:', userEmail, !!userData);
+    }
+
+    const userResponse = {
+      name: req.user.displayName,
+      email: req.user.emails?.[0]?.value,
+      picture: req.user.photos?.[0]?.value,
+      preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
+      preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
+      isComplete: userData?.isComplete || req.user.isComplete || false,
+      isPremium: userData?.isPremium || false,
+      hasUnlimitedAccess: userData?.hasUnlimitedAccess || false,
+      subscriptionType: userData?.subscriptionType || null,
+      subscriptionStatus: userData?.subscriptionStatus || null,
+      subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
+      nextRenewalDate: userData?.nextRenewalDate || null,
+      role: userData?.role || null,
+      needsRoleSelection: userData?.needsRoleSelection || false,
+      authMethod: 'google'
+    };
+
+    console.log('✅ Google auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
+
+    return res.json({ 
+      authenticated: true,
+      user: userResponse
+    });
   }
 
-  const userResponse = {
-    name: req.user.displayName,
-    email: req.user.emails?.[0]?.value,
-    picture: req.user.photos?.[0]?.value,
-    preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
-    preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
-    isComplete: userData?.isComplete || req.user.isComplete || false,
-    isPremium: userData?.isPremium || false,
-    hasUnlimitedAccess: userData?.hasUnlimitedAccess || false,
-    subscriptionType: userData?.subscriptionType || null,
-    subscriptionStatus: userData?.subscriptionStatus || null,
-    subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
-    nextRenewalDate: userData?.nextRenewalDate || null,
-    role: userData?.role || null,
-    needsRoleSelection: userData?.needsRoleSelection || false,
-    authMethod: 'google'
-  };
-
-  console.log('✅ Auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
-
-  res.json({ 
-    authenticated: true,
-    user: userResponse
-  });
+  // No authentication found
+  console.log('Auth status check - No authentication found');
+  return res.json({ authenticated: false, user: null });
 });
 
 // Get user threads

@@ -945,19 +945,15 @@
         }
       }
 
-      // Check if user needs authentication for affiliate access
+      // Check authentication status for chat access
       async function checkAffiliateAuth() {
         try {
-          console.log('🔍 Checking authentication status...');
+          console.log('🔍 Checking authentication status for chat access...');
           console.log('📍 Current URL:', window.location.href);
           console.log('📍 Referrer:', document.referrer);
-          console.log('📍 Session storage:', {
-            hasSessionStorage: !!window.sessionStorage,
-            stytchData: sessionStorage.getItem('stytch_session') ? 'present' : 'none'
-          });
 
           const response = await fetch('/api/auth/status', {
-            credentials: 'include', // Ensure cookies/session are sent
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             }
@@ -966,13 +962,34 @@
           const authData = await response.json();
 
           console.log('🔍 Auth check result:', authData);
-          console.log('🔍 Response status:', response.status);
 
           // If user is authenticated, update UI and continue
           if (authData.authenticated && authData.user) {
-            console.log('✅ User authenticated:', authData.user.email || 'no email', 'Auth method:', authData.user.authMethod);
-            updateAuthenticatedUI(authData.user);
-            return true;
+            const authMethod = authData.user.authMethod;
+            const userRole = authData.user.role;
+            
+            console.log('✅ User authenticated:', authData.user.email || 'no email', 'Method:', authMethod, 'Role:', userRole);
+            
+            // Check if user should be on chat page based on their role
+            if (authMethod === 'stytch' && userRole === 'affiliate') {
+              // Stytch users (affiliates) belong on chat page
+              updateAuthenticatedUI(authData.user);
+              return true;
+            } else if (authMethod === 'google' && userRole === 'client') {
+              // Google users (clients) should be on taskforce page
+              console.log('🔄 Google client should be on taskforce page, redirecting...');
+              window.location.href = '/taskforce';
+              return false;
+            } else if (authMethod === 'google' && !userRole) {
+              // Google user without role, needs role selection
+              console.log('🔄 Google user needs role selection...');
+              window.location.href = '/select-role';
+              return false;
+            } else {
+              // Any other case, let them stay but update UI
+              updateAuthenticatedUI(authData.user);
+              return true;
+            }
           }
 
           // User not authenticated - wait a moment for any pending auth to complete
@@ -999,14 +1016,14 @@
               
               console.log(`🔍 Retry ${attempt} result:`, retryData);
               
-              if (retryData.authenticated) {
-                console.log(`✅ Stytch session established on retry ${attempt}`);
+              if (retryData.authenticated && retryData.user.authMethod === 'stytch') {
+                console.log(`✅ Stytch affiliate session established on retry ${attempt}`);
                 updateAuthenticatedUI(retryData.user);
                 return true;
               }
             }
             
-            console.log('❌ Authentication failed after retries, showing login options');
+            console.log('❌ Stytch authentication failed after retries, showing login options');
           }
 
           // No pending auth, show login options
