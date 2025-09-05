@@ -103,7 +103,7 @@
         }
       },
       "name": "👋 Send Welcome Email",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         320,
@@ -111,9 +111,9 @@
       ],
       "id": "{{WELCOME_EMAIL_NODE_ID}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -143,7 +143,7 @@
         }
       },
       "name": "📚 Send Training Email (Day 3)",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         752,
@@ -151,9 +151,9 @@
       ],
       "id": "{{TRAINING_EMAIL_NODE_ID}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -183,7 +183,7 @@
         }
       },
       "name": "💬 Send Follow-up Email (Day 10)",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         1200,
@@ -191,9 +191,9 @@
       ],
       "id": "{{FOLLOWUP_EMAIL_NODE_ID}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
