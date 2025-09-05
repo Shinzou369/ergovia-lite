@@ -419,3 +419,436 @@
     "instanceId": "TEMPLATE_INSTANCE"
   }
 }
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Customer Retention Engine (PET WF8)\n\n**🎯 Purpose:** Intelligent customer retention system with personalized offers and loyalty tracking\n\n**🚀 Features:**\n• **Smart Tier Classification:** Automatically categorizes customers (New, Regular, Loyal, VIP)\n• **Personalized Offers:** Tailored discounts and benefits based on customer history\n• **Retention Scoring:** Calculates retention probability and churn risk\n• **Multi-Channel Engagement:** Email campaigns and SMS reminders\n• **Loyalty Tracking:** Comprehensive customer relationship management\n\n**⚡ Workflow Process:**\n1. **Triggered by Review Request:** Activated after WF7 review request workflow\n2. **Customer Analysis:** Retrieves customer history and loyalty data\n3. **Tier Classification:** Determines customer tier based on visit frequency and spending\n4. **Retention Strategy:** Calculates personalized retention approach\n5. **Targeted Communication:** Sends tier-appropriate offers and benefits\n6. **Loyalty Database Update:** Records retention campaign and customer metrics\n7. **Future Engagement:** Schedules next retention cycle based on customer tier\n8. **Wellness Reminders:** Automated follow-up for ongoing engagement\n\n**📊 Customer Tiers:**\n• **VIP:** 10+ visits OR $1000+ spent (20% discounts, 60-day cycle)\n• **Loyal:** 5+ visits OR $500+ spent (15% discounts, 75-day cycle)\n• **Regular:** 3+ visits (10% discounts, 90-day cycle)\n• **New:** <3 visits (5% welcome offers, 120-day cycle)\n\n**🔄 Integration Points:**\n• Master Appointments: {{MASTER_APPOINTMENTS_SHEET_ID}}\n• Loyalty Database: {{CUSTOMER_LOYALTY_SHEET_ID}}\n• Email Marketing: SMTP + HTML templates\n• SMS Engagement: Twilio integration\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Business Contact: {{BUSINESS_PHONE_NUMBER}} / {{BUSINESS_EMAIL}}\n• Admin Notifications: {{ADMIN_EMAIL}}\n• Brand Colors: {{CLINIC_COLOR}}\n• Timezone: {{TIMEZONE}}",
+        "height": 800,
+        "width": 900,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -288,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "{{WORKFLOW_DESCRIPTION_NOTE_ID}}",
+      "name": "PET WF8 - Workflow Description"
+    },
+    {
+      "parameters": {},
+      "name": "🔄 Triggered by Review Request (WF7)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        816,
+        -80
+      ],
+      "id": "{{REVIEW_REQUEST_TRIGGER_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "lookupColumn": "Customer Email",
+        "lookupValue": "={{ $json.clientEmail || $json['Customer Email'] }}",
+        "options": {}
+      },
+      "name": "📋 Get Customer History",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1072,
+        -80
+      ],
+      "id": "{{GET_CUSTOMER_HISTORY_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": "{{CUSTOMER_LOYALTY_SHEET_ID}}",
+        "sheetName": "{{LOYALTY_SHEET_NAME}}",
+        "options": {}
+      },
+      "name": "💎 Get Loyalty Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1312,
+        -80
+      ],
+      "id": "{{GET_LOYALTY_DATA_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate customer loyalty metrics and determine retention strategy\nconst customerData = $input.first().json;\nconst loyaltyData = $input.all();\n\n// Find customer in loyalty data\nconst customerEmail = customerData.clientEmail || customerData['Customer Email'];\nconst customerLoyalty = loyaltyData.find(row => row.json['Customer Email'] === customerEmail) || {};\n\n// Calculate visit frequency and value\nconst visitCount = parseInt(customerLoyalty.json?.['Total Visits'] || '1');\nconst totalSpent = parseFloat(customerLoyalty.json?.['Total Spent'] || customerData.cost || customerData['Invoice Amount'] || '0');\nconst lastVisitDate = new Date(customerData.visitDate || customerData['Date']);\nconst daysSinceLastVisit = Math.floor((new Date() - lastVisitDate) / (1000 * 60 * 60 * 24));\n\n// Determine customer tier\nlet customerTier = 'New';\nif (visitCount >= 10 || totalSpent >= 1000) {\n  customerTier = 'VIP';\n} else if (visitCount >= 5 || totalSpent >= 500) {\n  customerTier = 'Loyal';\n} else if (visitCount >= 3) {\n  customerTier = 'Regular';\n}\n\n// Determine retention strategy\nlet retentionStrategy = 'standard';\nlet offerType = 'thank_you';\nlet discountPercent = 0;\nlet reminderDays = 90;\n\nif (customerTier === 'VIP') {\n  retentionStrategy = 'vip_exclusive';\n  offerType = 'exclusive_discount';\n  discountPercent = 20;\n  reminderDays = 60;\n} else if (customerTier === 'Loyal') {\n  retentionStrategy = 'loyalty_reward';\n  offerType = 'loyalty_discount';\n  discountPercent = 15;\n  reminderDays = 75;\n} else if (customerTier === 'Regular') {\n  retentionStrategy = 'engagement_boost';\n  offerType = 'return_discount';\n  discountPercent = 10;\n  reminderDays = 90;\n} else {\n  retentionStrategy = 'new_customer_nurture';\n  offerType = 'welcome_offer';\n  discountPercent = 5;\n  reminderDays = 120;\n}\n\n// Calculate next contact date\nconst nextContactDate = new Date();\nnextContactDate.setDate(nextContactDate.getDate() + reminderDays);\n\n// Calculate retention score and churn risk\nconst retentionScore = Math.min(100, (visitCount * 10) + (totalSpent / 10));\nlet churnRisk = 'Low';\nif (daysSinceLastVisit > 180) {\n  churnRisk = 'High';\n} else if (daysSinceLastVisit > 90) {\n  churnRisk = 'Medium';\n}\n\nreturn {\n  json: {\n    ...customerData,\n    customerTier,\n    visitCount,\n    totalSpent,\n    daysSinceLastVisit,\n    retentionStrategy,\n    offerType,\n    discountPercent,\n    reminderDays,\n    nextContactDate: nextContactDate.toISOString().split('T')[0],\n    retentionScore,\n    churnRisk,\n    customerEmail,\n    loyaltyId: `{{CLINIC_PREFIX}}-LOY-${Date.now()}`\n  }\n};"
+      },
+      "name": "🧮 Calculate Retention Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        -80
+      ],
+      "id": "{{CALCULATE_RETENTION_METRICS_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "vip-customer-check",
+              "leftValue": "={{ $json.customerTier }}",
+              "rightValue": "VIP",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "🤔 VIP Customer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        288
+      ],
+      "id": "{{VIP_CUSTOMER_CHECK_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "🌟 Exclusive VIP Offer for {{ $json.petName || $json['Pet Name'] }} - {{CLINIC_NAME}}",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .container { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }\n    .vip-header { background: linear-gradient(135deg, #FFD700, #FFA500); color: #333; padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 30px; }\n    .vip-header h1 { margin: 0; font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }\n    .crown { font-size: 3em; margin-bottom: 10px; }\n    .offer-box { background: linear-gradient(135deg, #fff3cd, #ffeaa7); border: 3px solid #FFD700; padding: 25px; border-radius: 15px; margin: 20px 0; text-align: center; }\n    .discount-badge { background: #FFD700; color: #333; padding: 15px 25px; border-radius: 50px; font-weight: bold; font-size: 1.4em; display: inline-block; margin: 10px 0; box-shadow: 0 4px 10px rgba(255,215,0,0.3); }\n    .benefits-list { background: #e8f5e8; padding: 20px; border-radius: 10px; margin: 20px 0; }\n    .benefits-list ul { text-align: left; max-width: 400px; margin: 0 auto; }\n    .benefits-list li { margin: 8px 0; padding: 5px 0; border-bottom: 1px solid #d4edda; }\n    .pet-care-tips { background: #e8f4fd; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 5px solid #{{CLINIC_COLOR}}; }\n    .cta-section { text-align: center; margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 10px; }\n    .contact-info { font-size: 1.1em; margin: 10px 0; }\n    .promo-code { background: #{{CLINIC_COLOR}}; color: white; padding: 10px 20px; border-radius: 25px; font-weight: bold; display: inline-block; margin: 10px 0; }\n    .footer { border-top: 3px solid #FFD700; padding-top: 20px; text-align: center; color: #666; margin-top: 30px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"vip-header\">\n      <div class=\"crown\">👑</div>\n      <h1>VIP Member Exclusive</h1>\n      <p style=\"font-size: 1.2em; margin: 0;\">Special benefits for our most valued clients!</p>\n    </div>\n    \n    <p style=\"font-size: 1.1em;\">Dear {{ $json.clientName || $json['Customer Name'] }},</p>\n    \n    <p>As one of our most cherished VIP clients, we want to show our appreciation for your continued trust in {{CLINIC_NAME}} for {{ $json.petName || $json['Pet Name'] }}'s care.</p>\n    \n    <div class=\"offer-box\">\n      <div class=\"discount-badge\">{{ $json.discountPercent }}% VIP DISCOUNT</div>\n      <h3 style=\"color: #333; margin: 20px 0;\">🎁 Your Exclusive Benefits Include:</h3>\n      \n      <div class=\"benefits-list\">\n        <ul>\n          <li>🌟 {{ $json.discountPercent }}% off your next visit</li>\n          <li>⏰ Priority appointment scheduling</li>\n          <li>🔔 Complimentary wellness check reminders</li>\n          <li>📞 Direct line to our veterinary team</li>\n          <li>🎁 Seasonal pet care packages at member prices</li>\n          <li>📧 Exclusive VIP-only health tips and updates</li>\n          <li>🏥 Extended consultation times at no extra cost</li>\n        </ul>\n      </div>\n      \n      <p><strong style=\"color: #e74c3c;\">Offer Valid Until:</strong> {{ $now.plus({days: 60}).setZone('{{TIMEZONE}}').toFormat('MMMM d, yyyy') }}</p>\n    </div>\n    \n    <div class=\"pet-care-tips\">\n      <h3>🐾 Personalized Care Tips for {{ $json.petName || $json['Pet Name'] }}:</h3>\n      <p>Based on {{ $json.petName || $json['Pet Name'] }}'s visit history, here are our veterinarian's recommendations for optimal health:</p>\n      <ul>\n        <li><strong>Preventive Care:</strong> VIP members receive complimentary wellness reminders every 6 months</li>\n        <li><strong>Dental Health:</strong> Premium dental cleaning package with 25% VIP discount</li>\n        <li><strong>Nutrition:</strong> Complimentary premium pet nutrition consultation ({{CURRENCY}}50 value)</li>\n        <li><strong>Senior Care:</strong> Enhanced monitoring for aging pets with specialized VIP care plans</li>\n      </ul>\n    </div>\n    \n    <div class=\"cta-section\">\n      <h3 style=\"color: #{{CLINIC_COLOR}};\">📅 Ready to Book Your VIP Appointment?</h3>\n      <div class=\"contact-info\">\n        <p>📞 <strong>Call:</strong> {{BUSINESS_PHONE_NUMBER}}</p>\n        <p>📧 <strong>Email:</strong> {{BUSINESS_EMAIL}}</p>\n        <p>🌐 <strong>Online:</strong> {{BUSINESS_WEBSITE}}</p>\n        <p>📍 <strong>Visit:</strong> {{CLINIC_ADDRESS}}</p>\n      </div>\n      <div class=\"promo-code\">Use Code: VIP{{ $json.discountPercent }}</div>\n      <p><em>Mention your VIP status when booking for priority scheduling!</em></p>\n    </div>\n    \n    <div style=\"background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 5px solid #ffc107;\">\n      <p><strong>🏆 VIP Member Since:</strong> {{ $json['Customer Since'] || 'Your first visit' }}</p>\n      <p><strong>📈 Total Visits:</strong> {{ $json.visitCount }} visits</p>\n      <p><strong>💫 Loyalty Score:</strong> {{ $json.retentionScore }}/100</p>\n    </div>\n    \n    <div class=\"footer\">\n      <p><strong>Thank you for being a valued VIP member of the {{CLINIC_NAME}} family!</strong></p>\n      <p>{{CLINIC_NAME}} - Premium care for your precious pets 🐾</p>\n      <p style=\"font-size: 0.9em; margin-top: 15px;\">{{CLINIC_ADDRESS}} | {{BUSINESS_PHONE_NUMBER}} | {{BUSINESS_EMAIL}}</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {
+          "ccEmail": "{{ADMIN_EMAIL}}",
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "👑 Send VIP Exclusive Offer",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1024,
+        192
+      ],
+      "id": "{{SEND_VIP_OFFER_NODE_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "🐾 We miss {{ $json.petName || $json['Pet Name'] }}! Special {{ $json.customerTier }} offer inside - {{CLINIC_NAME}}",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .container { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, #{{CLINIC_COLOR}}, #28a745); color: white; padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 30px; }\n    .header h1 { margin: 0; font-size: 2.2em; }\n    .header p { margin: 10px 0 0 0; font-size: 1.1em; opacity: 0.9; }\n    .miss-you { background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: 25px; border-radius: 10px; text-align: center; margin: 20px 0; border-left: 5px solid #ffc107; }\n    .offer-section { background: #f0f8ff; border: 3px solid #{{CLINIC_COLOR}}; padding: 25px; border-radius: 15px; margin: 25px 0; text-align: center; }\n    .discount-circle { background: linear-gradient(135deg, #{{CLINIC_COLOR}}, #28a745); color: white; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-weight: bold; font-size: 1.1em; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }\n    .tier-badge { background: #{{CLINIC_COLOR}}; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; display: inline-block; margin: 10px 0; }\n    .care-reminder { background: #e8f5e8; border-left: 5px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 8px; }\n    .services-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }\n    .service-item { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; }\n    .cta-section { text-align: center; margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #e8f4fd, #cce7ff); border-radius: 10px; }\n    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0; }\n    .contact-item { background: white; padding: 12px; border-radius: 8px; border: 1px solid #{{CLINIC_COLOR}}; }\n    .promo-code { background: #{{CLINIC_COLOR}}; color: white; padding: 12px 24px; border-radius: 25px; font-weight: bold; display: inline-block; margin: 15px 0; font-size: 1.1em; }\n    .stats-section { background: #fff3cd; padding: 20px; border-radius: 10px; margin: 20px 0; }\n    .footer { border-top: 2px solid #{{CLINIC_COLOR}}; padding-top: 20px; text-align: center; color: #666; margin-top: 30px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>{{CLINIC_NAME}}</h1>\n      <p>Caring for {{ $json.petName || $json['Pet Name'] }} since {{ $json['Customer Since'] || 'our first meeting' }}</p>\n    </div>\n    \n    <div class=\"miss-you\">\n      <h2 style=\"margin: 0 0 15px 0; color: #333;\">🐾 We Miss You Both!</h2>\n      <p style=\"font-size: 1.1em; margin: 0;\">It's been {{ $json.daysSinceLastVisit }} days since {{ $json.petName || $json['Pet Name'] }}'s last visit, and our whole team has been wondering how you're both doing!</p>\n    </div>\n    \n    <p style=\"font-size: 1.1em;\">Hello {{ $json.clientName || $json['Customer Name'] }},</p>\n    \n    <p>Time flies when you're caring for so many wonderful pets, but we never forget our special families like yours. We hope {{ $json.petName || $json['Pet Name'] }} is happy and healthy!</p>\n    \n    <div class=\"offer-section\">\n      <div class=\"tier-badge\">{{ $json.customerTier }} Member</div>\n      <div class=\"discount-circle\">{{ $json.discountPercent }}%<br>OFF</div>\n      <h3 style=\"color: #{{CLINIC_COLOR}};\">🎁 Welcome Back Offer</h3>\n      <p style=\"font-size: 1.1em;\">As a <strong>{{ $json.customerTier.toLowerCase() }} member</strong> of our {{CLINIC_NAME}} family, enjoy <strong>{{ $json.discountPercent }}% off</strong> your next appointment!</p>\n      \n      <div class=\"services-grid\">\n        <div class=\"service-item\">\n          <div style=\"font-size: 2em; margin-bottom: 10px;\">🏥</div>\n          <strong>Wellness Exams</strong>\n        </div>\n        <div class=\"service-item\">\n          <div style=\"font-size: 2em; margin-bottom: 10px;\">💉</div>\n          <strong>Vaccinations</strong>\n        </div>\n        <div class=\"service-item\">\n          <div style=\"font-size: 2em; margin-bottom: 10px;\">🦷</div>\n          <strong>Dental Cleaning</strong>\n        </div>\n        <div class=\"service-item\">\n          <div style=\"font-size: 2em; margin-bottom: 10px;\">🔬</div>\n          <strong>Health Concerns</strong>\n        </div>\n      </div>\n      \n      <p><strong style=\"color: #e74c3c;\">Offer expires:</strong> {{ $now.plus({days: 30}).setZone('{{TIMEZONE}}').toFormat('MMMM d, yyyy') }}</p>\n    </div>\n    \n    <div class=\"care-reminder\">\n      <h4 style=\"margin: 0 0 15px 0;\">🔔 Friendly Health Reminder:</h4>\n      <p>Regular check-ups help keep {{ $json.petName || $json['Pet Name'] }} healthy and catch any potential issues early. We recommend visits every {{ $json.customerTier === 'VIP' ? '6' : $json.customerTier === 'Loyal' ? '8' : '12' }} months for optimal pet health.</p>\n      <p><strong>{{ $json.churnRisk === 'High' ? '⚠️ It\\'s been quite a while!' : $json.churnRisk === 'Medium' ? '⏰ Perfect timing for a check-up!' : '✅ You\\'re doing great with regular care!' }}</strong></p>\n    </div>\n    \n    <div class=\"stats-section\">\n      <h4 style=\"margin: 0 0 15px 0; color: #333;\">📊 Your {{CLINIC_NAME}} History:</h4>\n      <div style=\"display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;\">\n        <div>\n          <div style=\"font-size: 1.5em; font-weight: bold; color: #{{CLINIC_COLOR}};\">{{ $json.visitCount }}</div>\n          <div style=\"font-size: 0.9em;\">Total Visits</div>\n        </div>\n        <div>\n          <div style=\"font-size: 1.5em; font-weight: bold; color: #{{CLINIC_COLOR}};\">{{ $json.customerTier }}</div>\n          <div style=\"font-size: 0.9em;\">Member Status</div>\n        </div>\n        <div>\n          <div style=\"font-size: 1.5em; font-weight: bold; color: #{{CLINIC_COLOR}};\">{{ $json.retentionScore }}/100</div>\n          <div style=\"font-size: 0.9em;\">Loyalty Score</div>\n        </div>\n      </div>\n    </div>\n    \n    <div class=\"cta-section\">\n      <h3 style=\"color: #{{CLINIC_COLOR}}; margin: 0 0 20px 0;\">📅 Ready to Schedule?</h3>\n      \n      <div class=\"contact-grid\">\n        <div class=\"contact-item\">\n          <strong>📞 Call Us</strong><br>\n          {{BUSINESS_PHONE_NUMBER}}\n        </div>\n        <div class=\"contact-item\">\n          <strong>📧 Email Us</strong><br>\n          {{BUSINESS_EMAIL}}\n        </div>\n      </div>\n      \n      <div style=\"margin: 20px 0;\">\n        <p><strong>🌐 Online Booking:</strong> {{BUSINESS_WEBSITE}}</p>\n        <p><strong>📍 Visit Us:</strong> {{CLINIC_ADDRESS}}</p>\n        <p><strong>🕒 Hours:</strong> {{CLINIC_HOURS}}</p>\n      </div>\n      \n      <div class=\"promo-code\">Code: RETURN{{ $json.discountPercent }}</div>\n      <p><em>Mention this code when booking to receive your {{ $json.customerTier }} member discount!</em></p>\n    </div>\n    \n    <div style=\"background: #e8f4fd; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;\">\n      <h4 style=\"margin: 0 0 15px 0; color: #{{CLINIC_COLOR}};\">💡 Did You Know?</h4>\n      <p style=\"margin: 0;\">{{ $json.customerTier }} members like you get priority booking, special discounts, and personalized care recommendations. Thank you for being such an important part of our pet care community!</p>\n    </div>\n    \n    <div class=\"footer\">\n      <p><strong>We look forward to seeing you and {{ $json.petName || $json['Pet Name'] }} again soon!</strong></p>\n      <p>With warm regards,<br>The {{CLINIC_NAME}} Team 🐾</p>\n      <p style=\"font-size: 0.9em; margin-top: 15px;\">{{CLINIC_ADDRESS}} | {{BUSINESS_PHONE_NUMBER}} | {{BUSINESS_EMAIL}}</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {
+          "ccEmail": "{{ADMIN_EMAIL}}",
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "💌 Send Return Offer Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1024,
+        400
+      ],
+      "id": "{{SEND_RETURN_OFFER_NODE_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{CUSTOMER_LOYALTY_SHEET_ID}}",
+        "sheetName": "{{LOYALTY_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Loyalty ID": "={{ $json.loyaltyId }}",
+            "Customer Name": "={{ $json.clientName || $json['Customer Name'] }}",
+            "Customer Email": "={{ $json.customerEmail }}",
+            "Customer Phone": "={{ $json.clientPhone || $json['Customer Phone'] }}",
+            "Pet Name": "={{ $json.petName || $json['Pet Name'] }}",
+            "Pet ID": "={{ $json.petId || $json['Pet Name'] }}",
+            "Customer Tier": "={{ $json.customerTier }}",
+            "Total Visits": "={{ $json.visitCount }}",
+            "Total Spent": "={{ $json.totalSpent }}",
+            "Last Visit Date": "={{ $json.visitDate || $json['Date'] }}",
+            "Days Since Last Visit": "={{ $json.daysSinceLastVisit }}",
+            "Retention Score": "={{ $json.retentionScore }}",
+            "Churn Risk": "={{ $json.churnRisk }}",
+            "Next Contact Date": "={{ $json.nextContactDate }}",
+            "Retention Strategy": "={{ $json.retentionStrategy }}",
+            "Campaign Type": "={{ $json.offerType }}",
+            "Discount Offered": "={{ $json.discountPercent }}%",
+            "Last Retention Campaign": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Campaign Status": "Sent",
+            "Reminder Days": "={{ $json.reminderDays }}",
+            "Clinic": "{{CLINIC_NAME}}",
+            "Created At": "={{ $now.toISO() }}",
+            "Updated At": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "📊 Update Loyalty Database",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1264,
+        288
+      ],
+      "id": "{{UPDATE_LOYALTY_DATABASE_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.reminderDays }}",
+        "unit": "days"
+      },
+      "name": "⏰ Wait for Next Retention Cycle",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1504,
+        288
+      ],
+      "id": "{{WAIT_RETENTION_CYCLE_NODE_ID}}",
+      "webhookId": "{{WAIT_RETENTION_CYCLE_WEBHOOK_ID}}"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json.clientPhone || $json['Customer Phone'] }}",
+        "message": "🐾 **{{CLINIC_NAME}} Wellness Reminder**\n\nHi {{ $json.clientName || $json['Customer Name'] }}! 👋\n\nIt's time for {{ $json.petName || $json['Pet Name'] }}'s wellness check-up! 🏥\n\n⭐ As a {{ $json.customerTier }} member, you have:\n• Priority booking\n• {{ $json.discountPercent }}% member discount\n• Personalized care plans\n\n📅 **Book today:** {{BUSINESS_PHONE_NUMBER}}\n💻 **Online:** {{BUSINESS_WEBSITE}}\n\n{{ $json.customerTier === 'VIP' ? '👑 VIP members get same-day scheduling!' : 'Thank you for choosing {{CLINIC_NAME}}!' }}\n\n🐕🐱 Keeping {{ $json.petName || $json['Pet Name'] }} healthy & happy!",
+        "options": {}
+      },
+      "name": "📱 Send Wellness Reminder SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        288
+      ],
+      "id": "{{SEND_WELLNESS_SMS_NODE_ID}}",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "lookupColumn": "Customer Email",
+        "lookupValue": "={{ $json.customerEmail }}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Retention Campaign Status": "Complete - {{ $json.retentionStrategy }}",
+            "Last Retention Contact": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Customer Tier": "={{ $json.customerTier }}",
+            "Retention Score": "={{ $json.retentionScore }}",
+            "Churn Risk Level": "={{ $json.churnRisk }}",
+            "Loyalty ID": "={{ $json.loyaltyId }}",
+            "Next Retention Due": "={{ $json.nextContactDate }}",
+            "Discount Offered": "={{ $json.discountPercent }}%",
+            "Campaign Type": "={{ $json.offerType }}",
+            "Retention Engine Status": "Active - Cycle {{ $json.visitCount }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "🔄 Update Master Hub - Retention",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1984,
+        288
+      ],
+      "id": "{{UPDATE_MASTER_HUB_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "🔄 Triggered by Review Request (WF7)": {
+      "main": [
+        [
+          {
+            "node": "📋 Get Customer History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Get Customer History": {
+      "main": [
+        [
+          {
+            "node": "💎 Get Loyalty Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💎 Get Loyalty Data": {
+      "main": [
+        [
+          {
+            "node": "🧮 Calculate Retention Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🧮 Calculate Retention Metrics": {
+      "main": [
+        [
+          {
+            "node": "🤔 VIP Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤔 VIP Customer?": {
+      "main": [
+        [
+          {
+            "node": "👑 Send VIP Exclusive Offer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "💌 Send Return Offer Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "👑 Send VIP Exclusive Offer": {
+      "main": [
+        [
+          {
+            "node": "📊 Update Loyalty Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💌 Send Return Offer Email": {
+      "main": [
+        [
+          {
+            "node": "📊 Update Loyalty Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Update Loyalty Database": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait for Next Retention Cycle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait for Next Retention Cycle": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Wellness Reminder SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📱 Send Wellness Reminder SMS": {
+      "main": [
+        [
+          {
+            "node": "🔄 Update Master Hub - Retention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "id": "{{WORKFLOW_ID}}",
+  "tags": ["{{WORKFLOW_TAG}}"],
+  "name": "{{CLINIC_NAME}} - Customer Retention Engine"
+}
