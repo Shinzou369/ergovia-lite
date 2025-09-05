@@ -1,0 +1,485 @@
+
+{
+  "meta": {
+    "templateCreatedWith": "0.228.1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Staff Onboarding & Social Media Automation (PET WF10)\n\n**🎯 Purpose:** Streamline new staff onboarding process while maintaining engaging social media presence with AI-generated content\n\n**🚀 Features:**\n• **Staff Onboarding Pipeline:** Welcome emails, training resources, and follow-up communications\n• **Progress Tracking:** Google Sheets integration for onboarding status monitoring\n• **Social Media Automation:** Weekly AI-generated pet care tips for Facebook and Twitter/X\n• **Content Intelligence:** OpenAI-powered content generation with clinic branding\n• **Multi-Platform Publishing:** Simultaneous posting across social channels\n\n**⚡ Workflow Triggers:**\n• **Staff Onboarding:** Manual webhook trigger for new staff members\n• **Social Media:** Weekly scheduled trigger (Mondays at 9:00 AM)\n\n**📊 Integration Points:**\n• Staff Database: {{STAFF_SHEET_ID}}\n• Social Media: Facebook Page {{FACEBOOK_PAGE_ID}}, Twitter Account {{TWITTER_HANDLE}}\n• Content Generation: OpenAI API for pet care tips\n• Email System: SMTP via {{BUSINESS_EMAIL}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Onboarding Timeline: Welcome → Day 3 Training → Day 10 Follow-up\n• Social Schedule: Mondays 9:00 AM {{TIMEZONE}}\n• Content Theme: Pet care tips, seasonal advice, clinic updates\n• Brand Voice: {{BRAND_VOICE_TONE}}",
+        "height": 600,
+        "width": 900,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -400,
+        -100
+      ],
+      "typeVersion": 1,
+      "id": "{{WORKFLOW_DESCRIPTION_NOTE_ID}}",
+      "name": "PET WF10 - Workflow Description"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "staff_onboarding",
+        "options": {}
+      },
+      "name": "🆕 Staff Onboarding Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        32
+      ],
+      "webhookId": "{{STAFF_ONBOARDING_WEBHOOK_ID}}",
+      "id": "{{STAFF_ONBOARDING_TRIGGER_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{STAFF_SHEET_ID}}",
+        "sheetName": "Staff Members",
+        "columns": [
+          {
+            "column": [
+              {
+                "columnName": "Timestamp",
+                "columnValue": "={{ $now }}"
+              },
+              {
+                "columnName": "Staff Name",
+                "columnValue": "={{ $json.body.staffName }}"
+              },
+              {
+                "columnName": "Email",
+                "columnValue": "={{ $json.body.staffEmail }}"
+              },
+              {
+                "columnName": "Department",
+                "columnValue": "={{ $json.body.department || 'General' }}"
+              },
+              {
+                "columnName": "Start Date",
+                "columnValue": "={{ $json.body.startDate || $now.format('YYYY-MM-DD') }}"
+              },
+              {
+                "columnName": "Status",
+                "columnValue": "Active"
+              },
+              {
+                "columnName": "Onboarding Stage",
+                "columnValue": "Welcome Email Sent"
+              }
+            ]
+          }
+        ],
+        "options": {}
+      },
+      "name": "📝 Log New Staff Member",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        96,
+        32
+      ],
+      "id": "{{LOG_STAFF_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json.body.staffEmail }}",
+        "subject": "🎉 Welcome to {{CLINIC_NAME}} Team!",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <title>Welcome to {{CLINIC_NAME}}</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\">\n    <div style=\"background: linear-gradient(135deg, {{CLINIC_COLOR}} 0%, #f8f9fa 100%); padding: 30px; border-radius: 10px; margin-bottom: 20px; text-align: center;\">\n        <h1 style=\"color: white; margin: 0; font-size: 28px;\">🎉 Welcome to {{CLINIC_NAME}}!</h1>\n        <p style=\"color: white; margin: 10px 0 0 0; font-size: 16px;\">We're excited to have you join our caring team</p>\n    </div>\n    \n    <div style=\"background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);\">\n        <h2 style=\"color: {{CLINIC_COLOR}}; margin-top: 0;\">Hello {{ $json.body.staffName }}! 👋</h2>\n        \n        <p>Welcome to the {{CLINIC_NAME}} family! We're thrilled to have you as part of our dedicated team committed to providing exceptional pet care.</p>\n        \n        <h3 style=\"color: {{CLINIC_COLOR}};\">🗓️ Your Onboarding Journey</h3>\n        <ul style=\"background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid {{CLINIC_COLOR}};\">\n            <li><strong>Today:</strong> Welcome package and initial setup</li>\n            <li><strong>Day 3:</strong> Training resources and materials</li>\n            <li><strong>Day 10:</strong> Check-in and feedback session</li>\n        </ul>\n        \n        <h3 style=\"color: {{CLINIC_COLOR}};\">📋 Important Information</h3>\n        <p><strong>Department:</strong> {{ $json.body.department || 'General' }}<br>\n        <strong>Start Date:</strong> {{ $json.body.startDate || $now.format('MMMM DD, YYYY') }}<br>\n        <strong>Direct Manager:</strong> {{HEAD_VETERINARIAN}}</p>\n        \n        <h3 style=\"color: {{CLINIC_COLOR}};\">🎯 Next Steps</h3>\n        <ol>\n            <li>Complete your employee profile</li>\n            <li>Review our clinic policies and procedures</li>\n            <li>Schedule orientation with {{HEAD_VETERINARIAN}}</li>\n            <li>Set up your workspace and equipment</li>\n        </ol>\n        \n        <div style=\"background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; border-radius: 8px; margin: 20px 0;\">\n            <h4 style=\"color: #1976d2; margin-top: 0;\">🤝 Our Mission</h4>\n            <p style=\"margin-bottom: 0;\">\"{{CLINIC_MISSION_STATEMENT}}\"</p>\n        </div>\n        \n        <p>If you have any questions or concerns, please don't hesitate to reach out to me or any team member. We're here to support you!</p>\n        \n        <p style=\"margin-bottom: 0;\">Welcome aboard! 🚀</p>\n    </div>\n    \n    <div style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">\n        <p>{{CLINIC_NAME}} | {{CLINIC_ADDRESS}}<br>\n        {{BUSINESS_PHONE_NUMBER}} | {{BUSINESS_EMAIL}}</p>\n    </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "👋 Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        32
+      ],
+      "id": "{{WELCOME_EMAIL_NODE_ID}}",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "name": "⏰ Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        544,
+        32
+      ],
+      "id": "{{WAIT_3_DAYS_NODE_ID}}",
+      "webhookId": "{{WAIT_3_DAYS_WEBHOOK_ID}}"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $('📝 Log New Staff Member').item.json.staffEmail }}",
+        "subject": "📚 Your Training Resources - {{CLINIC_NAME}}",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <title>Training Resources - {{CLINIC_NAME}}</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\">\n    <div style=\"background: linear-gradient(135deg, #4caf50 0%, #81c784 100%); padding: 30px; border-radius: 10px; margin-bottom: 20px; text-align: center;\">\n        <h1 style=\"color: white; margin: 0; font-size: 26px;\">📚 Training Time!</h1>\n        <p style=\"color: white; margin: 10px 0 0 0; font-size: 16px;\">Your learning resources are ready</p>\n    </div>\n    \n    <div style=\"background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);\">\n        <h2 style=\"color: #4caf50; margin-top: 0;\">Day 3 Training Materials 🎓</h2>\n        \n        <p>Hi {{ $('📝 Log New Staff Member').item.json.staffName }}!</p>\n        \n        <p>Hope your first few days at {{CLINIC_NAME}} have been great! Here are your training resources to help you excel in your role.</p>\n        \n        <h3 style=\"color: #4caf50;\">📖 Required Training Modules</h3>\n        <div style=\"background: #f1f8e9; padding: 20px; border-radius: 8px; margin: 15px 0;\">\n            <ul>\n                <li>🏥 <strong>Clinic Procedures & Protocols</strong></li>\n                <li>🐕 <strong>Animal Handling & Safety</strong></li>\n                <li>💊 <strong>Medication Management</strong></li>\n                <li>📋 <strong>Client Communication Standards</strong></li>\n                <li>🔒 <strong>HIPAA & Privacy Compliance</strong></li>\n            </ul>\n        </div>\n        \n        <h3 style=\"color: #4caf50;\">🎯 Department-Specific Training</h3>\n        <p><strong>Your Department:</strong> {{ $('📝 Log New Staff Member').item.json.department }}</p>\n        \n        <div style=\"background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;\">\n            <h4 style=\"margin-top: 0; color: #2e7d32;\">📚 Access Your Training Portal</h4>\n            <p>Link: <a href=\"{{TRAINING_PORTAL_URL}}\" style=\"color: #4caf50; text-decoration: none; font-weight: bold;\">{{TRAINING_PORTAL_URL}}</a></p>\n            <p>Login: Your employee email<br>\n            Password: Provided separately for security</p>\n        </div>\n        \n        <h3 style=\"color: #4caf50;\">⏰ Training Schedule</h3>\n        <ul>\n            <li><strong>Week 1:</strong> Complete online modules (2-3 hours daily)</li>\n            <li><strong>Week 2:</strong> Hands-on training with mentor</li>\n            <li><strong>Week 3:</strong> Shadow experienced team members</li>\n            <li><strong>Week 4:</strong> Independent practice with supervision</li>\n        </ul>\n        \n        <div style=\"background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 20%, #fff3e0 100%); padding: 20px; border-radius: 8px; margin: 20px 0;\">\n            <h4 style=\"color: #f57c00; margin-top: 0;\">💡 Pro Tips for Success</h4>\n            <ul style=\"margin-bottom: 0;\">\n                <li>Take notes during training sessions</li>\n                <li>Ask questions - no question is too small!</li>\n                <li>Practice procedures during downtime</li>\n                <li>Connect with your mentor regularly</li>\n            </ul>\n        </div>\n        \n        <p>Remember, we're here to support your growth every step of the way. Don't hesitate to reach out with questions!</p>\n        \n        <p style=\"margin-bottom: 0;\">Happy learning! 📈</p>\n    </div>\n    \n    <div style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">\n        <p>{{CLINIC_NAME}} | {{CLINIC_ADDRESS}}<br>\n        Training Coordinator: {{TRAINING_COORDINATOR_EMAIL}}</p>\n    </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📚 Send Training Email (Day 3)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        752,
+        32
+      ],
+      "id": "{{TRAINING_EMAIL_NODE_ID}}",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "name": "⏰ Wait 7 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        976,
+        32
+      ],
+      "id": "{{WAIT_7_DAYS_NODE_ID}}",
+      "webhookId": "{{WAIT_7_DAYS_WEBHOOK_ID}}"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $('📝 Log New Staff Member').item.json.staffEmail }}",
+        "subject": "👋 Checking In - How's Your First Week and a Half?",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <title>Check-in - {{CLINIC_NAME}}</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;\">\n    <div style=\"background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%); padding: 30px; border-radius: 10px; margin-bottom: 20px; text-align: center;\">\n        <h1 style=\"color: white; margin: 0; font-size: 26px;\">👋 How Are You Doing?</h1>\n        <p style=\"color: white; margin: 10px 0 0 0; font-size: 16px;\">Your 10-day check-in</p>\n    </div>\n    \n    <div style=\"background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);\">\n        <h2 style=\"color: #ff9800; margin-top: 0;\">Hi {{ $('📝 Log New Staff Member').item.json.staffName }}! 🌟</h2>\n        \n        <p>It's been 10 days since you joined the {{CLINIC_NAME}} family, and we wanted to check in on how things are going!</p>\n        \n        <h3 style=\"color: #ff9800;\">🎯 How's Your Experience So Far?</h3>\n        \n        <div style=\"background: #fff3e0; padding: 20px; border-radius: 8px; margin: 15px 0;\">\n            <p style=\"margin: 0;\">We hope you're feeling more comfortable with:</p>\n            <ul style=\"margin: 10px 0 0 0;\">\n                <li>✅ Your daily responsibilities</li>\n                <li>✅ Our clinic procedures</li>\n                <li>✅ The team dynamics</li>\n                <li>✅ Client interactions</li>\n            </ul>\n        </div>\n        \n        <h3 style=\"color: #ff9800;\">💬 We'd Love Your Feedback</h3>\n        <p>Your thoughts help us improve our onboarding process. Please let us know:</p>\n        \n        <ul>\n            <li>What's going well for you?</li>\n            <li>Are there any challenges you're facing?</li>\n            <li>What additional support would be helpful?</li>\n            <li>Any questions about your role or the clinic?</li>\n        </ul>\n        \n        <div style=\"background: linear-gradient(135deg, #e1f5fe 0%, #b3e5fc 100%); padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;\">\n            <h4 style=\"color: #0277bd; margin-top: 0;\">📅 Schedule Your Check-in Meeting</h4>\n            <p>Let's chat in person! Please reply to this email with your preferred time slots, or contact {{HEAD_VETERINARIAN}} directly.</p>\n            <p style=\"margin-bottom: 0;\"><strong>Email:</strong> {{MANAGER_EMAIL}}<br>\n            <strong>Phone:</strong> {{MANAGER_PHONE}}</p>\n        </div>\n        \n        <h3 style=\"color: #ff9800;\">🎉 You're Doing Great!</h3>\n        <p>The team has been impressed with your enthusiasm and dedication. Keep up the excellent work!</p>\n        \n        <div style=\"background: #f3e5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #9c27b0;\">\n            <h4 style=\"margin-top: 0; color: #7b1fa2;\">🔮 What's Next?</h4>\n            <ul style=\"margin-bottom: 0;\">\n                <li>Continue with your training modules</li>\n                <li>Start taking on more independent tasks</li>\n                <li>Participate in team meetings</li>\n                <li>30-day comprehensive review coming up!</li>\n            </ul>\n        </div>\n        \n        <p>Thank you for being part of our mission to provide exceptional pet care. We're excited to see you grow with us!</p>\n        \n        <p style=\"margin-bottom: 0;\">Keep being awesome! 🌟</p>\n    </div>\n    \n    <div style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">\n        <p>{{CLINIC_NAME}} | {{CLINIC_ADDRESS}}<br>\n        {{BUSINESS_PHONE_NUMBER}} | {{BUSINESS_EMAIL}}</p>\n    </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "💬 Send Follow-up Email (Day 10)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        32
+      ],
+      "id": "{{FOLLOWUP_EMAIL_NODE_ID}}",
+      "credentials": {
+        "smtp": {
+          "id": "{{SMTP_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        },
+        "timezone": "{{TIMEZONE}}"
+      },
+      "name": "📅 Weekly Social Media Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -128,
+        400
+      ],
+      "id": "{{SOCIAL_MEDIA_TRIGGER_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "content": "You are a social media content creator for {{CLINIC_NAME}}, a pet clinic. Create an engaging, informative social media post about pet care.\n\nGuidelines:\n- Write in a {{BRAND_VOICE_TONE}} tone\n- Include practical pet care tips\n- Keep it under 280 characters for Twitter compatibility\n- Make it shareable and engaging\n- Include 2-3 relevant hashtags\n- Focus on seasonal or trending pet care topics\n- Avoid medical advice - keep it general wellness focused\n\nClinic Info:\n- Name: {{CLINIC_NAME}}\n- Location: {{CLINIC_ADDRESS}}\n- Specialties: {{CLINIC_SPECIALTIES}}\n\nCurrent date: {{ $now.format('MMMM DD, YYYY') }}\n\nCreate ONE social media post with the following structure:\n1. Engaging hook or question\n2. Helpful tip or advice\n3. Call to action\n4. Hashtags\n\nReturn only the post content, no additional formatting or labels."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "🤖 Generate Pet Care Tip",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        400
+      ],
+      "id": "{{AI_CONTENT_GENERATION_NODE_ID}}",
+      "credentials": {
+        "openAiApi": {
+          "id": "{{OPENAI_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "page",
+        "operation": "post",
+        "pageId": "{{FACEBOOK_PAGE_ID}}",
+        "content": "={{ $json.choices[0].message.content }}",
+        "additionalFields": {}
+      },
+      "name": "📘 Post to Facebook",
+      "type": "n8n-nodes-base.facebook",
+      "typeVersion": 1,
+      "position": [
+        320,
+        320
+      ],
+      "id": "{{FACEBOOK_POST_NODE_ID}}",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "{{FACEBOOK_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Facebook"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('🤖 Generate Pet Care Tip').item.json.choices[0].message.content }}",
+        "additionalFields": {}
+      },
+      "name": "🐦 Post to Twitter/X",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        320,
+        480
+      ],
+      "id": "{{TWITTER_POST_NODE_ID}}",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "{{TWITTER_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twitter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{SOCIAL_MEDIA_SHEET_ID}}",
+        "sheetName": "Social Posts",
+        "columns": [
+          {
+            "column": [
+              {
+                "columnName": "Date",
+                "columnValue": "={{ $now.format('YYYY-MM-DD') }}"
+              },
+              {
+                "columnName": "Time",
+                "columnValue": "={{ $now.format('HH:mm:ss') }}"
+              },
+              {
+                "columnName": "Content",
+                "columnValue": "={{ $('🤖 Generate Pet Care Tip').item.json.choices[0].message.content }}"
+              },
+              {
+                "columnName": "Facebook Status",
+                "columnValue": "={{ $('📘 Post to Facebook').item.json.id ? 'Posted' : 'Failed' }}"
+              },
+              {
+                "columnName": "Twitter Status",
+                "columnValue": "={{ $('🐦 Post to Twitter/X').item.json.data.id ? 'Posted' : 'Failed' }}"
+              },
+              {
+                "columnName": "Facebook Post ID",
+                "columnValue": "={{ $('📘 Post to Facebook').item.json.id || 'N/A' }}"
+              },
+              {
+                "columnName": "Twitter Post ID",
+                "columnValue": "={{ $('🐦 Post to Twitter/X').item.json.data.id || 'N/A' }}"
+              }
+            ]
+          }
+        ],
+        "options": {}
+      },
+      "name": "📊 Log Social Media Activity",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        544,
+        400
+      ],
+      "id": "{{LOG_SOCIAL_ACTIVITY_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "🆕 Staff Onboarding Webhook": {
+      "main": [
+        [
+          {
+            "node": "📝 Log New Staff Member",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Log New Staff Member": {
+      "main": [
+        [
+          {
+            "node": "👋 Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "👋 Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait 3 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 3 Days": {
+      "main": [
+        [
+          {
+            "node": "📚 Send Training Email (Day 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📚 Send Training Email (Day 3)": {
+      "main": [
+        [
+          {
+            "node": "⏰ Wait 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 7 Days": {
+      "main": [
+        [
+          {
+            "node": "💬 Send Follow-up Email (Day 10)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📅 Weekly Social Media Trigger": {
+      "main": [
+        [
+          {
+            "node": "🤖 Generate Pet Care Tip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🤖 Generate Pet Care Tip": {
+      "main": [
+        [
+          {
+            "node": "📘 Post to Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🐦 Post to Twitter/X",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📘 Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "📊 Log Social Media Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🐦 Post to Twitter/X": {
+      "main": [
+        [
+          {
+            "node": "📊 Log Social Media Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "{{WORKFLOW_TAG_ID}}",
+      "name": "PET"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "{{VERSION_ID}}",
+  "id": "{{WORKFLOW_ID}}",
+  "name": "{{CLINIC_NAME}} - Staff Onboarding & Social Media (PET WF10)"
+}
