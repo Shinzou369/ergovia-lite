@@ -37,7 +37,13 @@ async function logout() {
       clearUserData();
     }
     
-    // Handle Google logout
+    // Call Stytch logout endpoint
+    await fetch('/api/auth/stytch/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    // Also handle Google logout if applicable
     window.location.href = '/logout';
   } catch (error) {
     console.error('Logout error:', error);

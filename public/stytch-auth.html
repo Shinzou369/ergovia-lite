@@ -1,2 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERGOVIA-AI Secure Login</title>
+    <link rel="icon" href="CHROME.png" type="image/png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Questrial:wght@400&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-<!-- This file is being removed as part of Stytch removal -->
+        :root {
+            /* ERGOVIA-AI Brand Colors */
+            --primary-gradient: linear-gradient(180deg, #6B5B1A 0%, #8B7E2A 30%, #B8A548 60%, #FFD700 100%);
+            --ergovia-text-gradient: linear-gradient(180deg, #6B5B1A, #8B7E2A, #B8A548, #FFD700);
+
+            --font-heading: 'Questrial', 'Inter', system-ui, sans-serif;
+            --font-body: 'Questrial', 'Inter', system-ui, sans-serif;
+
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #16213e;
+
+            --text-primary: #ffffff;
+            --text-secondary: #b8bcc8;
+            --text-muted: #6b7280;
+
+            --border-color: #2d3748;
+            --border-light: #374151;
+
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+
+            --shadow-xl: 0 20px 25px -5px rgba(107, 91, 26, 0.3), 0 8px 10px -6px rgba(107, 91, 26, 0.2);
+
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            --primary: #B8A548;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .auth-container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 48px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+        }
+
+        .auth-header {
+            margin-bottom: 36px;
+        }
+
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .auth-logo img {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .auth-logo-text {
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--ergovia-text-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: var(--font-heading);
+            letter-spacing: 0.02em;
+        }
+
+        .auth-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 32px;
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            padding: 6px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 32px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 14px 20px;
+            text-align: center;
+            border-radius: calc(var(--radius) - 6px);
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .auth-tab.active {
+            background: var(--primary-gradient);
+            color: var(--bg-primary);
+        }
+
+        .auth-method {
+            display: none;
+        }
+
+        .auth-method.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            transition: var(--transition);
+            text-align: center;
+            font-family: var(--font-body);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(184, 165, 72, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px 28px;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: var(--radius);
+            color: var(--bg-primary);
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            margin-top: 8px;
+            font-family: var(--font-body);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(184, 165, 72, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--bg-primary);
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .submit-btn.success {
+            background: var(--success) !important;
+            animation: successPulse 0.6s ease-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        #otp-verification {
+            display: none;
+        }
+
+        .otp-input {
+            font-size: 1.8rem;
+            letter-spacing: 0.3em;
+            text-align: center;
+            padding: 20px;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .message {
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+
+        .message.info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .status-display {
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .status-value {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-family: monospace;
+        }
+
+        .status-success {
+            color: var(--success);
+        }
+
+        .status-error {
+            color: var(--error);
+        }
+
+        .status-warning {
+            color: var(--warning);
+        }
+
+        .security-note {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 32px;
+            padding: 16px;
+            background: rgba(107, 91, 26, 0.1);
+            border-radius: var(--radius);
+            border: 1px solid rgba(107, 91, 26, 0.2);
+            line-height: 1.4;
+        }
+
+        .back-link {
+            margin-top: 24px;
+        }
+
+        .back-link a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .back-link a:hover {
+            color: var(--primary);
+        }
+
+        .debug-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .debug-toggle {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .debug-toggle:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .debug-info {
+            display: none;
+            margin-top: 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 520px) {
+            body {
+                padding: 16px;
+            }
+
+            .auth-container {
+                padding: 32px 24px;
+                max-width: 100%;
+            }
+
+            .auth-logo img {
+                width: 48px;
+                height: 48px;
+            }
+
+            .auth-logo-text {
+                font-size: 1.7rem;
+            }
+
+            .auth-title {
+                font-size: 1.4rem;
+            }
+
+            .auth-subtitle {
+                font-size: 1rem;
+            }
+
+            .auth-tabs {
+                max-width: 100%;
+            }
+
+            .form-input {
+                padding: 14px 16px;
+                font-size: 1rem;
+            }
+
+            .submit-btn {
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+
+            .otp-input {
+                font-size: 1.5rem;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="CHROME.png" alt="ERGOVIA-AI Logo">
+                <div class="auth-logo-text">ERGOVIA-AI</div>
+            </div>
+            <h1 class="auth-title">Secure Portal Access</h1>
+            <p class="auth-subtitle">Advanced passwordless authentication for ERGOVIA-AI affiliates</p>
+        </div>
+
+        <div id="message"></div>
+
+        <!-- Affiliate Information Form (shown for affiliate flow) -->
+        <div id="affiliate-info" style="display: none;">
+            <div class="form-group">
+                <label for="first-name" class="form-label">First Name</label>
+                <input type="text" id="first-name" name="first-name" class="form-input" placeholder="Your first name" required>
+            </div>
+            <div class="form-group">
+                <label for="last-name" class="form-label">Last Name</label>
+                <input type="text" id="last-name" name="last-name" class="form-input" placeholder="Your last name" required>
+            </div>
+        </div>
+
+        <!-- Configuration Status -->
+        <div id="config-status" class="status-display" style="display: none;">
+            <div class="status-item">
+                <span class="status-label">Service Status:</span>
+                <span id="service-status" class="status-value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Environment:</span>
+                <span id="env-status" class="status-value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">API Connection:</span>
+                <span id="api-status" class="status-value">-</span>
+            </div>
+        </div>
+
+        <div class="auth-tabs">
+            <div class="auth-tab active" data-method="email">📧 Email</div>
+            <div class="auth-tab" data-method="sms">📱 SMS</div>
+        </div>
+
+        <form id="authForm" style="position: relative;">
+            <div id="email-method" class="auth-method active">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required>
+                </div>
+                <button type="submit" id="emailSubmit" class="submit-btn">
+                    <span class="btn-text">🚀 Send Magic Link</span>
+                </button>
+            </div>
+
+            <div id="sms-method" class="auth-method">
+                <div class="form-group">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" class="form-input" placeholder="+1 (555) 123-4567" required>
+                </div>
+                <button type="submit" id="smsSubmit" class="submit-btn">
+                    <span class="btn-text">📱 Send SMS Code</span>
+                </button>
+            </div>
+
+            <div id="otp-verification">
+                <div class="form-group">
+                    <label for="otp" class="form-label">6-Digit Verification Code</label>
+                    <input type="text" id="otp" name="otp" class="form-input otp-input" placeholder="000000" maxlength="6" required>
+                </div>
+                <button type="button" id="otpSubmit" class="submit-btn">
+                    <span class="btn-text">✅ Verify & Access Portal</span>
+                </button>
+            </div>
+        </form>
+
+        <div class="debug-section">
+            <button class="debug-toggle" onclick="toggleDebugInfo()">🔧 Service Status</button>
+            <div id="debug-info" class="debug-info">
+                <div id="debug-content">Loading service status...</div>
+            </div>
+        </div>
+
+        <div class="security-note">
+            🔒 Your data is protected with enterprise-grade security. No passwords required.
+        </div>
+
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        let currentMethod = 'email';
+        let methodId = null;
+        let phoneNumber = null;
+        let debugVisible = false;
+        let isAffiliateFlow = false;
+        let returnTo = '/chat';
+
+        // Auto-check service status on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // First check if user is already authenticated
+            try {
+                const response = await fetch('/api/auth/status');
+                const authData = await response.json();
+
+                if (authData.authenticated && authData.user) {
+                    console.log('✅ User already authenticated, redirecting...');
+
+                    // For affiliate flow specifically, redirect to chat immediately
+                    if (flow === 'affiliate' && authData.user.role === 'affiliate') {
+                        console.log('✅ Affiliate already logged in, redirecting to chat...');
+                        window.location.href = '/chat';
+                        return;
+                    }
+
+                    // For general flow or other roles
+                    showMessage('✅ <strong>Already logged in!</strong><br>🚀 Redirecting to your dashboard...', 'success');
+
+                    setTimeout(() => {
+                        const redirectTo = authData.user.role === 'affiliate' ? '/chat' : '/taskforce';
+                        window.location.href = redirectTo;
+                    }, 1500);
+                    return;
+                }
+            } catch (error) {
+                console.log('Auth check failed, continuing with login flow');
+            }
+
+            checkServiceStatus();
+
+            // Handle URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const flow = urlParams.get('flow');
+            const returnToParam = urlParams.get('return_to');
+
+            if (error) {
+                handleURLError(error);
+            }
+
+            // Check if this is affiliate flow
+            if (flow === 'affiliate') {
+                isAffiliateFlow = true;
+                document.getElementById('affiliate-info').style.display = 'block';
+                document.querySelector('.auth-title').textContent = 'Join as ERGOVIA-AI Affiliate';
+                document.querySelector('.auth-subtitle').textContent = 'Create your affiliate account with secure passwordless authentication';
+            }
+
+            if (returnToParam) {
+                returnTo = returnToParam;
+            }
+
+            // Pre-fill email if provided
+            const email = urlParams.get('email');
+            if (email) {
+                document.getElementById('email').value = email;
+            }
+
+            console.log('🔄 Stytch auth page loaded', { isAffiliateFlow, returnTo });
+        });
+
+        function handleURLError(error) {
+            switch (error) {
+                case 'missing_token':
+                    showMessage('Authentication link is invalid or expired', 'error');
+                    break;
+                case 'auth_failed':
+                    showMessage('Authentication failed. Please try again.', 'error');
+                    break;
+                case 'session_expired':
+                    showMessage('Your session has expired. Please sign in again.', 'error');
+                    break;
+                default:
+                    showMessage('Authentication error. Please try again.', 'error');
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const method = tab.dataset.method;
+                switchMethod(method);
+            });
+        });
+
+        function switchMethod(method) {
+            currentMethod = method;
+
+            // Update tabs
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.method === method);
+            });
+
+            // Update forms
+            document.querySelectorAll('.auth-method').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(`${method}-method`).classList.add('active');
+
+            // Hide OTP verification
+            document.getElementById('otp-verification').style.display = 'none';
+            clearMessage();
+        }
+
+        // Check service status
+        async function checkServiceStatus() {
+            try {
+                const response = await fetch('/api/auth/stytch/test');
+                const data = await response.json();
+
+                document.getElementById('config-status').style.display = 'block';
+
+                const serviceStatus = data.client_initialized && data.project_id_set && data.secret_set;
+                document.getElementById('service-status').textContent = serviceStatus ? '✅ Online' : '❌ Offline';
+                document.getElementById('service-status').className = `status-value ${serviceStatus ? 'status-success' : 'status-error'}`;
+
+                document.getElementById('env-status').textContent = data.environment;
+                document.getElementById('env-status').className = 'status-value';
+
+                const apiStatus = data.api_connection === 'success' ? '✅ Connected' : 
+                                data.api_connection === 'failed' ? `❌ Failed` : 
+                                '⚠️ Testing...';
+                document.getElementById('api-status').textContent = apiStatus;
+                document.getElementById('api-status').className = `status-value ${
+                    data.api_connection === 'success' ? 'status-success' : 
+                    data.api_connection === 'failed' ? 'status-error' : 'status-warning'
+                }`;
+
+                // Update debug info
+                document.getElementById('debug-content').textContent = JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                console.error('Service status check failed:', error);
+                showMessage('Service status check failed. Continuing with authentication...', 'info');
+            }
+        }
+
+        // Form submission
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (currentMethod === 'email') {
+                await sendMagicLink();
+            } else if (currentMethod === 'sms') {
+                await sendSMSCode();
+            }
+        });
+
+        // Direct button click handler for email submit (backup)
+        document.getElementById('emailSubmit').addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (currentMethod === 'email') {
+                await sendMagicLink();
+            }
+        });
+
+        // OTP verification
+        document.getElementById('otpSubmit').addEventListener('click', async () => {
+            await verifyOTP();
+        });
+
+        async function sendMagicLink() {
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('emailSubmit');
+
+            if (!email) {
+                showMessage('Please enter your email address', 'error');
+                return;
+            }
+
+            // For affiliate flow, validate name fields
+            if (isAffiliateFlow) {
+                const firstName = document.getElementById('first-name').value.trim();
+                const lastName = document.getElementById('last-name').value.trim();
+
+                if (!firstName) {
+                    showMessage('Please enter your first name', 'error');
+                    document.getElementById('first-name').focus();
+                    return;
+                }
+
+                if (!lastName) {
+                    showMessage('Please enter your last name', 'error');
+                    document.getElementById('last-name').focus();
+                    return;
+                }
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showMessage('Please enter a valid email address', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, '🚀 Sending Magic Link...');
+
+            try {
+                console.log('🔄 Starting magic link request for:', email);
+
+                // Show immediate feedback
+                showMessage('📤 Sending magic link to your email...', 'info');
+
+                // Prepare request body
+                const requestBody = { 
+                    email,
+                    flow: isAffiliateFlow ? 'affiliate' : 'general',
+                    return_to: returnTo
+                };
+
+                // Add name data for affiliate flow
+                if (isAffiliateFlow) {
+                    requestBody.first_name = document.getElementById('first-name').value.trim();
+                    requestBody.last_name = document.getElementById('last-name').value.trim();
+                }
+
+                const response = await fetch('/api/auth/stytch/magic-links/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('📡 Magic link response status:', response.status);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store email for returning user detection
+                    localStorage.setItem('stytch_user_email', email);
+
+                    setSuccess(submitBtn, '✅ Magic Link Sent!');
+
+                    setTimeout(() => {
+                        showMessage(`🎉 <strong>Magic link sent successfully!</strong><br><br>
+                            📧 <strong>Check your email inbox</strong> for a message from ERGOVIA-AI<br>
+                            📱 <strong>Check spam/junk folder</strong> if you don't see it within 2 minutes<br>
+                            🔗 <strong>Click the link in the email</strong> to access your affiliate portal<br><br>
+                            <small>⏰ The magic link expires in 1 hour for security</small>`, 'success');
+                    }, 600);
+
+                    console.log('✅ Magic link sent successfully to:', email);
+                } else {
+                    console.error('❌ Magic link request failed:', data);
+                    let errorMessage = data.error || 'Failed to send magic link';
+
+                    // Handle specific error cases with user-friendly messages
+                    if (data.error && data.error.includes('no_match_for_provided_magic_link_url')) {
+                        errorMessage = 'Service configuration issue. Please contact support or try SMS instead.';
+                    } else if (data.error && data.error.includes('project_not_found')) {
+                        errorMessage = 'Authentication service unavailable. Please try again or contact support.';
+                    } else if (data.error && data.error.includes('Invalid email')) {
+                        errorMessage = 'Please enter a valid email address';
+                    }
+
+                    showMessage(`❌ ${errorMessage}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Network/request error:', error);
+                showMessage('❌ Network error. Please check your connection and try again.', 'error');
+            } finally {
+                setTimeout(() => {
+                    setLoading(submitBtn, false, '🚀 Send Magic Link');
+                }, 1000);
+            }
+        }
+
+        async function sendSMSCode() {
+            const phone = document.getElementById('phone').value;
+            const submitBtn = document.getElementById('smsSubmit');
+
+            if (!phone) {
+                showMessage('Please enter your phone number', 'error');
+                return;
+            }
+
+            phoneNumber = phone;
+            setLoading(submitBtn, true, '📱 Sending Code...');
+
+            try {
+                showMessage('📤 Sending SMS verification code...', 'info');
+
+                const response = await fetch('/api/auth/stytch/otp/sms/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone_number: phone })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    methodId = data.request_id;
+                    setSuccess(submitBtn, '✅ Code Sent!');
+
+                    setTimeout(() => {
+                        showMessage('📱 <strong>SMS code sent!</strong><br>Enter the 6-digit code below to access your secure portal.', 'success');
+
+                        // Show OTP verification with smooth transition
+                        document.getElementById('sms-method').style.display = 'none';
+                        document.getElementById('otp-verification').style.display = 'block';
+
+                        // Focus on OTP input
+                        setTimeout(() => {
+                            document.getElementById('otp').focus();
+                        }, 100);
+                    }, 600);
+                } else {
+                    showMessage(`❌ ${data.error || 'Failed to send SMS code'}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ SMS OTP error:', error);
+                showMessage('❌ Network error. Please try again.', 'error');
+            } finally {
+                setTimeout(() => {
+                    setLoading(submitBtn, false, '📱 Send SMS Code');
+                }, 1000);
+            }
+        }
+
+        async function verifyOTP() {
+            const otp = document.getElementById('otp').value;
+            const submitBtn = document.getElementById('otpSubmit');
+
+            if (!otp || otp.length !== 6) {
+                showMessage('Please enter the complete 6-digit code', 'error');
+                return;
+            }
+
+            if (!methodId) {
+                showMessage('Please request a new code first', 'error');
+                return;
+            }
+
+            setLoading(submitBtn, true, '🔐 Verifying...');
+
+            try {
+                showMessage('🔐 Verifying your code...', 'info');
+
+                const response = await fetch('/api/auth/stytch/otp/authenticate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        method_id: methodId,
+                        code: otp 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    setSuccess(submitBtn, '🎉 Verified! Redirecting...');
+
+                    setTimeout(() => {
+                        showMessage('✅ <strong>Authentication successful!</strong><br>🚀 Redirecting to your affiliate dashboard...', 'success');
+
+                        setTimeout(() => {
+                            if (data.needs_completion) {
+                                window.location.href = '/complete-signup';
+                            } else {
+                                // For production, redirect to the correct domain
+                                const redirectUrl = data.redirect_to || returnTo || '/chat';
+                                if (window.location.hostname.includes('repl.co')) {
+                                    // Development - use relative redirect
+                                    window.location.href = redirectUrl;
+                                } else {
+                                    // Production - use full URL
+                                    window.location.href = `https://ergovia-ai.com${redirectUrl}`;
+                                }
+                            }
+                        }, 1500);
+                    }, 600);
+                } else {
+                    showMessage(`❌ ${data.error || 'Invalid or expired code'}`, 'error');
+                }
+            } catch (error) {
+                console.error('❌ OTP verification error:', error);
+                showMessage('❌ Network error. Please try again.', 'error');
+            } finally {
+                setTimeout(() => {
+                    setLoading(submitBtn, false, '✅ Verify & Access Portal');
+                }, 1200);
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        function clearMessage() {
+            document.getElementById('message').innerHTML = '';
+        }
+
+        function setLoading(button, loading, text) {
+            const btnText = button.querySelector('.btn-text');
+
+            if (loading) {
+                button.disabled = true;
+                btnText.innerHTML = `<span class="loading"></span>${text}`;
+                button.style.transform = 'translateY(1px)';
+
+                setTimeout(() => {
+                    button.style.transform = 'translateY(0px)';
+                }, 100);
+
+            } else {
+                button.disabled = false;
+                btnText.innerHTML = text;
+                button.style.transform = '';
+            }
+        }
+
+        function setSuccess(button, text) {
+            const btnText = button.querySelector('.btn-text');
+            button.classList.add('success');
+            btnText.innerHTML = text;
+
+            setTimeout(() => {
+                button.classList.remove('success');
+            }, 2000);
+        }
+
+        function toggleDebugInfo() {
+            debugVisible = !debugVisible;
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.style.display = debugVisible ? 'block' : 'none';
+
+            if (debugVisible && document.getElementById('debug-content').textContent === 'Loading service status...') {
+                checkServiceStatus();
+            }
+        }
+
+        // Auto-format phone number
+        document.getElementById('phone').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+
+            // Add country code if not present
+            if (value.length >= 1 && !value.startsWith('1')) {
+                value = '1' + value;
+            }
+
+            // Format as +1 (XXX) XXX-XXXX
+            if (value.length > 1) {
+                value = '+' + value;
+            }
+            if (value.length > 4) {
+                value = value.slice(0, 2) + ' (' + value.slice(2, 5) + ')';
+            }
+            if (value.length > 9) {
+                value = value.slice(0, 9) + ' ' + value.slice(9, 12);
+            }
+            if (value.length > 13) {
+                value = value.slice(0, 13) + '-' + value.slice(13, 17);
+            }
+
+            e.target.value = value;
+        });
+
+        // Auto-format OTP with better UX
+        document.getElementById('otp').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+
+            // Auto-submit when 6 digits are entered
+            if (e.target.value.length === 6) {
+                setTimeout(() => {
+                    verifyOTP();
+                }, 500);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Enter key submits active form
+            if (e.key === 'Enter') {
+                if (currentMethod === 'email' && document.getElementById('email-method').classList.contains('active')) {
+                    e.preventDefault();
+                    sendMagicLink();
+                } else if (currentMethod === 'sms' && document.getElementById('sms-method').classList.contains('active')) {
+                    e.preventDefault();
+                    sendSMSCode();
+                } else if (document.getElementById('otp-verification').style.display === 'block') {
+                    e.preventDefault();
+                    verifyOTP();
+                }
+            }
+
+            // Tab key switches between email and SMS
+            if (e.key === 'Tab' && e.altKey) {
+                e.preventDefault();
+                const newMethod = currentMethod === 'email' ? 'sms' : 'email';
+                switchMethod(newMethod);
+            }
+        });
+    </script>
+</body>
+</html>

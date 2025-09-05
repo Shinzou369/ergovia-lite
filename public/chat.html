@@ -997,7 +997,36 @@
 
           // If we're coming from Stytch auth, wait a bit and check again
           const fromStytchAuth = document.referrer.includes('stytch-logged-in') || 
-                                // No pending auth, show login options
+                                window.location.search.includes('stytch_session') ||
+                                window.location.search.includes('from_stytch');
+
+          if (fromStytchAuth) {
+            console.log('🔄 Coming from Stytch auth, waiting for session to be established...');
+
+            // Try multiple times with increasing delays
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+
+              console.log(`🔄 Retry attempt ${attempt}/3...`);
+              const retryResponse = await fetch('/api/auth/status', {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              const retryData = await retryResponse.json();
+
+              console.log(`🔍 Retry ${attempt} result:`, retryData);
+
+              if (retryData.authenticated && retryData.user.authMethod === 'stytch') {
+                console.log(`✅ Stytch affiliate session established on retry ${attempt}`);
+                updateAuthenticatedUI(retryData.user);
+                return true;
+              }
+            }
+
+            console.log('❌ Stytch authentication failed after retries, showing login options');
+          }
+
+          // No pending auth, show login options
           showLoginOptions();
           return false;
         } catch (error) {
