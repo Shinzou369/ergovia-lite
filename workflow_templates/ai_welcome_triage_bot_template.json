@@ -1,0 +1,84 @@
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### Workflow 1: AI Welcome & Triage Bot (with HITL)\n\n**Goal:** To provide instant answers, triage emergencies, and guide users to book, 24/7.\n\n**Client Configuration:**\n- Clinic Name: {{CLINIC_NAME}}\n- Location: {{CLINIC_LOCATION}}\n- Hours: {{CLINIC_HOURS}}\n- Emergency Hours: {{EMERGENCY_HOURS}}\n- Head Veterinarian: {{HEAD_VETERINARIAN}}\n- Services: {{SERVICES_OFFERED}}\n- Appointment Types: {{APPOINTMENT_TYPES}}\n- Booking URL: {{BOOKING_SYSTEM_URL}}\n- On-Call Staff: {{ON_CALL_STAFF_NAME}}\n- Confidence Threshold: {{CONFIDENCE_THRESHOLD}}%",
+        "height": 400,
+        "width": 600,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2112,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "{{STICKY_NOTE_NODE_ID}}",
+      "name": "Workflow 1 Description"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        240
+      ],
+      "id": "{{EXECUTE_WORKFLOW_TRIGGER_NODE_ID}}",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}{{ $json.text }}",
+        "options": {
+          "systemMessage": "You are an AI triage bot for {{CLINIC_NAME}} located in {{CLINIC_LOCATION}}. Your role is to assess pet health concerns, answer FAQs, and guide users appropriately.\n\nCLINIC INFORMATION:\n- Clinic Name: {{CLINIC_NAME}}\n- Location: {{CLINIC_LOCATION}}\n- Hours: {{CLINIC_HOURS}}\n- Emergency Hours: {{EMERGENCY_HOURS}}\n- Head Veterinarian: {{HEAD_VETERINARIAN}}\n- Services Offered: {{SERVICES_OFFERED}}\n- Appointment Types: {{APPOINTMENT_TYPES}}\n- Booking URL: {{BOOKING_SYSTEM_URL}}\n- Booking Phone: {{BOOKING_PHONE}}\n- Pricing: {{PRICING_INFO}}\n\nEMERGENCY DETECTION:\nIf you detect any of these emergency signs, immediately escalate:\n- Difficulty breathing, choking, or blue gums\n- Unconsciousness or seizures\n- Severe bleeding or trauma\n- Inability to urinate or defecate\n- Suspected poisoning\n- Eye injuries\n- Heatstroke symptoms\n- Bloat/GDV symptoms\n\nRESPONSE GUIDELINES:\n1. For emergencies: Direct to emergency clinic immediately\n2. For urgent concerns: Recommend same-day appointment\n3. For routine questions: Provide helpful info and booking options\n4. For after-hours: Explain emergency vs non-emergency options\n5. Always be empathetic and professional\n\nIf confidence is below {{CONFIDENCE_THRESHOLD}}%, escalate to human staff.",
+          "temperature": 0.7,
+          "maxTokens": 500
+        }
+      },
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        240
+      ],
+      "id": "{{OPENAI_NODE_ID}}",
+      "name": "AI Triage Assessment",
+      "credentials": {
+        "openAiApi": {
+          "id": "{{OPENAI_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} OpenAI"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Triage Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "meta": {
+    "templateCreatedBy": "{{TEMPLATE_CREATED_BY}}",
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "id": "{{WORKFLOW_ID}}",
+  "tags": ["{{WORKFLOW_TAG}}"],
+  "name": "{{CLINIC_NAME}} - AI Welcome & Triage Bot"
+}
