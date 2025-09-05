@@ -784,8 +784,7 @@
             <div class="progress-circle" id="progress-11"></div>
             <div class="progress-circle" id="progress-12"></div>
             <div class="progress-circle" id="progress-13"></div>
-            <div class="progress-circle" id="progress-14"></div>
-            <span id="progress-text">0/14 Complete</span>
+            <span id="progress-text">0/13 Complete</span>
         </div>
 
         <button class="generate-btn" id="generateBtn">
@@ -958,29 +957,13 @@
             <div class="config-action">Click to connect Calendly</div>
         </div>
 
-        <!-- SendGrid Email -->
-        <div class="config-box credential-box" data-config="sendgrid" onclick="openConfigModal('sendgrid')">
-            <div class="config-header">
-                <div class="config-icon">📧</div>
-                <div class="config-status pending" id="status-sendgrid">9</div>
-            </div>
-            <div class="config-title">SendGrid Email Service</div>
-            <div class="config-description">
-                Alternative email service for enhanced deliverability and email campaign management (optional if using Gmail).
-            </div>
-            <div class="config-fields-preview" id="fields-sendgrid">
-                <div class="field-tag">API Key</div>
-                <div class="field-tag">Sender Verification</div>
-                <div class="field-tag">Email Templates</div>
-            </div>
-            <div class="config-action">Click to setup SendGrid email</div>
-        </div>
+        
 
         <!-- Facebook Integration -->
         <div class="config-box credential-box" data-config="facebook" onclick="openConfigModal('facebook')">
             <div class="config-header">
                 <div class="config-icon">📘</div>
-                <div class="config-status pending" id="status-facebook">10</div>
+                <div class="config-status pending" id="status-facebook">9</div>
             </div>
             <div class="config-title">Facebook Business Page</div>
             <div class="config-description">
@@ -998,7 +981,7 @@
         <div class="config-box credential-box" data-config="twitter" onclick="openConfigModal('twitter')">
             <div class="config-header">
                 <div class="config-icon">🐦</div>
-                <div class="config-status pending" id="status-twitter">11</div>
+                <div class="config-status pending" id="status-twitter">10</div>
             </div>
             <div class="config-title">Twitter/X Integration</div>
             <div class="config-description">
@@ -1016,7 +999,7 @@
         <div class="config-box credential-box" data-config="slack" onclick="openConfigModal('slack')">
             <div class="config-header">
                 <div class="config-icon">💼</div>
-                <div class="config-status pending" id="status-slack">12</div>
+                <div class="config-status pending" id="status-slack">11</div>
             </div>
             <div class="config-title">Slack Team Notifications</div>
             <div class="config-description">
@@ -1034,7 +1017,7 @@
          <div class="config-box credential-box" data-config="whatsapp" onclick="openConfigModal('whatsapp')">
             <div class="config-header">
                 <div class="config-icon">💬</div>
-                <div class="config-status pending" id="status-whatsapp">13</div>
+                <div class="config-status pending" id="status-whatsapp">12</div>
             </div>
             <div class="config-title">WhatsApp Business</div>
             <div class="config-description">
@@ -1052,7 +1035,7 @@
         <div class="config-box" data-config="socialMedia" onclick="openConfigModal('socialMedia')">
             <div class="config-header">
                 <div class="config-icon">🔗</div>
-                <div class="config-status pending" id="status-socialMedia">14</div>
+                <div class="config-status pending" id="status-socialMedia">13</div>
             </div>
             <div class="config-title">Social Media Config</div>
             <div class="config-description">
@@ -1069,7 +1052,7 @@
         <div class="config-box" data-config="workflowConfig" onclick="openConfigModal('workflowConfig')">
             <div class="config-header">
                 <div class="config-icon">⚙️</div>
-                <div class="config-status pending" id="status-workflowConfig">15</div>
+                <div class="config-status pending" id="status-workflowConfig">14</div>
             </div>
             <div class="config-title">Workflow-Specific Config</div>
             <div class="config-description">
@@ -1123,7 +1106,7 @@
             telegram: {},
             twilio: {},
             calendly: {},
-            sendgrid: {},
+            
             facebook: {},
             twitter: {},
             slack: {},
@@ -1139,7 +1122,7 @@
             telegram: 'disconnected',
             twilio: 'disconnected',
             calendly: 'disconnected',
-            sendgrid: 'disconnected',
+            
             facebook: 'disconnected',
             twitter: 'disconnected',
             slack: 'disconnected',
@@ -1260,12 +1243,7 @@
                 isCredentialSection: true,
                 credentialType: 'calendly'
             },
-            sendgrid: {
-                title: "SendGrid Email",
-                icon: "mail",
-                isCredentialSection: true,
-                credentialType: 'sendgrid'
-            },
+            
             deepseek: {
                 title: "DeepSeek AI (Alternative)",
                 icon: "brain",
@@ -1417,15 +1395,7 @@
                 ],
                 setupGuide: 'Generate an API token from your Calendly Integrations page.'
             },
-            sendgrid: {
-                name: 'SendGrid Email',
-                description: 'Send emails via SendGrid',
-                fields: [
-                    { name: 'api_key', label: 'SendGrid API Key', type: 'password', required: true },
-                    { name: 'sender_email', label: 'Sender Email Verification', type: 'email', required: true }
-                ],
-                setupGuide: 'Create an API key in SendGrid and verify your sender identity.'
-            },
+            
             deepseek: {
                 name: 'DeepSeek AI',
                 description: 'Alternative AI model for text processing',
