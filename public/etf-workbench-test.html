@@ -1414,17 +1414,17 @@
             telegram: {
                 name: 'Telegram Bot',
                 icon: '💬',
-                description: 'Send notifications via Telegram',
-                type: 'api_key',
+                description: 'Send notifications via Telegram with login or bot setup',
+                type: 'oauth',
                 required: true,
                 fields: [
                     { name: 'bot_token', label: 'Bot Token', placeholder: '1234567890:ABC...', required: true },
                     { name: 'chat_id', label: 'Chat ID', placeholder: '123456789 or @channel', required: true }
                 ],
                 setupInstructions: [
-                    'Message @BotFather on Telegram',
-                    'Send /newbot and follow instructions',
-                    'Copy the bot token provided',
+                    'Option 1: Use "Login with Telegram" for instant setup',
+                    'Option 2: Manual bot setup via @BotFather',
+                    'For manual: message @BotFather, create bot, get token',
                     'Get your chat ID by messaging @userinfobot'
                 ]
             },
@@ -1628,11 +1628,59 @@
                                 <i data-lucide="user-check"></i> View Session Info
                             </button>
                         ` : ''}
+                        ${key === 'telegram' ? `
+                            <button class="credential-btn" onclick="viewTelegramInfo()">
+                                <i data-lucide="user-check"></i> View Bot Info
+                            </button>
+                        ` : ''}
                     </div>
                 `;
             }
 
             if (config.type === 'oauth') {
+                // Handle OAuth types (Google, Telegram Login Widget)
+                if (key === 'telegram') {
+                    return `
+                        <div class="credential-form-container">
+                            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">
+                                Choose your Telegram setup method:
+                            </p>
+
+                            <div class="credential-actions">
+                                <button class="credential-btn primary" onclick="loginWithTelegram('${key}')" style="margin-bottom: 12px;">
+                                    <i data-lucide="zap"></i> Login with Telegram
+                                </button>
+                                <button class="credential-btn" onclick="toggleManualTelegram('${key}')" style="margin-bottom: 12px;">
+                                    <i data-lucide="settings"></i> Manual Bot Setup
+                                </button>
+                            </div>
+
+                            <div id="manual-telegram-${key}" style="display: none; margin-top: 12px;">
+                                <input type="password" class="credential-input" id="${key}_bot_token" 
+                                       placeholder="Bot Token (from @BotFather)" required>
+                                <input type="text" class="credential-input" id="${key}_chat_id" 
+                                       placeholder="Chat ID (your Telegram user ID)" required style="margin-top: 8px;">
+                                <button class="credential-btn primary" onclick="saveCredential('${key}')" style="margin-top: 8px;">
+                                    <i data-lucide="save"></i> Save Bot Credentials
+                                </button>
+                            </div>
+
+                            <div class="telegram-auth-status" style="margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 8px; text-align: center;">
+                                <div class="auth-icon" style="font-size: 2rem; margin-bottom: 12px;">💬</div>
+                                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                                    Connect via Telegram Login for instant authentication, or manually setup a bot for notifications
+                                </p>
+                                <div class="telegram-features" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 12px; color: var(--text-muted);">
+                                    <div>⚡ Instant Login</div>
+                                    <div>📱 Bot Notifications</div>
+                                    <div>🔐 Secure Auth</div>
+                                    <div>💬 Direct Messages</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
                 // Google OAuth
                 return `
                     <div class="credential-form-container">
@@ -2154,6 +2202,57 @@
             };
 
             alert(`Google Session Info:\n\nUser ID: ${sessionInfo.user_id}\nEmail: ${sessionInfo.email}\nAuthenticated: ${new Date(sessionInfo.authenticated_at).toLocaleString()}\nSession Duration: ${sessionInfo.session_duration}`);
+        }
+
+        function viewTelegramInfo() {
+            const botInfo = {
+                bot_username: '@YourPetClinicBot',
+                bot_id: '123456789',
+                chat_id: 'Connected',
+                status: 'Active'
+            };
+
+            alert(`Telegram Bot Info:\n\nBot Username: ${botInfo.bot_username}\nBot ID: ${botInfo.bot_id}\nChat ID: ${botInfo.chat_id}\nStatus: ${botInfo.status}`);
+        }
+
+        function loginWithTelegram(service) {
+            const btn = event.target;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading"></div> Connecting...';
+
+            // In a real implementation, you would load Telegram's Login Widget
+            // For now, simulate the process
+            setTimeout(() => {
+                credentialStates[service] = 'connected';
+                configData[service] = { 
+                    telegram_login: true, 
+                    user_id: Math.random().toString(36).substring(2, 10),
+                    username: 'telegram_user',
+                    connectedAt: new Date().toISOString()
+                };
+                updateCredentialUI(service);
+                updateConfigBox(service);
+                updateProgress();
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+
+                alert('✅ Telegram Login successful! Your account is now connected for notifications.');
+            }, 2000);
+        }
+
+        function toggleManualTelegram(service) {
+            const manualDiv = document.getElementById(`manual-telegram-${service}`);
+            if (manualDiv.style.display === 'none') {
+                manualDiv.style.display = 'block';
+                event.target.innerHTML = '<i data-lucide="x"></i> Cancel Manual';
+            } else {
+                manualDiv.style.display = 'none';
+                event.target.innerHTML = '<i data-lucide="settings"></i> Manual Bot Setup';
+            }
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
 
 
