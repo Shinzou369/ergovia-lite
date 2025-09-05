@@ -1,64 +1,52 @@
 
-{
+<old_str>{
   "nodes": [
     {
       "parameters": {
         "rule": {
           "interval": [
             {
-              "triggerAtDay": 1,
-              "triggerAtHour": 2,
-              "triggerAtMinute": 0,
-              "triggerInterval": "month"
+              "triggerAtHour": 2
             }
           ]
-        },
-        "timezone": "{{TIMEZONE}}"
+        }
       },
       "name": "🗓️ Monthly Archive Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -500,
-        200
+        -64,
+        144
       ],
-      "id": "monthly-archive-trigger"
+      "id": "6ab08a3e-bb57-42ce-a759-551135c87789"
     },
     {
       "parameters": {
         "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
         "sheetName": "{{MASTER_SHEET_NAME}}",
-        "options": {
-          "range": "A:Z"
-        }
+        "options": {}
       },
       "name": "📊 Get All Appointments",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        -240,
-        200
+        192,
+        144
       ],
-      "id": "get-all-appointments",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Google Sheets"
-        }
-      }
+      "id": "2a9b1c65-23e1-4151-a927-2df2887e045e"
     },
     {
       "parameters": {
-        "jsCode": "// Data Archival Engine for {{CLINIC_NAME}}\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\nconst archiveThresholdYears = 5; // Archive records older than 5 years\n\nconsole.log(`🗂️ Starting data archival process for {{CLINIC_NAME}} - ${now.toLocaleString('en-US', { timeZone: timezone })}`);\n\n// Calculate cutoff date for archival\nconst archiveCutoffDate = new Date();\narchiveCutoffDate.setFullYear(archiveCutoffDate.getFullYear() - archiveThresholdYears);\n\nconsole.log(`📅 Archiving records older than: ${archiveCutoffDate.toLocaleDateString('en-US', { timeZone: timezone })}`);\n\n// Get all appointment records\nconst allAppointments = $input.all().map(item => item.json);\nconsole.log(`📋 Total appointments found: ${allAppointments.length}`);\n\n// Filter appointments for archival based on date\nconst appointmentsToArchive = allAppointments.filter(appointment => {\n  // Try multiple date field formats\n  const dateFields = [\n    appointment['Date'],\n    appointment['Appointment Date'],\n    appointment['AppointmentDate'],\n    appointment['DateTime'],\n    appointment['AppointmentDateTime'],\n    appointment['Created'],\n    appointment['Timestamp']\n  ];\n  \n  let appointmentDate = null;\n  \n  // Find the first valid date field\n  for (const dateField of dateFields) {\n    if (dateField) {\n      const parsedDate = new Date(dateField);\n      if (!isNaN(parsedDate.getTime())) {\n        appointmentDate = parsedDate;\n        break;\n      }\n    }\n  }\n  \n  // If no valid date found, skip archival for safety\n  if (!appointmentDate) {\n    console.log(`⚠️ No valid date found for appointment: ${appointment['Customer Name'] || appointment['Client Name'] || 'Unknown'}`);\n    return false;\n  }\n  \n  // Check if appointment is older than cutoff date\n  const shouldArchive = appointmentDate < archiveCutoffDate;\n  \n  if (shouldArchive) {\n    console.log(`🗃️ Marking for archive: ${appointment['Customer Name'] || appointment['Client Name']} - ${appointmentDate.toLocaleDateString()}`);\n  }\n  \n  return shouldArchive;\n});\n\nconsole.log(`🗂️ Found ${appointmentsToArchive.length} appointments ready for archival`);\n\n// Prepare archival data with metadata\nconst archivalResults = {\n  timestamp: now.toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  archive_process: 'Monthly Data Archival',\n  cutoff_date: archiveCutoffDate.toISOString(),\n  total_records_processed: allAppointments.length,\n  records_to_archive: appointmentsToArchive.length,\n  archive_threshold_years: archiveThresholdYears,\n  appointments_to_archive: appointmentsToArchive\n};\n\n// Generate summary report\nif (appointmentsToArchive.length > 0) {\n  archivalResults.status = 'ARCHIVAL_REQUIRED';\n  archivalResults.summary = `Found ${appointmentsToArchive.length} appointments from ${allAppointments.length} total records that need to be archived (older than ${archiveThresholdYears} years).`;\n  \n  // Group by year for reporting\n  const archiveByYear = {};\n  appointmentsToArchive.forEach(apt => {\n    const dateFields = [apt['Date'], apt['Appointment Date'], apt['AppointmentDate'], apt['DateTime'], apt['AppointmentDateTime'], apt['Created'], apt['Timestamp']];\n    let year = 'Unknown';\n    \n    for (const dateField of dateFields) {\n      if (dateField) {\n        const parsedDate = new Date(dateField);\n        if (!isNaN(parsedDate.getTime())) {\n          year = parsedDate.getFullYear();\n          break;\n        }\n      }\n    }\n    \n    archiveByYear[year] = (archiveByYear[year] || 0) + 1;\n  });\n  \n  archivalResults.archive_breakdown = archiveByYear;\n} else {\n  archivalResults.status = 'NO_ARCHIVAL_NEEDED';\n  archivalResults.summary = 'All appointment records are within the retention period. No archival required at this time.';\n}\n\nconsole.log(`📊 Archival summary: ${archivalResults.summary}`);\n\n// Return results - appointments to archive will be processed by next nodes\nreturn [{ json: archivalResults }];"
+        "jsCode": "// Data Archival Engine for {{CLINIC_NAME}}\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\nconst archiveThresholdYears = {{DATA_RETENTION_YEARS}} || 5;\n\nconsole.log(`🗂️ Starting data archival process for {{CLINIC_NAME}} - ${now.toLocaleString('en-US', { timeZone: timezone })}`);\n\n// Calculate cutoff date for archival\nconst archiveCutoffDate = new Date();\narchiveCutoffDate.setFullYear(archiveCutoffDate.getFullYear() - archiveThresholdYears);\n\nconsole.log(`📅 Archiving records older than: ${archiveCutoffDate.toLocaleDateString('en-US', { timeZone: timezone })}`);\n\n// Get all appointment records\nconst allAppointments = $input.all().map(item => item.json);\nconsole.log(`📋 Total appointments found: ${allAppointments.length}`);\n\n// Filter appointments for archival based on date\nconst appointmentsToArchive = allAppointments.filter(appointment => {\n  // Try multiple date field formats\n  const dateFields = [\n    appointment['Date'],\n    appointment['Appointment Date'],\n    appointment['AppointmentDate'],\n    appointment['DateTime'],\n    appointment['AppointmentDateTime'],\n    appointment['Created'],\n    appointment['Timestamp']\n  ];\n  \n  let appointmentDate = null;\n  \n  // Find the first valid date field\n  for (const dateField of dateFields) {\n    if (dateField) {\n      const parsedDate = new Date(dateField);\n      if (!isNaN(parsedDate.getTime())) {\n        appointmentDate = parsedDate;\n        break;\n      }\n    }\n  }\n  \n  // If no valid date found, skip archival for safety\n  if (!appointmentDate) {\n    console.log(`⚠️ No valid date found for appointment: ${appointment['Customer Name'] || appointment['Client Name'] || 'Unknown'}`);\n    return false;\n  }\n  \n  // Check if appointment is older than cutoff date\n  const shouldArchive = appointmentDate < archiveCutoffDate;\n  \n  if (shouldArchive) {\n    console.log(`🗃️ Marking for archive: ${appointment['Customer Name'] || appointment['Client Name']} - ${appointmentDate.toLocaleDateString()}`);\n  }\n  \n  return shouldArchive;\n});\n\nconsole.log(`🗂️ Found ${appointmentsToArchive.length} appointments ready for archival`);\n\n// Prepare archival data with metadata\nconst archivalResults = {\n  timestamp: now.toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  archive_process: 'Monthly Data Archival',\n  cutoff_date: archiveCutoffDate.toISOString(),\n  total_records_processed: allAppointments.length,\n  records_to_archive: appointmentsToArchive.length,\n  archive_threshold_years: archiveThresholdYears,\n  appointments_to_archive: appointmentsToArchive\n};\n\n// Generate summary report\nif (appointmentsToArchive.length > 0) {\n  archivalResults.status = 'ARCHIVAL_REQUIRED';\n  archivalResults.summary = `Found ${appointmentsToArchive.length} appointments from ${allAppointments.length} total records that need to be archived (older than ${archiveThresholdYears} years).`;\n  \n  // Group by year for reporting\n  const archiveByYear = {};\n  appointmentsToArchive.forEach(apt => {\n    const dateFields = [apt['Date'], apt['Appointment Date'], apt['AppointmentDate'], apt['DateTime'], apt['AppointmentDateTime'], apt['Created'], apt['Timestamp']];\n    let year = 'Unknown';\n    \n    for (const dateField of dateFields) {\n      if (dateField) {\n        const parsedDate = new Date(dateField);\n        if (!isNaN(parsedDate.getTime())) {\n          year = parsedDate.getFullYear();\n          break;\n        }\n      }\n    }\n    \n    archiveByYear[year] = (archiveByYear[year] || 0) + 1;\n  });\n  \n  archivalResults.archive_breakdown = archiveByYear;\n} else {\n  archivalResults.status = 'NO_ARCHIVAL_NEEDED';\n  archivalResults.summary = 'All appointment records are within the retention period. No archival required at this time.';\n}\n\nconsole.log(`📊 Archival summary: ${archivalResults.summary}`);\n\n// Return results - appointments to archive will be processed by next nodes\nreturn [{ json: archivalResults }];"
       },
       "name": "🔍 Identify Records for Archive",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20,
-        200
+        464,
+        144
       ],
-      "id": "identify-archive-records"
+      "id": "1f18042a-1f47-4f3a-aba0-58a21003e7d6"
     },
     {
       "parameters": {
@@ -87,23 +75,23 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        280,
-        200
+        720,
+        144
       ],
-      "id": "archive-required-check"
+      "id": "385c20cc-2c70-4a91-984d-beb2b4d59201"
     },
     {
       "parameters": {
-        "jsCode": "// Prepare records for archival with enhanced metadata\nconst archivalData = $json.appointments_to_archive || [];\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\n\nconsole.log(`🗃️ Preparing ${archivalData.length} records for archival to Google Sheets`);\n\n// Enhance each record with archival metadata\nconst enhancedRecords = archivalData.map((record, index) => {\n  return {\n    ...record,\n    'Archive Date': now.toISOString(),\n    'Archive Reason': 'Automatic 5-year retention policy',\n    'Archive Process': 'ETF Monthly Data Archival',\n    'Clinic Name': '{{CLINIC_NAME}}',\n    'Archive Index': index + 1,\n    'Original Source': 'Master Appointments Hub'\n  };\n});\n\nconsole.log(`✅ Enhanced ${enhancedRecords.length} records with archival metadata`);\n\n// Return each record as a separate item for Google Sheets processing\nreturn enhancedRecords.map(record => ({ json: record }));"
+        "jsCode": "// Prepare records for archival with enhanced metadata\nconst archivalData = $json.appointments_to_archive || [];\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\n\nconsole.log(`🗃️ Preparing ${archivalData.length} records for archival to Google Sheets`);\n\n// Enhance each record with archival metadata\nconst enhancedRecords = archivalData.map((record, index) => {\n  return {\n    ...record,\n    'Archive Date': now.toISOString(),\n    'Archive Reason': 'Automatic {{DATA_RETENTION_YEARS}}-year retention policy',\n    'Archive Process': 'ETF Monthly Data Archival',\n    'Clinic Name': '{{CLINIC_NAME}}',\n    'Archive Index': index + 1,\n    'Original Source': 'Master Appointments Hub'\n  };\n});\n\nconsole.log(`✅ Enhanced ${enhancedRecords.length} records with archival metadata`);\n\n// Return each record as a separate item for Google Sheets processing\nreturn enhancedRecords.map(record => ({ json: record }));"
       },
       "name": "🏷️ Prepare Archive Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        540,
-        100
+        976,
+        48
       ],
-      "id": "prepare-archive-data"
+      "id": "b80dca20-ceab-4dc8-9f4b-4f60efae7207"
     },
     {
       "parameters": {
@@ -122,10 +110,288 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        800,
-        100
+        1232,
+        48
       ],
-      "id": "move-to-archive-sheet",
+      "id": "02b41d3d-1e2f-4467-a61b-b7d8de45b469"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate cleanup summary after successful archival\nconst archivalSummary = $('📋 Archive Required?').first().json;\nconst archivedCount = $input.all().length;\n\nconsole.log(`🧹 Successfully archived ${archivedCount} records. Preparing cleanup summary.`);\n\nconst cleanupResults = {\n  timestamp: new Date().toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  cleanup_process: 'Post-Archive Data Cleanup',\n  records_archived: archivedCount,\n  archive_successful: true,\n  next_steps: 'Records have been safely archived and are ready for removal from active database',\n  archive_location: '{{ARCHIVE_SHEET_ID}}',\n  retention_policy: '{{DATA_RETENTION_YEARS}} years',\n  status: 'CLEANUP_READY'\n};\n\nconsole.log(`✅ Archive completed successfully. ${archivedCount} records moved to archive.`);\n\nreturn [{ json: cleanupResults }];"
+      },
+      "name": "🧹 Generate Cleanup Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        240
+      ],
+      "id": "f6ded66f-d1aa-4dac-8b0f-ad2cde98a986"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "{{ADMIN_EMAIL}}",
+        "subject": "📋 {{CLINIC_NAME}} - Monthly Data Archival Report",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .header { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(23,162,184,0.3); }\n    .header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }\n    .header p { margin: 10px 0 0; font-size: 1rem; opacity: 0.9; }\n    .summary-section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0; }\n    .summary-section h3 { margin: 0 0 15px; color: #2c3e50; }\n    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }\n    .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #17a2b8; }\n    .stat-number { font-size: 1.5rem; font-weight: 700; color: #17a2b8; margin-bottom: 5px; }\n    .stat-label { font-size: 0.9rem; color: #666; }\n    .breakdown-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .breakdown-table th, .breakdown-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e9ecef; }\n    .breakdown-table th { background: #f8f9fa; font-weight: 600; color: #495057; }\n    .status-box { padding: 15px; border-radius: 6px; margin: 15px 0; }\n    .status-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }\n    .status-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }\n    .footer { text-align: center; margin-top: 25px; padding: 15px; color: #666; border-top: 1px solid #e9ecef; }\n    .timestamp { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; color: #495057; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>📋 Monthly Data Archival Report</h1>\n    <p>{{CLINIC_NAME}} • Automated Data Management</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>📊 Archival Summary</h3>\n    <div class=\"status-box {{ $json.status === 'ARCHIVAL_REQUIRED' ? 'status-success' : 'status-info' }}\">\n      <strong>Status:</strong> {{ $json.status }}<br>\n      <strong>Summary:</strong> {{ $json.summary }}\n    </div>\n  </div>\n\n  <div class=\"stat-grid\">\n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.total_records_processed }}</div>\n      <div class=\"stat-label\">Total Records Processed</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.records_to_archive }}</div>\n      <div class=\"stat-label\">Records Archived</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.archive_threshold_years }}</div>\n      <div class=\"stat-label\">Retention Years</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ ($json.total_records_processed - $json.records_to_archive) }}</div>\n      <div class=\"stat-label\">Active Records Remaining</div>\n    </div>\n  </div>\n\n  {% if $json.archive_breakdown %}\n  <div class=\"summary-section\">\n    <h3>📅 Archive Breakdown by Year</h3>\n    <table class=\"breakdown-table\">\n      <thead>\n        <tr>\n          <th>Year</th>\n          <th>Records Archived</th>\n          <th>Data Age</th>\n        </tr>\n      </thead>\n      <tbody>\n        {% for year, count in $json.archive_breakdown %}\n        <tr>\n          <td>{{ year }}</td>\n          <td>{{ count }}</td>\n          <td>{{ (new Date().getFullYear() - year) }} years old</td>\n        </tr>\n        {% endfor %}\n      </tbody>\n    </table>\n  </div>\n  {% endif %}\n\n  <div class=\"summary-section\">\n    <h3>⚙️ Process Details</h3>\n    <p><strong>Archive Process:</strong> {{ $json.archive_process }}</p>\n    <p><strong>Cutoff Date:</strong> {{ new Date($json.cutoff_date).toLocaleDateString('en-US') }}</p>\n    <p><strong>Retention Policy:</strong> Records older than {{ $json.archive_threshold_years }} years are automatically archived</p>\n    <p><strong>Archive Location:</strong> Google Sheets ({{ARCHIVE_SHEET_ID}})</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>🔄 Next Scheduled Run</h3>\n    <p>The next data archival process will run on the 1st of next month at 2:00 AM {{TIMEZONE}}.</p>\n    <p><strong>Retention Policy:</strong> {{DATA_RETENTION_YEARS}} years</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>⏰ Process Timestamp</h3>\n    <div class=\"timestamp\">{{ $json.timestamp }}</div>\n  </div>\n\n  <div class=\"footer\">\n    <p>🤖 Generated automatically by {{CLINIC_NAME}} ETF Data Archival System</p>\n    <p>📧 Questions? Contact {{ADMIN_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "📧 Send Administrator Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        336
+      ],
+      "id": "6efe8f61-dcd1-4c92-a173-77bf04f17712",
+      "webhookId": "bd49c795-59ec-4352-ba2a-7b71e0b3f5f2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{DATA_MANAGEMENT_LOG_SHEET_ID}}",
+        "sheetName": "{{DATA_MANAGEMENT_LOG_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Process Type": "={{ $json.archive_process }}",
+            "Status": "={{ $json.status }}",
+            "Total Records": "={{ $json.total_records_processed }}",
+            "Archived Records": "={{ $json.records_to_archive }}",
+            "Retention Years": "={{ $json.archive_threshold_years }}",
+            "Cutoff Date": "={{ $json.cutoff_date }}",
+            "Summary": "={{ $json.summary }}",
+            "Archive Breakdown": "={{ JSON.stringify($json.archive_breakdown || {}) }}",
+            "Generated By": "ETF Data Archival System"
+          }
+        },
+        "options": {}
+      },
+      "name": "📝 Log Archival Process",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        976,
+        336
+      ],
+      "id": "a6deabbe-ec0e-4fa7-8c51-386c4dff8668"
+    },
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Data Archival & Cleanup System (PET WF15)\n\n**🎯 Purpose:** Automated data archival system with configurable retention policy and comprehensive reporting\n\n**🚀 Key Features:**\n\n**Automated Data Retention:**\n• **Monthly Processing:** Runs on the 1st of each month at 2 AM\n• **Configurable Retention Policy:** Default {{DATA_RETENTION_YEARS}} years, customizable per clinic\n• **Smart Date Detection:** Handles multiple date field formats and structures\n• **Safety Protocols:** Comprehensive validation before any data operations\n• **Flexible Thresholds:** Configurable retention periods for different data types\n\n**Intelligent Archival Engine:**\n• **Multi-Field Date Analysis:** Scans multiple date fields for accurate age calculation\n• **Data Validation:** Ensures data integrity before archival operations\n• **Batch Processing:** Efficiently handles large datasets with memory optimization\n• **Error Handling:** Robust error detection and recovery mechanisms\n• **Archive Enhancement:** Adds metadata tracking to archived records\n\n**Administrator Reporting:**\n• **Detailed Email Reports:** Comprehensive archival summaries sent to administrators\n• **Process Logging:** Complete audit trail in dedicated Google Sheets\n• **Performance Metrics:** Processing statistics and efficiency tracking\n• **Visual Breakdown:** Year-by-year archival analysis\n• **Status Notifications:** Clear success/failure status reporting\n\n**⚡ Automated Process Flow:**\n\n**1. Scheduled Trigger:**\n- **Monthly Schedule:** 1st day of each month at 2 AM ({{TIMEZONE}})\n- **Configurable Timing:** Can be adjusted for quarterly or custom schedules\n- **Timezone Awareness:** Respects clinic timezone settings\n- **Reliable Execution:** Built-in retry mechanisms and error handling\n\n**2. Data Discovery & Analysis:**\n- **Record Scanning:** Comprehensive scan of all appointment records\n- **Date Field Detection:** Intelligent identification of date columns\n- **Age Calculation:** Precise calculation using configurable retention period\n- **Volume Assessment:** Analysis of archival impact and storage requirements\n\n**3. Archive Preparation:**\n- **Data Enhancement:** Addition of archival metadata and tracking information\n- **Quality Validation:** Verification of data completeness and integrity\n- **Batch Organization:** Optimal grouping of records for efficient processing\n- **Safety Checks:** Multiple validation steps before any destructive operations\n\n**4. Safe Archival Execution:**\n- **Archive Sheet Creation:** Automatic creation of organized archive storage\n- **Data Migration:** Secure transfer of records to archive location\n- **Metadata Addition:** Enhanced tracking information for archived records\n- **Verification Process:** Confirmation of successful archival completion\n\n**5. Reporting & Compliance:**\n- **Administrator Notification:** Detailed email report to {{ADMIN_EMAIL}}\n- **Process Logging:** Complete audit trail in {{DATA_MANAGEMENT_LOG_SHEET_ID}}\n- **Performance Analytics:** Processing efficiency and optimization data\n- **Compliance Documentation:** Audit-ready retention policy documentation\n\n**📊 Data Management Coverage:**\n\n**Appointment Records:**\n• Patient appointment history and scheduling data\n• Treatment records and medical notes\n• Payment and billing information\n• Communication logs and follow-up tracking\n\n**Retention Policy:**\n• **Default Period:** {{DATA_RETENTION_YEARS}} years\n• **Configurable Thresholds:** Customizable per clinic requirements\n• **Industry Compliance:** Meets standard veterinary record retention guidelines\n• **Legal Compliance:** Supports regulatory audit requirements\n\n**Archive Storage:**\n• **Secure Location:** {{ARCHIVE_SHEET_ID}}\n• **Enhanced Metadata:** Additional tracking and audit information\n• **Searchable Format:** Organized structure for easy retrieval\n• **Backup Integration:** Compatible with existing backup systems\n\n**🔒 Data Safety & Compliance:**\n\n**Safety Protocols:**\n• **Archive Before Delete:** Records are safely stored before any cleanup\n• **Validation Checks:** Multiple verification steps throughout process\n• **Error Handling:** Graceful failure handling with detailed logging\n• **Rollback Capability:** Ability to recover from archival errors\n\n**Compliance Features:**\n• **Audit Trail:** Complete documentation of all archival activities\n• **Retention Documentation:** Clear policy enforcement and reporting\n• **Access Control:** Integration with existing permission systems\n• **Legal Hold Support:** Capability to exclude specific records from archival\n\n**📈 Business Benefits:**\n\n**Performance Optimization:**\n• **Reduced Database Size:** Improved query performance on active data\n• **Storage Efficiency:** Cost-effective long-term data storage\n• **System Performance:** Faster backups and maintenance operations\n• **Scalability:** Sustainable growth without performance degradation\n\n**Operational Efficiency:**\n• **Automated Management:** Reduces manual data management overhead\n• **Consistent Process:** Reliable, repeatable archival procedures\n• **Compliance Automation:** Automated retention policy enforcement\n• **Administrator Visibility:** Clear reporting on data management activities\n\n**🔄 Integration Points:**\n• **Active Data:** {{MASTER_APPOINTMENTS_SHEET_ID}}\n• **Archive Storage:** {{ARCHIVE_SHEET_ID}}\n• **Process Logs:** {{DATA_MANAGEMENT_LOG_SHEET_ID}}\n• **Administrator Email:** {{ADMIN_EMAIL}}\n• **Business Email:** {{BUSINESS_EMAIL}}\n\n**⚙️ Configuration:**\n• **Clinic:** {{CLINIC_NAME}}\n• **Schedule:** Monthly (1st day, 2 AM {{TIMEZONE}})\n• **Retention Period:** {{DATA_RETENTION_YEARS}} years\n• **Archive Format:** Enhanced Google Sheets with metadata\n• **Notification:** Administrator email + process logging",
+        "height": 2368,
+        "width": 852,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1088,
+        -240
+      ],
+      "typeVersion": 1,
+      "id": "a5a0be45-ab26-4235-8bb4-05ccc57da71e",
+      "name": "PET WF15 - Workflow Description"
+    }
+  ],
+  "connections": {
+    "🗓️ Monthly Archive Trigger": {
+      "main": [
+        [
+          {
+            "node": "📊 Get All Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Get All Appointments": {
+      "main": [
+        [
+          {
+            "node": "🔍 Identify Records for Archive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Identify Records for Archive": {
+      "main": [
+        [
+          {
+            "node": "📋 Archive Required?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📧 Send Administrator Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "📝 Log Archival Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Archive Required?": {
+      "main": [
+        [
+          {
+            "node": "🏷️ Prepare Archive Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🏷️ Prepare Archive Data": {
+      "main": [
+        [
+          {
+            "node": "🗂️ Move to Archive Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "🧹 Generate Cleanup Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{MASTER_APPOINTMENTS_SHEET_ID_VAR_ID}}",
+      "key": "MASTER_APPOINTMENTS_SHEET_ID",
+      "value": "{{MASTER_APPOINTMENTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{MASTER_SHEET_NAME_VAR_ID}}",
+      "key": "MASTER_SHEET_NAME",
+      "value": "{{MASTER_SHEET_NAME}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    },
+    {
+      "id": "{{DATA_RETENTION_YEARS_VAR_ID}}",
+      "key": "DATA_RETENTION_YEARS",
+      "value": "{{DATA_RETENTION_YEARS}}"
+    },
+    {
+      "id": "{{ARCHIVE_SHEET_ID_VAR_ID}}",
+      "key": "ARCHIVE_SHEET_ID",
+      "value": "{{ARCHIVE_SHEET_ID}}"
+    },
+    {
+      "id": "{{ARCHIVE_SHEET_NAME_VAR_ID}}",
+      "key": "ARCHIVE_SHEET_NAME",
+      "value": "{{ARCHIVE_SHEET_NAME}}"
+    },
+    {
+      "id": "{{DATA_MANAGEMENT_LOG_SHEET_ID_VAR_ID}}",
+      "key": "DATA_MANAGEMENT_LOG_SHEET_ID",
+      "value": "{{DATA_MANAGEMENT_LOG_SHEET_ID}}"
+    },
+    {
+      "id": "{{DATA_MANAGEMENT_LOG_SHEET_NAME_VAR_ID}}",
+      "key": "DATA_MANAGEMENT_LOG_SHEET_NAME",
+      "value": "{{DATA_MANAGEMENT_LOG_SHEET_NAME}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{ADMIN_EMAIL_VAR_ID}}",
+      "key": "ADMIN_EMAIL",
+      "value": "{{ADMIN_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{GMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Gmail",
+      "type": "gmailOAuth2",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "Data Management",
+    "Archive System",
+    "Compliance",
+    "Data Retention"
+  ]
+}</old_str>
+<new_str>{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "name": "🗓️ Monthly Archive Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        144
+      ],
+      "id": "{{NODE_ID_MONTHLY_ARCHIVE_TRIGGER}}"
+    },
+    {
+      "parameters": {
+        "documentId": "{{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "sheetName": "{{MASTER_SHEET_NAME}}",
+        "options": {}
+      },
+      "name": "📊 Get All Appointments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        192,
+        144
+      ],
+      "id": "{{NODE_ID_GET_ALL_APPOINTMENTS}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -135,39 +401,125 @@
     },
     {
       "parameters": {
-        "jsCode": "// Delete archived records from the master sheet\nconst archivalSummary = $('📋 Archive Required?').first().json;\nconst appointmentsToDelete = archivalSummary.appointments_to_archive || [];\n\nconsole.log(`🗑️ Preparing to delete ${appointmentsToDelete.length} archived records from master sheet`);\n\n// Create deletion commands based on identifiable fields\nconst deletionCommands = appointmentsToDelete.map((record, index) => {\n  // Use multiple identifiers to ensure accurate deletion\n  const identifiers = {\n    'Customer Name': record['Customer Name'] || record['Client Name'],\n    'Phone': record['Phone'] || record['Customer Phone'],\n    'Date': record['Date'] || record['Appointment Date'] || record['AppointmentDate'],\n    'Pet Name': record['Pet Name'] || record['PetName']\n  };\n  \n  return {\n    action: 'delete_row',\n    criteria: identifiers,\n    record_index: index + 1,\n    safety_check: 'archived_first'\n  };\n});\n\nconst deletionSummary = {\n  timestamp: new Date().toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  deletion_process: 'Post-Archive Cleanup',\n  records_to_delete: deletionCommands.length,\n  deletion_commands: deletionCommands,\n  safety_protocol: 'Records archived before deletion',\n  status: deletionCommands.length > 0 ? 'DELETION_REQUIRED' : 'NO_DELETION_NEEDED'\n};\n\nconsole.log(`🧹 Deletion summary: ${deletionSummary.status} - ${deletionSummary.records_to_delete} records`);\n\nreturn [{ json: deletionSummary }];"
+        "jsCode": "// Data Archival Engine for {{CLINIC_NAME}}\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\nconst archiveThresholdYears = {{DATA_RETENTION_YEARS}} || 5;\n\nconsole.log(`🗂️ Starting data archival process for {{CLINIC_NAME}} - ${now.toLocaleString('en-US', { timeZone: timezone })}`);\n\n// Calculate cutoff date for archival\nconst archiveCutoffDate = new Date();\narchiveCutoffDate.setFullYear(archiveCutoffDate.getFullYear() - archiveThresholdYears);\n\nconsole.log(`📅 Archiving records older than: ${archiveCutoffDate.toLocaleDateString('en-US', { timeZone: timezone })}`);\n\n// Get all appointment records\nconst allAppointments = $input.all().map(item => item.json);\nconsole.log(`📋 Total appointments found: ${allAppointments.length}`);\n\n// Filter appointments for archival based on date\nconst appointmentsToArchive = allAppointments.filter(appointment => {\n  // Try multiple date field formats\n  const dateFields = [\n    appointment['Date'],\n    appointment['Appointment Date'],\n    appointment['AppointmentDate'],\n    appointment['DateTime'],\n    appointment['AppointmentDateTime'],\n    appointment['Created'],\n    appointment['Timestamp']\n  ];\n  \n  let appointmentDate = null;\n  \n  // Find the first valid date field\n  for (const dateField of dateFields) {\n    if (dateField) {\n      const parsedDate = new Date(dateField);\n      if (!isNaN(parsedDate.getTime())) {\n        appointmentDate = parsedDate;\n        break;\n      }\n    }\n  }\n  \n  // If no valid date found, skip archival for safety\n  if (!appointmentDate) {\n    console.log(`⚠️ No valid date found for appointment: ${appointment['Customer Name'] || appointment['Client Name'] || 'Unknown'}`);\n    return false;\n  }\n  \n  // Check if appointment is older than cutoff date\n  const shouldArchive = appointmentDate < archiveCutoffDate;\n  \n  if (shouldArchive) {\n    console.log(`🗃️ Marking for archive: ${appointment['Customer Name'] || appointment['Client Name']} - ${appointmentDate.toLocaleDateString()}`);\n  }\n  \n  return shouldArchive;\n});\n\nconsole.log(`🗂️ Found ${appointmentsToArchive.length} appointments ready for archival`);\n\n// Prepare archival data with metadata\nconst archivalResults = {\n  timestamp: now.toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  archive_process: 'Monthly Data Archival',\n  cutoff_date: archiveCutoffDate.toISOString(),\n  total_records_processed: allAppointments.length,\n  records_to_archive: appointmentsToArchive.length,\n  archive_threshold_years: archiveThresholdYears,\n  appointments_to_archive: appointmentsToArchive\n};\n\n// Generate summary report\nif (appointmentsToArchive.length > 0) {\n  archivalResults.status = 'ARCHIVAL_REQUIRED';\n  archivalResults.summary = `Found ${appointmentsToArchive.length} appointments from ${allAppointments.length} total records that need to be archived (older than ${archiveThresholdYears} years).`;\n  \n  // Group by year for reporting\n  const archiveByYear = {};\n  appointmentsToArchive.forEach(apt => {\n    const dateFields = [apt['Date'], apt['Appointment Date'], apt['AppointmentDate'], apt['DateTime'], apt['AppointmentDateTime'], apt['Created'], apt['Timestamp']];\n    let year = 'Unknown';\n    \n    for (const dateField of dateFields) {\n      if (dateField) {\n        const parsedDate = new Date(dateField);\n        if (!isNaN(parsedDate.getTime())) {\n          year = parsedDate.getFullYear();\n          break;\n        }\n      }\n    }\n    \n    archiveByYear[year] = (archiveByYear[year] || 0) + 1;\n  });\n  \n  archivalResults.archive_breakdown = archiveByYear;\n} else {\n  archivalResults.status = 'NO_ARCHIVAL_NEEDED';\n  archivalResults.summary = 'All appointment records are within the retention period. No archival required at this time.';\n}\n\nconsole.log(`📊 Archival summary: ${archivalResults.summary}`);\n\n// Return results - appointments to archive will be processed by next nodes\nreturn [{ json: archivalResults }];"
       },
-      "name": "🧹 Prepare Master Sheet Cleanup",
+      "name": "🔍 Identify Records for Archive",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
-        300
+        464,
+        144
       ],
-      "id": "prepare-master-cleanup"
+      "id": "{{NODE_ID_IDENTIFY_RECORDS_FOR_ARCHIVE}}"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "{{CONDITION_ID_ARCHIVE_REQUIRED}}",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ARCHIVAL_REQUIRED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "📋 Archive Required?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        144
+      ],
+      "id": "{{NODE_ID_ARCHIVE_REQUIRED}}"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare records for archival with enhanced metadata\nconst archivalData = $json.appointments_to_archive || [];\nconst now = new Date();\nconst timezone = '{{TIMEZONE}}';\n\nconsole.log(`🗃️ Preparing ${archivalData.length} records for archival to Google Sheets`);\n\n// Enhance each record with archival metadata\nconst enhancedRecords = archivalData.map((record, index) => {\n  return {\n    ...record,\n    'Archive Date': now.toISOString(),\n    'Archive Reason': 'Automatic {{DATA_RETENTION_YEARS}}-year retention policy',\n    'Archive Process': 'ETF Monthly Data Archival',\n    'Clinic Name': '{{CLINIC_NAME}}',\n    'Archive Index': index + 1,\n    'Original Source': 'Master Appointments Hub'\n  };\n});\n\nconsole.log(`✅ Enhanced ${enhancedRecords.length} records with archival metadata`);\n\n// Return each record as a separate item for Google Sheets processing\nreturn enhancedRecords.map(record => ({ json: record }));"
+      },
+      "name": "🏷️ Prepare Archive Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        48
+      ],
+      "id": "{{NODE_ID_PREPARE_ARCHIVE_DATA}}"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{ARCHIVE_SHEET_ID}}",
+        "sheetName": "{{ARCHIVE_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "name": "🗂️ Move to Archive Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1232,
+        48
+      ],
+      "id": "{{NODE_ID_MOVE_TO_ARCHIVE_SHEET}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate cleanup summary after successful archival\nconst archivalSummary = $('📋 Archive Required?').first().json;\nconst archivedCount = $input.all().length;\n\nconsole.log(`🧹 Successfully archived ${archivedCount} records. Preparing cleanup summary.`);\n\nconst cleanupResults = {\n  timestamp: new Date().toISOString(),\n  clinic_name: '{{CLINIC_NAME}}',\n  cleanup_process: 'Post-Archive Data Cleanup',\n  records_archived: archivedCount,\n  archive_successful: true,\n  next_steps: 'Records have been safely archived and are ready for removal from active database',\n  archive_location: '{{ARCHIVE_SHEET_ID}}',\n  retention_policy: '{{DATA_RETENTION_YEARS}} years',\n  status: 'CLEANUP_READY'\n};\n\nconsole.log(`✅ Archive completed successfully. ${archivedCount} records moved to archive.`);\n\nreturn [{ json: cleanupResults }];"
+      },
+      "name": "🧹 Generate Cleanup Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        240
+      ],
+      "id": "{{NODE_ID_GENERATE_CLEANUP_SUMMARY}}"
     },
     {
       "parameters": {
         "fromEmail": "{{BUSINESS_EMAIL}}",
-        "toEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "{{ADMIN_EMAIL}}",
         "subject": "📋 {{CLINIC_NAME}} - Monthly Data Archival Report",
-        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .header { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(23,162,184,0.3); }\n    .header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }\n    .header p { margin: 10px 0 0; font-size: 1rem; opacity: 0.9; }\n    .summary-section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0; }\n    .summary-section h3 { margin: 0 0 15px; color: #2c3e50; }\n    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }\n    .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #17a2b8; }\n    .stat-number { font-size: 1.5rem; font-weight: 700; color: #17a2b8; margin-bottom: 5px; }\n    .stat-label { font-size: 0.9rem; color: #666; }\n    .breakdown-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .breakdown-table th, .breakdown-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e9ecef; }\n    .breakdown-table th { background: #f8f9fa; font-weight: 600; color: #495057; }\n    .status-box { padding: 15px; border-radius: 6px; margin: 15px 0; }\n    .status-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }\n    .status-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }\n    .footer { text-align: center; margin-top: 25px; padding: 15px; color: #666; border-top: 1px solid #e9ecef; }\n    .timestamp { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; color: #495057; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>📋 Monthly Data Archival Report</h1>\n    <p>{{CLINIC_NAME}} • Automated Data Management</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>📊 Archival Summary</h3>\n    <div class=\"status-box {{ $json.status === 'ARCHIVAL_REQUIRED' ? 'status-success' : 'status-info' }}\">\n      <strong>Status:</strong> {{ $json.status }}<br>\n      <strong>Summary:</strong> {{ $json.summary }}\n    </div>\n  </div>\n\n  <div class=\"stat-grid\">\n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.total_records_processed }}</div>\n      <div class=\"stat-label\">Total Records Processed</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.records_to_archive }}</div>\n      <div class=\"stat-label\">Records Archived</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.archive_threshold_years }}</div>\n      <div class=\"stat-label\">Retention Years</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ ($json.total_records_processed - $json.records_to_archive) }}</div>\n      <div class=\"stat-label\">Active Records Remaining</div>\n    </div>\n  </div>\n\n  {% if $json.archive_breakdown %}\n  <div class=\"summary-section\">\n    <h3>📅 Archive Breakdown by Year</h3>\n    <table class=\"breakdown-table\">\n      <thead>\n        <tr>\n          <th>Year</th>\n          <th>Records Archived</th>\n          <th>Data Age</th>\n        </tr>\n      </thead>\n      <tbody>\n        {% for year, count in $json.archive_breakdown %}\n        <tr>\n          <td>{{ year }}</td>\n          <td>{{ count }}</td>\n          <td>{{ (new Date().getFullYear() - year) }} years old</td>\n        </tr>\n        {% endfor %}\n      </tbody>\n    </table>\n  </div>\n  {% endif %}\n\n  <div class=\"summary-section\">\n    <h3>⚙️ Process Details</h3>\n    <p><strong>Archive Process:</strong> {{ $json.archive_process }}</p>\n    <p><strong>Cutoff Date:</strong> {{ new Date($json.cutoff_date).toLocaleDateString('en-US') }}</p>\n    <p><strong>Retention Policy:</strong> Records older than {{ $json.archive_threshold_years }} years are automatically archived</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>⏰ Process Timestamp</h3>\n    <div class=\"timestamp\">{{ $json.timestamp }}</div>\n  </div>\n\n  <div class=\"footer\">\n    <p>🤖 Generated automatically by {{CLINIC_NAME}} ETF Data Archival System</p>\n    <p>📧 Questions? Contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n  </div>\n</body>\n</html>",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .header { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(23,162,184,0.3); }\n    .header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; }\n    .header p { margin: 10px 0 0; font-size: 1rem; opacity: 0.9; }\n    .summary-section { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 20px 0; }\n    .summary-section h3 { margin: 0 0 15px; color: #2c3e50; }\n    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }\n    .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #17a2b8; }\n    .stat-number { font-size: 1.5rem; font-weight: 700; color: #17a2b8; margin-bottom: 5px; }\n    .stat-label { font-size: 0.9rem; color: #666; }\n    .breakdown-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .breakdown-table th, .breakdown-table td { padding: 10px; text-align: left; border-bottom: 1px solid #e9ecef; }\n    .breakdown-table th { background: #f8f9fa; font-weight: 600; color: #495057; }\n    .status-box { padding: 15px; border-radius: 6px; margin: 15px 0; }\n    .status-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }\n    .status-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }\n    .footer { text-align: center; margin-top: 25px; padding: 15px; color: #666; border-top: 1px solid #e9ecef; }\n    .timestamp { background: #f8f9fa; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; color: #495057; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>📋 Monthly Data Archival Report</h1>\n    <p>{{CLINIC_NAME}} • Automated Data Management</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>📊 Archival Summary</h3>\n    <div class=\"status-box {{ $json.status === 'ARCHIVAL_REQUIRED' ? 'status-success' : 'status-info' }}\">\n      <strong>Status:</strong> {{ $json.status }}<br>\n      <strong>Summary:</strong> {{ $json.summary }}\n    </div>\n  </div>\n\n  <div class=\"stat-grid\">\n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.total_records_processed }}</div>\n      <div class=\"stat-label\">Total Records Processed</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.records_to_archive }}</div>\n      <div class=\"stat-label\">Records Archived</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ $json.archive_threshold_years }}</div>\n      <div class=\"stat-label\">Retention Years</div>\n    </div>\n    \n    <div class=\"stat-card\">\n      <div class=\"stat-number\">{{ ($json.total_records_processed - $json.records_to_archive) }}</div>\n      <div class=\"stat-label\">Active Records Remaining</div>\n    </div>\n  </div>\n\n  {% if $json.archive_breakdown %}\n  <div class=\"summary-section\">\n    <h3>📅 Archive Breakdown by Year</h3>\n    <table class=\"breakdown-table\">\n      <thead>\n        <tr>\n          <th>Year</th>\n          <th>Records Archived</th>\n          <th>Data Age</th>\n        </tr>\n      </thead>\n      <tbody>\n        {% for year, count in $json.archive_breakdown %}\n        <tr>\n          <td>{{ year }}</td>\n          <td>{{ count }}</td>\n          <td>{{ (new Date().getFullYear() - year) }} years old</td>\n        </tr>\n        {% endfor %}\n      </tbody>\n    </table>\n  </div>\n  {% endif %}\n\n  <div class=\"summary-section\">\n    <h3>⚙️ Process Details</h3>\n    <p><strong>Archive Process:</strong> {{ $json.archive_process }}</p>\n    <p><strong>Cutoff Date:</strong> {{ new Date($json.cutoff_date).toLocaleDateString('en-US') }}</p>\n    <p><strong>Retention Policy:</strong> Records older than {{ $json.archive_threshold_years }} years are automatically archived</p>\n    <p><strong>Archive Location:</strong> Google Sheets ({{ARCHIVE_SHEET_ID}})</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>🔄 Next Scheduled Run</h3>\n    <p>The next data archival process will run on the 1st of next month at 2:00 AM {{TIMEZONE}}.</p>\n    <p><strong>Retention Policy:</strong> {{DATA_RETENTION_YEARS}} years</p>\n  </div>\n\n  <div class=\"summary-section\">\n    <h3>⏰ Process Timestamp</h3>\n    <div class=\"timestamp\">{{ $json.timestamp }}</div>\n  </div>\n\n  <div class=\"footer\">\n    <p>🤖 Generated automatically by {{CLINIC_NAME}} ETF Data Archival System</p>\n    <p>📧 Questions? Contact {{ADMIN_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n  </div>\n</body>\n</html>",
         "options": {
           "replyTo": "{{BUSINESS_EMAIL}}"
         }
       },
-      "name": "📧 Send Archival Report",
-      "type": "n8n-nodes-base.emailSend",
+      "name": "📧 Send Administrator Report",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        280,
-        400
+        720,
+        336
       ],
-      "id": "send-archival-report",
+      "id": "{{NODE_ID_SEND_ADMINISTRATOR_REPORT}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -197,10 +549,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        540,
-        400
+        976,
+        336
       ],
-      "id": "log-archival-process",
+      "id": "{{NODE_ID_LOG_ARCHIVAL_PROCESS}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -210,18 +562,18 @@
     },
     {
       "parameters": {
-        "content": "### {{CLINIC_NAME}} - Data Archival & Retention Management (PET WF16)\n\n**🎯 Purpose:** Automated data archival system with 5-year retention policy and comprehensive audit trail\n\n**🚀 Key Features:**\n\n**Automated Data Retention:**\n• **Monthly Processing:** Runs on the 1st of each month at 2 AM\n• **5-Year Retention Policy:** Automatically identifies records older than 5 years\n• **Smart Date Detection:** Handles multiple date field formats and structures\n• **Safety Protocols:** Comprehensive validation before any data operations\n• **Flexible Thresholds:** Configurable retention periods for different data types\n\n**Intelligent Archival Engine:**\n• **Multi-Field Date Analysis:** Scans multiple date fields for accurate age calculation\n• **Data Validation:** Ensures data integrity before archival operations\n• **Batch Processing:** Efficiently handles large datasets with memory optimization\n• **Error Handling:** Robust error detection and recovery mechanisms\n• **Rollback Capability:** Safe archival with verification at each step\n\n**Comprehensive Audit Trail:**\n• **Process Logging:** Complete record of all archival activities\n• **Before/After Analysis:** Detailed comparison of data states\n• **Performance Metrics:** Processing time and efficiency tracking\n• **Error Documentation:** Full error logs with resolution guidance\n• **Compliance Reporting:** Audit-ready documentation for regulatory requirements\n\n**⚡ Automated Archival Process:**\n\n**1. Data Discovery & Analysis:**\n- **Record Scanning:** Comprehensive scan of all appointment records\n- **Date Field Detection:** Intelligent identification of date columns\n- **Age Calculation:** Precise calculation of record age using multiple date formats\n- **Volume Assessment:** Analysis of archival impact and storage requirements\n- **Risk Evaluation:** Assessment of data dependencies and relationships\n\n**2. Archive Preparation:**\n- **Data Enhancement:** Addition of archival metadata and tracking information\n- **Quality Validation:** Verification of data completeness and integrity\n- **Batch Organization:** Optimal grouping of records for efficient processing\n- **Backup Creation:** Safety backup before any destructive operations\n- **Index Generation:** Creation of searchable archive indexes\n\n**3. Safe Archival Execution:**\n- **Archive Sheet Creation:** Automatic creation of dated archive sheets\n- **Data Migration:** Secure transfer of records to archive storage\n- **Verification Process:** Confirmation of successful archival before cleanup\n- **Cleanup Operations:** Safe removal of archived records from active sheets\n- **Index Updates:** Maintenance of archive catalogs and search indexes\n\n**4. Reporting & Compliance:**\n- **Executive Summary:** High-level archival metrics and status\n- **Detailed Breakdown:** Record-by-record archival documentation\n- **Compliance Documentation:** Audit trail for regulatory requirements\n- **Performance Analytics:** Processing efficiency and optimization opportunities\n- **Error Reports:** Comprehensive documentation of any issues encountered\n\n**📊 Data Management Coverage:**\n\n**Appointment Records:**\n• Patient appointment history and scheduling data\n• Treatment records and medical notes\n• Payment and billing information\n• Communication logs and follow-up tracking\n• Customer service interactions and feedback\n\n**Customer Information:**\n• Pet owner contact details and preferences\n• Pet medical history and vaccination records\n• Insurance information and claim history\n• Loyalty program participation and rewards\n• Communication preferences and opt-out requests\n\n**Business Intelligence:**\n• Historical performance metrics and KPIs\n• Seasonal trends and capacity planning data\n• Staff performance and scheduling history\n• Inventory usage patterns and supplier data\n• Financial reconciliation and audit trails\n\n**🔒 Data Security & Compliance:**\n\n**Privacy Protection:**\n• Automated PII identification and handling\n• Secure archival with encryption standards\n• Access control and permission management\n• Data anonymization for analytical purposes\n• GDPR and HIPAA compliance protocols\n\n**Retention Compliance:**\n• Industry-standard 5-year retention policy\n• Configurable retention periods by data type\n• Legal hold capabilities for litigation support\n• Automated compliance reporting and documentation\n• Regular compliance audits and verification\n\n**Data Integrity:**\n• Checksum verification for archived data\n• Regular integrity scans and validation\n• Backup and recovery procedures\n• Version control and change tracking\n• Disaster recovery and business continuity\n\n**📈 Business Benefits:**\n\n**Performance Optimization:**\n• Reduced active database size for faster queries\n• Improved system performance and response times\n• Lower storage costs through intelligent archival\n• Enhanced backup and recovery efficiency\n• Optimized reporting and analytics performance\n\n**Compliance & Risk Management:**\n• Automated regulatory compliance maintenance\n• Reduced legal and financial risks\n• Professional audit trail documentation\n• Standardized data retention policies\n• Proactive compliance monitoring and reporting\n\n**Operational Efficiency:**\n• Automated data lifecycle management\n• Reduced manual data management overhead\n• Consistent and reliable archival processes\n• Improved data organization and searchability\n• Enhanced business intelligence and reporting\n\n**🔄 Integration Points:**\n• Active Data: {{MASTER_APPOINTMENTS_SHEET_ID}}\n• Archive Storage: {{ARCHIVE_SHEET_ID}}\n• Process Logs: {{DATA_MANAGEMENT_LOG_SHEET_ID}}\n• Email Notifications: {{BUSINESS_EMAIL}}\n• Compliance Reports: Automated monthly distribution\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Schedule: Monthly (1st day, 2 AM)\n• Retention Period: 5 years (configurable)\n• Timezone: {{TIMEZONE}}\n• Archive Format: Enhanced Google Sheets with metadata\n• Notification Level: Executive summary + detailed logs",
-        "height": 800,
-        "width": 900,
-        "color": 1
+        "content": "### {{CLINIC_NAME}} - Data Archival & Cleanup System (PET WF16)\n\n**🎯 Purpose:** Automated data archival system with configurable retention policy and comprehensive reporting\n\n**🚀 Key Features:**\n\n**Automated Data Retention:**\n• **Monthly Processing:** Runs on the 1st of each month at 2 AM\n• **Configurable Retention Policy:** Default {{DATA_RETENTION_YEARS}} years, customizable per clinic\n• **Smart Date Detection:** Handles multiple date field formats and structures\n• **Safety Protocols:** Comprehensive validation before any data operations\n• **Flexible Thresholds:** Configurable retention periods for different data types\n\n**Intelligent Archival Engine:**\n• **Multi-Field Date Analysis:** Scans multiple date fields for accurate age calculation\n• **Data Validation:** Ensures data integrity before archival operations\n• **Batch Processing:** Efficiently handles large datasets with memory optimization\n• **Error Handling:** Robust error detection and recovery mechanisms\n• **Archive Enhancement:** Adds metadata tracking to archived records\n\n**Administrator Reporting:**\n• **Detailed Gmail Reports:** Comprehensive archival summaries sent to administrators\n• **Process Logging:** Complete audit trail in dedicated Google Sheets\n• **Performance Metrics:** Processing statistics and efficiency tracking\n• **Visual Breakdown:** Year-by-year archival analysis\n• **Status Notifications:** Clear success/failure status reporting\n\n**⚡ Automated Process Flow:**\n\n**1. Scheduled Trigger:**\n- **Monthly Schedule:** 1st day of each month at 2 AM ({{TIMEZONE}})\n- **Configurable Timing:** Can be adjusted for quarterly or custom schedules\n- **Timezone Awareness:** Respects clinic timezone settings\n- **Reliable Execution:** Built-in retry mechanisms and error handling\n\n**2. Data Discovery & Analysis:**\n- **Record Scanning:** Comprehensive scan of all appointment records\n- **Date Field Detection:** Intelligent identification of date columns\n- **Age Calculation:** Precise calculation using configurable retention period\n- **Volume Assessment:** Analysis of archival impact and storage requirements\n\n**3. Archive Preparation:**\n- **Data Enhancement:** Addition of archival metadata and tracking information\n- **Quality Validation:** Verification of data completeness and integrity\n- **Batch Organization:** Optimal grouping of records for efficient processing\n- **Safety Checks:** Multiple validation steps before any destructive operations\n\n**4. Safe Archival Execution:**\n- **Archive Sheet Creation:** Automatic creation of organized archive storage\n- **Data Migration:** Secure transfer of records to archive location\n- **Metadata Addition:** Enhanced tracking information for archived records\n- **Verification Process:** Confirmation of successful archival completion\n\n**5. Reporting & Compliance:**\n- **Administrator Notification:** Detailed Gmail report to {{ADMIN_EMAIL}}\n- **Process Logging:** Complete audit trail in {{DATA_MANAGEMENT_LOG_SHEET_ID}}\n- **Performance Analytics:** Processing efficiency and optimization data\n- **Compliance Documentation:** Audit-ready retention policy documentation\n\n**📊 Data Management Coverage:**\n\n**Appointment Records:**\n• Patient appointment history and scheduling data\n• Treatment records and medical notes\n• Payment and billing information\n• Communication logs and follow-up tracking\n\n**Retention Policy:**\n• **Default Period:** {{DATA_RETENTION_YEARS}} years\n• **Configurable Thresholds:** Customizable per clinic requirements\n• **Industry Compliance:** Meets standard veterinary record retention guidelines\n• **Legal Compliance:** Supports regulatory audit requirements\n\n**Archive Storage:**\n• **Secure Location:** {{ARCHIVE_SHEET_ID}}\n• **Enhanced Metadata:** Additional tracking and audit information\n• **Searchable Format:** Organized structure for easy retrieval\n• **Backup Integration:** Compatible with existing backup systems\n\n**🔒 Data Safety & Compliance:**\n\n**Safety Protocols:**\n• **Archive Before Delete:** Records are safely stored before any cleanup\n• **Validation Checks:** Multiple verification steps throughout process\n• **Error Handling:** Graceful failure handling with detailed logging\n• **Rollback Capability:** Ability to recover from archival errors\n\n**Compliance Features:**\n• **Audit Trail:** Complete documentation of all archival activities\n• **Retention Documentation:** Clear policy enforcement and reporting\n• **Access Control:** Integration with existing permission systems\n• **Legal Hold Support:** Capability to exclude specific records from archival\n\n**📈 Business Benefits:**\n\n**Performance Optimization:**\n• **Reduced Database Size:** Improved query performance on active data\n• **Storage Efficiency:** Cost-effective long-term data storage\n• **System Performance:** Faster backups and maintenance operations\n• **Scalability:** Sustainable growth without performance degradation\n\n**Operational Efficiency:**\n• **Automated Management:** Reduces manual data management overhead\n• **Consistent Process:** Reliable, repeatable archival procedures\n• **Compliance Automation:** Automated retention policy enforcement\n• **Administrator Visibility:** Clear reporting on data management activities\n\n**🔄 Integration Points:**\n• **Active Data:** {{MASTER_APPOINTMENTS_SHEET_ID}}\n• **Archive Storage:** {{ARCHIVE_SHEET_ID}}\n• **Process Logs:** {{DATA_MANAGEMENT_LOG_SHEET_ID}}\n• **Administrator Email:** {{ADMIN_EMAIL}}\n• **Business Email:** {{BUSINESS_EMAIL}}\n\n**⚙️ Configuration:**\n• **Clinic:** {{CLINIC_NAME}}\n• **Schedule:** Monthly (1st day, 2 AM {{TIMEZONE}})\n• **Retention Period:** {{DATA_RETENTION_YEARS}} years\n• **Archive Format:** Enhanced Google Sheets with metadata\n• **Notification:** Administrator Gmail + process logging",
+        "height": 2368,
+        "width": 852,
+        "color": 2
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -800,
-        0
+        -1088,
+        -240
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
+      "id": "{{NODE_ID_WORKFLOW_DESCRIPTION}}",
       "name": "PET WF16 - Workflow Description"
     }
   ],
@@ -257,7 +609,7 @@
             "index": 0
           },
           {
-            "node": "📧 Send Archival Report",
+            "node": "📧 Send Administrator Report",
             "type": "main",
             "index": 0
           },
@@ -289,7 +641,7 @@
             "index": 0
           },
           {
-            "node": "🧹 Prepare Master Sheet Cleanup",
+            "node": "🧹 Generate Cleanup Summary",
             "type": "main",
             "index": 0
           }
@@ -300,6 +652,89 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
-}
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{MASTER_APPOINTMENTS_SHEET_ID_VAR_ID}}",
+      "key": "MASTER_APPOINTMENTS_SHEET_ID",
+      "value": "{{MASTER_APPOINTMENTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{MASTER_SHEET_NAME_VAR_ID}}",
+      "key": "MASTER_SHEET_NAME",
+      "value": "{{MASTER_SHEET_NAME}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    },
+    {
+      "id": "{{DATA_RETENTION_YEARS_VAR_ID}}",
+      "key": "DATA_RETENTION_YEARS",
+      "value": "{{DATA_RETENTION_YEARS}}"
+    },
+    {
+      "id": "{{ARCHIVE_SHEET_ID_VAR_ID}}",
+      "key": "ARCHIVE_SHEET_ID",
+      "value": "{{ARCHIVE_SHEET_ID}}"
+    },
+    {
+      "id": "{{ARCHIVE_SHEET_NAME_VAR_ID}}",
+      "key": "ARCHIVE_SHEET_NAME",
+      "value": "{{ARCHIVE_SHEET_NAME}}"
+    },
+    {
+      "id": "{{DATA_MANAGEMENT_LOG_SHEET_ID_VAR_ID}}",
+      "key": "DATA_MANAGEMENT_LOG_SHEET_ID",
+      "value": "{{DATA_MANAGEMENT_LOG_SHEET_ID}}"
+    },
+    {
+      "id": "{{DATA_MANAGEMENT_LOG_SHEET_NAME_VAR_ID}}",
+      "key": "DATA_MANAGEMENT_LOG_SHEET_NAME",
+      "value": "{{DATA_MANAGEMENT_LOG_SHEET_NAME}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{ADMIN_EMAIL_VAR_ID}}",
+      "key": "ADMIN_EMAIL",
+      "value": "{{ADMIN_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{GMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Gmail",
+      "type": "gmailOAuth2",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "Data Management",
+    "Archive System",
+    "Compliance",
+    "Data Retention"
+  ]
+}</new_str>
