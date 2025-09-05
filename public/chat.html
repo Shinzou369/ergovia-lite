@@ -958,7 +958,7 @@
               'Content-Type': 'application/json'
             }
           });
-          
+
           const authData = await response.json();
 
           console.log('🔍 Auth check result:', authData);
@@ -967,9 +967,9 @@
           if (authData.authenticated && authData.user) {
             const authMethod = authData.user.authMethod;
             const userRole = authData.user.role;
-            
+
             console.log('✅ User authenticated:', authData.user.email || 'no email', 'Method:', authMethod, 'Role:', userRole);
-            
+
             // Check if user should be on chat page based on their role
             if (authMethod === 'stytch' && userRole === 'affiliate') {
               // Stytch users (affiliates) belong on chat page
@@ -994,35 +994,35 @@
 
           // User not authenticated - wait a moment for any pending auth to complete
           console.log('❌ User not authenticated, checking if auth is in progress...');
-          
+
           // If we're coming from Stytch auth, wait a bit and check again
           const fromStytchAuth = document.referrer.includes('stytch-logged-in') || 
                                 window.location.search.includes('stytch_session') ||
                                 window.location.search.includes('from_stytch');
-          
+
           if (fromStytchAuth) {
             console.log('🔄 Coming from Stytch auth, waiting for session to be established...');
-            
+
             // Try multiple times with increasing delays
             for (let attempt = 1; attempt <= 3; attempt++) {
               await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-              
+
               console.log(`🔄 Retry attempt ${attempt}/3...`);
               const retryResponse = await fetch('/api/auth/status', {
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' }
               });
               const retryData = await retryResponse.json();
-              
+
               console.log(`🔍 Retry ${attempt} result:`, retryData);
-              
+
               if (retryData.authenticated && retryData.user.authMethod === 'stytch') {
                 console.log(`✅ Stytch affiliate session established on retry ${attempt}`);
                 updateAuthenticatedUI(retryData.user);
                 return true;
               }
             }
-            
+
             console.log('❌ Stytch authentication failed after retries, showing login options');
           }
 
@@ -1037,14 +1037,21 @@
       }
 
       // Show login options instead of automatic redirect
-      function showLoginOptions() {
-        // Remove any existing login prompts
+      function showLoginOptions(reason = 'not_authenticated') {
+        // Remove any existing login prompts to avoid duplicates
         const existingPrompt = document.querySelector('.auth-prompt');
         if (existingPrompt) {
           existingPrompt.remove();
         }
 
-        // Create login prompt
+        let title = "Welcome to ERGOVIA-AI Chat";
+        let message = "This chat interface is for Affiliates only. Please sign in with your affiliate account.";
+
+        if (reason === 'role_mismatch') {
+          title = "Access Restricted";
+          message = "The chat interface is for Affiliates only. Clients should use the Taskforce portal.";
+        }
+
         const authPrompt = document.createElement('div');
         authPrompt.className = 'auth-prompt';
         authPrompt.style.cssText = `
@@ -1059,19 +1066,24 @@
           text-align: center;
           z-index: 10000;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          max-width: 400px;
         `;
-        
+
         authPrompt.innerHTML = `
-          <h3 style="color: var(--text-primary); margin-bottom: 16px;">Welcome to ERGOVIA-AI Chat</h3>
-          <p style="color: var(--text-secondary); margin-bottom: 24px;">Please sign in to continue</p>
+          <h3 style="color: var(--text-primary); margin-bottom: 16px;">${title}</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 24px;">${message}</p>
           <button onclick="window.location.href='/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat')" 
-                  style="background: var(--primary-gradient); color: white; border: none; padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer; margin-right: 12px;">
-            Sign In with Email
+                  style="background: var(--primary-gradient); color: white; border: none; padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer; margin-bottom: 12px; width: 100%;">
+            💼 Sign In as Affiliate (Email)
           </button>
-          <button onclick="window.location.href='/auth/google'" 
-                  style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer;">
-            Sign In with Google
+          <div style="margin: 16px 0; color: var(--text-muted); font-size: 0.9rem;">or</div>
+          <button onclick="window.location.href='/taskforce'" 
+                  style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer; width: 100%;">
+            🚀 Client Portal (Taskforce)
           </button>
+          <div style="margin-top: 16px;">
+            <a href="/auth-test" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">🧪 Test Authentication</a>
+          </div>
         `;
 
         document.body.appendChild(authPrompt);
@@ -1145,16 +1157,16 @@
       // Run authentication check immediately when page loads
       document.addEventListener('DOMContentLoaded', async () => {
         console.log('🔐 Chat page loaded - checking authentication');
-        
+
         // Special handling if coming from Stytch auth
         const urlParams = new URLSearchParams(window.location.search);
         const fromStytch = urlParams.get('from_stytch') === 'true';
-        
+
         if (fromStytch) {
           console.log('🔄 Coming from Stytch auth, ensuring session is ready...');
           // Remove the parameter from URL
           window.history.replaceState({}, document.title, window.location.pathname);
-          
+
           // Wait a moment for session to be fully established
           setTimeout(async () => {
             await checkAffiliateAuth();
@@ -1180,6 +1192,13 @@
       function handleTokenUsageClick() { console.log('handleTokenUsageClick called'); }
       function startAffiliateFlow() { console.log('startAffiliateFlow called'); }
       function clearUserData() { console.log('clearUserData called'); } // Added placeholder for clearUserData
+      function setLoadingState(isLoading) { console.log('setLoadingState called with:', isLoading); } // Added placeholder for setLoadingState
+      function checkAuthStatus() { // Mock checkAuthStatus for initial testing if needed
+        console.log("Mock checkAuthStatus called");
+        // Return a mock auth status, e.g., unauthenticated
+        return Promise.resolve({ authenticated: false, user: null });
+      }
+
 
       // Export functions for global access
       window.sendMessage = sendMessage;
@@ -1194,6 +1213,10 @@
       window.handleTokenUsageClick = handleTokenUsageClick;
       window.startAffiliateFlow = startAffiliateFlow;
       window.logout = logout; // Export logout function
+      window.showLoginOptions = showLoginOptions; // Export showLoginOptions
+      window.checkAffiliateAuth = checkAffiliateAuth; // Export checkAffiliateAuth
+      window.updateAuthenticatedUI = updateAuthenticatedUI; // Export updateAuthenticatedUI
+      window.checkAuthStatus = checkAuthStatus; // Export checkAuthStatus
     </script>
   </body>
 </html>

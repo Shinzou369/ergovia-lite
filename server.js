@@ -4394,6 +4394,8 @@ async function handleOAuthCallback(service, code, userEmail) {
 
 // Check authentication status endpoint
 app.get("/api/auth/status", async (req, res) => {
+  console.log('Auth status check - Google:', req.isAuthenticated && req.isAuthenticated(), 'Stytch:', !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id), 'Overall:', req.isAuthenticated && req.isAuthenticated() || !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id));
+  
   // Check for Stytch authentication FIRST (affiliates)
   let isStytchAuth = false;
   let stytchUser = null;
@@ -4427,9 +4429,9 @@ app.get("/api/auth/status", async (req, res) => {
     console.log('✅ Stytch user found in session:', stytchUser.email);
   }
 
-  // If Stytch auth found, handle it immediately (don't check Google)
+  // If Stytch auth found, handle it immediately (affiliates only use Stytch)
   if (isStytchAuth) {
-    console.log('Auth status check - Stytch affiliate authenticated:', stytchUser.email);
+    console.log('Auth status check - Stytch affiliate authenticated:', stytchUser.email || stytchUser.emails?.[0]?.email);
     
     const sessionUser = req.session.user;
     
@@ -4480,18 +4482,24 @@ app.get("/api/auth/status", async (req, res) => {
     });
   }
 
-  // Check Google OAuth authentication ONLY if no Stytch auth (clients)
+  // Check Google OAuth authentication ONLY if no Stytch auth (clients only use Google)
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   
   if (isGoogleAuth) {
     console.log('Auth status check - Google client authenticated:', req.user.emails?.[0]?.value);
     
-    // Handle Google OAuth user data
+    // Handle Google OAuth user data - ensure client role
     let userData = req.user.savedUserData;
     if (!userData) {
       const userEmail = req.user.emails?.[0]?.value;
       userData = findUserByEmail(userEmail);
       console.log('Found user data by email:', userEmail, !!userData);
+    }
+
+    // Ensure Google users have client role (unless they need role selection)
+    let userRole = userData?.role;
+    if (!userRole && !userData?.needsRoleSelection) {
+      userRole = 'client'; // Default Google users to client role
     }
 
     const userResponse = {
@@ -4507,18 +4515,26 @@ app.get("/api/auth/status", async (req, res) => {
       subscriptionStatus: userData?.subscriptionStatus || null,
       subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
       nextRenewalDate: userData?.nextRenewalDate || null,
-      role: userData?.role || null,
+      role: userRole,
       needsRoleSelection: userData?.needsRoleSelection || false,
       authMethod: 'google'
     };
 
-    console.log('✅ Google auth status response:', userResponse.email, 'Premium:', userResponse.isPremium);
+    console.log('✅ Google auth status response:', userResponse.email, 'Role:', userResponse.role, 'Premium:', userResponse.isPremium);
 
     return res.json({ 
       authenticated: true,
       user: userResponse
     });
   }
+
+  // Log session data for debugging
+  console.log('Session data:', {
+    hasStytchSessionId: !!req.session?.stytch_session_id,
+    hasUser: !!req.session?.user,
+    userStytchId: !!req.session?.user?.stytch_user_id,
+    userEmail: req.session?.user?.email
+  });
 
   // No authentication found
   console.log('Auth status check - No authentication found');
