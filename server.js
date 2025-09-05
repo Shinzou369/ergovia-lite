@@ -145,7 +145,7 @@ class N8NApiClient {
 
     for (const tag of Array.isArray(tags) ? tags : []) {
       let tagToProcess;
-
+      
       if (typeof tag === 'string') {
         // Create or get the tag first
         tagToProcess = await this.createTag(tag);
@@ -213,9 +213,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - startTime;
     const statusSymbol = res.statusCode >= 400 ? '❌' : 
                         res.statusCode >= 300 ? '⚠️' : '✅';
-
+    
     console.log(`📤 ${statusSymbol} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms - ${userInfo}`);
-
+    
     // Log slow requests
     if (duration > 5000) {
       console.warn(`🐌 Slow request detected: ${req.method} ${req.url} took ${duration}ms`);
@@ -259,11 +259,11 @@ const maxDbConnectionAttempts = 5;
 function initializeDatabase() {
   return new Promise((resolve, reject) => {
     dbConnectionAttempts++;
-
+    
     db = new sqlite3.Database('./taskforce.db', (err) => {
       if (err) {
         console.error(`❌ Database connection attempt ${dbConnectionAttempts} failed:`, err.message);
-
+        
         if (dbConnectionAttempts < maxDbConnectionAttempts) {
           console.log(`🔄 Retrying database connection in 2 seconds...`);
           setTimeout(() => {
@@ -275,7 +275,7 @@ function initializeDatabase() {
         }
       } else {
         console.log('✅ Connected to SQLite database');
-
+        
         // Test database functionality
         db.run("CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, timestamp TEXT)", (testErr) => {
           if (testErr) {
@@ -295,13 +295,13 @@ function initializeDatabase() {
 // Handle database connection errors gracefully
 function handleDatabaseError(error, operation) {
   logError(error, { operation, type: 'database_operation_failed' });
-
+  
   // Try to reconnect if connection was lost
   if (error.message.includes('SQLITE_BUSY') || error.message.includes('database is locked')) {
     console.log('🔄 Database is busy, retrying operation...');
     return { shouldRetry: true };
   }
-
+  
   return { shouldRetry: false };
 }
 
@@ -326,7 +326,7 @@ function initETFDatabase() {
       etfDB = new sqlite3.Database('etf_data.db', (err) => {
         if (err) {
           console.error(`❌ ETF Database connection attempt ${attempts} failed:`, err.message);
-
+          
           if (attempts < maxAttempts) {
             console.log(`🔄 Retrying ETF database connection...`);
             setTimeout(tryConnection, 1000);
@@ -391,16 +391,16 @@ function initETFDatabase() {
               tableErrors.push(`Table ${index + 1}: ${tableErr.message}`);
               logError(tableErr, { type: 'etf_table_creation_failed', sql });
             }
-
+            
             tablesCreated++;
-
+            
             if (tablesCreated === createTables.length) {
               if (tableErrors.length > 0) {
                 console.error('⚠️ Some ETF tables failed to create:', tableErrors);
               } else {
                 console.log('✅ All ETF tables created successfully');
               }
-
+              
               console.log('✅ ETF Database initialized');
               resolve(etfDB);
             }
@@ -422,7 +422,7 @@ initETFDatabase()
   .catch(err => {
     console.error('❌ Failed to initialize ETF database:', err.message);
     console.error('⚠️ ETF functionality will be disabled');
-
+    
     // Create a mock database object to prevent crashes
     etfDB = {
       run: (sql, params, callback) => {
@@ -480,7 +480,7 @@ function validateEnvironment() {
     console.error('❌ Missing REQUIRED environment variables:');
     missing.forEach(item => console.error(`   - ${item}`));
     console.error('🔧 Please check your .env file or Replit Secrets');
-
+    
     // Don't exit in development, but warn loudly
     if (process.env.NODE_ENV === 'production') {
       console.error('🛑 Cannot start in production without required environment variables');
@@ -504,9 +504,34 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Import middleware and routes
-const { validateSession, redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
-const authRoutes = require('./routes/authRoutes');
+// Stytch configuration
+let stytchClient = null;
+try {
+  if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
+    // Force test environment since we're using test project credentials
+    const stytchEnv = stytch.envs.test;
+    
+    stytchClient = new stytch.Client({
+      project_id: process.env.STYTCH_PROJECT_ID,
+      secret: process.env.STYTCH_SECRET,
+      env: stytchEnv
+    });
+    
+    console.log('✅ Stytch client initialized successfully:', {
+      project_id: process.env.STYTCH_PROJECT_ID.substring(0, 8) + '...',
+      environment: stytchEnv,
+      secret_length: process.env.STYTCH_SECRET.length
+    });
+  } else {
+    console.log('⚠️ Stytch not configured - missing environment variables:', {
+      STYTCH_PROJECT_ID: process.env.STYTCH_PROJECT_ID ? 'SET' : 'MISSING',
+      STYTCH_SECRET: process.env.STYTCH_SECRET ? 'SET' : 'MISSING'
+    });
+  }
+} catch (error) {
+  console.error('❌ Failed to initialize Stytch client:', error.message);
+  stytchClient = null;
+}
 
 // Passport configuration
 passport.serializeUser((user, done) => {
@@ -541,7 +566,7 @@ const sessionConfig = {
   }),
   secret: process.env.SESSION_SECRET || (() => {
     const fallbackSecret = 'ergovia-ai-stable-secret-key-2024-production';
-
+    
     if (process.env.NODE_ENV === 'production') {
       console.error('🚨 SECURITY WARNING: SESSION_SECRET not set in production!');
       console.error('🔧 Please set SESSION_SECRET environment variable immediately');
@@ -552,7 +577,7 @@ const sessionConfig = {
     } else {
       console.warn('⚠️ Using fallback SESSION_SECRET for development');
     }
-
+    
     return fallbackSecret;
   })(),
   resave: false,
@@ -576,7 +601,7 @@ app.use((req, res, next) => {
   if (req.session && req.sessionID) {
     const hasStytchSession = !!(req.session.stytch_session_id || req.session.user?.stytch_user_id);
     const stytchEmail = req.session.user?.email;
-
+    
     console.log('Session Debug:', {
       sessionID: req.sessionID.substring(0, 8) + '...',
       googleAuth: req.isAuthenticated(),
@@ -651,14 +676,7 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Add cookie parser for Stytch session handling
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
 app.use(validateInput);
-
-// Add session validation middleware to all routes
-app.use(validateSession);
 
 // Rate limiting configuration
 const rateLimit = {
@@ -671,21 +689,21 @@ const rateLimit = {
 function rateLimitMiddleware(req, res, next) {
   const clientId = req.ip || 'unknown';
   const now = Date.now();
-
+  
   if (!rateLimit.clients.has(clientId)) {
     rateLimit.clients.set(clientId, { count: 1, resetTime: now + rateLimit.windowMs });
     return next();
   }
-
+  
   const client = rateLimit.clients.get(clientId);
-
+  
   if (now > client.resetTime) {
     // Reset window
     client.count = 1;
     client.resetTime = now + rateLimit.windowMs;
     return next();
   }
-
+  
   if (client.count >= rateLimit.maxRequests) {
     console.log(`🚫 Rate limit exceeded for ${clientId}`);
     return res.status(429).json({ 
@@ -693,7 +711,7 @@ function rateLimitMiddleware(req, res, next) {
       retryAfter: Math.ceil((client.resetTime - now) / 1000)
     });
   }
-
+  
   client.count++;
   next();
 }
@@ -709,24 +727,24 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Powered-By', 'ERGOVIA-AI');
-
+  
   // Add CORS headers for production
   const allowedOrigins = process.env.CORS_ORIGIN ? 
     process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com'];
-
+  
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-
+  
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
+  
   next();
 });
 
@@ -771,9 +789,6 @@ app.use((req, res, next) => {
 
 // Serve static files
 app.use(express.static('public'));
-
-// Mount authentication routes
-app.use('/auth', authRoutes);
 
 // Taskforce onboarding routes - redirect all to ETF onboarding
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {
@@ -970,20 +985,20 @@ app.post('/api/system/recover', async (req, res) => {
           const sessionDir = './sessions';
           const files = fs.readdirSync(sessionDir);
           let cleaned = 0;
-
+          
           files.forEach(file => {
             if (file.endsWith('.json')) {
               const filePath = path.join(sessionDir, file);
               const stats = fs.statSync(filePath);
               const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
-
+              
               if (ageHours > 168) { // 7 days
                 fs.unlinkSync(filePath);
                 cleaned++;
               }
             }
           });
-
+          
           results.push(`Cleaned ${cleaned} expired session files`);
         } catch (error) {
           results.push(`Session cleanup failed: ${error.message}`);
@@ -1259,7 +1274,7 @@ app.get('/stytch-logged-in', (req, res) => {
     // Auto-generate OpenAI API key with enhanced setup
     const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
     const keyGenerator = new AutoKeyGenerator();
-
+    
     let openaiSetupResult = { success: false };
     try {
       openaiSetupResult = await keyGenerator.setupETFClientOpenAI(client_data, templateIds);
@@ -1595,7 +1610,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
   }
 });
 
-// Test endpoint to create tags
+// Test endpoint for creating tags
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
@@ -1628,7 +1643,7 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
   }
 });
 
-// Test endpoint to list tags
+// Test endpoint for listing tags
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
@@ -2902,10 +2917,10 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 function requireAuth(req, res, next) {
   // Check Google OAuth authentication
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-
+  
   // Check Stytch authentication
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
-
+  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user);
+  
   const isAuthenticated = isGoogleAuth || isStytchAuth;
 
   if (!isAuthenticated) {
@@ -3032,7 +3047,7 @@ app.get('/api/taskforce/clients/:clientId', requireAuth, (req, res) => {
 // Enhanced health check with service monitoring
 app.get('/health', async (req, res) => {
   console.log('🏥 Health check requested');
-
+  
   const healthStatus = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -3288,7 +3303,7 @@ function getAPIConfig(model) {
   };
 }
 
-app.post('/chat', requireAuth, async (req, res) => {
+app.post('/chat', requirePremium, async (req, res) => {
   try {
     const { messages, model, system, thread_id } = req.body;
     const selectedModel = model || "gpt-3.5-turbo";
@@ -3563,23 +3578,458 @@ app.get("/api/profile", (req, res) => {
   });
 });
 
-// Legacy Stytch endpoints for backward compatibility
-app.post('/api/auth/stytch/magic-links/send', (req, res, next) => {
-  // Redirect to new auth route
-  req.url = '/auth/magic-links/send';
-  authRoutes(req, res, next);
+// ========================================
+// Stytch Authentication Routes
+// ========================================
+
+// Send magic link for passwordless login
+app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
+  try {
+    console.log('🔄 Magic link request received:', {
+      body: req.body,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'user-agent': req.headers['user-agent']
+      }
+    });
+
+    if (!stytchClient) {
+      console.error('❌ Stytch client not configured');
+      return res.status(500).json({ 
+        success: false,
+        error: 'Stytch not configured',
+        details: 'STYTCH_PROJECT_ID or STYTCH_SECRET missing'
+      });
+    }
+
+    const { email, signup_or_login_url, flow, first_name, last_name, return_to } = req.body;
+
+    if (!email) {
+      console.error('❌ No email provided in request');
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email is required' 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error('❌ Invalid email format:', email);
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid email format' 
+      });
+    }
+
+    // Use dynamic redirect URL based on request, with production domain override
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    
+    // Use production domain if deployed
+    const isDevelopment = host.includes('repl.co') || host.includes('localhost');
+    const finalHost = isDevelopment ? host : 'ergovia-ai.com';
+    
+    const redirectUrl = signup_or_login_url || `${protocol}://${finalHost}/api/auth/stytch/authenticate`;
+    
+    // Store flow and return_to in session to avoid query parameter issues
+    req.session.stytch_flow = flow || 'general';
+    req.session.stytch_return_to = return_to || '/chat';
+    
+    const params = {
+      email: email,
+      login_magic_link_url: signup_or_login_url || redirectUrl,
+      signup_magic_link_url: signup_or_login_url || redirectUrl
+    };
+
+    // Store name data in session for use after authentication
+    if (first_name || last_name) {
+      req.session.stytch_user_first_name = first_name || '';
+      req.session.stytch_user_last_name = last_name || '';
+    }
+
+    console.log('🔄 Sending Stytch magic link to:', email);
+    console.log('📧 Magic link URLs:', {
+      login: params.login_magic_link_url,
+      signup: params.signup_magic_link_url
+    });
+    console.log('🔧 Stytch client config:', {
+      project_id: process.env.STYTCH_PROJECT_ID ? 'SET' : 'MISSING',
+      secret: process.env.STYTCH_SECRET ? 'SET' : 'MISSING',
+      env: process.env.NODE_ENV
+    });
+
+    const response = await stytchClient.magicLinks.email.loginOrCreate(params);
+
+    console.log('✅ Stytch magic link sent successfully:', {
+      email: email,
+      request_id: response.request_id,
+      user_id: response.user_id,
+      status_code: response.status_code
+    });
+
+    res.json({
+      success: true,
+      message: 'Magic link sent! Check your email (including spam folder).',
+      request_id: response.request_id,
+      user_id: response.user_id
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch magic link error:', {
+      message: error.message,
+      status_code: error.status_code,
+      error_type: error.error_type,
+      error_url: error.error_url,
+      stack: error.stack
+    });
+    
+    // Provide more specific error messages
+    let userMessage = 'Failed to send magic link';
+    let statusCode = 500;
+    
+    if (error.status_code === 400) {
+      userMessage = 'Invalid email address or request parameters';
+      statusCode = 400;
+    } else if (error.status_code === 429) {
+      userMessage = 'Too many requests. Please wait a moment and try again.';
+      statusCode = 429;
+    } else if (error.status_code === 401) {
+      userMessage = 'Authentication service configuration error';
+      statusCode = 500;
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      userMessage = 'Network error connecting to Stytch. Please try again.';
+      statusCode = 503;
+    }
+
+    res.status(statusCode).json({
+      success: false,
+      error: userMessage,
+      details: error.message,
+      stytch_error_type: error.error_type,
+      debug_info: {
+        project_id_set: !!process.env.STYTCH_PROJECT_ID,
+        secret_set: !!process.env.STYTCH_SECRET,
+        client_initialized: !!stytchClient
+      }
+    });
+  }
 });
 
-app.get('/api/auth/stytch/authenticate', (req, res, next) => {
-  // Redirect to new auth route
-  req.url = '/auth/callback';
-  authRoutes(req, res, next);
+// Authenticate magic link token
+app.get('/api/auth/stytch/authenticate', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { token, stytch_token_type } = req.query;
+    
+    // Get flow and return_to from session instead of query params
+    const flow = req.session.stytch_flow || 'general';
+    const return_to = req.session.stytch_return_to || '/chat';
+
+    if (!token) {
+      // If no token, show auth page instead of error
+      return res.redirect('/stytch-auth?return_to=' + encodeURIComponent(return_to));
+    }
+
+    const response = await stytchClient.magicLinks.authenticate({
+      token: token,
+      session_duration_minutes: 60 * 24 * 7 // 7 days
+    });
+
+    const user = response.user;
+    const session = response.session;
+
+    // Get name data from session if available
+    const sessionFirstName = req.session.stytch_user_first_name;
+    const sessionLastName = req.session.stytch_user_last_name;
+    
+    // Create or update user in your system
+    const userData = {
+      stytch_user_id: user.user_id,
+      email: user.emails[0].email,
+      email_verified: user.emails[0].verified,
+      stytch_name: user.name?.first_name && user.name?.last_name ? 
+        `${user.name.first_name} ${user.name.last_name}` : 
+        (sessionFirstName && sessionLastName ? `${sessionFirstName} ${sessionLastName}` : null),
+      first_name: user.name?.first_name || sessionFirstName || '',
+      last_name: user.name?.last_name || sessionLastName || '',
+      createdAt: user.created_at,
+      isComplete: !!(user.name?.first_name && user.name?.last_name) || !!(sessionFirstName && sessionLastName),
+      authMethod: 'stytch',
+      stytch_session_id: session.session_id
+    };
+
+    // Store in your existing user system
+    let existingUser = findUserByEmail(userData.email);
+    if (existingUser) {
+      // Update existing user with Stytch data
+      existingUser.stytch_user_id = userData.stytch_user_id;
+      existingUser.stytch_session_id = userData.stytch_session_id;
+      existingUser.authMethod = 'stytch';
+      if (userData.first_name) existingUser.preferredFirstName = userData.first_name;
+      if (userData.last_name) existingUser.preferredLastName = userData.last_name;
+      if (userData.stytch_name) existingUser.stytch_name = userData.stytch_name;
+      existingUser.isComplete = userData.isComplete;
+      saveUser(existingUser);
+    } else {
+      // Create new user with role assignment
+      const newUser = {
+        googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
+        ...userData,
+        preferredFirstName: userData.first_name,
+        preferredLastName: userData.last_name,
+        role: 'affiliate',
+        needsRoleSelection: false,
+        isPremium: false,
+        hasUnlimitedAccess: false
+      };
+      saveUser(newUser);
+    }
+
+    // Set session with proper structure
+    req.session.stytch_session_id = session.session_id;
+    req.session.user = userData;
+    
+    // Mark session as modified to force save
+    req.session.touch();
+    
+    // Force session save to ensure persistence
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          reject(err);
+        } else {
+          console.log('✅ Session saved successfully for:', userData.email);
+          resolve();
+        }
+      });
+    });
+    
+    // Clean up temporary name data from session
+    delete req.session.stytch_user_first_name;
+    delete req.session.stytch_user_last_name;
+
+    console.log('✅ Stytch authentication successful for:', userData.email);
+
+    // Handle role assignment based on flow - Stytch users default to affiliate
+    const userRole = 'affiliate'; // All Stytch users are affiliates
+    
+    if (!existingUser) {
+      existingUser = findUserByEmail(userData.email);
+    }
+    if (existingUser) {
+      existingUser.role = userRole;
+      existingUser.needsRoleSelection = false;
+      existingUser.authMethod = 'stytch';
+      existingUser.isPremium = existingUser.isPremium || false;
+      existingUser.hasUnlimitedAccess = existingUser.hasUnlimitedAccess || false;
+      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
+      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
+      saveUser(existingUser);
+    } else {
+      // Create new user with affiliate role
+      const newUser = {
+        googleId: userData.stytch_user_id,
+        ...userData,
+        role: userRole,
+        needsRoleSelection: false,
+        isPremium: false,
+        hasUnlimitedAccess: false
+      };
+      saveUser(newUser);
+    }
+
+    console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
+
+    // For affiliate users, redirect directly to chat to avoid loops
+    const intendedDestination = return_to ? decodeURIComponent(return_to) : '/chat';
+    
+    console.log('✅ Stytch authentication successful, redirecting affiliate directly to:', intendedDestination);
+    
+    // Save session and redirect directly to destination
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error before redirect:', err);
+        return res.redirect('/login?error=session_save_failed');
+      }
+      
+      // Redirect directly to chat with auth completion flag
+      res.redirect(`${intendedDestination}?stytch_auth_completed=true`);
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch authentication error:', error);
+    res.redirect('/login?error=auth_failed');
+  }
 });
 
-app.post('/api/auth/stytch/logout', (req, res, next) => {
-  // Redirect to new auth route
-  req.url = '/auth/logout';
-  authRoutes(req, res, next);
+// Send OTP via SMS
+app.post('/api/auth/stytch/otp/sms/send', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { phone_number } = req.body;
+
+    if (!phone_number) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    const response = await stytchClient.otps.sms.loginOrCreate({
+      phone_number: phone_number
+    });
+
+    res.json({
+      success: true,
+      message: 'OTP sent to your phone!',
+      request_id: response.request_id
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch SMS OTP error:', error);
+    res.status(500).json({
+      error: 'Failed to send SMS OTP',
+      details: error.message
+    });
+  }
+});
+
+// Authenticate OTP code
+app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
+  try {
+    if (!stytchClient) {
+      return res.status(500).json({ error: 'Stytch not configured' });
+    }
+
+    const { method_id, code } = req.body;
+
+    if (!method_id || !code) {
+      return res.status(400).json({ error: 'Method ID and code are required' });
+    }
+
+    const response = await stytchClient.otps.authenticate({
+      method_id: method_id,
+      code: code,
+      session_duration_minutes: 60 * 24 * 7 // 7 days
+    });
+
+    const user = response.user;
+    const session = response.session;
+
+    // Handle user creation/update similar to magic link flow
+    const userData = {
+      stytch_user_id: user.user_id,
+      email: user.emails?.[0]?.email || '',
+      phone: user.phone_numbers?.[0]?.phone_number || '',
+      email_verified: user.emails?.[0]?.verified || false,
+      phone_verified: user.phone_numbers?.[0]?.verified || false,
+      authMethod: 'stytch',
+      stytch_session_id: session.session_id
+    };
+
+    req.session.stytch_session_id = session.session_id;
+    req.session.user = userData;
+
+    console.log('✅ Stytch OTP authentication successful for:', userData.email || userData.phone);
+
+    // For Stytch users, automatically assign affiliate role
+    const existingUser = findUserByEmail(userData.email || userData.phone);
+    if (existingUser) {
+      existingUser.role = 'affiliate';
+      existingUser.needsRoleSelection = false;
+      existingUser.authMethod = 'stytch';
+      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
+      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
+      saveUser(existingUser);
+    } else {
+      // Create new user with affiliate role
+      const newUser = {
+        googleId: userData.stytch_user_id,
+        ...userData,
+        role: 'affiliate',
+        needsRoleSelection: false
+      };
+      saveUser(newUser);
+    }
+
+    res.json({
+      success: true,
+      message: 'Authentication successful!',
+      user: { ...userData, role: 'affiliate' },
+      needs_completion: !userData.email,
+      redirect_to: '/chat'
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch OTP authentication error:', error);
+    res.status(400).json({
+      error: 'Invalid or expired code',
+      details: error.message
+    });
+  }
+});
+
+// Get current Stytch session
+app.get('/api/auth/stytch/session', async (req, res) => {
+  try {
+    if (!stytchClient || !req.session.stytch_session_id) {
+      return res.json({ authenticated: false });
+    }
+
+    const response = await stytchClient.sessions.get({
+      user_session: req.session.stytch_session_id
+    });
+
+    res.json({
+      authenticated: true,
+      session: response.session,
+      user: response.user
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch session check error:', error);
+    res.json({ authenticated: false });
+  }
+});
+
+// Revoke Stytch session (logout)
+app.post('/api/auth/stytch/logout', async (req, res) => {
+  try {
+    const userEmail = req.session?.user?.email;
+    
+    if (stytchClient && req.session.stytch_session_id) {
+      await stytchClient.sessions.revoke({
+        session_id: req.session.stytch_session_id
+      });
+      console.log('✅ Revoked Stytch session for:', userEmail);
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destruction error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+
+      console.log('✅ Session destroyed for:', userEmail);
+      res.json({ success: true, message: 'Logged out successfully' });
+    });
+
+  } catch (error) {
+    console.error('❌ Stytch logout error:', error);
+    // Still try to destroy session even if Stytch revocation fails
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destruction error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ success: true, message: 'Logged out successfully (partial)' });
+    });
+  }
 });
 
 // Enhanced Credential Management API
@@ -3959,8 +4409,164 @@ async function handleOAuthCallback(service, code, userEmail) {
   });
 }
 
-// Check authentication status endpoint - use new middleware
-app.get("/api/auth/status", getAuthStatus);
+// Check authentication status endpoint
+app.get("/api/auth/status", async (req, res) => {
+  console.log('Auth status check - Google:', req.isAuthenticated && req.isAuthenticated(), 'Stytch:', !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id), 'Overall:', req.isAuthenticated && req.isAuthenticated() || !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id));
+  
+  // Check for Stytch authentication FIRST (affiliates)
+  let isStytchAuth = false;
+  let stytchUser = null;
+  
+  // Check if we have a Stytch session ID or user data
+  if (req.session?.stytch_session_id || req.session?.user?.stytch_user_id) {
+    // First try to get user from session data
+    if (req.session?.user?.stytch_user_id) {
+      isStytchAuth = true;
+      stytchUser = req.session.user;
+      console.log('✅ Stytch user found in session:', stytchUser.email);
+    } else if (req.session?.stytch_session_id && stytchClient) {
+      // Try to validate with Stytch API as fallback
+      try {
+        const sessionResponse = await stytchClient.sessions.get({
+          user_session: req.session.stytch_session_id
+        });
+        
+        if (sessionResponse && sessionResponse.session && sessionResponse.user) {
+          isStytchAuth = true;
+          stytchUser = sessionResponse.user;
+          
+          // Update session with user data for future requests
+          req.session.user = {
+            stytch_user_id: stytchUser.user_id,
+            email: stytchUser.emails?.[0]?.email || '',
+            first_name: stytchUser.name?.first_name || '',
+            last_name: stytchUser.name?.last_name || '',
+            authMethod: 'stytch',
+            stytch_session_id: req.session.stytch_session_id
+          };
+          
+          console.log('✅ Stytch session validated and cached for:', stytchUser.emails?.[0]?.email);
+        }
+      } catch (error) {
+        console.log('⚠️ Stytch session validation failed:', error.message);
+        // Clear invalid session data
+        delete req.session.stytch_session_id;
+        delete req.session.user;
+      }
+    }
+  }
+
+  // If Stytch auth found, handle it immediately (affiliates only use Stytch)
+  if (isStytchAuth) {
+    console.log('Auth status check - Stytch affiliate authenticated:', stytchUser.email || stytchUser.emails?.[0]?.email);
+    
+    const sessionUser = req.session.user;
+    
+    // Load or create persistent user data for Stytch users
+    let persistentUser = findUserByEmail(sessionUser.email);
+    if (!persistentUser) {
+      // Create persistent user record for Stytch user
+      persistentUser = {
+        googleId: sessionUser.stytch_user_id,
+        email: sessionUser.email,
+        preferredFirstName: sessionUser.first_name || '',
+        preferredLastName: sessionUser.last_name || '',
+        stytch_name: sessionUser.stytch_name,
+        isComplete: !!(sessionUser.first_name && sessionUser.last_name),
+        role: 'affiliate',
+        needsRoleSelection: false,
+        authMethod: 'stytch',
+        stytch_user_id: sessionUser.stytch_user_id,
+        stytch_session_id: sessionUser.stytch_session_id,
+        createdAt: new Date().toISOString(),
+        isPremium: false,
+        hasUnlimitedAccess: false
+      };
+      saveUser(persistentUser);
+      console.log('✅ Created persistent user record for Stytch affiliate:', sessionUser.email);
+    } else {
+      // Update existing user with current session info
+      persistentUser.stytch_session_id = sessionUser.stytch_session_id;
+      persistentUser.authMethod = 'stytch';
+      persistentUser.role = 'affiliate'; // Ensure Stytch users are always affiliates
+      saveUser(persistentUser);
+    }
+
+    return res.json({
+      authenticated: true,
+      user: {
+        name: persistentUser.stytch_name || persistentUser.preferredFirstName + ' ' + persistentUser.preferredLastName || persistentUser.email,
+        email: persistentUser.email,
+        preferredFirstName: persistentUser.preferredFirstName,
+        preferredLastName: persistentUser.preferredLastName,
+        authMethod: 'stytch',
+        role: 'affiliate', // Always affiliate for Stytch users
+        isPremium: persistentUser.isPremium || false,
+        hasUnlimitedAccess: persistentUser.hasUnlimitedAccess || false,
+        isComplete: persistentUser.isComplete,
+        needsRoleSelection: false // Stytch users don't need role selection
+      }
+    });
+  }
+
+  // Check Google OAuth authentication ONLY if no Stytch auth (clients only use Google)
+  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
+  
+  if (isGoogleAuth) {
+    console.log('Auth status check - Google client authenticated:', req.user.emails?.[0]?.value);
+    
+    // Handle Google OAuth user data - ensure client role
+    let userData = req.user.savedUserData;
+    if (!userData) {
+      const userEmail = req.user.emails?.[0]?.value;
+      userData = findUserByEmail(userEmail);
+      console.log('Found user data by email:', userEmail, !!userData);
+    }
+
+    // Ensure Google users have client role (unless they need role selection)
+    let userRole = userData?.role;
+    if (!userRole && !userData?.needsRoleSelection) {
+      userRole = 'client'; // Default Google users to client role
+    }
+
+    const userResponse = {
+      name: req.user.displayName,
+      email: req.user.emails?.[0]?.value,
+      picture: req.user.photos?.[0]?.value,
+      preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
+      preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
+      isComplete: userData?.isComplete || req.user.isComplete || false,
+      isPremium: userData?.isPremium || false,
+      hasUnlimitedAccess: userData?.hasUnlimitedAccess || false,
+      subscriptionType: userData?.subscriptionType || null,
+      subscriptionStatus: userData?.subscriptionStatus || null,
+      subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
+      nextRenewalDate: userData?.nextRenewalDate || null,
+      role: userRole,
+      needsRoleSelection: userData?.needsRoleSelection || false,
+      authMethod: 'google'
+    };
+
+    console.log('✅ Google auth status response:', userResponse.email, 'Role:', userResponse.role, 'Premium:', userResponse.isPremium);
+
+    return res.json({ 
+      authenticated: true,
+      user: userResponse
+    });
+  }
+
+  // Log session data for debugging
+  console.log('Session data:', {
+    hasStytchSessionId: !!req.session?.stytch_session_id,
+    hasUser: !!req.session?.user,
+    userStytchId: !!req.session?.user?.stytch_user_id,
+    userEmail: req.session?.user?.email
+  });
+
+  // No authentication found
+  console.log('Auth status check - No authentication found');
+  return res.json({ authenticated: false, user: null });
+});
 
 // Get user threads
 app.get('/api/threads', requireAuth, async (req, res) => {
@@ -4343,7 +4949,7 @@ app.get("/", (req, res) => {
 // Chat page route - serve chat page without authentication requirement
 app.get("/chat", (req, res) => {
   console.log('📄 Chat page requested');
-
+  
   // Check if user is authenticated (for logging purposes)
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
@@ -4448,18 +5054,18 @@ function logError(error, context = {}) {
   try {
     const errorLogFile = './error_logs.json';
     let errorLogs = [];
-
+    
     if (fs.existsSync(errorLogFile)) {
       errorLogs = JSON.parse(fs.readFileSync(errorLogFile, 'utf8'));
     }
-
+    
     errorLogs.push(errorLog);
-
+    
     // Keep only last 100 errors to prevent file bloat
     if (errorLogs.length > 100) {
       errorLogs = errorLogs.slice(-100);
     }
-
+    
     fs.writeFileSync(errorLogFile, JSON.stringify(errorLogs, null, 2));
   } catch (fileError) {
     console.error('Failed to save error log:', fileError.message);
@@ -4504,7 +5110,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
   logError(error, { type: 'uncaughtException' });
-
+  
   // Give time for logging then exit gracefully
   setTimeout(() => {
     console.log('🛑 Exiting due to uncaught exception');
@@ -5515,7 +6121,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (!workflowName || typeof workflowName !== 'string') {
     return 'general';
   }
-
+  
   const name = workflowName.toLowerCase();
   const tags = Array.isArray(workflowTags) ? workflowTags.map(tag => {
     if (typeof tag === 'string') {
@@ -5533,7 +6139,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (tags.includes('contractor') || tags.includes('hvac') || tags.includes('plumbing')) return 'contractors';
   if (tags.includes('tutor') || tags.includes('education') || tags.includes('academic')) return 'tutoring';
   if (tags.includes('massage') || tags.includes('spa') || tags.includes('wellness')) return 'massage';
-
+  
   // Fallback to name-based classification
   if (name.includes('veterinary') || name.includes('pet') || name.includes('animal')) return 'veterinary';
   if (name.includes('dental') || name.includes('clinic')) return 'dental';
@@ -5541,7 +6147,7 @@ function extractTaskforceType(workflowName, workflowTags = []) {
   if (name.includes('contractor') || name.includes('hvac')) return 'contractors';
   if (name.includes('tutor') || name.includes('education')) return 'tutoring';
   if (name.includes('massage') || name.includes('spa')) return 'massage';
-
+  
   return 'general';;
 
   // Fallback to name-based detection
