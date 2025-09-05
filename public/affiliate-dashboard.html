@@ -1,0 +1,1134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ergovia Affiliate Control Panel V2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --bg-main-dark: #1A1A1A;
+            --bg-panel-dark: #222222;
+            --text-primary-dark: #FFFFFF;
+            --text-secondary-dark: #CCCCCC;
+            --accent-gold-dark: #FFD700;
+            --border-color-dark: #333333;
+
+            --bg-main-light: #f4f7f6;
+            --bg-panel-light: #ffffff;
+            --text-primary-light: #333333;
+            --text-secondary-light: #6c757d;
+            --accent-blue-light: #007bff;
+            --border-color-light: #e0e0e0;
+            
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: var(--bg-main-dark);
+            color: var(--text-primary-dark);
+        }
+
+        body.light-mode {
+            background-color: var(--bg-main-light);
+            color: var(--text-primary-light);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header & Theme Toggle */
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            margin-bottom: 20px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        body.dark-mode .main-header {
+            background-color: var(--bg-panel-dark);
+            border: 1px solid var(--border-color-dark);
+        }
+
+        body.light-mode .main-header {
+            background-color: var(--bg-panel-light);
+            border: 1px solid var(--border-color-light);
+        }
+
+        .main-header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        body.dark-mode .main-header h1 {
+             color: var(--accent-gold-dark);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        body.dark-mode .theme-toggle {
+            color: var(--text-primary-dark);
+            border-color: var(--border-color-dark);
+        }
+
+        body.light-mode .theme-toggle {
+            color: var(--text-primary-light);
+            border-color: var(--border-color-light);
+        }
+
+        /* Back to Chat Button */
+        .back-to-chat-btn {
+            background-color: var(--accent-gold-dark);
+            color: var(--bg-main-dark);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .back-to-chat-btn:hover {
+            background-color: #e6b800;
+        }
+        body.light-mode .back-to-chat-btn {
+            background-color: var(--accent-blue-light);
+            color: white;
+        }
+        body.light-mode .back-to-chat-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Tooltip */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            margin-left: auto; /* Pushes it to the right */
+            margin-right: 20px;
+        }
+
+        .tooltip-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        body.dark-mode .tooltip-icon { background-color: var(--accent-gold-dark); color: var(--bg-main-dark); }
+        body.light-mode .tooltip-icon { background-color: var(--accent-blue-light); }
+
+        .tooltip-text {
+            visibility: hidden; width: 220px; text-align: center;
+            border-radius: 6px; padding: 8px; position: absolute;
+            z-index: 10; bottom: 125%; left: 50%; margin-left: -110px;
+            opacity: 0; transition: opacity 0.3s; font-size: 0.9em;
+        }
+        body.dark-mode .tooltip-text { background-color: #333; color: #fff; }
+        body.light-mode .tooltip-text { background-color: #555; color: #fff; }
+
+        .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; }
+        body.dark-mode .tooltip-text::after { border-color: #333 transparent transparent transparent; }
+        body.light-mode .tooltip-text::after { border-color: #555 transparent transparent transparent; }
+        .tooltip-container:hover .tooltip-text { visibility: visible; opacity: 1; }
+
+        /* Niches Panel */
+        .niches-panel-wrapper { border-radius: 12px; padding: 10px; box-shadow: 0 4px 15px var(--shadow-color); overflow-x: auto; margin-bottom: 20px; transition: background-color 0.3s, border-color 0.3s; }
+        body.dark-mode .niches-panel-wrapper { background-color: var(--bg-panel-dark); border: 1px solid var(--border-color-dark); }
+        body.light-mode .niches-panel-wrapper { background-color: var(--bg-panel-light); border: 1px solid var(--border-color-light); }
+        
+        .niches-grid { display: inline-block; min-width: 100%; padding-bottom: 10px; }
+        .niche-row { display: flex; align-items: center; padding: 15px 20px; gap: 25px; min-width: 1200px; transition: border-color 0.3s; }
+        body.dark-mode .niche-row { border-bottom: 1px solid var(--border-color-dark); }
+        body.light-mode .niche-row { border-bottom: 1px solid var(--border-color-light); }
+        .niche-row:last-child { border-bottom: none; }
+
+        .niche-name { font-weight: bold; flex: 2; min-width: 250px; }
+        .niche-stat { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 150px; }
+        .niche-income { font-weight: 600; flex: 1.5; min-width: 200px; }
+        body.dark-mode .niche-income { color: var(--accent-gold-dark); }
+        body.light-mode .niche-income { color: var(--accent-blue-light); }
+
+        .badge { color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.9em; font-weight: 600; }
+        body.dark-mode .badge { background-color: var(--accent-gold-dark); color: var(--bg-main-dark); }
+        body.light-mode .badge { background-color: var(--accent-blue-light); }
+
+        /* Automation Bar & Toggle */
+        .automation-bar { position: relative; display: flex; align-items: center; gap: 15px; flex: 2.5; min-width: 300px; }
+        .automation-bar .mini-panel { display: none; position: absolute; top: 110%; left: 0; padding: 15px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 5; width: 280px; transition: background-color 0.3s; }
+        body.dark-mode .automation-bar .mini-panel { background-color: #3a3f46; }
+        body.light-mode .automation-bar .mini-panel { background-color: #f0f0f0; }
+        .automation-bar:hover .mini-panel { display: block; }
+
+        .btn-add-tokens { color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: 600; }
+        body.dark-mode .btn-add-tokens { background-color: var(--accent-gold-dark); color: var(--bg-main-dark); }
+        body.light-mode .btn-add-tokens { background-color: var(--accent-blue-light); }
+        
+        .token-input-group { display: none; margin-top: 10px; display: flex; gap: 10px; }
+        .token-input-group input { width: 100%; padding: 8px; border-radius: 4px; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+        body.dark-mode .token-input-group input { border: 1px solid var(--border-color-dark); background-color: var(--bg-main-dark); color: var(--text-primary-dark); }
+        body.light-mode .token-input-group input { border: 1px solid var(--border-color-light); background-color: var(--bg-main-light); color: var(--text-primary-light); }
+
+        /* iOS Toggle Switch */
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; transition: .4s; border-radius: 28px; }
+        body.dark-mode .slider { background-color: #4a4f56; }
+        body.light-mode .slider { background-color: #ccc; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        body.dark-mode input:checked + .slider { background-color: var(--accent-gold-dark); }
+        body.light-mode input:checked + .slider { background-color: var(--accent-blue-light); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Manual Leads */
+        .manual-leads-toggle { flex: 1; min-width: 120px; }
+        .btn-toggle-form { padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+        body.dark-mode .btn-toggle-form { background-color: var(--bg-main-dark); color: var(--text-primary-dark); border: 1px solid var(--accent-gold-dark); }
+        body.light-mode .btn-toggle-form { background-color: var(--bg-main-light); color: var(--text-primary-light); border: 1px solid var(--accent-blue-light); }
+        body.dark-mode .btn-toggle-form:hover { background-color: var(--accent-gold-dark); color: var(--bg-main-dark); }
+        body.light-mode .btn-toggle-form:hover { background-color: var(--accent-blue-light); color: white; }
+
+        .leads-form-container { display: none; padding: 20px; border-radius: 0 0 12px 12px; margin: 10px -20px -16px -20px; transition: background-color 0.3s; }
+        body.dark-mode .leads-form-container { background-color: #2a2e34; }
+        body.light-mode .leads-form-container { background-color: #f9f9f9; }
+        .leads-form-container.visible { display: block; }
+
+        .leads-table { width: 100%; border-collapse: collapse; }
+        .leads-table th, .leads-table td { padding: 10px; text-align: left; transition: border-color 0.3s; }
+        body.dark-mode .leads-table th, body.dark-mode .leads-table td { border-bottom: 1px solid var(--border-color-dark); }
+        body.light-mode .leads-table th, body.light-mode .leads-table td { border-bottom: 1px solid var(--border-color-light); }
+        .leads-table th { font-size: 0.9em; }
+        body.dark-mode .leads-table th { color: var(--text-secondary-dark); }
+        body.light-mode .leads-table th { color: var(--text-secondary-light); }
+
+        .leads-table input { width: 100%; padding: 8px; border-radius: 4px; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+        body.dark-mode .leads-table input { background-color: var(--bg-panel-dark); border: 1px solid var(--border-color-dark); color: var(--text-primary-dark); }
+        body.light-mode .leads-table input { background-color: var(--bg-panel-light); border: 1px solid var(--border-color-light); color: var(--text-primary-light); }
+        
+        .leads-form-actions { padding-top: 15px; text-align: right; }
+        .btn-submit-leads { color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        body.dark-mode .btn-submit-leads { background-color: var(--accent-gold-dark); color: var(--bg-main-dark); }
+        body.light-mode .btn-submit-leads { background-color: var(--accent-blue-light); }
+
+        /* Summary Strip */
+        .summary-strip { 
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
+            display: flex; /* Changed to flexbox */
+            flex-wrap: nowrap; /* Force single line */
+            justify-content: space-around; /* Distribute items evenly */
+            align-items: center; /* Vertically center items */
+            padding: 10px 20px; /* Reduced padding */
+            border-radius: 12px 12px 0 0; 
+            box-shadow: 0 -4px 15px var(--shadow-color); 
+            transition: background-color 0.3s, border-color 0.3s; 
+            overflow-x: auto; /* Allow horizontal scrolling if content overflows */
+        }
+        
+        body {
+            padding-bottom: 80px; /* Adjusted padding to match new footer height */
+        }
+        body.dark-mode .summary-strip { background-color: var(--bg-panel-dark); border: 1px solid var(--border-color-dark); }
+        body.light-mode .summary-strip { background-color: var(--bg-panel-light); border: 1px solid var(--border-color-light); }
+
+        .summary-item { 
+            padding: 5px 10px; /* Reduced padding */
+            border-radius: 6px; /* Slightly smaller border-radius */
+            transition: background-color 0.3s; 
+            white-space: nowrap; /* Prevent text wrapping within item */
+            text-align: center; /* Center text within each item */
+        }
+        body.dark-mode .summary-item { background-color: var(--bg-main-dark); }
+        body.light-mode .summary-item { background-color: var(--bg-main-light); }
+
+        .summary-item .label { 
+            display: block; 
+            font-size: 0.75em; /* Reduced font size */
+            margin-bottom: 2px; /* Reduced margin */
+            transition: color 0.3s; 
+        }
+        body.dark-mode .summary-item .label { color: var(--text-secondary-dark); }
+        body.light-mode .summary-item .label { color: var(--text-secondary-light); }
+
+        .summary-item .value { 
+            font-size: 1.1em; /* Reduced font size */
+            font-weight: 600; 
+        }
+        .summary-item .value.total { transition: color 0.3s; }
+        body.dark-mode .summary-item .value.total { color: var(--accent-gold-dark); }
+        body.light-mode .summary-item .value.total { color: var(--accent-blue-light); }
+
+        /* Ergovia Automation Panel */
+        .ergovia-automation-panel {
+            background-color: var(--bg-panel-dark);
+            border: 1px solid var(--border-color-dark);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            margin-bottom: 20px;
+            padding: 20px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        body.light-mode .ergovia-automation-panel {
+            background-color: var(--bg-panel-light);
+            border: 1px solid var(--border-color-light);
+        }
+
+        .ergovia-automation-panel h2 {
+            color: var(--accent-gold-dark);
+            font-size: 1.5em;
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        body.light-mode .ergovia-automation-panel h2 {
+            color: var(--accent-blue-light);
+        }
+
+        .ergovia-automation-content {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .ergovia-automation-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .ergovia-automation-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ergovia-automation-toggle span {
+            font-weight: 600;
+        }
+
+        /* Ways to Earn Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto; /* Allow modal to scroll if content is too long */
+        }
+
+        .modal-content {
+            background-color: var(--bg-panel-dark);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            color: var(--text-primary-dark);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        body.light-mode .modal-content {
+            background-color: var(--bg-panel-light);
+            color: var(--text-primary-light);
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: var(--text-secondary-dark);
+            cursor: pointer;
+        }
+        body.light-mode .modal-close-btn {
+            color: var(--text-secondary-light);
+        }
+
+        .modal-content h2 {
+            color: var(--accent-gold-dark);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        body.light-mode .modal-content h2 {
+            color: var(--accent-blue-light);
+        }
+
+        .modal-content p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .modal-content strong {
+            color: var(--accent-gold-dark);
+        }
+        body.light-mode .modal-content strong {
+            color: var(--accent-blue-light);
+        }
+
+        .modal-content ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }
+        .modal-content li {
+            margin-bottom: 8px;
+        }
+
+        .btn-ways-to-earn {
+            background-color: var(--accent-gold-dark);
+            color: var(--bg-main-dark);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, color 0.3s;
+            margin-left: 20px;
+        }
+        .btn-ways-to-earn:hover {
+            background-color: #e6b800;
+        }
+        body.light-mode .btn-ways-to-earn {
+            background-color: var(--accent-blue-light);
+            color: white;
+        }
+        body.light-mode .btn-ways-to-earn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Network Bonus Tooltip */
+        .network-bonus-info {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 5px;
+        }
+        .network-bonus-info .tooltip-text {
+            width: 280px;
+            left: 0;
+            margin-left: 0;
+            transform: translateX(-50%);
+            bottom: 125%;
+            text-align: left;
+            padding: 10px;
+        }
+        .network-bonus-info .tooltip-text::after {
+            left: 50%;
+        }
+        .network-bonus-info .tooltip-icon {
+            width: 18px;
+            height: 18px;
+            font-size: 0.8em;
+            background-color: var(--text-secondary-dark);
+            color: var(--bg-main-dark);
+        }
+        body.light-mode .network-bonus-info .tooltip-icon {
+            background-color: var(--text-secondary-light);
+            color: var(--bg-main-light);
+        }
+
+        /* Ergovia Setup Modal */
+        .setup-phase {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+        }
+        body.dark-mode .setup-phase {
+            border-bottom: 1px solid var(--border-color-dark);
+        }
+        body.light-mode .setup-phase {
+            border-bottom: 1px solid var(--border-color-light);
+        }
+        .setup-phase:last-of-type {
+            border-bottom: none;
+        }
+
+        .setup-phase h3 {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+            color: var(--accent-gold-dark);
+        }
+        body.light-mode .setup-phase h3 {
+            color: var(--accent-blue-light);
+        }
+        .phase-explanation {
+            font-size: 0.9em;
+            color: var(--text-secondary-dark);
+            margin-bottom: 15px;
+        }
+        body.light-mode .phase-explanation {
+            color: var(--text-secondary-light);
+        }
+
+        .form-option {
+            margin-bottom: 15px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .conditional-fields {
+            display: none;
+            padding-left: 28px;
+            margin-top: 10px;
+            border-left: 2px solid var(--border-color-dark);
+        }
+        body.light-mode .conditional-fields {
+            border-left: 2px solid var(--border-color-light);
+        }
+
+        #ergovia-setup-form input[type="text"],
+        #ergovia-setup-form input[type="email"],
+        #ergovia-setup-form input[type="tel"],
+        #ergovia-setup-form input[type="url"],
+        #ergovia-setup-form select,
+        #ergovia-setup-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color-dark);
+            background-color: var(--bg-main-dark);
+            color: var(--text-primary-dark);
+            box-sizing: border-box; /* Important for width */
+        }
+        body.light-mode #ergovia-setup-form input[type="text"],
+        body.light-mode #ergovia-setup-form input[type="email"],
+        body.light-mode #ergovia-setup-form input[type="tel"],
+        body.light-mode #ergovia-setup-form input[type="url"],
+        body.light-mode #ergovia-setup-form select,
+        body.light-mode #ergovia-setup-form textarea {
+            border: 1px solid var(--border-color-light);
+            background-color: var(--bg-main-light);
+            color: var(--text-primary-light);
+        }
+
+        #ergovia-setup-form textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .explanation {
+            font-size: 0.85em;
+            color: var(--text-secondary-dark);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        body.light-mode .explanation {
+            color: var(--text-secondary-light);
+        }
+
+        #ergovia-setup-form .form-actions {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        #ergovia-setup-form .btn-cancel,
+        #ergovia-setup-form .btn-submit {
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            border: none;
+        }
+
+        #ergovia-setup-form .btn-cancel {
+            background-color: #4a4f56;
+            color: var(--text-primary-dark);
+            margin-right: 10px;
+        }
+        body.light-mode #ergovia-setup-form .btn-cancel {
+            background-color: #ccc;
+            color: var(--text-primary-light);
+        }
+
+        #ergovia-setup-form .btn-submit {
+            background-color: var(--accent-gold-dark);
+            color: var(--bg-main-dark);
+        }
+        body.light-mode #ergovia-setup-form .btn-submit {
+            background-color: var(--accent-blue-light);
+            color: white;
+        }
+
+        #ergovia-setup-form .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div class="container">
+        <header class="main-header">
+            <h1>Ergovia-AI Affiliate Dashboard</h1>
+            <div class="tooltip-container">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Sell more Ergovia subscriptions to earn more marketing tokens.</span>
+            </div>
+            <a href="/chat" class="back-to-chat-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Chat
+            </a>
+            <button id="theme-toggle" class="theme-toggle">
+                <i class="fas fa-sun"></i>
+            </button>
+            <button id="ways-to-earn-btn" class="btn-ways-to-earn">Ways to Earn</button>
+        </header>
+
+        <div class="ergovia-automation-panel">
+            <h2>Ergovia-AI Platform Automation</h2>
+            <div class="ergovia-automation-content">
+                <div class="ergovia-automation-stats">
+                    <div class="summary-item">
+                        <span class="label">Total Active Ergovia-AI Subscribers</span>
+                        <span class="value" id="total-subscribers">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Total Recurring Revenue—Ergovia-AI</span>
+                        <span class="value" id="total-revenue-ergovia">$0</span>
+                    </div>
+                </div>
+                <div class="ergovia-automation-toggle">
+                    <span>Activate Ergovia Marketing Automation:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ergovia-automation-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="niches-panel-wrapper">
+            <div class="niches-grid" id="niches-grid">
+                <!-- Niche rows will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <footer class="summary-strip">
+            <div class="summary-item">
+                <span class="label">Total Active ETFs</span>
+                <span class="value" id="total-etfs">0</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Marketing Tokens Available</span>
+                <span class="value" id="tokens-available">10,000</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Total Recurring Revenue—ETFs</span>
+                <span class="value" id="total-revenue-etfs">$0</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">Total Recurring Revenue—Network Bonus
+                    <span class="network-bonus-info">
+                        <span class="tooltip-icon">i</span>
+                        <span class="tooltip-text">Earn $5 recurring for every ETF sold by your direct downline. This incentivizes your team to sell more, creating a compounding income stream for you!</span>
+                    </span>
+                </span>
+                <span class="value" id="total-revenue-network-bonus">$0</span>
+            </div>
+            <div class="summary-item">
+                <span class="label">TOTAL MONTHLY EARNINGS</span>
+                <span class="value total" id="total-monthly-earnings">$0</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Ways to Earn Modal -->
+    <div id="ways-to-earn-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h2>Ways to Earn with Ergovia-AI</h2>
+            <p>As an Ergovia-AI Affiliate, you have multiple powerful income streams:</p>
+            <ul>
+                <li>
+                    <strong>1. Sell Ergovia-AI Subscriptions:</strong>
+                    Earn <strong>$10 recurring monthly income</strong> for every active Ergovia-AI subscriber you bring in. As long as they stay, you earn!
+                </li>
+                <li>
+                    <strong>2. Sell Ergovia Taskforce (ETF) Base Models:</strong>
+                    Earn <strong>$50 recurring monthly income</strong> for every ETF Base Model you sell. These are powerful automation agents that solve real business problems for clients.
+                </li>
+                <li>
+                    <strong>3. Network Bonus (Direct Downline ETF Sales):</strong>
+                    This is where your income truly compounds! Earn an additional <strong>$5 recurring monthly income</strong> for every ETF Base Model sold by your *direct downline* affiliates. This incentivizes your team to sell more, as their success directly contributes to your passive income.
+                </li>
+            </ul>
+            <h3>Marketing Automation Explained:</h3>
+            <p>
+                Every time you sell an Ergovia-AI subscription, you earn marketing tokens. These tokens are your marketing budget! You can load these tokens into any niche of your choosing to automate its marketing. This means your sales directly fuel your ability to generate more leads and sales, creating a self-sustaining growth loop.
+            </p>
+            <p>
+                <strong>Important:</strong> To enable marketing automation for individual niches, you must first activate and configure your overall Ergovia-AI Platform Automation. This involves a one-time setup where you define how our AI agent will handle your personal marketing content distribution and lead engagement.
+            </p>
+        </div>
+    </div>
+
+    <!-- Ergovia Automation Setup Modal -->
+    <div id="ergovia-setup-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h2>Ergovia-AI Platform Automation Setup</h2>
+            <p>Configure your marketing AI agent. At least one option from Phase 1 and all of Phase 2 are required.</p>
+
+            <form id="ergovia-setup-form" onsubmit="return false;">
+                <!-- Phase 1: Content Distribution -->
+                <div class="setup-phase">
+                    <h3>Phase 1: Content Distribution</h3>
+                    <p class="phase-explanation">How will your marketing content be posted?</p>
+
+                    <div class="form-option">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="setup-enable-automated-posting">
+                            Enable Automated Social Media Posting
+                        </label>
+                        <div id="automated-posting-fields" class="conditional-fields">
+                            <p class="explanation">By providing API access, our AI agent can directly post marketing content to your selected social media platform, including pages or groups you manage. This offers maximum automation.</p>
+                            <select id="setup-social-platform">
+                                <option value="">Select Social Media Platform</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="linkedin">LinkedIn</option>
+                                <option value="twitter">Twitter</option>
+                            </select>
+                            <input type="text" id="setup-api-key" placeholder="Enter your platform's API key or access token">
+                            <input type="text" id="setup-page-id" placeholder="Page/Group ID (Optional)">
+                        </div>
+                    </div>
+
+                    <div class="form-option">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="setup-enable-manual-delivery">
+                            Receive Content for Manual Posting
+                        </label>
+                        <div id="manual-delivery-fields" class="conditional-fields">
+                            <p class="explanation">If you prefer to maintain direct control, our AI agent will generate ready-to-post content and send it to your preferred channel. You can then copy and paste it into your social media, including groups you participate in.</p>
+                            <select id="setup-delivery-channel">
+                                <option value="">Select Preferred Delivery Channel</option>
+                                <option value="email">Email</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="whatsapp">WhatsApp</option>
+                            </select>
+                            <input type="text" id="setup-contact-info" placeholder="Your Email, Telegram Handle, or WhatsApp Number">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2: Lead Engagement -->
+                <div class="setup-phase">
+                    <h3>Phase 2: Lead Engagement & Closing</h3>
+                    <p class="phase-explanation">How will the AI agent communicate with leads?</p>
+                    <p class="explanation">Our AI agent can engage directly with leads on your chosen messaging platform, follow up, answer questions, and guide them towards closing a sale. Provide details for the platform where you primarily interact with potential customers.</p>
+                    
+                    <select id="setup-messaging-platform" required>
+                        <option value="">Primary Messaging Platform</option>
+                        <option value="tiktok">TikTok DMs</option>
+                        <option value="instagram-dm">Instagram DMs</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="crm">Custom CRM Integration</option>
+                    </select>
+                    <input type="text" id="setup-platform-handle" placeholder="Your Platform Handle / Account ID" required>
+                    <textarea id="setup-audience-style" placeholder="Describe your ideal lead and preferred communication tone/strategy for the AI agent. (Optional)"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel">Cancel</button>
+                    <button type="submit" id="btn-activate-automation" class="btn-submit" disabled>Activate Ergovia Automation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const body = document.body;
+            const waysToEarnBtn = document.getElementById('ways-to-earn-btn');
+            const waysToEarnModal = document.getElementById('ways-to-earn-modal');
+            const modalCloseBtn = waysToEarnModal.querySelector('.modal-close-btn');
+
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                body.classList.toggle('light-mode');
+                
+                const icon = themeToggle.querySelector('i');
+                if (body.classList.contains('dark-mode')) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                } else {
+                    icon.classList.remove('fa-sun');
+                    icon.classList.add('fa-moon');
+                }
+            });
+
+            waysToEarnBtn.addEventListener('click', () => {
+                waysToEarnModal.style.display = 'flex';
+            });
+
+            modalCloseBtn.addEventListener('click', () => {
+                waysToEarnModal.style.display = 'none';
+            });
+
+            waysToEarnModal.addEventListener('click', (e) => {
+                if (e.target === waysToEarnModal) {
+                    waysToEarnModal.style.display = 'none';
+                }
+            });
+
+
+            const niches = [
+                "Airbnb / Staycation Mgmt", "Local Contractors (Plumbers, HVAC, Electricians)", "Cleaning Services",
+                "Tutoring & Review Centers", "Gym & Fitness Centers", "Massage Therapy Clinics", "Dental Offices",
+                "Physical Therapy Centers", "Day Care", "Nutritionists / Dieticians", "Clinics (General)",
+                "Chiropractic Clinics", "Optometry Clinics", "Pet Shops / Pet Clinics", "Beauty Salons",
+                "Med Spas & Cosmetic Clinics", "Pilates/Yoga Studios", "Driving Schools",
+                "Consultants / Coaches & Course Creators", "Personal Trainers & Fitness Studios",
+                "Speaker / Author / Influencer", "Moving Companies", "Shop & Car Mechanics",
+                "Event Venue Coordination", "Storage Units / Self-Storage", "Trucking Companies",
+                "Travel Agencies", "Private Concierge Medical Services", "HOA Admin Services",
+                "Counseling & Psychotherapy Clinics", "Security Agencies", "YouTube Content Creator News Automator"
+            ];
+
+            const nicheData = niches.map((name, index) => ({
+                id: `niche-${index}`,
+                name: name,
+                activeETFs: Math.floor(Math.random() * 21) + 10, // 10-30 ETFs per niche
+                tokensToFullAuto: Math.floor(Math.random() * 4000) + 1000,
+            }));
+            
+            let globalTokens = 10000;
+            let totalSubscribers = 150; // "100+"
+            let totalDownlineETFSales = Math.floor(Math.random() * 50) + 20; // Dummy data for network bonus
+            let isErgoviaAutomationActive = false;
+
+            const grid = document.getElementById('niches-grid');
+            const ergoviaAutomationToggle = document.getElementById('ergovia-automation-toggle');
+
+            // --- SETUP MODAL LOGIC ---
+            const setupModal = document.getElementById('ergovia-setup-modal');
+            const setupForm = document.getElementById('ergovia-setup-form');
+            const setupCloseBtn = setupModal.querySelector('.modal-close-btn');
+            const setupCancelBtn = setupModal.querySelector('.btn-cancel');
+            const activateBtn = document.getElementById('btn-activate-automation');
+
+            const automatedPostingCheckbox = document.getElementById('setup-enable-automated-posting');
+            const manualDeliveryCheckbox = document.getElementById('setup-enable-manual-delivery');
+            const automatedFields = document.getElementById('automated-posting-fields');
+            const manualFields = document.getElementById('manual-delivery-fields');
+
+            const socialPlatform = document.getElementById('setup-social-platform');
+            const apiKey = document.getElementById('setup-api-key');
+            const deliveryChannel = document.getElementById('setup-delivery-channel');
+            const contactInfo = document.getElementById('setup-contact-info');
+            const messagingPlatform = document.getElementById('setup-messaging-platform');
+            const platformHandle = document.getElementById('setup-platform-handle');
+
+            function closeSetupModal() {
+                setupModal.style.display = 'none';
+            }
+
+            setupCloseBtn.addEventListener('click', closeSetupModal);
+            setupCancelBtn.addEventListener('click', closeSetupModal);
+            setupModal.addEventListener('click', (e) => {
+                if (e.target === setupModal) {
+                    closeSetupModal();
+                }
+            });
+
+            automatedPostingCheckbox.addEventListener('change', () => {
+                automatedFields.style.display = automatedPostingCheckbox.checked ? 'block' : 'none';
+                validateSetupForm();
+            });
+
+            manualDeliveryCheckbox.addEventListener('change', () => {
+                manualFields.style.display = manualDeliveryCheckbox.checked ? 'block' : 'none';
+                validateSetupForm();
+            });
+
+            function validateSetupForm() {
+                // For testing purposes, always enable the activate button
+                activateBtn.disabled = false;
+            }
+            
+            setupForm.addEventListener('input', validateSetupForm);
+            setupForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (activateBtn.disabled) return;
+
+                isErgoviaAutomationActive = true;
+                ergoviaAutomationToggle.checked = true;
+                setNicheControlsState(true);
+                updateSummary();
+                closeSetupModal();
+
+                alert('Ergovia-AI Platform Automation has been activated!');
+            });
+            // --- END SETUP MODAL LOGIC ---
+
+            function setNicheControlsState(enabled) {
+                const nicheToggles = document.querySelectorAll('.niche-row .toggle-switch input');
+                const addTokenButtons = document.querySelectorAll('.niche-row .btn-add-tokens');
+                const manualLeadsButtons = document.querySelectorAll('.niche-row .btn-toggle-form');
+
+                nicheToggles.forEach(toggle => {
+                    toggle.disabled = !enabled;
+                    toggle.closest('label').style.opacity = enabled ? '1' : '0.5';
+                    if (!enabled) toggle.checked = false;
+                });
+                addTokenButtons.forEach(button => {
+                    button.disabled = !enabled;
+                    button.style.opacity = enabled ? '1' : '0.5';
+                });
+                manualLeadsButtons.forEach(button => {
+                    button.disabled = !enabled;
+                    button.style.opacity = enabled ? '1' : '0.5';
+                });
+            }
+
+            setNicheControlsState(isErgoviaAutomationActive);
+
+            ergoviaAutomationToggle.addEventListener('click', (e) => {
+                e.preventDefault(); 
+
+                if (isErgoviaAutomationActive) {
+                    const confirmation = confirm("Turning off Ergovia-AI Platform Automation will also deactivate all active niche marketing automations. Are you sure?");
+                    if (confirmation) {
+                        isErgoviaAutomationActive = false;
+                        ergoviaAutomationToggle.checked = false;
+                        setNicheControlsState(false);
+                        updateSummary();
+                    }
+                } else {
+                    setupModal.style.display = 'flex';
+                }
+            });
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+            }
+
+            function formatNumber(value) {
+                return new Intl.NumberFormat('en-US').format(value);
+            }
+
+            function renderNiches() {
+                grid.innerHTML = nicheData.map(niche => {
+                    const monthlyIncome = niche.activeETFs * 50;
+                    return `
+                    <div class="niche-row-wrapper" id="${niche.id}-wrapper">
+                        <div class="niche-row">
+                            <div class="niche-name">${niche.name}</div>
+                            <div class="niche-stat">
+                                <span>Active ETFs:</span>
+                                <span class="badge">${niche.activeETFs}</span>
+                            </div>
+                            <div class="niche-income">
+                                <span>Monthly Recurring Income:</span>
+                                <strong>${formatCurrency(monthlyIncome)}</strong>
+                            </div>
+                            <div class="automation-bar">
+                                <span class="automation-text" data-base-tokens="${niche.tokensToFullAuto}">${formatNumber(niche.tokensToFullAuto)} Tokens to full auto marketing</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" ${isErgoviaAutomationActive ? '' : 'disabled'}>
+                                    <span class="slider"></span>
+                                </label>
+                                <div class="mini-panel">
+                                    <button class="btn-add-tokens" ${isErgoviaAutomationActive ? '' : 'disabled'}>Add tokens to marketing automation</button>
+                                    <div class="token-input-group">
+                                        <input type="number" placeholder="Number of tokens to add" min="1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="manual-leads-toggle">
+                                <button class="btn-toggle-form" ${isErgoviaAutomationActive ? '' : 'disabled'}>Manual Leads Form</button>
+                            </div>
+                        </div>
+                        <div class="leads-form-container">
+                            ${createLeadsFormHTML()}
+                        </div>
+                    </div>
+                `}).join('');
+            }
+
+            function createLeadsFormHTML() {
+                let tableRows = '';
+                for (let i = 0; i < 5; i++) {
+                    tableRows += `
+                        <tr>
+                            <td><input type="text" placeholder="Business Name"></td>
+                            <td><input type="text" placeholder="Contact Name"></td>
+                            <td><input type="email" placeholder="Email"></td>
+                            <td><input type="tel" placeholder="Phone"></td>
+                            <td><input type="url" placeholder="Website"></td>
+                            <td><input type="text" placeholder="Source of Lead"></td>
+                        </tr>
+                    `;
+                }
+                return `
+                    <table class="leads-table">
+                        <thead> <tr> <th>Business Name</th> <th>Contact Name</th> <th>Email</th> <th>Phone</th> <th>Website</th> <th>Source of Lead</th> </tr> </thead>
+                        <tbody> ${tableRows} </tbody>
+                    </table>
+                    <div class="leads-form-actions"><button class="btn-submit-leads">Submit Leads</button></div>
+                `;
+            }
+
+            function updateSummary() {
+                const totalETFs = nicheData.reduce((sum, n) => sum + n.activeETFs, 0);
+                const totalETFIncome = totalETFs * 50;
+                const totalErgoviaRevenue = totalSubscribers * 10;
+                const totalNetworkBonus = totalDownlineETFSales * 5; // $5 per downline ETF sale
+                const totalMonthlyEarnings = totalErgoviaRevenue + totalETFIncome + totalNetworkBonus;
+
+                // Update Ergovia-AI Platform Automation section
+                document.getElementById('total-subscribers').textContent = formatNumber(totalSubscribers);
+                document.getElementById('total-revenue-ergovia').textContent = formatCurrency(totalErgoviaRevenue);
+
+                // Update Summary Strip
+                document.getElementById('total-etfs').textContent = formatNumber(totalETFs);
+                document.getElementById('tokens-available').textContent = formatNumber(globalTokens);
+                document.getElementById('total-revenue-etfs').textContent = formatCurrency(totalETFIncome);
+                document.getElementById('total-revenue-network-bonus').textContent = formatCurrency(totalNetworkBonus);
+                document.getElementById('total-monthly-earnings').textContent = formatCurrency(totalMonthlyEarnings);
+            }
+
+            grid.addEventListener('click', function(e) {
+                if (e.target.classList.contains('btn-toggle-form')) {
+                    const formContainer = e.target.closest('.niche-row-wrapper').querySelector('.leads-form-container');
+                    formContainer.classList.toggle('visible');
+                }
+
+                if (e.target.classList.contains('btn-add-tokens')) {
+                    // Only allow adding tokens if Ergovia automation is active
+                    if (!isErgoviaAutomationActive) {
+                        alert('Please activate Ergovia-AI Platform Automation first to enable niche marketing automation.');
+                        return;
+                    }
+
+                    const button = e.target;
+                    const inputGroup = button.nextElementSibling;
+                    
+                    if (inputGroup.style.display === 'none' || inputGroup.style.display === '') {
+                        inputGroup.style.display = 'flex';
+                        button.textContent = 'Confirm Add';
+                        inputGroup.querySelector('input').focus();
+                    } else {
+                        const input = inputGroup.querySelector('input');
+                        const tokensToAdd = parseInt(input.value, 10);
+
+                        if (isNaN(tokensToAdd) || tokensToAdd <= 0) { alert('Please enter a valid number of tokens.'); return; }
+                        if (tokensToAdd > globalTokens) { alert('You do not have enough available tokens.'); return; }
+
+                        const automationText = button.closest('.automation-bar').querySelector('.automation-text');
+                        const currentTokensNeededRaw = automationText.textContent.replace(/,/g, '').split(' ')[0];
+                        const currentTokensNeeded = parseInt(currentTokensNeededRaw, 10);
+                        
+                        // Calculate actual tokens to deduct (min of input and needed)
+                        const actualTokensDeducted = Math.min(tokensToAdd, currentTokensNeeded);
+
+                        globalTokens -= actualTokensDeducted; // Deduct only what's needed
+                        
+                        const newTokensNeeded = Math.max(0, currentTokensNeeded - actualTokensDeducted);
+                        
+                        if (newTokensNeeded === 0) {
+                            automationText.textContent = 'Marketing fully automated';
+                            automationText.style.color = 'var(--accent-gold-dark)'; // Or your preferred success color
+                        } else {
+                            automationText.textContent = `${formatNumber(newTokensNeeded)} Tokens to full auto marketing`;
+                        }
+
+                        updateSummary();
+                        
+                        input.value = '';
+                        inputGroup.style.display = 'none';
+                        button.textContent = 'Add tokens to marketing automation';
+                        alert(`${formatNumber(actualTokensDeducted)} tokens added successfully!`);
+                    }
+                }
+                
+                if (e.target.classList.contains('btn-submit-leads')) {
+                    const formContainer = e.target.closest('.leads-form-container');
+                    const inputs = formContainer.querySelectorAll('tbody input');
+                    let allValid = true, hasData = false;
+
+                    inputs.forEach(input => {
+                        const row = input.closest('tr');
+                        const rowInputs = row.querySelectorAll('input');
+                        const isRowEmpty = Array.from(rowInputs).every(i => i.value.trim() === '');
+
+                        if (!isRowEmpty) {
+                            hasData = true;
+                            rowInputs.forEach(i => {
+                                if (i.value.trim() === '') { allValid = false; i.style.borderColor = 'red'; } 
+                                else { i.style.borderColor = ''; }
+                            });
+                        }
+                    });
+
+                    if (!hasData) { alert('Please fill out at least one row to submit.'); return; }
+                    if (allValid) { alert('Leads submitted successfully!'); formContainer.querySelectorAll('tbody input').forEach(i => i.value = ''); }
+                    else { alert('Please fill all required fields for the rows you started entering.'); }
+                }
+            });
+
+            renderNiches();
+            updateSummary();
+        });
+    </script>
+
+</body>
+</html>
