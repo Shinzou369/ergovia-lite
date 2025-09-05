@@ -17,7 +17,7 @@ localPort = 3000
 externalPort = 80
 
 [workflows]
-runButton = "Start Server"
+runButton = "Start Magic Link Auth"
 
 [[workflows.workflow]]
 name = "Dev"
@@ -36,6 +36,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node server.js"
+
+[[workflows.workflow]]
+name = "Start Magic Link Auth"
+author = 42160976
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node index.js"
 
 [agent]
 expertMode = true
