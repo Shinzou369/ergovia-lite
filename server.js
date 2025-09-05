@@ -1641,22 +1641,6 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
   }
 });
 
-// Get Telegram session data
-app.get('/api/auth/telegram-session-data', (req, res) => {
-  try {
-    const telegramUser = req.session.telegram_user || null;
-    const telegramConnected = req.session.telegram_connected || false;
-
-    res.json({
-      telegram_user: telegramUser,
-      telegram_connected: telegramConnected
-    });
-  } catch (error) {
-    console.error('Error getting Telegram session data:', error);
-    res.status(500).json({ error: 'Failed to get session data' });
-  }
-});
-
 // Test endpoint to list tags
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
@@ -4843,85 +4827,6 @@ app.get('/api/auth/slack-callback', async (req, res) => {
     res.redirect('/etf-onboard?error=slack_oauth_failed');
   }
 });
-
-// Telegram OAuth Flow
-app.post('/api/auth/telegram-oauth', (req, res) => {
-  try {
-    const state = crypto.randomBytes(32).toString('hex');
-
-    req.session.telegramOAuthState = state;
-
-    req.session.save((err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Session storage failed' });
-      }
-
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers.host;
-      const redirectUri = `${protocol}://${host}/api/auth/telegram-callback`;
-
-      // Telegram Login Widget URL
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'your_bot_username';
-      const authUrl = `https://oauth.telegram.org/auth?` +
-        `bot_id=${process.env.TELEGRAM_BOT_ID}&` +
-        `origin=${encodeURIComponent(`${protocol}://${host}`)}&` +
-        `return_to=${encodeURIComponent(redirectUri)}&` +
-        `request_access=write`;
-
-      res.json({ authUrl, botUsername });
-    });
-  } catch (error) {
-    console.error('Error initiating Telegram OAuth:', error);
-    res.status(500).json({ error: 'Failed to initiate Telegram OAuth flow' });
-  }
-});
-
-app.get('/api/auth/telegram-callback', async (req, res) => {
-  try {
-    const { id, first_name, last_name, username, photo_url, auth_date, hash } = req.query;
-
-    // Verify Telegram authentication
-    if (!verifyTelegramAuth(req.query)) {
-      return res.redirect('/etf-onboard?error=telegram_auth_invalid');
-    }
-
-    // Store Telegram user data in session
-    req.session.telegram_user = {
-      id: id,
-      first_name: first_name,
-      last_name: last_name,
-      username: username,
-      photo_url: photo_url,
-      chat_id: id // User's chat ID is their Telegram ID
-    };
-
-    req.session.telegram_connected = true;
-    delete req.session.telegramOAuthState;
-
-    console.log('✅ Telegram OAuth completed successfully for user:', username || id);
-    res.redirect('/etf-onboard?telegram_connected=true');
-  } catch (error) {
-    console.error('Error in Telegram OAuth callback:', error);
-    res.redirect('/etf-onboard?error=telegram_oauth_failed');
-  }
-});
-
-// Helper function to verify Telegram authentication
-function verifyTelegramAuth(authData) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) return false;
-
-  const { hash, ...data } = authData;
-  const dataCheckString = Object.keys(data)
-    .sort()
-    .map(key => `${key}=${data[key]}`)
-    .join('\n');
-
-  const secretKey = crypto.createHash('sha256').update(token).digest();
-  const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-  return calculatedHash === hash;
-}
 
 // GitHub OAuth Flow
 app.post('/api/auth/github-oauth', (req, res) => {

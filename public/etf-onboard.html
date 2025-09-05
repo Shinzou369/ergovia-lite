@@ -20,7 +20,7 @@
             --ergovia-navy: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 100%);
             --ergovia-gold: linear-gradient(135deg, #8B7E2A 0%, #B8A548 50%, #FFD700 100%);
             --ergovia-text-gradient: linear-gradient(135deg, #c6cfdb, #cdd5e0, #f4efe8, #ffffff);
-
+            
             --bg-primary: #0f0f0f;
             --bg-secondary: #1a1a1a;
             --bg-tertiary: #262626;
@@ -795,6 +795,7 @@
         .connect-btn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
+            transform: none;
         }
 
         .helper-text {
@@ -1024,7 +1025,7 @@
             padding: 12px;
             margin-top: 8px;
         }
-
+        
         .missing-fields-list li {
             color: #dc3545;
             font-weight: 600;
@@ -1165,6 +1166,7 @@
         .generate-key-btn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
+            transform: none;
         }
 
         .key-status-badge {
@@ -1304,26 +1306,9 @@
 
                     <!-- Telegram Bot Credentials -->
                     <h3 style="color: #FFD700; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="send" style="width: 20px; height: 20px;"></i>
+                        <i data-lucide="message-circle" style="width: 20px; height: 20px;"></i>
                         Telegram Bot Credentials
                     </h3>
-
-                    <!-- Telegram Login Option -->
-                    <div class="oauth-section" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #0088cc;">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                            <div>
-                                <h4 style="margin: 0; color: #0088cc;">Quick Setup with Telegram Login</h4>
-                                <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Automatically get your Chat ID (you'll still need a Bot Token)</p>
-                            </div>
-                            <button type="button" id="telegramLoginBtn" onclick="initiateTelegramLogin()" 
-                                    style="background: #0088cc; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                <i data-lucide="users" style="width: 16px; height: 16px;"></i>
-                                Login with Telegram
-                            </button>
-                        </div>
-                        <div id="telegramLoginStatus" style="display: none; padding: 8px; border-radius: 4px; font-size: 12px;"></div>
-                    </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label for="telegramBotToken">Telegram Bot Token <span class="required">*</span></label>
@@ -1401,7 +1386,7 @@
                         <i data-lucide="brain" style="width: 20px; height: 20px;"></i>
                         AI Service Credentials
                     </h3>
-
+                    
                     <!-- OpenAI Key Generation Section -->
                     <div class="credential-card" style="border: 2px solid #FFD700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%); margin-bottom: 20px;">
                         <div class="credential-header">
@@ -1769,6 +1754,54 @@
                             </select>
                             <div class="form-help">
                                 How to handle clients who don't show up for appointments.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media Configuration -->
+                    <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="share-2" style="width: 20px; height: 20px;"></i>
+                        Social Media Configuration (Optional)
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="facebookPageId">Facebook Page ID</label>
+                            <input type="text" id="facebookPageId" name="facebook_page_id"
+                                   placeholder="1234567890123456">
+                            <div class="form-help">
+                                Your Facebook page ID for automated posting.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="whatsappPhoneId">WhatsApp Phone Number ID</label>
+                            <input type="text" id="whatsappPhoneId" name="whatsapp_phone_id"
+                                   placeholder="1234567890123456">
+                            <div class="form-help">
+                                WhatsApp Business phone number ID.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Configuration -->
+                    <h3 style="color: #4CAF50; margin: 30px 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="mail" style="width: 20px; height: 20px;"></i>
+                        Email Configuration
+                    </h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fromEmail">From Email Address <span class="required">*</span></label>
+                            <input type="email" id="fromEmail" name="from_email" required
+                                   placeholder="noreply@yourclinic.com">
+                            <div class="form-help">
+                                Email address that will appear as sender.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fromName">From Name <span class="required">*</span></label>
+                            <input type="text" id="fromName" name="from_name" required
+                                   placeholder="Your Clinic Name">
+                            <div class="form-help">
+                                Display name for email sender.
                             </div>
                         </div>
                     </div>
@@ -2169,7 +2202,7 @@
         });
 
         // Validate Telegram credentials format
-        function validateTelegramInput(botToken, chatId) {
+        function validateTelegramCredentials(botToken, chatId) {
             const errors = [];
             const botTokenRegex = /^\d+:[A-Za-z0-9_-]{35}$/;
 
@@ -2200,7 +2233,7 @@
             // Telegram validation
             const telegramBotToken = document.getElementById('telegramBotToken').value;
             const telegramChatId = document.getElementById('telegramChatId').value;
-            const telegramValidationErrors = validateTelegramInput(telegramBotToken, telegramChatId);
+            const telegramValidationErrors = validateTelegramCredentials(telegramBotToken, telegramChatId);
             if (telegramValidationErrors.length > 0) {
                 showError('Please fix the following issues with your Telegram credentials:\n\n' + telegramValidationErrors.join('\n'));
                 return;
@@ -2337,21 +2370,21 @@
                     status.style.background = 'rgba(40, 167, 69, 0.15)';
                     status.style.color = '#28a745';
                     status.style.borderColor = 'rgba(40, 167, 69, 0.3)';
-
+                    
                     result.style.display = 'block';
-
+                    
                     btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i>Key Generated';
                     btn.style.background = '#28a745';
-
+                    
                     // Store client ID for form submission
                     const hiddenInput = document.createElement('input');
                     hiddenInput.type = 'hidden';
                     hiddenInput.name = 'generated_client_id';
                     hiddenInput.value = clientId;
                     document.getElementById('etfOnboardingForm').appendChild(hiddenInput);
-
+                    
                     showSuccess(`OpenAI key generated successfully! Key preview: ${data.key_preview}`);
-
+                    
                 } else {
                     throw new Error(data.error || 'Failed to generate OpenAI key');
                 }
@@ -2370,8 +2403,13 @@
             const chatId = document.getElementById('telegramChatId').value.trim();
             const resultDiv = document.getElementById('telegramTestResult');
 
-            // Validate input format
-            const telegramErrors = validateTelegramInput(botToken, chatId);
+            if (!botToken || !chatId) {
+                showTestResult(resultDiv, 'error', 'Please enter both bot token and chat ID');
+                return;
+            }
+
+            // Validate format first
+            const telegramErrors = validateTelegramCredentials(botToken, chatId);
             if (telegramErrors.length > 0) {
                 showTestResult(resultDiv, 'error', telegramErrors[0]);
                 return;
@@ -2515,22 +2553,22 @@
         // Show missing fields alert
         function showMissingFieldsAlert(missingFields) {
             const alertDiv = document.getElementById('missing-fields-alert') || createMissingFieldsAlert();
-            const fieldsList = missingFields.map(field => `<li>${field}</li>`).join('');
-
+            const fieldsList = missingFields.map(field => `• ${field}`).join('<br>');
+            
             alertDiv.innerHTML = `
                 <div class="alert-content">
                     <h4><i data-lucide="alert-triangle"></i> Missing Required Fields</h4>
                     <p>Please fill in the following required fields:</p>
-                    <ul class="missing-fields-list">${fieldsList}</ul>
+                    <div class="missing-fields-list">${fieldsList}</div>
                     <button onclick="hideMissingFieldsAlert()" class="alert-close-btn">
                         <i data-lucide="x"></i>
                     </button>
                 </div>
             `;
-
+            
             alertDiv.style.display = 'block';
             alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
+            
             // Re-initialize icons
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -2552,11 +2590,11 @@
                 position: relative;
                 animation: slideInUp 0.3s ease-out;
             `;
-
+            
             // Insert after form container
             const formContainer = document.querySelector('.form-container');
             formContainer.parentNode.insertBefore(alertDiv, formContainer.nextSibling);
-
+            
             return alertDiv;
         }
 
@@ -2593,79 +2631,6 @@
                 });
             });
         });
-
-        // Telegram OAuth functions
-        async function initiateTelegramLogin() {
-            const statusDiv = document.getElementById('telegramLoginStatus');
-            const loginBtn = document.getElementById('telegramLoginBtn');
-
-            showTelegramStatus(statusDiv, 'loading', 'Initiating Telegram login...');
-            loginBtn.disabled = true;
-
-            try {
-                const response = await fetch('/api/auth/telegram-oauth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const result = await response.json();
-
-                if (result.authUrl) {
-                    showTelegramStatus(statusDiv, 'info', 'Redirecting to Telegram...');
-                    window.location.href = result.authUrl;
-                } else {
-                    throw new Error('No auth URL received');
-                }
-            } catch (error) {
-                showTelegramStatus(statusDiv, 'error', '❌ Failed to initiate Telegram login');
-                loginBtn.disabled = false;
-                console.error('Telegram OAuth error:', error);
-            }
-        }
-
-        function showTelegramStatus(element, type, message) {
-            element.style.display = 'block';
-            element.className = `status-${type}`;
-            element.textContent = message;
-
-            const colors = {
-                success: '#d4edda',
-                error: '#f8d7da',
-                loading: '#e1ecf4',
-                info: '#d1ecf1'
-            };
-
-            element.style.backgroundColor = colors[type] || '#f8f9fa';
-            element.style.color = type === 'error' ? '#721c24' : '#155724';
-            element.style.border = `1px solid ${type === 'error' ? '#f5c6cb' : '#c3e6cb'}`;
-        }
-
-        // Check for Telegram connection on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-
-            if (urlParams.get('telegram_connected') === 'true') {
-                const statusDiv = document.getElementById('telegramLoginStatus');
-                showTelegramStatus(statusDiv, 'success', '✅ Telegram connected! Your Chat ID has been automatically filled.');
-
-                // Auto-fill chat ID if available from server
-                fillTelegramDataFromSession();
-            }
-        });
-
-        async function fillTelegramDataFromSession() {
-            try {
-                const response = await fetch('/api/auth/telegram-session-data');
-                const data = await response.json();
-
-                if (data.telegram_user) {
-                    document.getElementById('telegramChatId').value = data.telegram_user.chat_id;
-                    document.getElementById('telegramChatId').style.backgroundColor = '#d4edda';
-                }
-            } catch (error) {
-                console.error('Failed to get Telegram session data:', error);
-            }
-        }
     </script>
 </body>
 </html>
