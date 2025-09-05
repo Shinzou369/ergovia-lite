@@ -3715,139 +3715,134 @@ app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
 app.get('/api/auth/stytch/authenticate', async (req, res) => {
   try {
     if (!stytchClient) {
-      console.error('❌ Stytch client not configured');
-      return res.redirect('/stytch-auth?error=service_unavailable');
+      return res.status(500).json({ error: 'Stytch not configured' });
     }
 
     const { token, stytch_token_type } = req.query;
     
-    console.log('🔄 Magic link authentication attempt:', { 
-      hasToken: !!token, 
-      tokenType: stytch_token_type,
-      sessionId: req.sessionID?.substring(0, 8) + '...'
-    });
+    // Get flow and return_to from session instead of query params
+    const flow = req.session.stytch_flow || 'general';
+    const return_to = req.session.stytch_return_to || '/chat';
 
     if (!token) {
-      console.error('❌ No token provided in magic link callback');
-      return res.redirect('/stytch-auth?error=missing_token');
+      // If no token, show auth page instead of error
+      return res.redirect('/stytch-auth?return_to=' + encodeURIComponent(return_to));
     }
 
-    try {
-      const response = await stytchClient.magicLinks.authenticate({
-        token: token,
-        session_duration_minutes: 60 * 24 * 7 // 7 days
-      });
+    const response = await stytchClient.magicLinks.authenticate({
+      token: token,
+      session_duration_minutes: 60 * 24 * 7 // 7 days
+    });
 
-      const user = response.user;
-      const session = response.session;
+    const user = response.user;
+    const session = response.session;
 
-      console.log('✅ Stytch authentication successful:', {
-        userId: user.user_id,
-        email: user.emails[0].email,
-        sessionId: session.session_id
-      });
+    // Get name data from session if available
+    const sessionFirstName = req.session.stytch_user_first_name;
+    const sessionLastName = req.session.stytch_user_last_name;
+    
+    // Create or update user in your system
+    const userData = {
+      stytch_user_id: user.user_id,
+      email: user.emails[0].email,
+      email_verified: user.emails[0].verified,
+      stytch_name: user.name?.first_name && user.name?.last_name ? 
+        `${user.name.first_name} ${user.name.last_name}` : 
+        (sessionFirstName && sessionLastName ? `${sessionFirstName} ${sessionLastName}` : null),
+      first_name: user.name?.first_name || sessionFirstName || '',
+      last_name: user.name?.last_name || sessionLastName || '',
+      createdAt: user.created_at,
+      isComplete: !!(user.name?.first_name && user.name?.last_name) || !!(sessionFirstName && sessionLastName),
+      authMethod: 'stytch',
+      stytch_session_id: session.session_id
+    };
 
-      // Get name data from session if available
-      const sessionFirstName = req.session.stytch_user_first_name;
-      const sessionLastName = req.session.stytch_user_last_name;
-      
-      // Create or update user in your system
-      const userData = {
-        stytch_user_id: user.user_id,
-        email: user.emails[0].email,
-        email_verified: user.emails[0].verified,
-        stytch_name: user.name?.first_name && user.name?.last_name ? 
-          `${user.name.first_name} ${user.name.last_name}` : 
-          (sessionFirstName && sessionLastName ? `${sessionFirstName} ${sessionLastName}` : null),
-        first_name: user.name?.first_name || sessionFirstName || '',
-        last_name: user.name?.last_name || sessionLastName || '',
-        createdAt: user.created_at,
-        isComplete: !!(user.name?.first_name && user.name?.last_name) || !!(sessionFirstName && sessionLastName),
-        authMethod: 'stytch',
-        stytch_session_id: session.session_id
+    // Store in your existing user system
+    let existingUser = findUserByEmail(userData.email);
+    if (existingUser) {
+      // Update existing user with Stytch data
+      existingUser.stytch_user_id = userData.stytch_user_id;
+      existingUser.stytch_session_id = userData.stytch_session_id;
+      existingUser.authMethod = 'stytch';
+      if (userData.first_name) existingUser.preferredFirstName = userData.first_name;
+      if (userData.last_name) existingUser.preferredLastName = userData.last_name;
+      if (userData.stytch_name) existingUser.stytch_name = userData.stytch_name;
+      existingUser.isComplete = userData.isComplete;
+      saveUser(existingUser);
+    } else {
+      // Create new user with role assignment
+      const newUser = {
+        googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
+        ...userData,
+        preferredFirstName: userData.first_name,
+        preferredLastName: userData.last_name,
+        role: 'affiliate',
+        needsRoleSelection: false,
+        isPremium: false,
+        hasUnlimitedAccess: false
       };
-
-      // Store in your existing user system
-      let existingUser = findUserByEmail(userData.email);
-      if (existingUser) {
-        // Update existing user with Stytch data
-        existingUser.stytch_user_id = userData.stytch_user_id;
-        existingUser.stytch_session_id = userData.stytch_session_id;
-        existingUser.authMethod = 'stytch';
-        if (userData.first_name) existingUser.preferredFirstName = userData.first_name;
-        if (userData.last_name) existingUser.preferredLastName = userData.last_name;
-        if (userData.stytch_name) existingUser.stytch_name = userData.stytch_name;
-        existingUser.isComplete = userData.isComplete;
-        existingUser.role = existingUser.role || 'affiliate'; // Ensure role is set
-        existingUser.needsRoleSelection = false;
-        saveUser(existingUser);
-        console.log('✅ Updated existing user:', userData.email);
-      } else {
-        // Create new user with affiliate role
-        const newUser = {
-          googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
-          ...userData,
-          preferredFirstName: userData.first_name,
-          preferredLastName: userData.last_name,
-          role: 'affiliate', // All Stytch users are affiliates
-          needsRoleSelection: false,
-          isPremium: false,
-          hasUnlimitedAccess: false
-        };
-        saveUser(newUser);
-        console.log('✅ Created new user:', userData.email);
-      }
-
-      // Set session with proper structure - CRITICAL FOR AUTH
-      req.session.stytch_session_id = session.session_id;
-      req.session.user = userData;
-      
-      // Clean up temporary name data from session
-      delete req.session.stytch_user_first_name;
-      delete req.session.stytch_user_last_name;
-      delete req.session.stytch_flow;
-      delete req.session.stytch_return_to;
-
-      // Force session save and then redirect
-      req.session.save((err) => {
-        if (err) {
-          console.error('❌ Session save error:', err);
-          return res.redirect('/stytch-auth?error=session_failed');
-        }
-        
-        console.log('✅ Session saved successfully for:', userData.email);
-        
-        // Get the intended destination
-        const returnTo = req.session.intended_destination || '/chat';
-        
-        // Clear the intended destination
-        delete req.session.intended_destination;
-        
-        // Redirect directly to the intended destination to avoid loops
-        console.log('🔄 Redirecting authenticated user to:', returnTo);
-        res.redirect(returnTo);
-      });
-
-    } catch (authError) {
-      console.error('❌ Stytch authentication failed:', {
-        error: authError.message,
-        status_code: authError.status_code,
-        error_type: authError.error_type
-      });
-      
-      // Handle specific Stytch errors
-      if (authError.status_code === 404) {
-        return res.redirect('/stytch-auth?error=invalid_token');
-      } else if (authError.status_code === 401) {
-        return res.redirect('/stytch-auth?error=expired_token');
-      } else {
-        return res.redirect('/stytch-auth?error=auth_failed');
-      }
+      saveUser(newUser);
     }
+
+    // Set session with proper structure
+    req.session.stytch_session_id = session.session_id;
+    req.session.user = userData;
+    
+    // Force session save to ensure persistence
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+      } else {
+        console.log('✅ Session saved successfully for:', userData.email);
+      }
+    });
+    
+    // Clean up temporary name data from session
+    delete req.session.stytch_user_first_name;
+    delete req.session.stytch_user_last_name;
+
+    console.log('✅ Stytch authentication successful for:', userData.email);
+
+    // Handle role assignment based on flow - Stytch users default to affiliate
+    const userRole = 'affiliate'; // All Stytch users are affiliates
+    
+    if (!existingUser) {
+      existingUser = findUserByEmail(userData.email);
+    }
+    if (existingUser) {
+      existingUser.role = userRole;
+      existingUser.needsRoleSelection = false;
+      existingUser.authMethod = 'stytch';
+      existingUser.isPremium = existingUser.isPremium || false;
+      existingUser.hasUnlimitedAccess = existingUser.hasUnlimitedAccess || false;
+      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
+      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
+      saveUser(existingUser);
+    } else {
+      // Create new user with affiliate role
+      const newUser = {
+        googleId: userData.stytch_user_id,
+        ...userData,
+        role: userRole,
+        needsRoleSelection: false,
+        isPremium: false,
+        hasUnlimitedAccess: false
+      };
+      saveUser(newUser);
+    }
+
+    console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
+
+    // Store the intended destination in session for the confirmation page
+    req.session.intended_destination = return_to ? decodeURIComponent(return_to) : '/chat';
+    req.session.stytch_auth_completed = true; // Mark authentication as completed
+    
+    // Always redirect to confirmation page first to prevent redirect loops
+    res.redirect('/stytch-logged-in');
 
   } catch (error) {
-    console.error('❌ Magic link authentication error:', error);
-    res.redirect('/stytch-auth?error=server_error');
+    console.error('❌ Stytch authentication error:', error);
+    res.redirect('/login?error=auth_failed');
   }
 });
 
