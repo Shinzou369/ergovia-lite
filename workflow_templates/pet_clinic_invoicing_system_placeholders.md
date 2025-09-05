@@ -1,4 +1,3 @@
-
 # Pet Clinic Invoicing System - Placeholder Variables
 
 ## Core Identifiers
