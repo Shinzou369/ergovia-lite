@@ -1,72 +1,5 @@
 
-  "nodes": [
-    {
-      "parameters": {
-        "content": "### {{CLINIC_NAME}} - Daily Staff Briefing (PET WF11)\n\n**🎯 Purpose:** Automatically prepares and sends daily appointment briefings to staff\n\n**🚀 Trigger:**\n• Daily at {{BRIEFING_TIME}} ({{TIMEZONE}})\n• Customizable cron: {{BRIEFING_CRON_EXPRESSION}}\n\n**📋 Process:**\n1. Fetch today's appointments from Google Calendar\n2. Format briefing with appointment details and times\n3. Send formatted briefing to Slack channel\n\n**📊 Integration:**\n• Google Calendar: {{GOOGLE_CALENDAR_ID}}\n• Slack Channel: {{SLACK_CHANNEL_NAME}} ({{SLACK_CHANNEL_ID}})\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Time Zone: {{TIMEZONE}}\n• Briefing Time: {{BRIEFING_TIME}}\n• Auto-sorts appointments by time\n• Handles both timed and all-day events",
-        "height": 400,
-        "width": 650,
-        "color": 4
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        -384,
-        -48
-      ],
-      "typeVersion": 1,
-      "id": "{{WORKFLOW_DESCRIPTION_NOTE_ID}}",
-      "name": "PET WF11 - Workflow Description"
-    }
-  ],
-  "connections": {
-    "Get Today's Calendar Appointments": {
-      "main": [
-        [
-          {
-            "node": "Format Briefing",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Daily Briefing Trigger": {
-      "main": [
-        [
-          {
-            "node": "Get Today's Calendar Appointments",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Briefing": {
-      "main": [
-        [
-          {
-            "node": "Send Briefing",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "{{INSTANCE_ID}}"
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "{{VERSION_ID}}",
-  "id": "{{WORKFLOW_ID}}",
-  "tags": ["{{WORKFLOW_TAG}}"],
-  "name": "{{CLINIC_NAME}} - Daily Staff Briefing"
-}</old_str>
-<new_str>{
+{
   "nodes": [
     {
       "parameters": {
@@ -241,4 +174,4 @@
   "id": "{{WORKFLOW_ID}}",
   "tags": ["{{WORKFLOW_TAG}}"],
   "name": "{{CLINIC_NAME}} - Daily Staff Briefing"
-}</new_str>
+}
