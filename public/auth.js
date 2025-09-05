@@ -90,11 +90,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Wait longer for session establishment, especially after Stytch auth
   const isFromStytch = window.location.search.includes('from_stytch') || 
                       window.location.pathname === '/stytch-logged-in' ||
-                      sessionStorage.getItem('stytch_auth_completed');
+                      sessionStorage.getItem('stytch_auth_completed') ||
+                      localStorage.getItem('stytch_user_email');
   
   if (isFromStytch) {
     console.log('🔄 Coming from Stytch auth, waiting for session...');
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Try multiple times with longer waits for Stytch
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, attempt * 500));
+      const quickCheck = await checkAuthStatus();
+      if (quickCheck.authenticated && quickCheck.user.authMethod === 'stytch') {
+        console.log(`✅ Stytch session found on attempt ${attempt}`);
+        break;
+      }
+      console.log(`⏳ Attempt ${attempt}/5 - still waiting for Stytch session...`);
+    }
   } else {
     await new Promise(resolve => setTimeout(resolve, 300));
   }
@@ -260,7 +270,7 @@ function updateTopNavForUser(user) {
   // Check if user has premium access
   const isPremium = user.isPremium || user.hasUnlimitedAccess;
   const premiumBadge = isPremium ? '<span class="premium-badge" title="Premium Member">👑</span>' : '';
-  const roleBadge = user.role ? `<span class="role-badge" title="${user.role === 'affiliate' ? 'Affiliate Partner' : 'Client'}">${user.role === 'affiliate' ? '💼' : '🚀'}</span>` : '';
+  const roleBadge = user.role ? `<span class="role-badge" title="${user.role === 'affiliate' ? 'Affiliate Partner' : 'Client'}" style="background: ${user.role === 'affiliate' ? 'var(--primary)' : 'var(--success)'}; color: var(--bg-primary); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 8px;">${user.role === 'affiliate' ? '🏢 AFFILIATE' : '🚀 CLIENT'}</span>` : '';
 
   // Create user info container
   const authContainer = document.createElement('div');
@@ -272,6 +282,7 @@ function updateTopNavForUser(user) {
       </div>
       <div class="user-info">
         <span class="user-name">${user.name} ${roleBadge} ${premiumBadge}</span>
+        ${user.authMethod === 'stytch' ? '<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">🔐 Stytch Auth</div>' : ''}
       </div>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>

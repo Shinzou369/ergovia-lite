@@ -314,6 +314,9 @@
                 <span class="loading"></span>Loading account details...
             </div>
             <div class="auth-method">Authenticated via Stytch Magic Link</div>
+            <div class="user-role" id="user-role" style="margin-top: 8px; color: var(--primary); font-weight: 600;">
+                🏢 Affiliate Account
+            </div>
         </div>
 
         <div class="action-buttons">
@@ -361,14 +364,28 @@
                     console.log('✅ User is authenticated:', authData.user);
                     
                     // Update user email display
-                    document.getElementById('user-email').textContent = authData.user.email;
+                    document.getElementById('user-email').innerHTML = `
+                        <div>${authData.user.email}</div>
+                        <small style="color: var(--text-muted); margin-top: 4px;">✅ Successfully authenticated</small>
+                    `;
+                    
+                    // Confirm affiliate role
+                    const roleElement = document.getElementById('user-role');
+                    if (authData.user.role === 'affiliate') {
+                        roleElement.innerHTML = '🏢 Affiliate Account - Access Granted';
+                        roleElement.style.color = 'var(--success)';
+                    }
+                    
+                    // Store user email for future reference
+                    localStorage.setItem('stytch_user_email', authData.user.email);
+                    localStorage.setItem('user_role', authData.user.role);
                     
                     // Get intended destination from session
-                    const intendedDestination = '/chat'; // Default to chat
+                    const intendedDestination = '/chat'; // Default to chat for affiliates
                     
                     // Show success message and redirect with session indicator
                     setTimeout(() => {
-                        console.log('🚀 Redirecting to:', intendedDestination);
+                        console.log('🚀 Redirecting affiliate to:', intendedDestination);
                         
                         // Set session storage indicator for auth check
                         sessionStorage.setItem('stytch_auth_completed', 'true');
@@ -377,7 +394,7 @@
                             ? `${intendedDestination}&from_stytch=true`
                             : `${intendedDestination}?from_stytch=true`;
                         window.location.href = redirectUrl;
-                    }, 2000);
+                    }, 2500);
                 } else {
                     console.log('❌ Authentication failed, redirecting to auth');
                     setTimeout(() => {
