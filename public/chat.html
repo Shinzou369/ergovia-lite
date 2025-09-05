@@ -953,10 +953,10 @@
 
           console.log('🔍 Auth check result:', authData);
 
-          // If user is not authenticated, redirect to Stytch auth
+          // If user is not authenticated, show login options instead of redirecting
           if (!authData.authenticated) {
-            console.log('User not authenticated - redirecting to Stytch auth');
-            window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+            console.log('User not authenticated - showing login options');
+            showLoginOptions();
             return false;
           }
 
@@ -965,10 +965,51 @@
           return true;
         } catch (error) {
           console.error('Auth check failed:', error);
-          // On error, redirect to auth
-          window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+          // On error, show login options instead of redirecting
+          showLoginOptions();
           return false;
         }
+      }
+
+      // Show login options instead of automatic redirect
+      function showLoginOptions() {
+        // Remove any existing login prompts
+        const existingPrompt = document.querySelector('.auth-prompt');
+        if (existingPrompt) {
+          existingPrompt.remove();
+        }
+
+        // Create login prompt
+        const authPrompt = document.createElement('div');
+        authPrompt.className = 'auth-prompt';
+        authPrompt.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          padding: 32px;
+          text-align: center;
+          z-index: 10000;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        `;
+        
+        authPrompt.innerHTML = `
+          <h3 style="color: var(--text-primary); margin-bottom: 16px;">Welcome to ERGOVIA-AI Chat</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 24px;">Please sign in to continue</p>
+          <button onclick="window.location.href='/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat')" 
+                  style="background: var(--primary-gradient); color: white; border: none; padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer; margin-right: 12px;">
+            Sign In with Email
+          </button>
+          <button onclick="window.location.href='/auth/google'" 
+                  style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer;">
+            Sign In with Google
+          </button>
+        `;
+
+        document.body.appendChild(authPrompt);
       }
 
       // Update UI for authenticated users

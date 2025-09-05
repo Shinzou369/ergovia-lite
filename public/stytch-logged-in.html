@@ -361,7 +361,22 @@
                     console.log('✅ User is authenticated:', authData.user);
                     
                     // Update user email display
-                    document.getElementById('user-email').innerHTML = `
+                    document.getElementById('user-email').textContent = authData.user.email;
+                    
+                    // Get intended destination from session
+                    const intendedDestination = '/chat'; // Default to chat
+                    
+                    // Show success message and redirect
+                    setTimeout(() => {
+                        console.log('🚀 Redirecting to:', intendedDestination);
+                        window.location.href = intendedDestination;
+                    }, 2000);
+                } else {
+                    console.log('❌ Authentication failed, redirecting to auth');
+                    setTimeout(() => {
+                        window.location.href = '/stytch-auth?return_to=' + encodeURIComponent('/chat');
+                    }, 2000);
+                }ail').innerHTML = `
                         <div>${authData.user.email}</div>
                         ${authData.user.authMethod === 'stytch' ? '<small style="color: var(--text-muted);">Stytch Account</small>' : ''}
                     `;
