@@ -33,7 +33,7 @@
 - `{{STRIPE_CREDENTIAL_ID}}` - Stripe API credential ID
 
 ## Communication Credentials
-- `{{SMTP_CREDENTIAL_ID}}` - Gmail SMTP credential ID
+- `{{GMAIL_CREDENTIAL_ID}}` - Gmail OAuth2 credential ID in n8n
 - `{{TWILIO_CREDENTIAL_ID}}` - Twilio SMS credential ID
 
 ## Node IDs (Auto-generated)

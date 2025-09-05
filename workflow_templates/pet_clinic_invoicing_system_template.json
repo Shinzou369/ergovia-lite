@@ -101,7 +101,7 @@
         }
       },
       "name": "Send Invoice Email",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         780,
@@ -109,9 +109,9 @@
       ],
       "id": "896eed16-6472-45e2-bb86-f11037a00c71",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Gmail SMTP"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -207,7 +207,7 @@
         }
       },
       "name": "Send Payment Confirmation",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         460,
@@ -215,9 +215,9 @@
       ],
       "id": "58adaf91-eaf2-4b8d-a216-6eef4093a1e7",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Gmail SMTP"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -287,7 +287,7 @@
         }
       },
       "name": "Send Payment Reminder",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
         400,
@@ -295,9 +295,9 @@
       ],
       "id": "b1d9be08-b5be-4862-9808-843401b8ea7e",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Gmail SMTP"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
