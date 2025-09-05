@@ -599,10 +599,15 @@ app.use(passport.session());
 // Debug middleware to track session issues
 app.use((req, res, next) => {
   if (req.session && req.sessionID) {
+    const hasStytchSession = !!(req.session.stytch_session_id || req.session.user?.stytch_user_id);
+    const stytchEmail = req.session.user?.email;
+    
     console.log('Session Debug:', {
       sessionID: req.sessionID.substring(0, 8) + '...',
-      authenticated: req.isAuthenticated(),
-      userEmail: req.user?.emails?.[0]?.value || 'none'
+      googleAuth: req.isAuthenticated(),
+      stytchAuth: hasStytchSession,
+      userEmail: req.user?.emails?.[0]?.value || stytchEmail || 'none',
+      authMethod: req.session.user?.authMethod || 'google'
     });
   }
   next();
@@ -3788,6 +3793,9 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     req.session.stytch_session_id = session.session_id;
     req.session.user = userData;
     
+    // Mark session as modified to force save
+    req.session.touch();
+    
     // Force session save to ensure persistence
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
@@ -4400,33 +4408,43 @@ app.get("/api/auth/status", async (req, res) => {
   let isStytchAuth = false;
   let stytchUser = null;
   
-  // Check if we have a Stytch session ID
-  if (req.session?.stytch_session_id) {
-    try {
-      // Validate the session with Stytch
-      if (stytchClient) {
+  // Check if we have a Stytch session ID or user data
+  if (req.session?.stytch_session_id || req.session?.user?.stytch_user_id) {
+    // First try to get user from session data
+    if (req.session?.user?.stytch_user_id) {
+      isStytchAuth = true;
+      stytchUser = req.session.user;
+      console.log('✅ Stytch user found in session:', stytchUser.email);
+    } else if (req.session?.stytch_session_id && stytchClient) {
+      // Try to validate with Stytch API as fallback
+      try {
         const sessionResponse = await stytchClient.sessions.get({
           user_session: req.session.stytch_session_id
         });
         
-        if (sessionResponse && sessionResponse.session) {
+        if (sessionResponse && sessionResponse.session && sessionResponse.user) {
           isStytchAuth = true;
           stytchUser = sessionResponse.user;
-          console.log('✅ Stytch session validated for:', stytchUser.emails?.[0]?.email);
+          
+          // Update session with user data for future requests
+          req.session.user = {
+            stytch_user_id: stytchUser.user_id,
+            email: stytchUser.emails?.[0]?.email || '',
+            first_name: stytchUser.name?.first_name || '',
+            last_name: stytchUser.name?.last_name || '',
+            authMethod: 'stytch',
+            stytch_session_id: req.session.stytch_session_id
+          };
+          
+          console.log('✅ Stytch session validated and cached for:', stytchUser.emails?.[0]?.email);
         }
+      } catch (error) {
+        console.log('⚠️ Stytch session validation failed:', error.message);
+        // Clear invalid session data
+        delete req.session.stytch_session_id;
+        delete req.session.user;
       }
-    } catch (error) {
-      console.log('⚠️ Stytch session validation failed:', error.message);
-      // Clear invalid session
-      delete req.session.stytch_session_id;
     }
-  }
-  
-  // Fallback check for user data in session
-  if (!isStytchAuth && req.session?.user?.stytch_user_id) {
-    isStytchAuth = true;
-    stytchUser = req.session.user;
-    console.log('✅ Stytch user found in session:', stytchUser.email);
   }
 
   // If Stytch auth found, handle it immediately (affiliates only use Stytch)

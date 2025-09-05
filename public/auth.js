@@ -1,10 +1,40 @@
 // Authentication helper functions
 async function checkAuthStatus() {
   try {
-    const response = await fetch('/api/auth/status');
+    const response = await fetch('/api/auth/status', {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     const data = await response.json();
     
     console.log('Auth status check result:', data);
+    
+    // If not authenticated but we suspect user should be (coming from auth flow)
+    if (!data.authenticated && (
+      window.location.search.includes('from_stytch') ||
+      sessionStorage.getItem('stytch_auth_completed') ||
+      localStorage.getItem('stytch_user_email')
+    )) {
+      console.log('🔄 Auth flow detected but not authenticated, retrying...');
+      
+      // Wait and retry once
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const retryResponse = await fetch('/api/auth/status', {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const retryData = await retryResponse.json();
+      
+      console.log('Auth status retry result:', retryData);
+      
+      if (retryData.authenticated) {
+        // Clear the temporary indicators
+        sessionStorage.removeItem('stytch_auth_completed');
+        return retryData;
+      }
+    }
     
     return data;
   } catch (error) {
@@ -57,8 +87,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.authCheckInProgress) return;
   window.authCheckInProgress = true;
   
-  // Wait a bit for any redirect authentication to complete
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Wait longer for session establishment, especially after Stytch auth
+  const isFromStytch = window.location.search.includes('from_stytch') || 
+                      window.location.pathname === '/stytch-logged-in' ||
+                      sessionStorage.getItem('stytch_auth_completed');
+  
+  if (isFromStytch) {
+    console.log('🔄 Coming from Stytch auth, waiting for session...');
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  } else {
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
   
   const authStatus = await checkAuthStatus();
 
