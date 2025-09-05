@@ -198,9 +198,6 @@ class N8NApiClient {
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
-    }
-  }
-}
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -235,6 +232,10 @@ app.use((req, res, next) => {
   next();
 });
 
+
+    }
+  }
+}
 
 // Validate N8N configuration and exit if critical vars missing
 if (!N8N_BASE_URL) {
@@ -503,34 +504,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Stytch configuration
-let stytchClient = null;
-try {
-  if (process.env.STYTCH_PROJECT_ID && process.env.STYTCH_SECRET) {
-    // Force test environment since we're using test project credentials
-    const stytchEnv = stytch.envs.test;
-
-    stytchClient = new stytch.Client({
-      project_id: process.env.STYTCH_PROJECT_ID,
-      secret: process.env.STYTCH_SECRET,
-      env: stytchEnv
-    });
-
-    console.log('✅ Stytch client initialized successfully:', {
-      project_id: process.env.STYTCH_PROJECT_ID.substring(0, 8) + '...',
-      environment: stytchEnv,
-      secret_length: process.env.STYTCH_SECRET.length
-    });
-  } else {
-    console.log('⚠️ Stytch not configured - missing environment variables:', {
-      STYTCH_PROJECT_ID: process.env.STYTCH_PROJECT_ID ? 'SET' : 'MISSING',
-      STYTCH_SECRET: process.env.STYTCH_SECRET ? 'SET' : 'MISSING'
-    });
-  }
-} catch (error) {
-  console.error('❌ Failed to initialize Stytch client:', error.message);
-  stytchClient = null;
-}
+// Import middleware and routes
+const { validateSession, redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
+const authRoutes = require('./routes/authRoutes');
 
 // Passport configuration
 passport.serializeUser((user, done) => {
@@ -675,7 +651,14 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Add cookie parser for Stytch session handling
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 app.use(validateInput);
+
+// Add session validation middleware to all routes
+app.use(validateSession);
 
 // Rate limiting configuration
 const rateLimit = {
@@ -788,6 +771,9 @@ app.use((req, res, next) => {
 
 // Serve static files
 app.use(express.static('public'));
+
+// Mount authentication routes
+app.use('/auth', authRoutes);
 
 // Taskforce onboarding routes - redirect all to ETF onboarding
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {
@@ -1224,14 +1210,14 @@ app.post('/api/etf/deploy', async (req, res) => {
     const client_id = uuidv4();
 
     // Personalize workflows, handling inter-workflow dependencies
-    const personalizationResult = await personalizeMultipleWorkflows(templateIds, config_data, clientData);
+    const personalizationResult = await personalizeMultipleWorkflows(templateIds, config_data, client_data);
 
     if (personalizationResult.errors.length > 0) {
       console.warn(`⚠️ Some workflows had errors during personalization:`, personalizationResult.errors);
     }
 
     // Tag all successfully created workflows with a client identifier
-    const clientTag = `PET[${clientData.name}]`;
+    const clientTag = `PET[${client_data.name}]`;
 
     // Skip credential creation - focus on placeholder personalization only
 
@@ -1263,7 +1249,7 @@ app.get('/stytch-logged-in', (req, res) => {
     // Log the workflow dependency mappings
     console.log(`\n🔗 Inter-workflow Dependencies Resolved:`);
     console.log(`   Original templates now reference personalized workflows`);
-    console.log(`   Example: If template referenced "WF3", it now references "[${clientData.name}] WF3"`);
+    console.log(`   Example: If template referenced "WF3", it now references "[${client_data.name}] WF3"`);
     if (personalizationResult.workflowIdMappings) {
       Object.entries(personalizationResult.workflowIdMappings).forEach(([original, personalized]) => {
         console.log(`   ${original} → ${personalized}`);
@@ -1276,7 +1262,7 @@ app.get('/stytch-logged-in', (req, res) => {
 
     let openaiSetupResult = { success: false };
     try {
-      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(clientData, templateIds);
+      openaiSetupResult = await keyGenerator.setupETFClientOpenAI(client_data, templateIds);
       console.log(`✅ OpenAI access configured for client ${client_id}:`, openaiSetupResult);
     } catch (keyError) {
       console.warn(`⚠️ Could not configure OpenAI access for client ${client_id}:`, keyError.message);
@@ -1394,7 +1380,7 @@ app.get('/stytch-logged-in', (req, res) => {
     logDeploymentEvent(
       client_id, 
       'Initial Deployment', 
-      `Deployed ${duplicatedWorkflows.length} workflows for ${clientData.name}. Success: ${activatedCount}, Needs Setup: ${needsCredentialsCount}, Failed: ${failedCount}`,
+      `Deployed ${duplicatedWorkflows.length} workflows for ${client_data.name}. Success: ${activatedCount}, Needs Setup: ${needsCredentialsCount}, Failed: ${failedCount}`,
       failedCount > 0 ? 'warning' : 'info'
     );
 
@@ -1609,7 +1595,7 @@ app.get('/api/etf/debug/workflows', async (req, res) => {
   }
 });
 
-// Test endpoint for creating tags
+// Test endpoint to create tags
 app.post('/api/etf/test-create-tag', async (req, res) => {
   try {
     const { tagName } = req.body;
@@ -1642,7 +1628,7 @@ app.post('/api/etf/test-create-tag', async (req, res) => {
   }
 });
 
-// Test endpoint for listing tags
+// Test endpoint to list tags
 app.get('/api/etf/list-tags', async (req, res) => {
   try {
     console.log('🧪 Testing tag listing...');
@@ -3302,7 +3288,7 @@ function getAPIConfig(model) {
   };
 }
 
-app.post('/chat', requirePremium, async (req, res) => {
+app.post('/chat', requireAuth, async (req, res) => {
   try {
     const { messages, model, system, thread_id } = req.body;
     const selectedModel = model || "gpt-3.5-turbo";
@@ -3577,470 +3563,23 @@ app.get("/api/profile", (req, res) => {
   });
 });
 
-// ========================================
-// Stytch Authentication Routes
-// ========================================
-
-// Send magic link for passwordless login
-app.post('/api/auth/stytch/magic-links/send', async (req, res) => {
-  try {
-    console.log('🔄 Magic link request received:', {
-      body: req.body,
-      headers: {
-        'content-type': req.headers['content-type'],
-        'user-agent': req.headers['user-agent']
-      }
-    });
-
-    if (!stytchClient) {
-      console.error('❌ Stytch client not configured');
-      return res.status(500).json({ 
-        success: false,
-        error: 'Stytch not configured',
-        details: 'STYTCH_PROJECT_ID or STYTCH_SECRET missing'
-      });
-    }
-
-    const { email, signup_or_login_url, flow, first_name, last_name, return_to } = req.body;
-
-    if (!email) {
-      console.error('❌ No email provided in request');
-      return res.status(400).json({ 
-        success: false,
-        error: 'Email is required' 
-      });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.error('❌ Invalid email format:', email);
-      return res.status(400).json({ 
-        success: false,
-        error: 'Invalid email format' 
-      });
-    }
-
-    // Use dynamic redirect URL based on request, with production domain override
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host;
-
-    // Use production domain if deployed
-    const isDevelopment = host.includes('repl.co') || host.includes('localhost');
-    const finalHost = isDevelopment ? host : 'ergovia-ai.com';
-
-    const redirectUrl = signup_or_login_url || `${protocol}://${finalHost}/api/auth/stytch/authenticate`;
-
-    // Store flow and return_to in session to avoid query parameter issues
-    req.session.stytch_flow = flow || 'general';
-    req.session.stytch_return_to = return_to || '/chat';
-
-    const params = {
-      email: email,
-      login_magic_link_url: signup_or_login_url || redirectUrl,
-      signup_magic_link_url: signup_or_login_url || redirectUrl
-    };
-
-    // Store name data in session for use after authentication
-    if (first_name || last_name) {
-      req.session.stytch_user_first_name = first_name || '';
-      req.session.stytch_user_last_name = last_name || '';
-    }
-
-    console.log('🔄 Sending Stytch magic link to:', email);
-    console.log('📧 Magic link URLs:', {
-      login: params.login_magic_link_url,
-      signup: params.signup_magic_link_url
-    });
-    console.log('🔧 Stytch client config:', {
-      project_id: process.env.STYTCH_PROJECT_ID ? 'SET' : 'MISSING',
-      secret: process.env.STYTCH_SECRET ? 'SET' : 'MISSING',
-      env: process.env.NODE_ENV
-    });
-
-    const response = await stytchClient.magicLinks.email.loginOrCreate(params);
-
-    console.log('✅ Stytch magic link sent successfully:', {
-      email: email,
-      request_id: response.request_id,
-      user_id: response.user_id,
-      status_code: response.status_code
-    });
-
-    res.json({
-      success: true,
-      message: 'Magic link sent! Check your email (including spam folder).',
-      request_id: response.request_id,
-      user_id: response.user_id
-    });
-
-  } catch (error) {
-    console.error('❌ Stytch magic link error:', {
-      message: error.message,
-      status_code: error.status_code,
-      error_type: error.error_type,
-      error_url: error.error_url,
-      stack: error.stack
-    });
-
-    // Provide more specific error messages
-    let userMessage = 'Failed to send magic link';
-    let statusCode = 500;
-
-    if (error.status_code === 400) {
-      userMessage = 'Invalid email address or request parameters';
-      statusCode = 400;
-    } else if (error.status_code === 429) {
-      userMessage = 'Too many requests. Please wait a moment and try again.';
-      statusCode = 429;
-    } else if (error.status_code === 401) {
-      userMessage = 'Authentication service configuration error';
-      statusCode = 500;
-    } else if (error.message.includes('network') || error.message.includes('fetch')) {
-      userMessage = 'Network error connecting to Stytch. Please try again.';
-      statusCode = 503;
-    }
-
-    res.status(statusCode).json({
-      success: false,
-      error: userMessage,
-      details: error.message,
-      stytch_error_type: error.error_type,
-      debug_info: {
-        project_id_set: !!process.env.STYTCH_PROJECT_ID,
-        secret_set: !!process.env.STYTCH_SECRET,
-        client_initialized: !!stytchClient
-      }
-    });
-  }
+// Legacy Stytch endpoints for backward compatibility
+app.post('/api/auth/stytch/magic-links/send', (req, res, next) => {
+  // Redirect to new auth route
+  req.url = '/auth/magic-links/send';
+  authRoutes(req, res, next);
 });
 
-// Authenticate magic link token
-app.get('/api/auth/stytch/authenticate', async (req, res) => {
-  try {
-    if (!stytchClient) {
-      return res.status(500).json({ error: 'Stytch not configured' });
-    }
-
-    const { token, stytch_token_type } = req.query;
-
-    // Get flow and return_to from session instead of query params
-    const flow = req.session.stytch_flow || 'general';
-    const return_to = req.session.stytch_return_to || '/chat';
-
-    if (!token) {
-      // If no token, show auth page instead of error
-      return res.redirect('/stytch-auth?return_to=' + encodeURIComponent(return_to));
-    }
-
-    const response = await stytchClient.magicLinks.authenticate({
-      token: token,
-      session_duration_minutes: 60 * 24 * 7 // 7 days
-    });
-
-    const user = response.user;
-    const session = response.session;
-
-    // Get name data from session if available
-    const sessionFirstName = req.session.stytch_user_first_name;
-    const sessionLastName = req.session.stytch_user_last_name;
-
-    // Create or update user in your system
-    const userData = {
-      stytch_user_id: user.user_id,
-      email: user.emails[0].email,
-      email_verified: user.emails[0].verified,
-      stytch_name: user.name?.first_name && user.name?.last_name ? 
-        `${user.name.first_name} ${user.name.last_name}` : 
-        (sessionFirstName && sessionLastName ? `${sessionFirstName} ${sessionLastName}` : null),
-      first_name: user.name?.first_name || sessionFirstName || '',
-      last_name: user.name?.last_name || sessionLastName || '',
-      createdAt: user.created_at,
-      isComplete: !!(user.name?.first_name && user.name?.last_name) || !!(sessionFirstName && sessionLastName),
-      authMethod: 'stytch',
-      stytch_session_id: session.session_id
-    };
-
-    // Store in your existing user system
-    let existingUser = findUserByEmail(userData.email);
-    if (existingUser) {
-      // Update existing user with Stytch data
-      existingUser.stytch_user_id = userData.stytch_user_id;
-      existingUser.stytch_session_id = userData.stytch_session_id;
-      existingUser.authMethod = 'stytch';
-      if (userData.first_name) existingUser.preferredFirstName = userData.first_name;
-      if (userData.last_name) existingUser.preferredLastName = userData.last_name;
-      if (userData.stytch_name) existingUser.stytch_name = userData.stytch_name;
-      existingUser.isComplete = userData.isComplete;
-      saveUser(existingUser);
-    } else {
-      // Create new user with role assignment
-      const newUser = {
-        googleId: userData.stytch_user_id, // Use Stytch ID as primary ID
-        ...userData,
-        preferredFirstName: userData.first_name,
-        preferredLastName: userData.last_name,
-        role: 'affiliate',
-        needsRoleSelection: false,
-        isPremium: false,
-        hasUnlimitedAccess: false
-      };
-      saveUser(newUser);
-    }
-
-    // Set session with proper structure
-    req.session.stytch_session_id = session.session_id;
-    req.session.user = userData;
-
-    // Mark session as modified to force save
-    req.session.touch();
-
-    // Force session save to ensure persistence
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error('❌ Session save error:', err);
-          reject(err);
-        } else {
-          console.log('✅ Session saved successfully for:', userData.email);
-          resolve();
-        }
-      });
-    });
-
-    // Set additional cookie for session persistence
-    res.cookie('stytch_session', response.session_jwt, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 1000 // 1 hour
-    });
-
-    // Set user identification cookie for quick auth checks
-    res.cookie('user_email', userData.email, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 1000 // 1 hour
-    });
-
-    // Clean up temporary name data from session
-    delete req.session.stytch_user_first_name;
-    delete req.session.stytch_user_last_name;
-
-    console.log('✅ Stytch authentication successful for:', userData.email);
-
-    // Handle role assignment based on flow - Stytch users default to affiliate
-    const userRole = 'affiliate'; // All Stytch users are affiliates
-
-    if (!existingUser) {
-      existingUser = findUserByEmail(userData.email);
-    }
-    if (existingUser) {
-      existingUser.role = userRole;
-      existingUser.needsRoleSelection = false;
-      existingUser.authMethod = 'stytch';
-      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
-      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
-      saveUser(existingUser);
-    } else {
-      // Create new user with affiliate role
-      const newUser = {
-        googleId: userData.stytch_user_id,
-        ...userData,
-        role: userRole,
-        needsRoleSelection: false
-      };
-      saveUser(newUser);
-    }
-
-    console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
-
-    // For affiliate users, redirect directly to chat to avoid loops
-    const intendedDestination = return_to ? decodeURIComponent(return_to) : '/chat';
-
-    console.log('✅ Stytch authentication successful, redirecting affiliate directly to:', intendedDestination);
-
-    // Save session and redirect directly to destination
-    req.session.save((err) => {
-      if (err) {
-        console.error('❌ Session save error before redirect:', err);
-        return res.redirect('/login?error=session_save_failed');
-      }
-
-      // Redirect directly to chat with auth completion flag
-      res.redirect(`${intendedDestination}?stytch_auth_completed=true`);
-    });
-
-  } catch (error) {
-    console.error('❌ Stytch authentication error:', error);
-    res.redirect('/login?error=auth_failed');
-  }
+app.get('/api/auth/stytch/authenticate', (req, res, next) => {
+  // Redirect to new auth route
+  req.url = '/auth/callback';
+  authRoutes(req, res, next);
 });
 
-// Send OTP via SMS
-app.post('/api/auth/stytch/otp/sms/send', async (req, res) => {
-  try {
-    if (!stytchClient) {
-      return res.status(500).json({ error: 'Stytch not configured' });
-    }
-
-    const { phone_number } = req.body;
-
-    if (!phone_number) {
-      return res.status(400).json({ error: 'Phone number is required' });
-    }
-
-    const response = await stytchClient.otps.sms.loginOrCreate({
-      phone_number: phone_number
-    });
-
-    res.json({
-      success: true,
-      message: 'OTP sent to your phone!',
-      request_id: response.request_id
-    });
-
-  } catch (error) {
-    console.error('❌ Stytch SMS OTP error:', error);
-    res.status(500).json({
-      error: 'Failed to send SMS OTP',
-      details: error.message
-    });
-  }
-});
-
-// Authenticate OTP code
-app.post('/api/auth/stytch/otp/authenticate', async (req, res) => {
-  try {
-    if (!stytchClient) {
-      return res.status(500).json({ error: 'Stytch not configured' });
-    }
-
-    const { method_id, code } = req.body;
-
-    if (!method_id || !code) {
-      return res.status(400).json({ error: 'Method ID and code are required' });
-    }
-
-    const response = await stytchClient.otps.authenticate({
-      method_id: method_id,
-      code: code,
-      session_duration_minutes: 60 * 24 * 7 // 7 days
-    });
-
-    const user = response.user;
-    const session = response.session;
-
-    // Handle user creation/update similar to magic link flow
-    const userData = {
-      stytch_user_id: user.user_id,
-      email: user.emails?.[0]?.email || '',
-      phone: user.phone_numbers?.[0]?.phone_number || '',
-      email_verified: user.emails?.[0]?.verified || false,
-      phone_verified: user.phone_numbers?.[0]?.verified || false,
-      authMethod: 'stytch',
-      stytch_session_id: session.session_id
-    };
-
-    req.session.stytch_session_id = session.session_id;
-    req.session.user = userData;
-
-    console.log('✅ Stytch OTP authentication successful for:', userData.email || userData.phone);
-
-    // For Stytch users, automatically assign affiliate role
-    const existingUser = findUserByEmail(userData.email || userData.phone);
-    if (existingUser) {
-      existingUser.role = 'affiliate';
-      existingUser.needsRoleSelection = false;
-      existingUser.authMethod = 'stytch';
-      if (userData.stytch_user_id) existingUser.stytch_user_id = userData.stytch_user_id;
-      if (userData.stytch_session_id) existingUser.stytch_session_id = userData.stytch_session_id;
-      saveUser(existingUser);
-    } else {
-      // Create new user with affiliate role
-      const newUser = {
-        googleId: userData.stytch_user_id,
-        ...userData,
-        role: 'affiliate',
-        needsRoleSelection: false
-      };
-      saveUser(newUser);
-    }
-
-    res.json({
-      success: true,
-      message: 'Authentication successful!',
-      user: { ...userData, role: 'affiliate' },
-      needs_completion: !userData.email,
-      redirect_to: '/chat'
-    });
-
-  } catch (error) {
-    console.error('❌ Stytch OTP authentication error:', error);
-    res.status(400).json({
-      error: 'Invalid or expired code',
-      details: error.message
-    });
-  }
-});
-
-// Get current Stytch session
-app.get('/api/auth/stytch/session', async (req, res) => {
-  try {
-    if (!stytchClient || !req.session.stytch_session_id) {
-      return res.json({ authenticated: false });
-    }
-
-    const response = await stytchClient.sessions.get({
-      user_session: req.session.stytch_session_id
-    });
-
-    res.json({
-      authenticated: true,
-      session: response.session,
-      user: response.user
-    });
-
-  } catch (error) {
-    console.error('❌ Stytch session check error:', error);
-    res.json({ authenticated: false });
-  }
-});
-
-// Revoke Stytch session (logout)
-app.post('/api/auth/stytch/logout', async (req, res) => {
-  try {
-    const userEmail = req.session?.user?.email;
-
-    if (stytchClient && req.session.stytch_session_id) {
-      await stytchClient.sessions.revoke({
-        session_id: req.session.stytch_session_id
-      });
-      console.log('✅ Revoked Stytch session for:', userEmail);
-    }
-
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Session destruction error:', err);
-        return res.status(500).json({ error: 'Logout failed' });
-      }
-
-      console.log('✅ Session destroyed for:', userEmail);
-      res.json({ success: true, message: 'Logged out successfully' });
-    });
-
-  } catch (error) {
-    console.error('❌ Stytch logout error:', error);
-    // Still try to destroy session even if Stytch revocation fails
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Session destruction error:', err);
-        return res.status(500).json({ error: 'Logout failed' });
-      }
-      res.json({ success: true, message: 'Logged out successfully (partial)' });
-    });
-  }
+app.post('/api/auth/stytch/logout', (req, res, next) => {
+  // Redirect to new auth route
+  req.url = '/auth/logout';
+  authRoutes(req, res, next);
 });
 
 // Enhanced Credential Management API
@@ -4420,156 +3959,8 @@ async function handleOAuthCallback(service, code, userEmail) {
   });
 }
 
-// Check authentication status endpoint
-app.get('/api/auth/status', async (req, res) => {
-  console.log('Auth status check - Google:', req.isAuthenticated && req.isAuthenticated(), 'Stytch:', !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id), 'Overall:', req.isAuthenticated && req.isAuthenticated() || !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id));
-
-  // Check for Stytch authentication FIRST (affiliates)
-  let isStytchAuth = false;
-  let stytchUser = null;
-
-  // Check if we have a Stytch session ID or user data
-  if (req.session?.stytch_session_id || req.session?.user?.stytch_user_id) {
-    // First try to get user from session data
-    if (req.session?.user?.stytch_user_id) {
-      isStytchAuth = true;
-      stytchUser = req.session.user;
-      console.log('✅ Stytch user found in session:', stytchUser.email);
-    } else if (req.session?.stytch_session_id && stytchClient) {
-      // Try to validate with Stytch API as fallback
-      try {
-        const sessionResponse = await stytchClient.sessions.get({
-          user_session: req.session.stytch_session_id
-        });
-
-        if (sessionResponse && sessionResponse.session && sessionResponse.user) {
-          isStytchAuth = true;
-          stytchUser = sessionResponse.user;
-
-          // Update session with user data for future requests
-          req.session.user = {
-            stytch_user_id: stytchUser.user_id,
-            email: stytchUser.emails?.[0]?.email || '',
-            first_name: stytchUser.name?.first_name || '',
-            last_name: stytchUser.name?.last_name || '',
-            authMethod: 'stytch',
-            stytch_session_id: req.session.stytch_session_id
-          };
-
-          console.log('✅ Stytch session validated and cached for:', stytchUser.emails?.[0]?.email);
-        }
-      } catch (error) {
-        console.log('⚠️ Stytch session validation failed:', error.message);
-        // Clear invalid session data
-        delete req.session.stytch_session_id;
-        delete req.session.user;
-      }
-    }
-  }
-
-  // If Stytch auth found, handle it immediately (affiliates only use Stytch)
-  if (isStytchAuth) {
-    console.log('Auth status check - Stytch affiliate authenticated:', stytchUser.email || stytchUser.emails?.[0]?.email);
-
-    const sessionUser = req.session.user;
-
-    // Load or create persistent user data for Stytch users
-    let persistentUser = findUserByEmail(sessionUser.email);
-    if (!persistentUser) {
-      // Create persistent user record for Stytch user
-      persistentUser = {
-        googleId: sessionUser.stytch_user_id,
-        email: sessionUser.email,
-        preferredFirstName: sessionUser.first_name || '',
-        preferredLastName: sessionUser.last_name || '',
-        stytch_name: sessionUser.stytch_name,
-        isComplete: !!(sessionUser.first_name && sessionUser.last_name),
-        role: 'affiliate',
-        needsRoleSelection: false,
-        authMethod: 'stytch',
-        stytch_user_id: sessionUser.stytch_user_id,
-        stytch_session_id: sessionUser.stytch_session_id,
-        createdAt: new Date().toISOString(),
-        isPremium: false,
-        hasUnlimitedAccess: false
-      };
-      saveUser(persistentUser);
-      console.log('✅ Created persistent user record for Stytch affiliate:', sessionUser.email);
-    } else {
-      // Update existing user with current session info
-      persistentUser.stytch_session_id = sessionUser.stytch_session_id;
-      persistentUser.authMethod = 'stytch';
-      persistentUser.role = 'affiliate'; // Ensure Stytch users are always affiliates
-      saveUser(persistentUser);
-    }
-
-    return res.json({
-      authenticated: true,
-      user: {
-        name: persistentUser.stytch_name || persistentUser.preferredFirstName + ' ' + persistentUser.preferredLastName || persistentUser.email,
-        email: persistentUser.email,
-        preferredFirstName: persistentUser.preferredFirstName,
-        preferredLastName: persistentUser.preferredLastName,
-        authMethod: 'stytch',
-        role: 'affiliate', // Always affiliate for Stytch users
-        isPremium: persistentUser.isPremium || false,
-        hasUnlimitedAccess: persistentUser.hasUnlimitedAccess || false,
-        isComplete: persistentUser.isComplete,
-        needsRoleSelection: false // Stytch users don't need role selection
-      }
-    });
-  }
-
-  // Check Google OAuth authentication ONLY if no Stytch auth (clients only use Google)
-  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-
-  if (isGoogleAuth) {
-    console.log('Auth status check - Google client authenticated:', req.user.emails?.[0]?.value);
-
-    // Handle Google OAuth user data - ensure client role
-    let userData = req.user.savedUserData;
-    if (!userData) {
-      const userEmail = req.user.emails?.[0]?.value;
-      userData = findUserByEmail(userEmail);
-      console.log('Found user data by email:', userEmail, !!userData);
-    }
-
-    // Ensure Google users have client role (unless they need role selection)
-    let userRole = userData?.role;
-    if (!userRole && !userData?.needsRoleSelection) {
-      userRole = 'client'; // Default Google users to client role
-    }
-
-    const userResponse = {
-      name: req.user.displayName,
-      email: req.user.emails?.[0]?.value,
-      picture: req.user.photos?.[0]?.value,
-      preferredFirstName: userData?.preferredFirstName || req.user.preferredFirstName || null,
-      preferredLastName: userData?.preferredLastName || req.user.preferredLastName || null,
-      isComplete: userData?.isComplete || req.user.isComplete || false,
-      isPremium: userData?.isPremium || false,
-      hasUnlimitedAccess: userData?.hasUnlimitedAccess || false,
-      subscriptionType: userData?.subscriptionType || null,
-      subscriptionStatus: userData?.subscriptionStatus || null,
-      subscriptionExpiresAt: userData?.subscriptionExpiresAt || null,
-      nextRenewalDate: userData?.nextRenewalDate || null,
-      role: userRole,
-      needsRoleSelection: userData?.needsRoleSelection || false,
-      authMethod: 'google'
-    };
-
-    console.log('✅ Google auth status response:', userResponse.email, 'Role:', userResponse.role, 'Premium:', userResponse.isPremium);
-
-    return res.json({ 
-      authenticated: true,
-      user: userResponse
-    });
-  }
-
-  // No authentication found
-  console.log('Auth status check - No authentication found');
-  return res.json({ authenticated: false, user: null });
-});
+// Check authentication status endpoint - use new middleware
+app.get("/api/auth/status", getAuthStatus);
 
 // Get user threads
 app.get('/api/threads', requireAuth, async (req, res) => {
@@ -5277,6 +4668,7 @@ app.post('/api/auth/facebook-oauth', (req, res) => {
 
     req.session.save((err) => {
       if (err) {
+        console.error('Session save error:', err);
         return res.status(500).json({ error: 'Session storage failed' });
       }
 
@@ -5304,6 +4696,7 @@ app.get('/api/auth/facebook-callback', async (req, res) => {
     const { code, state, error } = req.query;
 
     if (error) {
+      console.error('Facebook OAuth error:', error);
       return res.redirect('/etf-onboard?error=facebook_oauth_denied');
     }
 
@@ -6103,8 +5496,8 @@ function generatePromptInstructions(workflow) {
   console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
 
   return {
-    fields: configFields,
-    promptInstructions: instructions.join('\n'),
+    instructions: instructions.join('\n'),
+    configFields: configFields,
     credentialsRequired: credentials.filter((c, index, self) => 
       index === self.findIndex(t => (t.service === c.service && t.type === c.type))
     ) // Remove duplicate credentials
@@ -6206,11 +5599,12 @@ function analyzeWorkflowConfig(workflow) {
 
   // Combine all fields and remove duplicates
   const allFields = [...standardFields, ...customFields, ...autoDetectedFields];
-
-  console.log(`✅ Generated instructions for ${detectedPlaceholders.size} placeholders and ${detectedServices.size} services`);
+  const uniqueFields = allFields.filter((field, index, self) => 
+    index === self.findIndex(f => f.key === field.key)
+  );
 
   return {
-    fields: allFields,
+    fields: uniqueFields,
     promptInstructions: promptInstructions.instructions,
     credentialsRequired: promptInstructions.credentials
   };
@@ -6418,7 +5812,7 @@ async function personalizeMultipleWorkflows(workflowIds, configData, clientData)
         workflowIdMappings
       );
 
-      // Update the workflow
+      // Update the workflow with personalized nodes
       const updateData = {
         name: `[${clientData.name}] ${originalWorkflow.name}`,
         nodes: personalizedNodes,
