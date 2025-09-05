@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ETF Workbench - Complete Configuration</title>
+    <title>Pet Clinic Onboard - Setup Your AI Assistant</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
@@ -761,7 +761,7 @@
     <div class="workbench-header">
         <div class="workbench-title">
             <i data-lucide="workflow" style="color: #FFD700;"></i>
-            <h1>ETF Complete Configuration Workbench</h1>
+            <h1>Pet Clinic AI Assistant Setup</h1>
         </div>
 
         <div class="progress-indicator">
@@ -785,7 +785,7 @@
 
         <button class="generate-btn" id="generateBtn">
             <i data-lucide="play"></i>
-            Generate ETF Workflows
+            Deploy Pet Clinic AI
         </button>
     </div>
 
@@ -795,8 +795,8 @@
     <div class="workbench-canvas">
         <!-- BUSINESS INFORMATION SECTION -->
         <div class="section-header">
-            <h2 class="section-title">📋 Business Information & Settings</h2>
-            <p class="section-subtitle">Essential business details and operational configurations</p>
+            <h2 class="section-title">🏥 Pet Clinic Information</h2>
+            <p class="section-subtitle">Essential clinic details and operational settings</p>
         </div>
 
         <!-- Business Information -->
@@ -902,8 +902,8 @@
 
         <!-- CREDENTIALS & INTEGRATIONS SECTION -->
         <div class="section-header" style="margin-top: 60px;">
-            <h2 class="section-title">🔗 Service Integrations & API Credentials</h2>
-            <p class="section-subtitle">Connect external services and configure API integrations</p>
+            <h2 class="section-title">🔑 Required Integrations</h2>
+            <p class="section-subtitle">Connect essential services for your pet clinic automation</p>
         </div>
 
         <!-- Google Authentication -->
@@ -2211,13 +2211,13 @@
             }
         }
 
-        // Generate workflow (placeholder)
-        document.getElementById('generateBtn').addEventListener('click', function() {
+        // Deploy Pet Clinic AI
+        document.getElementById('generateBtn').addEventListener('click', async function() {
             if (!this.classList.contains('ready')) return;
 
             const originalHTML = this.innerHTML;
             this.disabled = true;
-            this.innerHTML = '<div class="loading"></div> Generating ETF Workflows...';
+            this.innerHTML = '<div class="loading"></div> Deploying Pet Clinic AI...';
 
             // Collect all data from workbench
             const businessInfo = collectBoxData('business');
@@ -2232,21 +2232,47 @@
             const missingFields = requiredFields.filter(field => !businessInfo[field]);
 
             if (missingFields.length > 0) {
-                alert(`Please fill in required fields in the Business Information section: ${missingFields.join(', ')}`);
+                alert(`Please fill in required fields in the Pet Clinic Information section: ${missingFields.join(', ')}`);
                 this.disabled = false;
                 this.innerHTML = originalHTML;
                 return;
             }
 
-            // Combine all configuration data
+            // Combine all configuration data similar to original onboard
             const combinedConfigData = {
-                ...businessInfo,
-                ...clinicConfig,
-                ...communication,
-                ...operational,
-                ...credentials, // This will include credential connection statuses
-                ...advanced,
-                estimated_workflow_count: 8 // Example: estimated number of workflows
+                // Business details
+                businessName: businessInfo.businessName,
+                businessEmail: businessInfo.businessEmail,
+                businessPhone: businessInfo.businessPhone,
+                websiteUrl: businessInfo.websiteUrl,
+                businessAddress: businessInfo.businessAddress,
+                
+                // Clinic configuration
+                clinicName: clinicConfig.clinicName || businessInfo.businessName,
+                primary_veterinarian: clinicConfig.primaryVeterinarian,
+                managerName: clinicConfig.managerName,
+                clinicHours: clinicConfig.clinicHours,
+                servicesOffered: clinicConfig.servicesOffered,
+                vetLicense: clinicConfig.vetLicense,
+                
+                // Communication
+                from_email: communication.fromEmail,
+                from_name: communication.fromName,
+                supportEmail: communication.supportEmail,
+                emergencyContact: communication.emergencyContact,
+                
+                // Operations
+                timezone: operational.timezone,
+                cancellation_policy: operational.cancellationPolicy,
+                businessColor: operational.businessColor,
+                reminder_interval: operational.reminderInterval,
+                data_retention_years: operational.dataRetentionYears,
+                
+                // Credentials (only include connected ones)
+                ...credentials,
+                
+                // Advanced settings
+                ...advanced
             };
 
             // Client data for identification
@@ -2256,16 +2282,43 @@
                 phone: businessInfo.businessPhone
             };
 
-            console.log('Generating ETF workflows with data:', combinedConfigData);
+            console.log('Deploying Pet Clinic AI with data:', combinedConfigData);
 
-            // Call ETF deployment API simulation
-            deployETFWorkflows(clientData, combinedConfigData);
+            try {
+                // Deploy using the same API as original onboard
+                const response = await fetch('/api/etf/deploy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_data: clientData,
+                        config_data: combinedConfigData
+                    })
+                });
 
-            // Reset button after a short delay
-            setTimeout(() => {
+                const result = await response.json();
+
+                if (result.success) {
+                    displayDeploymentResults({
+                        client_id: result.client_id || `client_${Math.random().toString(36).substring(2, 10)}`,
+                        total_processed: result.total_workflows || 8,
+                        activated_workflows: result.activated_workflows || 6,
+                        workflows_needing_credentials: result.workflows_needing_credentials || 0,
+                        failed_workflows: result.failed_workflows || 0,
+                        tag_applied: result.tag || "pet_clinic"
+                    });
+                } else {
+                    throw new Error(result.error || 'Deployment failed');
+                }
+
+            } catch (error) {
+                console.error('Deployment error:', error);
+                alert(`Deployment failed: ${error.message}`);
+            } finally {
                 this.disabled = false;
                 this.innerHTML = originalHTML;
-            }, 3000);
+            }
         });
 
         // Helper to collect data from config boxes
