@@ -59,12 +59,12 @@
     },
     {
       "parameters": {
-        "sendTo": "={{INVENTORY_MANAGER_EMAIL}}",
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{INVENTORY_MANAGER_EMAIL}}",
         "subject": "={{ $json.alertType === 'CRITICAL' ? '🚨 URGENT' : '⚠️' }}: {{CLINIC_NAME}} Inventory Alert - {{ $json.summary }}",
-        "emailFormat": "html",
-        "message": "={{ $json.emailBody }}",
+        "html": "={{ $json.emailBody }}",
         "options": {
-          "ccList": "{{ADMIN_EMAIL}}",
+          "ccEmail": "{{ADMIN_EMAIL}}",
           "replyTo": "{{BUSINESS_EMAIL}}"
         }
       },
@@ -434,5 +434,114 @@
   "meta": {
     "templateCredsSetupCompleted": false,
     "instanceId": "TEMPLATE_INSTANCE"
-  }
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{INVENTORY_CHECK_CRON_VAR_ID}}",
+      "key": "INVENTORY_CHECK_CRON", 
+      "value": "{{INVENTORY_CHECK_CRON}}"
+    },
+    {
+      "id": "{{INVENTORY_SHEET_ID_VAR_ID}}",
+      "key": "INVENTORY_SHEET_ID",
+      "value": "{{INVENTORY_SHEET_ID}}"
+    },
+    {
+      "id": "{{INVENTORY_SHEET_NAME_VAR_ID}}",
+      "key": "INVENTORY_SHEET_NAME",
+      "value": "{{INVENTORY_SHEET_NAME}}"
+    },
+    {
+      "id": "{{INVENTORY_LOG_SHEET_ID_VAR_ID}}",
+      "key": "INVENTORY_LOG_SHEET_ID",
+      "value": "{{INVENTORY_LOG_SHEET_ID}}"
+    },
+    {
+      "id": "{{INVENTORY_LOG_SHEET_NAME_VAR_ID}}",
+      "key": "INVENTORY_LOG_SHEET_NAME",
+      "value": "{{INVENTORY_LOG_SHEET_NAME}}"
+    },
+    {
+      "id": "{{INVENTORY_TRANSACTIONS_SHEET_NAME_VAR_ID}}",
+      "key": "INVENTORY_TRANSACTIONS_SHEET_NAME",
+      "value": "{{INVENTORY_TRANSACTIONS_SHEET_NAME}}"
+    },
+    {
+      "id": "{{INVENTORY_MANAGER_EMAIL_VAR_ID}}",
+      "key": "INVENTORY_MANAGER_EMAIL",
+      "value": "{{INVENTORY_MANAGER_EMAIL}}"
+    },
+    {
+      "id": "{{INVENTORY_MANAGER_PHONE_VAR_ID}}",
+      "key": "INVENTORY_MANAGER_PHONE",
+      "value": "{{INVENTORY_MANAGER_PHONE}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    },
+    {
+      "id": "{{ADMIN_EMAIL_VAR_ID}}",
+      "key": "ADMIN_EMAIL",
+      "value": "{{ADMIN_EMAIL}}"
+    },
+    {
+      "id": "{{CLINIC_COLOR_VAR_ID}}",
+      "key": "CLINIC_COLOR",
+      "value": "{{CLINIC_COLOR}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    },
+    {
+      "id": "{{INVENTORY_EMAIL_VAR_ID}}",
+      "key": "INVENTORY_EMAIL",
+      "value": "{{INVENTORY_EMAIL}}"
+    },
+    {
+      "id": "{{INVENTORY_UPDATE_WEBHOOK_PATH_VAR_ID}}",
+      "key": "INVENTORY_UPDATE_WEBHOOK_PATH",
+      "value": "{{INVENTORY_UPDATE_WEBHOOK_PATH}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{GMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Gmail", 
+      "type": "gmailOAuth2",
+      "data": {}
+    },
+    {
+      "id": "{{TWILIO_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Twilio SMS",
+      "type": "twilioApi",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "Inventory Management",
+    "Automated Monitoring",
+    "Stock Alerts",
+    "Reorder Management"
+  ]
 }
