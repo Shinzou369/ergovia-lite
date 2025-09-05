@@ -10,5 +10,17 @@
       "ip": "172.31.125.194",
       "authenticated": false
     }
+  },
+  {
+    "timestamp": "2025-09-05T11:29:22.319Z",
+    "message": "Invalid JSON",
+    "stack": "Error: Invalid JSON\n    at verify (/home/runner/workspace/server.js:649:13)\n    at /home/runner/workspace/node_modules/body-parser/lib/read.js:106:9\n    at AsyncResource.runInAsyncScope (node:async_hooks:206:9)\n    at invokeCallback (/home/runner/workspace/node_modules/raw-body/index.js:238:16)\n    at done (/home/runner/workspace/node_modules/raw-body/index.js:227:7)\n    at IncomingMessage.onEnd (/home/runner/workspace/node_modules/raw-body/index.js:287:7)\n    at IncomingMessage.emit (node:events:524:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)",
+    "context": {
+      "url": "/api/auth/google-n8n-oauth",
+      "method": "POST",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+      "ip": "172.31.125.194",
+      "authenticated": false
+    }
   }
 ]
