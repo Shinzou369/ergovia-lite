@@ -3,78 +3,108 @@
   "nodes": [
     {
       "parameters": {
-        "workflowId": "{{VISIT_COMPLETION_WORKFLOW_ID}}",
-        "data": "={{ $json }}"
+        "content": "### {{CLINIC_NAME}} - Review Request System (PET WF7)\n\n**🎯 Purpose:** Automatically request reviews from clients 24 hours after their visit to improve online reputation\n\n**🚀 Features:**\n• **Smart Timing:** 24-hour delay allows clients to process their experience\n• **Multi-Channel Outreach:** Both SMS and email review requests\n• **Personalized Messages:** Includes pet names and visit details\n• **Complete Logging:** All requests tracked in Google Sheets\n• **Flexible Triggers:** Workflow trigger or webhook endpoint\n\n**⚡ Workflow Triggers:**\n• **Primary:** Activated by PET WF3 (Visit Completion Orchestrator)\n• **Secondary:** Manual webhook endpoint: {{REVIEW_REQUEST_WEBHOOK_PATH}}\n\n**📊 Integration Points:**\n• Review Tracking: {{REVIEW_REQUESTS_SHEET_ID}}\n• Client Communication: SMS via {{BUSINESS_PHONE_NUMBER}}\n• Email Communication: Gmail via {{BUSINESS_EMAIL}}\n• Review Platform: {{GOOGLE_REVIEWS_URL}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Wait Time: 24 hours post-visit\n• Multi-channel approach: SMS + Email\n• Complete audit trail with timestamps",
+        "height": 500,
+        "width": 800,
+        "color": 4
       },
-      "name": "Triggered by Visit Completion (WF4)",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "{{WORKFLOW_DESCRIPTION_NOTE_ID}}",
+      "name": "PET WF7 - Workflow Description"
+    },
+    {
+      "parameters": {},
+      "name": "🩺 Triggered by Visit Complete (WF3)",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -160,
-        300
+        512,
+        704
       ],
-      "id": "visit-completion-trigger"
+      "id": "{{VISIT_COMPLETE_TRIGGER_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "{{REVIEW_REQUEST_WEBHOOK_PATH}}",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "📞 Alternative: Manual Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        512,
+        512
+      ],
+      "id": "{{REVIEW_REQUEST_WEBHOOK_NODE_ID}}",
+      "webhookId": "{{REVIEW_REQUEST_WEBHOOK_ID}}"
     },
     {
       "parameters": {
         "amount": 24,
         "unit": "hours"
       },
-      "name": "Wait 24 Hours",
+      "name": "⏰ Wait 24 Hours",
       "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [
-        60,
-        300
+        736,
+        608
       ],
-      "id": "wait-24-hours"
+      "id": "{{WAIT_24_HOURS_NODE_ID}}",
+      "webhookId": "{{WAIT_24_HOURS_WEBHOOK_ID}}"
     },
     {
       "parameters": {
-        "from": "{{TWILIO_PHONE_NUMBER}}",
-        "to": "={{ $json.clientPhone || $json.ClientPhone }}",
-        "message": "🌟 Hi {{ $json.clientName || $json.ClientName }}! 🌟\n\nWe hope {{ $json.petName || 'your pet' }} is doing well after the visit to {{CLINIC_NAME}}! \n\nYour experience matters to us. Would you mind taking a moment to share your thoughts?\n\n⭐ Leave us a Google review: {{GOOGLE_REVIEWS_URL}}\n\nThank you for trusting us with {{ $json.petName || 'your pet' }}'s care! 🐾\n\n- The {{CLINIC_NAME}} Team\n\n📞 {{BUSINESS_PHONE}} | 🌐 {{BUSINESS_WEBSITE}}",
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json.clientPhone || $json['Customer Phone'] }}",
+        "message": "🌟 **{{CLINIC_NAME}} - Thank You!**\n\nHi {{ $json.clientName || $json['Customer Name'] }}! 🌟\n\nWe hope {{ $json.petName || $json['Pet Name'] || 'your pet' }} is feeling great after their visit! 🐾\n\n✨ **Your experience matters to us!**\nWould you mind sharing your thoughts with other pet parents?\n\n⭐ **Leave us a Google review:** {{GOOGLE_REVIEWS_URL}}\n\n🙏 Thank you for trusting us with {{ $json.petName || $json['Pet Name'] || 'your pet' }}'s care!\n\n📞 Questions? Call {{BUSINESS_PHONE_NUMBER}}\n💌 Email: {{BUSINESS_EMAIL}}\n\n- The {{CLINIC_NAME}} Team 🐕🐱",
         "options": {}
       },
-      "name": "Send Review Request SMS",
+      "name": "📱 Send Review Request SMS",
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        280,
-        300
+        960,
+        512
       ],
-      "id": "send-review-sms",
+      "id": "{{SEND_REVIEW_SMS_NODE_ID}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Twilio"
+          "name": "{{CLINIC_NAME}} Twilio SMS"
         }
       }
     },
     {
       "parameters": {
-        "subject": "🌟 Share Your Experience at {{CLINIC_NAME}}",
-        "emailType": "html",
-        "message": "<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }\n        .header { background-color: {{BUSINESS_COLOR}}; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; max-width: 600px; margin: 0 auto; }\n        .review-button { background-color: {{BUSINESS_COLOR}}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }\n        .pet-info { background-color: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 5px; }\n        .footer { background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666; margin-top: 30px; }\n        .stars { font-size: 24px; color: #ffd700; }\n    </style>\n</head>\n<body>\n    <div class=\"header\">\n        <h1>🌟 How was your visit? 🌟</h1>\n    </div>\n    <div class=\"content\">\n        <p>Dear {{ $json.clientName || $json.ClientName }},</p>\n        \n        <p>We hope {{ $json.petName || 'your pet' }} is feeling great after the recent visit to {{CLINIC_NAME}}!</p>\n        \n        <div class=\"pet-info\">\n            <h3>🐾 Visit Summary:</h3>\n            <p><strong>Pet:</strong> {{ $json.petName || 'Your Pet' }}</p>\n            <p><strong>Date:</strong> {{ $json.visitDate || $now.format('MMMM DD, YYYY') }}</p>\n            <p><strong>Service:</strong> {{ $json.serviceType || 'Veterinary Care' }}</p>\n        </div>\n        \n        <p>Your experience and feedback are incredibly important to us and help other pet parents find the quality care their furry family members deserve.</p>\n        \n        <div style=\"text-align: center;\">\n            <div class=\"stars\">⭐⭐⭐⭐⭐</div>\n            <p><strong>Would you mind sharing your experience?</strong></p>\n            <a href=\"{{GOOGLE_REVIEWS_URL}}\" class=\"review-button\">📝 Leave a Google Review</a>\n        </div>\n        \n        <p>It only takes a minute, and it means the world to us!</p>\n        \n        <p><strong>Why reviews matter:</strong></p>\n        <ul>\n            <li>🏥 Help other pet parents find quality care</li>\n            <li>🌟 Support our mission to provide excellent veterinary services</li>\n            <li>💙 Show appreciation for our dedicated team</li>\n        </ul>\n        \n        <p>If you have any concerns or feedback you'd prefer to share privately, please don't hesitate to contact us directly at {{SUPPORT_EMAIL}} or {{BUSINESS_PHONE}}.</p>\n        \n        <p>Thank you for trusting {{CLINIC_NAME}} with {{ $json.petName || 'your pet' }}'s care!</p>\n        \n        <p>With gratitude,<br>\n        {{VETERINARIAN_NAME}} and the {{CLINIC_NAME}} Team</p>\n    </div>\n    <div class=\"footer\">\n        <p>{{CLINIC_NAME}} | {{CLINIC_ADDRESS}}</p>\n        <p>📞 {{BUSINESS_PHONE}} | 📧 {{BUSINESS_EMAIL}} | 🌐 {{BUSINESS_WEBSITE}}</p>\n        <p>Hours: {{CLINIC_HOURS}}</p>\n    </div>\n</body>\n</html>",
-        "fromEmail": "{{FROM_EMAIL}}",
-        "toEmail": "={{ $json.clientEmail || $json.ClientEmail }}",
-        "fromName": "{{FROM_NAME}}",
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json.clientEmail || $json['Customer Email'] }}",
+        "subject": "🌟 Share Your Experience at {{CLINIC_NAME}} - {{ $json.petName || $json['Pet Name'] || 'Your Pet' }}'s Visit",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa; }\n    .container { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }\n    .header { text-align: center; color: #{{CLINIC_COLOR}}; border-bottom: 3px solid #{{CLINIC_COLOR}}; padding-bottom: 20px; margin-bottom: 30px; }\n    .header h1 { margin: 0; font-size: 28px; }\n    .greeting { font-size: 18px; margin-bottom: 20px; color: #333; }\n    .highlight { background: linear-gradient(135deg, #fff3cd, #ffeaa7); padding: 25px; border-radius: 12px; margin: 20px 0; border-left: 5px solid #{{CLINIC_COLOR}}; }\n    .review-cta { text-align: center; margin: 30px 0; }\n    .review-button { display: inline-block; background: linear-gradient(135deg, #{{CLINIC_COLOR}}, #28a745); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 16px; transition: all 0.3s ease; }\n    .pet-info { background: #e8f5e8; padding: 20px; border-radius: 10px; margin: 20px 0; }\n    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px; }\n    .stars { color: #ffc107; font-size: 24px; margin: 10px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>🐾 {{CLINIC_NAME}} 🐾</h1>\n      <p>Quality Pet Care with Heart</p>\n    </div>\n    \n    <div class=\"greeting\">\n      <p>Hello {{ $json.clientName || $json['Customer Name'] }},</p>\n    </div>\n    \n    <div class=\"highlight\">\n      <h2>🌟 Thank you for choosing us! 🌟</h2>\n      <p>We hope {{ $json.petName || $json['Pet Name'] || 'your beloved pet' }} is feeling wonderful after their recent visit with us!</p>\n      \n      <div class=\"pet-info\">\n        <h3>📋 Visit Summary:</h3>\n        <p><strong>Pet:</strong> {{ $json.petName || $json['Pet Name'] || 'Your Pet' }}</p>\n        <p><strong>Date:</strong> {{ $json.visitDate || $json['Date'] || 'Recent Visit' }}</p>\n        <p><strong>Service:</strong> {{ $json.service || $json['Service'] || 'Quality Pet Care' }}</p>\n        <p><strong>Veterinarian:</strong> {{ $json.veterinarian || '{{HEAD_VETERINARIAN}}' }}</p>\n      </div>\n    </div>\n    \n    <div class=\"review-cta\">\n      <h3>✨ Your Experience Matters ✨</h3>\n      <div class=\"stars\">⭐⭐⭐⭐⭐</div>\n      <p>Help other pet parents discover the quality care we provide!</p>\n      <p>Would you mind taking a moment to share your experience?</p>\n      \n      <a href=\"{{GOOGLE_REVIEWS_URL}}\" class=\"review-button\">🌟 Leave a Google Review 🌟</a>\n    </div>\n    \n    <div style=\"background: #f0f8ff; padding: 20px; border-radius: 10px; margin: 20px 0;\">\n      <h3>🏥 Why Reviews Help:</h3>\n      <ul style=\"padding-left: 20px;\">\n        <li>Help other pet parents find quality care</li>\n        <li>Support our mission to provide excellent service</li>\n        <li>Share your positive experience with the community</li>\n        <li>Help us continue improving our services</li>\n      </ul>\n    </div>\n    \n    <div class=\"footer\">\n      <p><strong>Stay Connected:</strong></p>\n      <p>📞 <strong>Phone:</strong> {{BUSINESS_PHONE_NUMBER}}</p>\n      <p>📧 <strong>Email:</strong> {{BUSINESS_EMAIL}}</p>\n      <p>🌐 <strong>Website:</strong> {{BUSINESS_WEBSITE}}</p>\n      <p>📍 <strong>Address:</strong> {{CLINIC_ADDRESS}}</p>\n      <p>🕒 <strong>Hours:</strong> {{CLINIC_HOURS}}</p>\n      \n      <div style=\"margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px;\">\n        <p>Thank you for trusting {{CLINIC_NAME}} with {{ $json.petName || $json['Pet Name'] || 'your pet' }}'s health and happiness! 🐾❤️</p>\n        <p><em>- The {{CLINIC_NAME}} Team</em></p>\n      </div>\n    </div>\n  </div>\n</body>\n</html>",
         "options": {
-          "replyTo": "{{SUPPORT_EMAIL}}"
+          "replyTo": "{{BUSINESS_EMAIL}}",
+          "ccEmail": ""
         }
       },
-      "name": "Send Review Request Email",
-      "type": "n8n-nodes-base.emailSend",
+      "name": "📧 Send Review Request Email",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        280,
-        480
+        960,
+        704
       ],
-      "id": "send-review-email",
+      "id": "{{SEND_REVIEW_EMAIL_NODE_ID}}",
       "credentials": {
-        "smtp": {
-          "id": "{{GMAIL_SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Gmail SMTP"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -82,67 +112,44 @@
       "parameters": {
         "operation": "append",
         "documentId": "{{REVIEW_REQUESTS_SHEET_ID}}",
-        "sheetName": "Review Requests Log",
-        "columns": [
-          {
-            "column": [
-              {
-                "columnName": "Timestamp",
-                "columnValue": "={{ $now.format('YYYY-MM-DD HH:mm:ss') }}"
-              },
-              {
-                "columnName": "Client Name",
-                "columnValue": "={{ $json.clientName || $json.ClientName }}"
-              },
-              {
-                "columnName": "Client Email",
-                "columnValue": "={{ $json.clientEmail || $json.ClientEmail }}"
-              },
-              {
-                "columnName": "Client Phone",
-                "columnValue": "={{ $json.clientPhone || $json.ClientPhone }}"
-              },
-              {
-                "columnName": "Pet Name",
-                "columnValue": "={{ $json.petName || 'N/A' }}"
-              },
-              {
-                "columnName": "Visit Date",
-                "columnValue": "={{ $json.visitDate || $now.format('YYYY-MM-DD') }}"
-              },
-              {
-                "columnName": "Service Type",
-                "columnValue": "={{ $json.serviceType || 'General Care' }}"
-              },
-              {
-                "columnName": "SMS Sent",
-                "columnValue": "Yes"
-              },
-              {
-                "columnName": "Email Sent",
-                "columnValue": "Yes"
-              },
-              {
-                "columnName": "Review Link",
-                "columnValue": "{{GOOGLE_REVIEWS_URL}}"
-              },
-              {
-                "columnName": "Status",
-                "columnValue": "Request Sent"
-              }
-            ]
+        "sheetName": "{{REVIEW_REQUESTS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Request ID": "={{CLINIC_PREFIX}}-RR-{{ Date.now() }}",
+            "Client Name": "={{ $json.clientName || $json['Customer Name'] }}",
+            "Client Email": "={{ $json.clientEmail || $json['Customer Email'] }}",
+            "Client Phone": "={{ $json.clientPhone || $json['Customer Phone'] }}",
+            "Pet Name": "={{ $json.petName || $json['Pet Name'] || 'N/A' }}",
+            "Pet ID": "={{ $json.petId || $json['Pet Name'] }}",
+            "Visit Date": "={{ $json.visitDate || $json['Date'] || $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd') }}",
+            "Service Type": "={{ $json.service || $json['Service'] || 'General Care' }}",
+            "Veterinarian": "={{ $json.veterinarian || '{{HEAD_VETERINARIAN}}' }}",
+            "SMS Sent": "Yes",
+            "Email Sent": "Yes",
+            "Review Platform": "Google Reviews",
+            "Review URL": "{{GOOGLE_REVIEWS_URL}}",
+            "Status": "Request Sent",
+            "Appointment ID": "={{ $json.appointmentId || $json.id }}",
+            "Wait Hours": "24",
+            "Clinic": "{{CLINIC_NAME}}",
+            "Request Method": "Automated",
+            "Follow-up Scheduled": "={{ $now.setZone('{{TIMEZONE}}').plus({ days: 7 }).toFormat('yyyy-MM-dd') }}",
+            "Created At": "={{ $now.toISO() }}",
+            "Updated At": "={{ $now.toISO() }}"
           }
-        ],
+        },
         "options": {}
       },
-      "name": "Log Review Request",
+      "name": "📊 Log Review Request",
       "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.2,
+      "typeVersion": 4,
       "position": [
-        500,
-        390
+        1184,
+        608
       ],
-      "id": "log-review-request",
+      "id": "{{LOG_REVIEW_REQUEST_NODE_ID}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -152,117 +159,86 @@
     },
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "review_request_webhook",
-        "responseMode": "responseNode",
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Review request workflow completed successfully\",\n  \"data\": {\n    \"clientName\": \"{{ $json.clientName || $json['Customer Name'] }}\",\n    \"petName\": \"{{ $json.petName || $json['Pet Name'] }}\",\n    \"requestId\": \"{{CLINIC_PREFIX}}-RR-{{ Date.now() }}\",\n    \"sentAt\": \"{{ $now.setZone('{{TIMEZONE}}').toFormat('yyyy-MM-dd HH:mm:ss') }}\",\n    \"smsDelivered\": true,\n    \"emailDelivered\": true,\n    \"reviewUrl\": \"{{GOOGLE_REVIEWS_URL}}\",\n    \"clinic\": \"{{CLINIC_NAME}}\",\n    \"followUpScheduled\": \"{{ $now.setZone('{{TIMEZONE}}').plus({ days: 7 }).toFormat('yyyy-MM-dd') }}\"\n  },\n  \"status\": \"completed\",\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}",
         "options": {}
       },
-      "name": "Alternative: Webhook Trigger",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [
-        -160,
-        100
-      ],
-      "webhookId": "{{REVIEW_REQUEST_WEBHOOK_ID}}",
-      "id": "webhook-trigger-alternative"
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"Review request workflow triggered successfully\",\n  \"clientName\": \"{{ $json.clientName || $json.ClientName }}\",\n  \"scheduledFor\": \"{{ $now.plus({ hours: 24 }).format('YYYY-MM-DD HH:mm:ss') }}\"\n}"
-      },
-      "name": "Webhook Response",
+      "name": "✅ Success Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        720,
-        390
+        1408,
+        608
       ],
-      "id": "webhook-response"
-    },
-    {
-      "parameters": {
-        "content": "## WF7: Review Request System\n\n### Purpose\nAutomatically request reviews from clients 24 hours after their visit to improve online reputation and gather feedback.\n\n### Trigger Options\n1. **Execute Workflow Trigger**: Triggered by Visit Completion Workflow (WF4)\n2. **Webhook Trigger**: Alternative webhook endpoint for manual triggering\n\n### Flow Process\n1. **Wait 24 Hours**: Allows time for the client to process their experience\n2. **Multi-Channel Outreach**: Sends both SMS and email review requests\n3. **Data Logging**: Records all review requests in Google Sheets\n4. **Response Tracking**: Provides confirmation of sent requests\n\n### Features\n- Personalized messages with pet and visit details\n- Professional email template with clinic branding\n- SMS for immediate impact, email for detailed request\n- Complete audit trail in Google Sheets\n- Flexible triggering options\n\n### Required Data\n- clientName/ClientName\n- clientEmail/ClientEmail  \n- clientPhone/ClientPhone\n- petName (optional)\n- visitDate (optional)\n- serviceType (optional)\n\n### Placeholders Used\n{{CLINIC_NAME}}, {{VETERINARIAN_NAME}}, {{BUSINESS_COLOR}}, {{BUSINESS_PHONE}}, {{BUSINESS_EMAIL}}, {{BUSINESS_WEBSITE}}, {{CLINIC_ADDRESS}}, {{CLINIC_HOURS}}, {{SUPPORT_EMAIL}}, {{FROM_EMAIL}}, {{FROM_NAME}}, {{GOOGLE_REVIEWS_URL}}, {{TWILIO_PHONE_NUMBER}}, {{REVIEW_REQUESTS_SHEET_ID}}, {{GMAIL_SMTP_CREDENTIAL_ID}}, {{GOOGLE_SHEETS_CREDENTIAL_ID}}, {{TWILIO_CREDENTIAL_ID}}, {{VISIT_COMPLETION_WORKFLOW_ID}}, {{REVIEW_REQUEST_WEBHOOK_ID}}",
-        "height": 800,
-        "width": 400
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        800,
-        -20
-      ],
-      "typeVersion": 1,
-      "id": "workflow-documentation",
-      "name": "Workflow Documentation"
+      "id": "{{SUCCESS_RESPONSE_NODE_ID}}"
     }
   ],
   "connections": {
-    "Triggered by Visit Completion (WF4)": {
+    "🩺 Triggered by Visit Complete (WF3)": {
       "main": [
         [
           {
-            "node": "Wait 24 Hours",
+            "node": "⏰ Wait 24 Hours",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Wait 24 Hours": {
+    "📞 Alternative: Manual Webhook": {
       "main": [
         [
           {
-            "node": "Send Review Request SMS",
+            "node": "⏰ Wait 24 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰ Wait 24 Hours": {
+      "main": [
+        [
+          {
+            "node": "📱 Send Review Request SMS",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Send Review Request Email",
+            "node": "📧 Send Review Request Email",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send Review Request SMS": {
+    "📱 Send Review Request SMS": {
       "main": [
         [
           {
-            "node": "Log Review Request",
+            "node": "📊 Log Review Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send Review Request Email": {
+    "📧 Send Review Request Email": {
       "main": [
         [
           {
-            "node": "Log Review Request",
+            "node": "📊 Log Review Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Log Review Request": {
+    "📊 Log Review Request": {
       "main": [
         [
           {
-            "node": "Webhook Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Alternative: Webhook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Wait 24 Hours",
+            "node": "✅ Success Response",
             "type": "main",
             "index": 0
           }
@@ -272,6 +248,15 @@
   },
   "pinData": {},
   "meta": {
-    "instanceId": "review-request-system-workflow"
-  }
+    "templateCredsSetupCompleted": true,
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "id": "{{WORKFLOW_ID}}",
+  "tags": ["{{WORKFLOW_TAG}}"],
+  "name": "{{CLINIC_NAME}} - Review Request System"
 }
