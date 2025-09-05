@@ -3,23 +3,20 @@
   "nodes": [
     {
       "parameters": {
-        "options": {
-          "allowUnauthorizedCerts": false,
-          "useReadOnlyMode": false
-        }
+        "options": {}
       },
       "name": "📧 Lab Results Email Trigger",
       "type": "n8n-nodes-base.emailReadImap",
       "typeVersion": 2,
       "position": [
-        -200,
-        300
+        64,
+        -224
       ],
-      "id": "250b58e9-fcd0-4a44-865d-401469ebe1d5",
+      "id": "{{NODE_ID_LAB_RESULTS_EMAIL_TRIGGER}}",
       "credentials": {
-        "imap": {
+        "imapEmailReadImap": {
           "id": "{{LAB_EMAIL_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Lab Results Email"
+          "name": "{{CLINIC_NAME}} Lab Email"
         }
       }
     },
@@ -31,10 +28,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20,
-        300
+        288,
+        -224
       ],
-      "id": "11453158-7664-42e1-9d39-22ada9c07be2"
+      "id": "{{NODE_ID_PARSE_LAB_RESULTS}}"
     },
     {
       "parameters": {
@@ -65,10 +62,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        260,
-        300
+        528,
+        -224
       ],
-      "id": "f15667b6-34e7-4f1d-bd2c-d69d75f0ebe8",
+      "id": "{{NODE_ID_LOG_LAB_RESULTS}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -80,25 +77,25 @@
       "parameters": {
         "fromEmail": "{{BUSINESS_EMAIL}}",
         "toEmail": "={{VET_EMAIL}}",
-        "subject": "{{ $json.urgencyLevel === 'URGENT' ? '🚨 URGENT' : '📋' }} Lab Results: {{ $json.petName }} ({{ $json.patientId }})",
-        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #{{CLINIC_COLOR}}; color: white; padding: 20px; border-radius: 8px; text-align: center; }\n    .urgent { background: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin: 15px 0; }\n    .normal { background: #e8f5e8; border-left: 5px solid #4caf50; padding: 15px; margin: 15px 0; }\n    .attention { background: #fff3e0; border-left: 5px solid #ff9800; padding: 15px; margin: 15px 0; }\n    .result-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .result-table th, .result-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }\n    .result-table th { background: #f5f5f5; font-weight: bold; }\n    .status-urgent { color: #d32f2f; font-weight: bold; }\n    .status-normal { color: #388e3c; font-weight: bold; }\n    .status-attention { color: #f57c00; font-weight: bold; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>🏥 {{CLINIC_NAME}} - Lab Results</h1>\n    <p>{{ $json.urgencyLevel === 'URGENT' ? '🚨 URGENT ATTENTION REQUIRED' : 'New lab results available' }}</p>\n  </div>\n\n  <div class=\"{{ $json.urgencyLevel === 'URGENT' ? 'urgent' : ($json.urgencyLevel === 'Attention' ? 'attention' : 'normal') }}\">\n    <h2>{{ $json.urgencyLevel === 'URGENT' ? '🚨 Urgent Results Require Immediate Review' : '📋 Lab Results Summary' }}</h2>\n    \n    <table class=\"result-table\">\n      <tr><th>Field</th><th>Value</th></tr>\n      <tr><td><strong>Patient ID</strong></td><td>{{ $json.patientId }}</td></tr>\n      <tr><td><strong>Pet Name</strong></td><td>{{ $json.petName }}</td></tr>\n      <tr><td><strong>Owner</strong></td><td>{{ $json.ownerName }}</td></tr>\n      <tr><td><strong>Test Name</strong></td><td>{{ $json.testName }}</td></tr>\n      <tr><td><strong>Result</strong></td><td>{{ $json.resultValue }}</td></tr>\n      <tr><td><strong>Status</strong></td><td class=\"status-{{ $json.urgencyLevel === 'URGENT' ? 'urgent' : ($json.urgencyLevel === 'Attention' ? 'attention' : 'normal') }}\">{{ $json.resultStatus }}</td></tr>\n      <tr><td><strong>Lab</strong></td><td>{{ $json.labName }}</td></tr>\n      <tr><td><strong>Test Date</strong></td><td>{{ $json.testDate }}</td></tr>\n      <tr><td><strong>Received</strong></td><td>{{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy h:mm a') }}</td></tr>\n    </table>\n  </div>\n\n  <div style=\"margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;\">\n    <h3>📋 Next Steps:</h3>\n    <ul>\n      <li>{{ $json.urgencyLevel === 'URGENT' ? 'Contact client immediately to discuss results' : 'Review results and determine if client contact is needed' }}</li>\n      <li>Update patient records with new lab findings</li>\n      <li>{{ $json.resultStatus === 'Normal' ? 'Consider notifying client of normal results' : 'Schedule follow-up if necessary' }}</li>\n      <li>File results in patient chart</li>\n    </ul>\n  </div>\n\n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>📧 Questions? Contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n    <p>{{CLINIC_NAME}} - Automated Lab Results System</p>\n  </div>\n</body>\n</html>",
+        "subject": "={{ $json.urgencyLevel === 'URGENT' ? '🚨 URGENT' : '📋' }}: Lab Results - {{ $json.petName }} ({{ $json.patientId }})",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #{{CLINIC_COLOR}}; color: white; padding: 20px; border-radius: 8px; text-align: center; }\n    .urgent { background: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin: 15px 0; }\n    .normal { background: #e8f5e8; border-left: 5px solid #4caf50; padding: 15px; margin: 15px 0; }\n    .attention { background: #fff3e0; border-left: 5px solid #ff9800; padding: 15px; margin: 15px 0; }\n    .result-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .result-table th, .result-table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }\n    .result-table th { background: #f5f5f5; font-weight: bold; }\n    .status-urgent { color: #d32f2f; font-weight: bold; }\n    .status-normal { color: #388e3c; font-weight: bold; }\n    .status-attention { color: #f57c00; font-weight: bold; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>🏥 {{CLINIC_NAME}} - Lab Results</h1>\n    <p>={{ $json.urgencyLevel === 'URGENT' ? '🚨 URGENT ATTENTION REQUIRED' : 'New lab results available' }}</p>\n  </div>\n\n  <div class=\"={{ $json.urgencyLevel === 'URGENT' ? 'urgent' : ($json.urgencyLevel === 'Attention' ? 'attention' : 'normal') }}\">\n    <h2>={{ $json.urgencyLevel === 'URGENT' ? '🚨 Urgent Results Require Immediate Review' : '📋 Lab Results Summary' }}</h2>\n    \n    <table class=\"result-table\">\n      <tr><th>Field</th><th>Value</th></tr>\n      <tr><td><strong>Patient ID</strong></td><td>={{ $json.patientId }}</td></tr>\n      <tr><td><strong>Pet Name</strong></td><td>={{ $json.petName }}</td></tr>\n      <tr><td><strong>Owner</strong></td><td>={{ $json.ownerName }}</td></tr>\n      <tr><td><strong>Test Name</strong></td><td>={{ $json.testName }}</td></tr>\n      <tr><td><strong>Result</strong></td><td>={{ $json.resultValue }}</td></tr>\n      <tr><td><strong>Status</strong></td><td class=\"status-={{ $json.urgencyLevel === 'URGENT' ? 'urgent' : ($json.urgencyLevel === 'Attention' ? 'attention' : 'normal') }}\">={{ $json.resultStatus }}</td></tr>\n      <tr><td><strong>Lab</strong></td><td>={{ $json.labName }}</td></tr>\n      <tr><td><strong>Test Date</strong></td><td>={{ $json.testDate }}</td></tr>\n      <tr><td><strong>Received</strong></td><td>={{ $now.setZone('{{TIMEZONE}}').toFormat('EEEE, MMMM d, yyyy h:mm a') }}</td></tr>\n    </table>\n  </div>\n\n  <div style=\"margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;\">\n    <h3>📋 Next Steps:</h3>\n    <ul>\n      <li>={{ $json.urgencyLevel === 'URGENT' ? 'Contact client immediately to discuss results' : 'Review results and determine if client contact is needed' }}</li>\n      <li>Update patient records with new lab findings</li>\n      <li>={{ $json.resultStatus === 'Normal' ? 'Consider notifying client of normal results' : 'Schedule follow-up if necessary' }}</li>\n      <li>File results in patient chart</li>\n    </ul>\n  </div>\n\n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>📧 Questions? Contact {{BUSINESS_EMAIL}} | 📞 {{BUSINESS_PHONE_NUMBER}}</p>\n    <p>{{CLINIC_NAME}} - Automated Lab Results System</p>\n  </div>\n</body>\n</html>",
         "options": {
           "ccEmail": "{{ADMIN_EMAIL}}",
           "replyTo": "{{BUSINESS_EMAIL}}"
         }
       },
       "name": "👨‍⚕️ Notify Veterinarian",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        500,
-        200
+        768,
+        -320
       ],
-      "id": "dfe5d53b-3e3b-4940-b601-9dd1a813154a",
+      "id": "{{NODE_ID_NOTIFY_VETERINARIAN}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -113,7 +110,7 @@
           },
           "conditions": [
             {
-              "id": "result-normal-check",
+              "id": "{{CONDITION_ID_RESULT_NORMAL_CHECK}}",
               "leftValue": "={{ $json.resultStatus }}",
               "rightValue": "Normal",
               "operator": {
@@ -131,10 +128,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        500,
-        400
+        768,
+        -112
       ],
-      "id": "5cecd087-65dc-4f78-a181-0993f1d7ed07"
+      "id": "{{NODE_ID_NORMAL_RESULTS_CHECK}}"
     },
     {
       "parameters": {
@@ -147,10 +144,10 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        740,
-        400
+        1008,
+        -112
       ],
-      "id": "32e543fd-9cf1-4645-86f8-af5259132970",
+      "id": "{{NODE_ID_SEND_NORMAL_SMS}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -169,7 +166,7 @@
           },
           "conditions": [
             {
-              "id": "urgent-check",
+              "id": "{{CONDITION_ID_URGENT_CHECK}}",
               "leftValue": "={{ $json.urgencyLevel }}",
               "rightValue": "URGENT",
               "operator": {
@@ -187,10 +184,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        740,
-        200
+        1008,
+        -320
       ],
-      "id": "urgent-results-check"
+      "id": "{{NODE_ID_URGENT_RESULTS_CHECK}}"
     },
     {
       "parameters": {
@@ -203,10 +200,10 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        980,
-        200
+        1248,
+        -320
       ],
-      "id": "urgent-sms-to-vet",
+      "id": "{{NODE_ID_SEND_URGENT_SMS}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -228,18 +225,17 @@
         },
         "options": {
           "lookupColumn": "Patient ID",
-          "lookupValue": "={{ $json.patientId }}",
-          "range": "A:Z"
+          "lookupValue": "={{ $json.patientId }}"
         }
       },
       "name": "📝 Update Notification Status",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        980,
-        400
+        1248,
+        -112
       ],
-      "id": "update-notification-status",
+      "id": "{{NODE_ID_UPDATE_NOTIFICATION_STATUS}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -256,11 +252,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -600,
-        -100
+        -928,
+        -544
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
+      "id": "{{NODE_ID_WORKFLOW_DESCRIPTION_NOTE}}",
       "name": "PET WF12 - Workflow Description"
     }
   ],
@@ -376,6 +372,96 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{LAB_RESULTS_SHEET_ID_VAR_ID}}",
+      "key": "LAB_RESULTS_SHEET_ID",
+      "value": "{{LAB_RESULTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{LAB_RESULTS_SHEET_NAME_VAR_ID}}",
+      "key": "LAB_RESULTS_SHEET_NAME",
+      "value": "{{LAB_RESULTS_SHEET_NAME}}"
+    },
+    {
+      "id": "{{VET_EMAIL_VAR_ID}}",
+      "key": "VET_EMAIL",
+      "value": "{{VET_EMAIL}}"
+    },
+    {
+      "id": "{{VET_PHONE_VAR_ID}}",
+      "key": "VET_PHONE",
+      "value": "{{VET_PHONE}}"
+    },
+    {
+      "id": "{{CLIENT_PHONE_VAR_ID}}",
+      "key": "CLIENT_PHONE",
+      "value": "{{CLIENT_PHONE}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    },
+    {
+      "id": "{{ADMIN_EMAIL_VAR_ID}}",
+      "key": "ADMIN_EMAIL",
+      "value": "{{ADMIN_EMAIL}}"
+    },
+    {
+      "id": "{{CLINIC_COLOR_VAR_ID}}",
+      "key": "CLINIC_COLOR",
+      "value": "{{CLINIC_COLOR}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{LAB_EMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Lab Email",
+      "type": "imapEmailReadImap",
+      "data": {}
+    },
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{GMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Gmail",
+      "type": "gmailOAuth2",
+      "data": {}
+    },
+    {
+      "id": "{{TWILIO_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Twilio SMS",
+      "type": "twilioApi",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "Lab Results Processing",
+    "Automated Notifications",
+    "Email Monitoring",
+    "Result Analysis"
+  ]
 }
