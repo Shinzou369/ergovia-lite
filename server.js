@@ -3789,12 +3789,16 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     req.session.user = userData;
     
     // Force session save to ensure persistence
-    req.session.save((err) => {
-      if (err) {
-        console.error('❌ Session save error:', err);
-      } else {
-        console.log('✅ Session saved successfully for:', userData.email);
-      }
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          reject(err);
+        } else {
+          console.log('✅ Session saved successfully for:', userData.email);
+          resolve();
+        }
+      });
     });
     
     // Clean up temporary name data from session
@@ -4389,12 +4393,42 @@ async function handleOAuthCallback(service, code, userEmail) {
 }
 
 // Check authentication status endpoint
-app.get("/api/auth/status", (req, res) => {
+app.get("/api/auth/status", async (req, res) => {
   // Check Google OAuth authentication
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
   
-  // Check Stytch authentication with proper session validation
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
+  // Enhanced Stytch authentication check
+  let isStytchAuth = false;
+  let stytchUser = null;
+  
+  // First check if we have a Stytch session ID
+  if (req.session?.stytch_session_id) {
+    try {
+      // Validate the session with Stytch
+      if (stytchClient) {
+        const sessionResponse = await stytchClient.sessions.get({
+          user_session: req.session.stytch_session_id
+        });
+        
+        if (sessionResponse && sessionResponse.session) {
+          isStytchAuth = true;
+          stytchUser = sessionResponse.user;
+          console.log('✅ Stytch session validated for:', stytchUser.emails?.[0]?.email);
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Stytch session validation failed:', error.message);
+      // Clear invalid session
+      delete req.session.stytch_session_id;
+    }
+  }
+  
+  // Fallback check for user data in session
+  if (!isStytchAuth && req.session?.user?.stytch_user_id) {
+    isStytchAuth = true;
+    stytchUser = req.session.user;
+    console.log('✅ Stytch user found in session:', stytchUser.email);
+  }
   
   const isAuthenticated = isGoogleAuth || isStytchAuth;
   

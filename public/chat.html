@@ -948,44 +948,72 @@
       // Check if user needs authentication for affiliate access
       async function checkAffiliateAuth() {
         try {
-          const response = await fetch('/api/auth/status');
+          console.log('🔍 Checking authentication status...');
+          console.log('📍 Current URL:', window.location.href);
+          console.log('📍 Referrer:', document.referrer);
+          console.log('📍 Session storage:', {
+            hasSessionStorage: !!window.sessionStorage,
+            stytchData: sessionStorage.getItem('stytch_session') ? 'present' : 'none'
+          });
+
+          const response = await fetch('/api/auth/status', {
+            credentials: 'include', // Ensure cookies/session are sent
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
           const authData = await response.json();
 
           console.log('🔍 Auth check result:', authData);
+          console.log('🔍 Response status:', response.status);
 
           // If user is authenticated, update UI and continue
           if (authData.authenticated && authData.user) {
-            console.log('✅ User authenticated:', authData.user.email);
+            console.log('✅ User authenticated:', authData.user.email || 'no email', 'Auth method:', authData.user.authMethod);
             updateAuthenticatedUI(authData.user);
             return true;
           }
 
           // User not authenticated - wait a moment for any pending auth to complete
-          console.log('User not authenticated, checking if auth is in progress...');
+          console.log('❌ User not authenticated, checking if auth is in progress...');
           
           // If we're coming from Stytch auth, wait a bit and check again
-          if (document.referrer.includes('stytch-logged-in') || window.location.search.includes('stytch_session')) {
-            console.log('🔄 Waiting for Stytch session to be established...');
-            setTimeout(async () => {
-              const retryResponse = await fetch('/api/auth/status');
+          const fromStytchAuth = document.referrer.includes('stytch-logged-in') || 
+                                window.location.search.includes('stytch_session') ||
+                                window.location.search.includes('from_stytch');
+          
+          if (fromStytchAuth) {
+            console.log('🔄 Coming from Stytch auth, waiting for session to be established...');
+            
+            // Try multiple times with increasing delays
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+              
+              console.log(`🔄 Retry attempt ${attempt}/3...`);
+              const retryResponse = await fetch('/api/auth/status', {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+              });
               const retryData = await retryResponse.json();
               
+              console.log(`🔍 Retry ${attempt} result:`, retryData);
+              
               if (retryData.authenticated) {
-                console.log('✅ Stytch session established on retry');
+                console.log(`✅ Stytch session established on retry ${attempt}`);
                 updateAuthenticatedUI(retryData.user);
-                location.reload(); // Refresh to properly load the authenticated state
-              } else {
-                showLoginOptions();
+                return true;
               }
-            }, 1000);
-            return false;
+            }
+            
+            console.log('❌ Authentication failed after retries, showing login options');
           }
 
           // No pending auth, show login options
           showLoginOptions();
           return false;
         } catch (error) {
-          console.error('Auth check failed:', error);
+          console.error('❌ Auth check failed:', error);
           showLoginOptions();
           return false;
         }
