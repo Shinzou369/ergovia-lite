@@ -198,23 +198,6 @@ class N8NApiClient {
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
-    }
-  }
-}
-
-// Validate N8N configuration and exit if critical vars missing
-if (!N8N_BASE_URL) {
-  console.error('❌ N8N_BASE_URL environment variable is not set');
-  console.error('ETF functionality will be disabled');
-}
-if (!N8N_API_KEY) {
-  console.error('❌ N8N_API_KEY environment variable is not set');
-  console.error('ETF functionality will be disabled');
-}
-
-const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
-
-const app = express();
 
 // Request logging middleware
 app.use((req, res, next) => {
