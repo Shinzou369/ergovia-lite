@@ -4421,7 +4421,7 @@ async function handleOAuthCallback(service, code, userEmail) {
 }
 
 // Check authentication status endpoint
-app.get('/api/auth/status', (req, res) => {
+app.get('/api/auth/status', async (req, res) => {
   console.log('Auth status check - Google:', req.isAuthenticated && req.isAuthenticated(), 'Stytch:', !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id), 'Overall:', req.isAuthenticated && req.isAuthenticated() || !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id));
 
   // Check for Stytch authentication FIRST (affiliates)
