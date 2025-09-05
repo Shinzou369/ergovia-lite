@@ -87,57 +87,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.authCheckInProgress) return;
   window.authCheckInProgress = true;
   
-  // Wait longer for session establishment, especially after Stytch auth
-  const isFromStytch = window.location.search.includes('from_stytch') || 
-                      window.location.pathname === '/stytch-logged-in' ||
-                      sessionStorage.getItem('stytch_auth_completed') ||
-                      localStorage.getItem('stytch_user_email');
-  
-  if (isFromStytch) {
-    console.log('🔄 Coming from Stytch auth, waiting for session...');
-    // Try multiple times with longer waits for Stytch
-    for (let attempt = 1; attempt <= 5; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, attempt * 500));
-      const quickCheck = await checkAuthStatus();
-      if (quickCheck.authenticated && quickCheck.user.authMethod === 'stytch') {
-        console.log(`✅ Stytch session found on attempt ${attempt}`);
-        break;
-      }
-      console.log(`⏳ Attempt ${attempt}/5 - still waiting for Stytch session...`);
-    }
-  } else {
-    await new Promise(resolve => setTimeout(resolve, 300));
-  }
-  
-  const authStatus = await checkAuthStatus();
-
-  // Check if we're on auth-related pages or chat page - don't interfere with those flows
-  const authPages = ['/stytch-logged-in', '/stytch-auth', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login', '/chat'];
   const currentPath = window.location.pathname;
   
-  // Special handling for stytch-auth page with affiliate flow
-  if (currentPath === '/stytch-auth' && window.location.search.includes('flow=affiliate') && authStatus.authenticated) {
-    console.log('Stytch user already authenticated, redirecting to chat...');
-    window.location.href = '/chat';
+  // Prevent auth checks on specific pages to avoid loops
+  const skipAuthPages = ['/stytch-logged-in', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login', '/no-account', '/account-exists'];
+  
+  if (skipAuthPages.includes(currentPath)) {
+    console.log('On auth flow page, skipping automatic auth check');
     window.authCheckInProgress = false;
     return;
   }
   
-  if (authPages.some(page => currentPath === page || currentPath.startsWith(page))) {
-    console.log('On authentication page, skipping auth redirect logic');
+  // For chat page, allow auth check but handle carefully
+  if (currentPath === '/chat') {
+    const authStatus = await checkAuthStatus();
+    if (authStatus.authenticated) {
+      console.log('✅ User authenticated on chat page:', authStatus.user.email);
+      window.currentUser = authStatus.user;
+      updateUIForLoggedInUser(authStatus.user);
+    } else {
+      console.log('User not authenticated, showing login options on chat page');
+      window.currentUser = null;
+      showLoginOptions();
+    }
     window.authCheckInProgress = false;
     return;
   }
+  
+  // For all other pages, check auth normally
+  const authStatus = await checkAuthStatus();
 
   if (authStatus.authenticated) {
-    // User is logged in - show main interface
     console.log('✅ User authenticated:', authStatus.user.email, 'Method:', authStatus.user.authMethod);
-    // Store user data globally for easy access
     window.currentUser = authStatus.user;
-    // Update UI to show user info
     updateUIForLoggedInUser(authStatus.user);
   } else {
-    // User not logged in - show login option (log only once per session)
     if (!window.authLoggedOnce) {
       console.log('User not authenticated');
       window.authLoggedOnce = true;
@@ -159,23 +143,20 @@ async function updateUIForLoggedInUser(user) {
     }
   }
 
-  // If user has a role, check if they're on the right page
+  // If user has a role, only redirect if they're on the homepage or wrong page
   if (user.role) {
     const currentPath = window.location.pathname;
     
-    // Affiliate users should be on chat page, client users on taskforce
-    if (user.role === 'affiliate' && currentPath === '/chat') {
-      // Affiliate on correct page, continue with initialization
-    } else if (user.role === 'client' && currentPath === '/taskforce') {
-      // Client on correct page, continue with initialization  
-    } else if (currentPath === '/select-role' || currentPath === '/complete-signup') {
-      // User is on role selection or signup completion page, let them complete it
-      return;
+    // Don't redirect if user is already on an appropriate page
+    if (currentPath === '/chat' || currentPath === '/taskforce' || 
+        currentPath === '/select-role' || currentPath === '/complete-signup' ||
+        currentPath.startsWith('/stytch-') || currentPath.startsWith('/auth')) {
+      // User is on an acceptable page, don't redirect
     } else {
-      // User is on wrong page for their role, redirect appropriately
+      // Only redirect from homepage or inappropriate pages
       const targetPage = user.role === 'affiliate' ? '/chat' : '/taskforce';
-      if (currentPath !== targetPage) {
-        console.log(`Redirecting ${user.role} to appropriate page: ${targetPage}`);
+      if (currentPath === '/' || (!currentPath.startsWith('/chat') && !currentPath.startsWith('/taskforce'))) {
+        console.log(`Redirecting ${user.role} from ${currentPath} to appropriate page: ${targetPage}`);
         window.location.href = targetPage;
         return;
       }

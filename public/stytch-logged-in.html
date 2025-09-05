@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -362,35 +361,35 @@
 
                 if (authData.authenticated && authData.user) {
                     console.log('✅ User is authenticated:', authData.user);
-                    
+
                     // Update user email display
                     document.getElementById('user-email').innerHTML = `
                         <div>${authData.user.email}</div>
                         <small style="color: var(--text-muted); margin-top: 4px;">✅ Successfully authenticated</small>
                     `;
-                    
+
                     // Confirm affiliate role
                     const roleElement = document.getElementById('user-role');
                     if (authData.user.role === 'affiliate') {
                         roleElement.innerHTML = '🏢 Affiliate Account - Access Granted';
                         roleElement.style.color = 'var(--success)';
                     }
-                    
+
                     // Store user email for future reference
                     localStorage.setItem('stytch_user_email', authData.user.email);
                     localStorage.setItem('user_role', authData.user.role);
-                    
+
                     // Get intended destination from session
                     const intendedDestination = '/chat'; // Default to chat for affiliates
-                    
+
                     // Show success message and redirect with session indicator
                     setTimeout(() => {
                         console.log('🚀 Redirecting affiliate to:', intendedDestination);
-                        
+
                         // Set session storage indicator for auth check
                         sessionStorage.setItem('stytch_auth_completed', 'true');
-                        
-                        const redirectUrl = intendedDestination.includes('?') 
+
+                        const redirectUrl = intendedDestination.includes('?')
                             ? `${intendedDestination}&from_stytch=true`
                             : `${intendedDestination}?from_stytch=true`;
                         window.location.href = redirectUrl;
@@ -400,36 +399,6 @@
                     setTimeout(() => {
                         window.location.href = '/stytch-auth?return_to=' + encodeURIComponent('/chat');
                     }, 2000);
-                }ail').innerHTML = `
-                        <div>${authData.user.email}</div>
-                        ${authData.user.authMethod === 'stytch' ? '<small style="color: var(--text-muted);">Stytch Account</small>' : ''}
-                    `;
-
-                    // Update role-based continue button
-                    const continueBtn = document.getElementById('continue-btn');
-                    if (authData.user.role === 'client') {
-                        continueBtn.href = '/taskforce';
-                        continueBtn.innerHTML = '🚀 Continue to Taskforce Dashboard';
-                    } else {
-                        continueBtn.href = '/chat';
-                        continueBtn.innerHTML = '🚀 Continue to Chat Dashboard';
-                    }
-
-                    // Show premium status if applicable
-                    if (authData.user.isPremium || authData.user.hasUnlimitedAccess) {
-                        const userInfo = document.querySelector('.user-info');
-                        userInfo.innerHTML += '<div style="color: var(--primary); font-size: 0.9rem; margin-top: 8px;">👑 Premium Member</div>';
-                    }
-
-                } else {
-                    console.warn('⚠️ User not authenticated on logged-in page');
-                    document.getElementById('user-email').innerHTML = `
-                        <div style="color: var(--error);">Authentication verification in progress...</div>
-                        <small>Please wait or click continue if authenticated</small>
-                    `;
-                    
-                    // Don't auto-redirect from logged-in page - user came here from successful auth
-                    // Instead, just show the continue button to let them proceed manually
                 }
             } catch (error) {
                 console.error('❌ Error checking auth status:', error);
@@ -437,7 +406,27 @@
                     <div style="color: var(--error);">Unable to verify authentication</div>
                     <small>Please try logging in again</small>
                 `;
+                // If there's an error checking auth status, it's safer to redirect to the login page
+                setTimeout(() => {
+                    window.location.href = '/stytch-auth?return_to=' + encodeURIComponent('/chat');
+                }, 2000);
             }
+
+            // Auto-redirect after showing success message, but prevent loops
+            setTimeout(() => {
+              const destination = sessionStorage.getItem('intended_destination') || '/chat';
+              sessionStorage.removeItem('intended_destination');
+
+              // Prevent redirect loops by checking current path
+              if (window.location.pathname !== destination) {
+                console.log('🚀 Auto-redirecting to:', destination);
+                // Add a flag to prevent auth checks on the destination page
+                sessionStorage.setItem('skip_auth_check', 'true');
+                window.location.href = destination;
+              } else {
+                console.log('Already on destination page, no redirect needed');
+              }
+            }, 2000);
         });
 
         // Don't auto-redirect - let user click the button when ready

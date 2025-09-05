@@ -3849,8 +3849,17 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
     req.session.intended_destination = return_to ? decodeURIComponent(return_to) : '/chat';
     req.session.stytch_auth_completed = true; // Mark authentication as completed
     
-    // Always redirect to confirmation page first to prevent redirect loops
-    res.redirect('/stytch-logged-in');
+    // Save session before redirecting
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error before redirect:', err);
+        return res.redirect('/login?error=session_save_failed');
+      }
+      
+      console.log('✅ Session saved, redirecting to confirmation page');
+      // Always redirect to confirmation page first to prevent redirect loops
+      res.redirect('/stytch-logged-in');
+    });
 
   } catch (error) {
     console.error('❌ Stytch authentication error:', error);
