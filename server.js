@@ -4398,10 +4398,11 @@ app.get("/api/auth/status", (req, res) => {
   
   const isAuthenticated = isGoogleAuth || isStytchAuth;
   
-  console.log('Auth status check - Google:', isGoogleAuth, 'Stytch:', isStytchAuth, 'Overall:', isAuthenticated, 'Session data:', {
+  console.log('Auth status check - Google:', isGoogleAuth, 'Stytch:', isStytchAuth, 'Overall:', isAuthenticated, 'Session ID:', req.sessionID?.substring(0, 8) + '...', 'Session data:', {
     hasStytchSessionId: !!req.session?.stytch_session_id,
     hasUser: !!req.session?.user,
-    userStytchId: !!req.session?.user?.stytch_user_id
+    userStytchId: !!req.session?.user?.stytch_user_id,
+    userEmail: req.session?.user?.email
   });
 
   if (!isAuthenticated) {

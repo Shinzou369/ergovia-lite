@@ -366,10 +366,13 @@
                     // Get intended destination from session
                     const intendedDestination = '/chat'; // Default to chat
                     
-                    // Show success message and redirect
+                    // Show success message and redirect with session indicator
                     setTimeout(() => {
                         console.log('🚀 Redirecting to:', intendedDestination);
-                        window.location.href = intendedDestination;
+                        const redirectUrl = intendedDestination.includes('?') 
+                            ? `${intendedDestination}&from_stytch=true`
+                            : `${intendedDestination}?from_stytch=true`;
+                        window.location.href = redirectUrl;
                     }, 2000);
                 } else {
                     console.log('❌ Authentication failed, redirecting to auth');
