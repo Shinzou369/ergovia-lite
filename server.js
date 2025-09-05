@@ -643,9 +643,22 @@ function validateInput(req, res, next) {
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf, encoding) => {
+    // Skip verification for certain endpoints that might not send JSON
+    if (req.url && (req.url.includes('/webhook/') || req.url.includes('/oauth') || req.url.includes('/callback'))) {
+      return;
+    }
+    
     try {
-      JSON.parse(buf);
+      if (buf && buf.length > 0) {
+        JSON.parse(buf);
+      }
     } catch (e) {
+      console.error('JSON Parse Error:', {
+        url: req.url,
+        method: req.method,
+        bodyLength: buf ? buf.length : 0,
+        body: buf ? buf.toString().substring(0, 200) : 'empty'
+      });
       throw new Error('Invalid JSON');
     }
   }
