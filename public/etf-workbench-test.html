@@ -1643,7 +1643,86 @@
                 `;
             }
 
-            // For non-connected states
+            // Special handling for OpenAI - Automatic Key Generation
+            if (key === 'openai') {
+                return `
+                    <div class="openai-auto-generation" style="background: linear-gradient(135deg, rgba(0, 167, 126, 0.1) 0%, rgba(0, 167, 126, 0.05) 100%); border: 2px solid rgba(0, 167, 126, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+                        <div class="auto-gen-header" style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+                            <div class="auto-gen-icon" style="width: 48px; height: 48px; background: linear-gradient(135deg, #00a67e 0%, #00d4aa 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🔑</div>
+                            <div class="auto-gen-info">
+                                <h4 style="margin: 0; color: #00a67e; font-size: 1.1rem; font-weight: 700;">✨ Automatic API Key Generation</h4>
+                                <p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 0.9rem;">We'll create a dedicated OpenAI API key just for your pet clinic</p>
+                            </div>
+                        </div>
+                        
+                        <div class="auto-gen-features" style="background: rgba(0, 167, 126, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                            <div class="features-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 0.85rem;">
+                                <div style="display: flex; align-items: center; gap: 8px; color: #00a67e;">
+                                    <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                                    <span>Secure & Dedicated</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; color: #00a67e;">
+                                    <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i>
+                                    <span>Usage Tracking</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; color: #00a67e;">
+                                    <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
+                                    <span>Monthly Reset</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px; color: #00a67e;">
+                                    <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+                                    <span>Instant Setup</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="token-allocation" style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                            <h5 style="margin: 0 0 12px; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">📊 Your Token Allocation</h5>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Base allocation:</span>
+                                <span style="color: var(--text-primary); font-weight: 600;">50,000 tokens</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Per workflow bonus:</span>
+                                <span style="color: var(--text-primary); font-weight: 600;">+25,000 tokens</span>
+                            </div>
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #00a67e; font-weight: 700;">Estimated total:</span>
+                                    <span style="color: #00a67e; font-weight: 700; font-size: 1.1rem;">~175,000 tokens/month</span>
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.75rem;">*Based on typical pet clinic workflows</small>
+                            </div>
+                        </div>
+
+                        <button class="credential-btn primary" onclick="generatePersonalOpenAIKey()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #00a67e 0%, #00d4aa 100%); border: none; font-size: 1rem; font-weight: 700;">
+                            <i data-lucide="zap"></i> Generate My Dedicated API Key
+                        </button>
+                        
+                        <div class="generation-status" id="openai-generation-status" style="display: none; margin-top: 16px; padding: 16px; border-radius: 8px;">
+                            <!-- Status will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <details style="margin-top: 16px;">
+                        <summary style="color: var(--text-secondary); cursor: pointer; font-size: 0.85rem; padding: 8px 0;">
+                            <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i> Or bring your own OpenAI API key
+                        </summary>
+                        <div style="margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 8px;">
+                            <input type="password" class="credential-input" id="openai_manual_key" 
+                                   placeholder="sk-xxxxxxxxxxxxxxxx" style="margin-bottom: 12px;">
+                            <button class="credential-btn" onclick="saveManualOpenAIKey()" style="width: 100%;">
+                                <i data-lucide="save"></i> Use My Own API Key
+                            </button>
+                            <p style="margin: 12px 0 0; color: var(--text-muted); font-size: 0.8rem;">
+                                Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #00a67e;">OpenAI Platform</a>
+                            </p>
+                        </div>
+                    </details>
+                `;
+            }
+
+            // For non-connected states (other services)
             let fieldsHTML = '';
             if (config.fields) {
                 config.fields.forEach(field => {
@@ -2120,6 +2199,148 @@
                 document.getElementById('generateBtn').disabled = false;
                 // Optionally redirect or show results
             }, 2000);
+        }
+
+        // OpenAI Key Generation Functions
+        async function generatePersonalOpenAIKey() {
+            const btn = event.target;
+            const originalHTML = btn.innerHTML;
+            const statusDiv = document.getElementById('openai-generation-status');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading"></div> Generating your dedicated API key...';
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'generation-status';
+            statusDiv.style.background = 'rgba(245, 158, 11, 0.1)';
+            statusDiv.style.border = '1px solid rgba(245, 158, 11, 0.3)';
+            statusDiv.style.color = '#f59e0b';
+            statusDiv.innerHTML = '⏳ Generating your personal OpenAI API key... This may take a moment.';
+
+            try {
+                // Collect business data for key generation
+                const businessData = {
+                    business_name: configData.businessInfo?.business_name || 'Pet Clinic',
+                    business_email: configData.businessInfo?.business_email || configData.staffInfo?.admin_email || 'clinic@example.com',
+                    workflow_count: Object.keys(configSections).length,
+                    setup_type: 'pet_clinic_workbench'
+                };
+
+                const response = await fetch('/api/generate-personal-openai-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(businessData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update status to success
+                    statusDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                    statusDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+                    statusDiv.style.color = '#10b981';
+                    statusDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                            <strong>✅ Your dedicated OpenAI API key has been generated!</strong>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.05); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 0.85rem;">Key preview:</span>
+                                <code style="font-family: monospace; font-size: 0.8rem;">${result.key_preview}</code>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span style="font-size: 0.85rem;">Monthly limit:</span>
+                                <span style="font-weight: 600;">${result.token_limit?.toLocaleString()} tokens</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="font-size: 0.85rem;">Client ID:</span>
+                                <code style="font-family: monospace; font-size: 0.8rem;">${result.client_id}</code>
+                            </div>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.75rem;">
+                            Your API key is automatically configured and ready to use with all pet clinic workflows.
+                        </small>
+                    `;
+
+                    // Mark OpenAI as connected
+                    credentialStates.openai = 'connected';
+                    configData.openai = {
+                        client_id: result.client_id,
+                        key_preview: result.key_preview,
+                        token_limit: result.token_limit,
+                        auto_generated: true
+                    };
+
+                    updateConfigBox('openai');
+                    updateProgress();
+                    
+                    // Update button to show success
+                    btn.innerHTML = '<i data-lucide="check"></i> API Key Generated Successfully';
+                    btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    
+                } else {
+                    throw new Error(result.error || 'Failed to generate API key');
+                }
+
+            } catch (error) {
+                console.error('OpenAI key generation error:', error);
+                statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+                statusDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                statusDiv.style.color = '#ef4444';
+                statusDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i data-lucide="x-circle" style="width: 20px; height: 20px;"></i>
+                        <span>❌ Failed to generate API key: ${error.message}</span>
+                    </div>
+                `;
+                
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function saveManualOpenAIKey() {
+            const keyInput = document.getElementById('openai_manual_key');
+            const apiKey = keyInput.value.trim();
+            
+            if (!apiKey) {
+                alert('Please enter your OpenAI API key');
+                return;
+            }
+            
+            if (!apiKey.startsWith('sk-')) {
+                alert('Invalid OpenAI API key format. Keys should start with "sk-"');
+                return;
+            }
+
+            // Save the manual key
+            configData.openai = {
+                api_key: apiKey,
+                manual_entry: true,
+                key_preview: apiKey.substring(0, 7) + '...' + apiKey.slice(-4)
+            };
+            
+            credentialStates.openai = 'connected';
+            updateConfigBox('openai');
+            updateProgress();
+            
+            alert('✅ OpenAI API key saved successfully!');
+            closeConfigModal();
+        }
+
+        function viewOpenAIDashboard() {
+            const clientId = configData.openai?.client_id;
+            if (clientId) {
+                window.open(`/client-openai-dashboard.html?client_id=${clientId}`, '_blank');
+            } else {
+                alert('Dashboard not available for manually entered keys');
+            }
         }
 
         // Event listener for the deploy button
