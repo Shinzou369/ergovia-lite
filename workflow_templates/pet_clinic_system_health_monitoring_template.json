@@ -5,23 +5,18 @@
       "parameters": {
         "rule": {
           "interval": [
-            {
-              "triggerAtHour": 0,
-              "triggerAtMinute": 0,
-              "triggerInterval": 1
-            }
+            {}
           ]
-        },
-        "timezone": "{{TIMEZONE}}"
+        }
       },
       "name": "🔄 Hourly Health Check",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -400,
-        200
+        176,
+        176
       ],
-      "id": "hourly-health-trigger"
+      "id": "{{NODE_ID_HOURLY_HEALTH_CHECK}}"
     },
     {
       "parameters": {
@@ -34,10 +29,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -140,
-        100
+        448,
+        80
       ],
-      "id": "ping-booking-system"
+      "id": "{{NODE_ID_PING_BOOKING_SYSTEM}}"
     },
     {
       "parameters": {
@@ -52,10 +47,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -140,
-        300
+        448,
+        272
       ],
-      "id": "ping-twilio-api",
+      "id": "{{NODE_ID_PING_TWILIO_API}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -76,10 +71,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [
-        -140,
-        500
+        448,
+        480
       ],
-      "id": "ping-google-sheets-api",
+      "id": "{{NODE_ID_PING_GOOGLE_SHEETS_API}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -95,10 +90,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        120,
-        300
+        704,
+        272
       ],
-      "id": "analyze-system-health"
+      "id": "{{NODE_ID_ANALYZE_SYSTEM_HEALTH}}"
     },
     {
       "parameters": {
@@ -127,10 +122,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        380,
-        300
+        960,
+        272
       ],
-      "id": "requires-alert-check"
+      "id": "{{NODE_ID_REQUIRES_ALERT}}"
     },
     {
       "parameters": {
@@ -143,29 +138,22 @@
         }
       },
       "name": "📧 Send System Alert Email",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        640,
-        200
+        1216,
+        176
       ],
-      "id": "send-system-alert-email",
+      "id": "{{NODE_ID_SEND_SYSTEM_ALERT_EMAIL}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
     {
       "parameters": {
-        "authentication": "predefinedCredentialType",
-        "select": "channel",
-        "channelId": {
-          "__rl": true,
-          "value": "{{TELEGRAM_CHAT_ID}}",
-          "mode": "id"
-        },
         "text": "🚨 *{{CLINIC_NAME}} System Alert*\n\n{{ $json.alert_message }}\n\n*System Status:*\n📅 Booking System: {{ $json.booking_system.status }}\n📱 Twilio SMS: {{ $json.twilio_api.status }}\n📊 Google Sheets: {{ $json.google_sheets_api.status }}\n\n*Overall Health:* {{ $json.overall.health_percentage }}% ({{ $json.overall.status }})\n*Alert Level:* {{ $json.overall.alert_level }}\n\n*Potential Impact:*\n{{ $json.impact_assessment }}\n\n_Check completed at {{ $json.timestamp }}_",
         "additionalFields": {
           "parse_mode": "Markdown"
@@ -175,10 +163,10 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        640,
-        400
+        1216,
+        368
       ],
-      "id": "send-telegram-alert",
+      "id": "{{NODE_ID_SEND_TELEGRAM_ALERT}}",
       "credentials": {
         "telegramApi": {
           "id": "{{TELEGRAM_CREDENTIAL_ID}}",
@@ -214,10 +202,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        380,
-        600
+        960,
+        576
       ],
-      "id": "log-health-check",
+      "id": "{{NODE_ID_LOG_HEALTH_CHECK}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -234,11 +222,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -800,
-        0
+        -848,
+        -80
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
+      "id": "{{NODE_ID_WORKFLOW_DESCRIPTION}}",
       "name": "PET WF15 - Workflow Description"
     }
   ],
@@ -333,6 +321,91 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    },
+    {
+      "id": "{{BOOKING_SYSTEM_API_URL_VAR_ID}}",
+      "key": "BOOKING_SYSTEM_API_URL",
+      "value": "{{BOOKING_SYSTEM_API_URL}}"
+    },
+    {
+      "id": "{{TWILIO_ACCOUNT_SID_VAR_ID}}",
+      "key": "TWILIO_ACCOUNT_SID",
+      "value": "{{TWILIO_ACCOUNT_SID}}"
+    },
+    {
+      "id": "{{MASTER_APPOINTMENTS_SHEET_ID_VAR_ID}}",
+      "key": "MASTER_APPOINTMENTS_SHEET_ID",
+      "value": "{{MASTER_APPOINTMENTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{SYSTEM_HEALTH_LOG_SHEET_ID_VAR_ID}}",
+      "key": "SYSTEM_HEALTH_LOG_SHEET_ID",
+      "value": "{{SYSTEM_HEALTH_LOG_SHEET_ID}}"
+    },
+    {
+      "id": "{{SYSTEM_HEALTH_LOG_SHEET_NAME_VAR_ID}}",
+      "key": "SYSTEM_HEALTH_LOG_SHEET_NAME",
+      "value": "{{SYSTEM_HEALTH_LOG_SHEET_NAME}}"
+    },
+    {
+      "id": "{{TELEGRAM_CHAT_ID_VAR_ID}}",
+      "key": "TELEGRAM_CHAT_ID",
+      "value": "{{TELEGRAM_CHAT_ID}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{GMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Gmail",
+      "type": "gmailOAuth2",
+      "data": {}
+    },
+    {
+      "id": "{{TWILIO_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Twilio",
+      "type": "twilioApi",
+      "data": {}
+    },
+    {
+      "id": "{{TELEGRAM_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Telegram Bot",
+      "type": "telegramApi",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "System Monitoring",
+    "Health Checks",
+    "Alert Management",
+    "Infrastructure Monitoring"
+  ]
 }
