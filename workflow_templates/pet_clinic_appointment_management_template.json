@@ -7,7 +7,7 @@
           "interval": [
             {
               "field": "hours",
-              "expression": "{{REMINDER_CHECK_INTERVAL}}"
+              "hoursInterval": "{{REMINDER_CHECK_INTERVAL}}"
             }
           ]
         }
@@ -16,25 +16,26 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
       "position": [
-        304,
-        368
+        0,
+        352
       ],
-      "id": "92a88559-310f-41dd-a11e-04ee99a0d547"
+      "id": "{{SCHEDULE_TRIGGER_NODE_ID}}"
     },
     {
       "parameters": {
         "documentId": "{{APPOINTMENTS_SHEET_ID}}",
         "sheetName": "{{APPOINTMENTS_SHEET_NAME}}",
-        "options": {}
+        "options": {},
+        "operation": "readRows"
       },
       "name": "Get Appointments from Sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        512,
-        368
+        208,
+        352
       ],
-      "id": "9111c3fc-2caf-47fb-8845-6f443806f342",
+      "id": "{{GET_APPOINTMENTS_NODE_ID}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -48,7 +49,7 @@
           "options": {},
           "conditions": [
             {
-              "id": "a1b2c3d4-e5f6-7890-g1h2-i3j4k5l6m7n8",
+              "id": "{{FILTER_CONDITION_ID}}",
               "leftValue": "={{ $json.Date }}",
               "rightValue": "={{ $now.setZone('{{TIMEZONE}}').plus({ days: 1 }).toFormat('yyyy-MM-dd') }}",
               "operator": {
@@ -66,10 +67,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        736,
-        368
+        432,
+        352
       ],
-      "id": "430d96e8-8a66-43cc-91ee-7bee9482afaa"
+      "id": "{{FILTER_APPOINTMENTS_NODE_ID}}"
     },
     {
       "parameters": {
@@ -82,10 +83,10 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        944,
-        368
+        640,
+        352
       ],
-      "id": "69269521-b0e8-4750-980e-7374753b9223",
+      "id": "{{REMINDER_SMS_NODE_ID}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -103,11 +104,11 @@
       "type": "n8n-nodes-base.calendlyTrigger",
       "typeVersion": 1,
       "position": [
-        304,
-        160
+        0,
+        144
       ],
       "webhookId": "{{CALENDLY_WEBHOOK_ID}}",
-      "id": "812bec60-aa3d-448b-9e3b-c1ed352328c5",
+      "id": "{{CALENDLY_TRIGGER_NODE_ID}}",
       "credentials": {
         "calendlyApi": {
           "id": "{{CALENDLY_CREDENTIAL_ID}}",
@@ -141,10 +142,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        576,
-        160
+        272,
+        144
       ],
-      "id": "8c956ccd-ffdd-4704-ad9c-8593a4b6dc90",
+      "id": "{{LOG_MASTER_SHEET_NODE_ID}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -163,10 +164,10 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        816,
-        160
+        512,
+        144
       ],
-      "id": "134ceb8f-5682-43c6-aff6-61d0b3d9326c",
+      "id": "{{CONFIRMATION_SMS_NODE_ID}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -176,19 +177,35 @@
     },
     {
       "parameters": {
-        "content": "### {{CLINIC_NAME}} - Appointment Management Workflow\n\n**Features:**\n• 📅 Automatic appointment logging from Calendly\n• 📧 Instant confirmation messages\n• ⏰ Automated reminder system (runs every {{REMINDER_CHECK_INTERVAL}} hours)\n• 📊 Central appointment tracking\n\n**Customizable Settings:**\n• Clinic: {{CLINIC_NAME}}\n• Address: {{CLINIC_ADDRESS}}\n• Phone: {{BUSINESS_PHONE_NUMBER}}\n• Email: {{BUSINESS_EMAIL}}\n• Timezone: {{TIMEZONE}}\n• Cancellation Policy: {{CANCELLATION_POLICY}}\n\n**Sheet Configuration:**\n• Appointments Sheet: {{APPOINTMENTS_SHEET_ID}}\n• Master Hub: {{MASTER_APPOINTMENTS_SHEET_ID}}",
+        "content": "### {{CLINIC_NAME}} - Appointment Management (PET WF2)\n\n**🎯 Purpose:** Streamlines appointment booking, confirmation, and reminder processes\n\n**🚀 Features:**\n• 📅 Automatic appointment logging from Calendly\n• 📧 Instant confirmation messages via SMS\n• ⏰ Automated reminder system (runs every {{REMINDER_CHECK_INTERVAL}} hours)\n• 📊 Central appointment tracking in Google Sheets\n• 🔄 Real-time status updates\n\n**📋 Process Flow:**\n1. **New Appointment:** Calendly webhook triggers instant logging\n2. **Confirmation:** Immediate SMS confirmation to customer\n3. **Daily Reminders:** Scheduled SMS reminders for next-day appointments\n4. **Master Tracking:** All appointments logged to central hub\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Address: {{CLINIC_ADDRESS}}\n• Phone: {{BUSINESS_PHONE_NUMBER}}\n• Email: {{BUSINESS_EMAIL}}\n• Timezone: {{TIMEZONE}}\n• Cancellation Policy: {{CANCELLATION_POLICY}}\n• Reminder Interval: {{REMINDER_CHECK_INTERVAL}} hours\n\n**📊 Sheet Integration:**\n• Appointments Sheet: {{APPOINTMENTS_SHEET_ID}}\n• Master Hub: {{MASTER_APPOINTMENTS_SHEET_ID}}",
         "height": 400,
-        "width": 600,
+        "width": 700,
         "color": 3
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        100,
-        50
+        -752,
+        96
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
-      "name": "Workflow Description"
+      "id": "{{WORKFLOW_DESCRIPTION_NOTE_ID}}",
+      "name": "PET WF2 - Workflow Description"
+    },
+    {
+      "parameters": {
+        "content": "{{CLINIC_NAME}} - Appointment Management Workflow",
+        "height": 240,
+        "width": 1020,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -32,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "{{WORKFLOW_TITLE_NOTE_ID}}",
+      "name": "Workflow Title"
     }
   ],
   "connections": {
@@ -250,7 +267,15 @@
   },
   "pinData": {},
   "meta": {
-    "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
+    "templateCredsSetupCompleted": true,
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "id": "{{WORKFLOW_ID}}",
+  "tags": ["{{WORKFLOW_TAG}}"],
+  "name": "{{CLINIC_NAME}} - Appointment Management"
 }
