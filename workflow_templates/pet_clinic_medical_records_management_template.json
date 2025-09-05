@@ -448,3 +448,344 @@
     "instanceId": "TEMPLATE_INSTANCE"
   }
 }
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### {{CLINIC_NAME}} - Medical Records Management (PET WF6)\n\n**🎯 Purpose:** Ensure all patient data and staff notes are complete and medical records are updated\n\n**🚀 Features:**\n• **Data Completeness Checks:** Validates pet history forms and staff notes\n• **Smart Reminders:** SMS to clients for incomplete forms, email to staff for missing notes\n• **Medical Records Hub:** Automated updates to central medical records database\n• **Workflow Orchestration:** Seamless integration with visit completion workflow\n\n**⚡ Workflow Trigger:**\n• **Post-Visit Trigger:** Activated by PET WF3 (Visit Completion Orchestrator)\n\n**📊 Integration Points:**\n• Medical Records Hub: {{MEDICAL_RECORDS_SHEET_ID}}\n• Client Communication: SMS via {{BUSINESS_PHONE_NUMBER}}\n• Staff Communication: Email via {{BUSINESS_EMAIL}}\n• Form Collection: {{PET_HISTORY_FORM_URL}}\n\n**⚙️ Configuration:**\n• Clinic: {{CLINIC_NAME}}\n• Wait Time: 1 hour for staff note completion\n• Reminder Logic: Conditional based on completion status\n• Record Format: Structured medical data with timestamps",
+        "height": 500,
+        "width": 800,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "{{WORKFLOW_DESCRIPTION_NOTE_ID}}",
+      "name": "PET WF6 - Workflow Description"
+    },
+    {
+      "parameters": {},
+      "name": "🩺 Triggered by Visit Complete (WF3)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        704
+      ],
+      "id": "{{VISIT_COMPLETE_TRIGGER_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pet-history-check",
+              "leftValue": "={{ $json.petHistoryFormCompleted }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Check Pet History Form",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        528
+      ],
+      "id": "{{CHECK_PET_HISTORY_FORM_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "from": "{{BUSINESS_PHONE_NUMBER}}",
+        "to": "={{ $json.clientPhone || $json['Customer Phone'] }}",
+        "message": "📋 **{{CLINIC_NAME}} - Form Reminder**\n\nHi {{ $json.clientName || $json['Customer Name'] }}! 👋\n\nWe still need {{ $json.petName || $json['Pet Name'] }}'s updated history form to complete their medical records.\n\n📝 **Please complete:** {{PET_HISTORY_FORM_URL}}\n\n⏰ This helps us provide the best care for your pet!\n\n📞 Questions? Call {{BUSINESS_PHONE_NUMBER}}\n\nThank you! 🐾 - {{CLINIC_NAME}} Team",
+        "options": {}
+      },
+      "name": "Send Pet History Form Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        960,
+        432
+      ],
+      "id": "{{SEND_SMS_REQUEST_NODE_ID}}",
+      "credentials": {
+        "twilioApi": {
+          "id": "{{TWILIO_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Twilio SMS"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "hours"
+      },
+      "name": "Wait 1 Hour for Staff Notes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        640
+      ],
+      "id": "{{WAIT_ONE_HOUR_NODE_ID}}",
+      "webhookId": "{{WAIT_WEBHOOK_ID}}"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "staff-notes-check",
+              "leftValue": "={{ $json.staffNotesCompleted }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Check Staff Notes",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        640
+      ],
+      "id": "{{CHECK_STAFF_NOTES_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "fromEmail": "{{BUSINESS_EMAIL}}",
+        "toEmail": "={{ $json.staffEmail || $json.assignedStaffEmail }}",
+        "subject": "📝 Reminder: Complete Visit Notes - {{ $json.petName || $json['Pet Name'] }} ({{ $json.petId || $json.appointmentId }})",
+        "html": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { text-align: center; color: #{{CLINIC_COLOR}}; border-bottom: 2px solid #{{CLINIC_COLOR}}; padding-bottom: 20px; }\n    .reminder { background: #fff3cd; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 5px solid #ffc107; }\n    .details { margin: 20px 0; }\n    .action { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>{{CLINIC_NAME}}</h1>\n    <p>Staff Note Completion Reminder</p>\n  </div>\n  \n  <div class=\"reminder\">\n    <h2>📝 Action Required: Complete Visit Notes</h2>\n    <p>Hello {{ $json.staffName || 'Team Member' }},</p>\n    \n    <p>Please complete the visit notes for the following appointment:</p>\n  </div>\n  \n  <div class=\"details\">\n    <h3>Appointment Details:</h3>\n    <p><strong>Pet:</strong> {{ $json.petName || $json['Pet Name'] }}</p>\n    <p><strong>Owner:</strong> {{ $json.clientName || $json['Customer Name'] }}</p>\n    <p><strong>Visit Date:</strong> {{ $json.visitDate || $json['Date'] }}</p>\n    <p><strong>Service:</strong> {{ $json.service || $json['Service'] }}</p>\n    <p><strong>Appointment ID:</strong> {{ $json.appointmentId || $json.petId }}</p>\n  </div>\n  \n  <div class=\"action\">\n    <h3>Next Steps:</h3>\n    <p>• Log into your clinical management system</p>\n    <p>• Complete all required visit notes and observations</p>\n    <p>• Update treatment plans and recommendations</p>\n    <p>• Mark notes as complete in the system</p>\n  </div>\n  \n  <div style=\"margin-top: 30px; padding: 15px; background: #f0f8ff; border-radius: 5px;\">\n    <p><strong>Questions?</strong> Contact your supervisor or call {{BUSINESS_PHONE_NUMBER}}</p>\n    <p><strong>System Access Issues?</strong> Email {{ADMIN_EMAIL}}</p>\n  </div>\n  \n  <div style=\"text-align: center; margin-top: 20px; color: #666;\">\n    <p>Thank you for maintaining excellent medical records! 🐾</p>\n  </div>\n</body>\n</html>",
+        "options": {
+          "ccEmail": "{{ADMIN_EMAIL}}",
+          "replyTo": "{{BUSINESS_EMAIL}}"
+        }
+      },
+      "name": "Send Staff Notes Reminder",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1392,
+        528
+      ],
+      "id": "{{SEND_STAFF_REMINDER_NODE_ID}}",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\nconst now = new Date();\n\n// Format medical record data for the central hub\nconst medicalRecord = {\n  // Core identifiers\n  recordId: `{{CLINIC_PREFIX}}-MR-${Date.now()}`,\n  appointmentId: inputData.appointmentId || inputData.petId || inputData.id,\n  \n  // Patient information\n  petId: inputData.petId || inputData['Pet Name'],\n  petName: inputData.petName || inputData['Pet Name'],\n  petBreed: inputData.petBreed || inputData['Pet Breed'] || '',\n  petAge: inputData.petAge || inputData['Pet Age'] || '',\n  \n  // Client information\n  clientId: inputData.clientId || inputData['Customer Name'],\n  clientName: inputData.clientName || inputData['Customer Name'],\n  clientPhone: inputData.clientPhone || inputData['Customer Phone'],\n  clientEmail: inputData.clientEmail || inputData['Customer Email'],\n  \n  // Visit information\n  visitDate: inputData.visitDate || inputData['Date'] || now.toISOString().split('T')[0],\n  visitTime: inputData.visitTime || inputData['Time'] || now.toTimeString().split(' ')[0],\n  service: inputData.service || inputData['Service'] || 'General Consultation',\n  visitType: inputData.visitType || inputData['Service Type'] || 'Standard',\n  \n  // Medical details\n  visitDetails: inputData.visitDetails || inputData['Notes'] || 'Standard veterinary consultation',\n  diagnosis: inputData.diagnosis || inputData['Diagnosis'] || 'Assessment completed',\n  treatment: inputData.treatment || inputData['Treatment'] || 'Standard care provided',\n  medications: inputData.medications || inputData['Medications'] || '',\n  recommendations: inputData.recommendations || inputData['Follow-up'] || '',\n  \n  // Staff information\n  staffId: inputData.staffId || inputData.assignedStaff || '{{PRIMARY_VET_ID}}',\n  staffName: inputData.staffName || inputData.assignedStaffName || '{{HEAD_VETERINARIAN}}',\n  veterinarian: inputData.veterinarian || '{{HEAD_VETERINARIAN}}',\n  \n  // Record metadata\n  recordDate: now.toISOString().split('T')[0],\n  recordTime: now.toTimeString().split(' ')[0],\n  recordStatus: 'Complete',\n  formCompleted: inputData.petHistoryFormCompleted || false,\n  notesCompleted: inputData.staffNotesCompleted || true,\n  \n  // Additional fields\n  weight: inputData.weight || inputData['Pet Weight'] || '',\n  temperature: inputData.temperature || '',\n  bloodPressure: inputData.bloodPressure || '',\n  heartRate: inputData.heartRate || '',\n  nextAppointment: inputData.nextAppointment || inputData['Follow-up Date'] || '',\n  cost: inputData.cost || inputData['Amount'] || 0,\n  \n  // System tracking\n  clinic: '{{CLINIC_NAME}}',\n  location: '{{CLINIC_ADDRESS}}',\n  createdAt: now.toISOString(),\n  updatedAt: now.toISOString()\n};\n\nreturn [{\n  json: medicalRecord\n}];"
+      },
+      "name": "Format Medical Record Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        736
+      ],
+      "id": "{{FORMAT_MEDICAL_RECORD_DATA_NODE_ID}}"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "{{MEDICAL_RECORDS_SHEET_ID}}",
+        "sheetName": "{{MEDICAL_RECORDS_SHEET_NAME}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Record ID": "={{ $json.recordId }}",
+            "Appointment ID": "={{ $json.appointmentId }}",
+            "Pet ID": "={{ $json.petId }}",
+            "Pet Name": "={{ $json.petName }}",
+            "Pet Breed": "={{ $json.petBreed }}",
+            "Pet Age": "={{ $json.petAge }}",
+            "Client Name": "={{ $json.clientName }}",
+            "Client Phone": "={{ $json.clientPhone }}",
+            "Client Email": "={{ $json.clientEmail }}",
+            "Visit Date": "={{ $json.visitDate }}",
+            "Visit Time": "={{ $json.visitTime }}",
+            "Service": "={{ $json.service }}",
+            "Visit Type": "={{ $json.visitType }}",
+            "Visit Details": "={{ $json.visitDetails }}",
+            "Diagnosis": "={{ $json.diagnosis }}",
+            "Treatment": "={{ $json.treatment }}",
+            "Medications": "={{ $json.medications }}",
+            "Recommendations": "={{ $json.recommendations }}",
+            "Veterinarian": "={{ $json.veterinarian }}",
+            "Staff ID": "={{ $json.staffId }}",
+            "Weight": "={{ $json.weight }}",
+            "Temperature": "={{ $json.temperature }}",
+            "Blood Pressure": "={{ $json.bloodPressure }}",
+            "Heart Rate": "={{ $json.heartRate }}",
+            "Next Appointment": "={{ $json.nextAppointment }}",
+            "Cost": "={{ $json.cost }}",
+            "Record Date": "={{ $json.recordDate }}",
+            "Record Time": "={{ $json.recordTime }}",
+            "Status": "={{ $json.recordStatus }}",
+            "Form Completed": "={{ $json.formCompleted }}",
+            "Notes Completed": "={{ $json.notesCompleted }}",
+            "Created At": "={{ $json.createdAt }}",
+            "Updated At": "={{ $json.updatedAt }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "Update Medical Records Hub",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1616,
+        736
+      ],
+      "id": "{{UPDATE_MEDICAL_RECORDS_HUB_NODE_ID}}",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "🩺 Triggered by Visit Complete (WF3)": {
+      "main": [
+        [
+          {
+            "node": "Check Pet History Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pet History Form": {
+      "main": [
+        [
+          {
+            "node": "Send Pet History Form Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 1 Hour for Staff Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Pet History Form Reminder": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Hour for Staff Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Hour for Staff Notes": {
+      "main": [
+        [
+          {
+            "node": "Check Staff Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Staff Notes": {
+      "main": [
+        [
+          {
+            "node": "Send Staff Notes Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Medical Record Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Staff Notes Reminder": {
+      "main": [
+        [
+          {
+            "node": "Format Medical Record Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Medical Record Data": {
+      "main": [
+        [
+          {
+            "node": "Update Medical Records Hub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "{{VERSION_ID}}",
+  "id": "{{WORKFLOW_ID}}",
+  "tags": ["{{WORKFLOW_TAG}}"],
+  "name": "{{CLINIC_NAME}} - Medical Records Management"
+}
