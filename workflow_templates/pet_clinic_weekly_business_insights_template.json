@@ -6,40 +6,33 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 9,
-              "triggerAtMinute": 0,
-              "triggerAtDayOfWeek": 0
+              "triggerAtHour": 9
             }
           ]
-        },
-        "timezone": "{{TIMEZONE}}"
+        }
       },
       "name": "📊 Weekly Report Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -600,
-        200
+        160,
+        144
       ],
-      "id": "weekly-report-scheduler"
+      "id": "{{NODE_ID_WEEKLY_REPORT_TRIGGER}}"
     },
     {
       "parameters": {
         "operation": "getAll",
-        "documentId": "{{PAYMENTS_SHEET_ID}}",
-        "sheetName": "{{PAYMENTS_SHEET_NAME}}",
-        "options": {
-          "range": "A:Z"
-        }
+        "documentId": "{{PAYMENTS_SHEET_ID}}"
       },
       "name": "💰 Get Payments Data",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        -320,
-        100
+        432,
+        48
       ],
-      "id": "get-payments-data",
+      "id": "{{NODE_ID_GET_PAYMENTS_DATA}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -50,20 +43,16 @@
     {
       "parameters": {
         "operation": "getAll",
-        "documentId": "{{CLIENTS_SHEET_ID}}",
-        "sheetName": "{{CLIENTS_SHEET_NAME}}",
-        "options": {
-          "range": "A:Z"
-        }
+        "documentId": "{{CLIENTS_SHEET_ID}}"
       },
       "name": "👥 Get Clients Data",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        -320,
-        300
+        432,
+        240
       ],
-      "id": "get-clients-data",
+      "id": "{{NODE_ID_GET_CLIENTS_DATA}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -74,20 +63,16 @@
     {
       "parameters": {
         "operation": "getAll",
-        "documentId": "{{APPOINTMENTS_SHEET_ID}}",
-        "sheetName": "{{APPOINTMENTS_SHEET_NAME}}",
-        "options": {
-          "range": "A:Z"
-        }
+        "documentId": "{{APPOINTMENTS_SHEET_ID}}"
       },
       "name": "📅 Get Appointments Data",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        -320,
-        500
+        432,
+        448
       ],
-      "id": "get-appointments-data",
+      "id": "{{NODE_ID_GET_APPOINTMENTS_DATA}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -103,10 +88,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        40,
-        300
+        800,
+        240
       ],
-      "id": "calculate-business-metrics"
+      "id": "{{NODE_ID_CALCULATE_BUSINESS_METRICS}}"
     },
     {
       "parameters": {
@@ -138,10 +123,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
       "position": [
-        320,
-        200
+        1072,
+        144
       ],
-      "id": "log-report-database",
+      "id": "{{NODE_ID_LOG_REPORT_DATABASE}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -160,17 +145,17 @@
         }
       },
       "name": "📧 Email Weekly Report",
-      "type": "n8n-nodes-base.emailSend",
+      "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        600,
-        300
+        1360,
+        240
       ],
-      "id": "email-weekly-report",
+      "id": "{{NODE_ID_EMAIL_WEEKLY_REPORT}}",
       "credentials": {
-        "smtp": {
-          "id": "{{SMTP_CREDENTIAL_ID}}",
-          "name": "{{CLINIC_NAME}} Email"
+        "gmailOAuth2": {
+          "id": "{{GMAIL_CREDENTIAL_ID}}",
+          "name": "{{CLINIC_NAME}} Gmail"
         }
       }
     },
@@ -183,11 +168,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1100,
-        0
+        -864,
+        -80
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
+      "id": "{{NODE_ID_WORKFLOW_DESCRIPTION}}",
       "name": "PET WF14 - Workflow Description"
     }
   ],
@@ -266,6 +251,79 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
-  }
+    "instanceId": "{{INSTANCE_ID}}"
+  },
+  "variables": [
+    {
+      "id": "{{CLINIC_NAME_VAR_ID}}",
+      "key": "CLINIC_NAME",
+      "value": "{{CLINIC_NAME}}"
+    },
+    {
+      "id": "{{PAYMENTS_SHEET_ID_VAR_ID}}",
+      "key": "PAYMENTS_SHEET_ID",
+      "value": "{{PAYMENTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{CLIENTS_SHEET_ID_VAR_ID}}",
+      "key": "CLIENTS_SHEET_ID",
+      "value": "{{CLIENTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{APPOINTMENTS_SHEET_ID_VAR_ID}}",
+      "key": "APPOINTMENTS_SHEET_ID",
+      "value": "{{APPOINTMENTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{REPORTS_SHEET_ID_VAR_ID}}",
+      "key": "REPORTS_SHEET_ID",
+      "value": "{{REPORTS_SHEET_ID}}"
+    },
+    {
+      "id": "{{REPORTS_SHEET_NAME_VAR_ID}}",
+      "key": "REPORTS_SHEET_NAME",
+      "value": "{{REPORTS_SHEET_NAME}}"
+    },
+    {
+      "id": "{{BUSINESS_EMAIL_VAR_ID}}",
+      "key": "BUSINESS_EMAIL",
+      "value": "{{BUSINESS_EMAIL}}"
+    },
+    {
+      "id": "{{BUSINESS_PHONE_NUMBER_VAR_ID}}",
+      "key": "BUSINESS_PHONE_NUMBER",
+      "value": "{{BUSINESS_PHONE_NUMBER}}"
+    },
+    {
+      "id": "{{CLINIC_COLOR_VAR_ID}}",
+      "key": "CLINIC_COLOR",
+      "value": "{{CLINIC_COLOR}}"
+    },
+    {
+      "id": "{{TIMEZONE_VAR_ID}}",
+      "key": "TIMEZONE",
+      "value": "{{TIMEZONE}}"
+    }
+  ],
+  "credentials": [
+    {
+      "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Google Sheets",
+      "type": "googleSheetsOAuth2Api",
+      "data": {}
+    },
+    {
+      "id": "{{GMAIL_CREDENTIAL_ID}}",
+      "name": "{{CLINIC_NAME}} Gmail",
+      "type": "gmailOAuth2",
+      "data": {}
+    }
+  ],
+  "list": [
+    "PET Clinic Workflows",
+    "Business Analytics",
+    "Weekly Reports",
+    "Performance Insights",
+    "Executive Dashboard"
+  ]
 }
