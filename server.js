@@ -3845,20 +3845,20 @@ app.get('/api/auth/stytch/authenticate', async (req, res) => {
 
     console.log('✅ Stytch authentication successful for:', userData.email, 'Role:', userRole);
 
-    // Store the intended destination in session for the confirmation page
-    req.session.intended_destination = return_to ? decodeURIComponent(return_to) : '/chat';
-    req.session.stytch_auth_completed = true; // Mark authentication as completed
+    // For affiliate users, redirect directly to chat to avoid loops
+    const intendedDestination = return_to ? decodeURIComponent(return_to) : '/chat';
     
-    // Save session before redirecting
+    console.log('✅ Stytch authentication successful, redirecting affiliate directly to:', intendedDestination);
+    
+    // Save session and redirect directly to destination
     req.session.save((err) => {
       if (err) {
         console.error('❌ Session save error before redirect:', err);
         return res.redirect('/login?error=session_save_failed');
       }
       
-      console.log('✅ Session saved, redirecting to confirmation page');
-      // Always redirect to confirmation page first to prevent redirect loops
-      res.redirect('/stytch-logged-in');
+      // Redirect directly to chat with auth completion flag
+      res.redirect(`${intendedDestination}?stytch_auth_completed=true`);
     });
 
   } catch (error) {

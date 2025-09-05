@@ -100,10 +100,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // For chat page, allow auth check but handle carefully
   if (currentPath === '/chat') {
-    const authStatus = await checkAuthStatus();
+    // Check if coming from Stytch auth and give it time to establish session
+    const fromStytchAuth = window.location.search.includes('stytch_auth_completed') ||
+                          window.location.search.includes('from_stytch') ||
+                          sessionStorage.getItem('stytch_auth_completed');
+    
+    let authStatus = await checkAuthStatus();
+    
+    // If not authenticated but coming from Stytch, retry with delay
+    if (!authStatus.authenticated && fromStytchAuth) {
+      console.log('🔄 Coming from Stytch auth, retrying authentication check...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      authStatus = await checkAuthStatus();
+    }
+    
     if (authStatus.authenticated) {
       console.log('✅ User authenticated on chat page:', authStatus.user.email);
       window.currentUser = authStatus.user;
+      // Clean up auth completion indicators
+      sessionStorage.removeItem('stytch_auth_completed');
+      const url = new URL(window.location);
+      url.searchParams.delete('stytch_auth_completed');
+      window.history.replaceState({}, document.title, url.pathname);
       updateUIForLoggedInUser(authStatus.user);
     } else {
       console.log('User not authenticated, showing login options on chat page');
