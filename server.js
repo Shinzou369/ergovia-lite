@@ -199,40 +199,29 @@ class N8NApiClient {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const startTime = Date.now();
-  const userInfo = req.isAuthenticated() ? 
-    req.user?.emails?.[0]?.value || 'authenticated' : 'anonymous';
+// Helper method to check if workflow can be activated
+  async canActivateWorkflow(workflowId) {
+    try {
+      const workflow = await this.getWorkflow(workflowId);
+      const nodes = workflow.nodes || [];
 
-  // Log request start
-  console.log(`📥 ${req.method} ${req.url} - ${userInfo} - ${req.ip}`);
-
-  // Track response time
-  res.on('finish', () => {
-    const duration = Date.now() - startTime;
-    const statusSymbol = res.statusCode >= 400 ? '❌' : 
-                        res.statusCode >= 300 ? '⚠️' : '✅';
-    
-    console.log(`📤 ${statusSymbol} ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms - ${userInfo}`);
-    
-    // Log slow requests
-    if (duration > 5000) {
-      console.warn(`🐌 Slow request detected: ${req.method} ${req.url} took ${duration}ms`);
-      logError(new Error(`Slow request: ${duration}ms`), {
-        type: 'performance_warning',
-        method: req.method,
-        url: req.url,
-        duration,
-        user: userInfo
+      // Check for trigger, poller, or webhook nodes
+      const hasTriggerNode = nodes.some(node => {
+        const nodeType = node.type?.toLowerCase() || '';
+        return (
+          nodeType.includes('trigger') ||
+          nodeType.includes('webhook') ||
+          nodeType.includes('poller') ||
+          nodeType.includes('manual') ||
+          nodeType.includes('cron') ||
+          nodeType.includes('interval')
+        );
       });
-    }
-  });
 
-  next();
-});
-
-
+      return hasTriggerNode;
+    } catch (error) {
+      console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
+      return false;
     }
   }
 }
@@ -248,6 +237,26 @@ if (!N8N_API_KEY) {
 }
 
 const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
+
+// Error logging utility function
+function logError(error, context = {}) {
+  const errorLog = {
+    timestamp: new Date().toISOString(),
+    message: error.message,
+    stack: error.stack,
+    context: context
+  };
+  
+  console.error('🚨 Error logged:', errorLog);
+  
+  // Store in database if available
+  if (etfDB && context.client_id) {
+    etfDB.run(`
+      INSERT INTO etf_error_logs (client_id, error_type, error_message, stack, timestamp)
+      VALUES (?, ?, ?, ?, ?)
+    `, [context.client_id, context.type || 'unknown', error.message, error.stack, errorLog.timestamp]);
+  }
+}
 
 const app = express();
 
@@ -608,10 +617,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Input validation and sanitization middleware
+// Enhanced input validation and sanitization middleware
 function validateInput(req, res, next) {
   try {
-    // Validate common injection patterns
+    // Enhanced injection pattern detection
     const checkForInjection = (str) => {
       if (typeof str !== 'string') return false;
       const patterns = [
@@ -619,23 +628,44 @@ function validateInput(req, res, next) {
         /javascript:/gi,
         /on\w+\s*=/gi,
         /eval\s*\(/gi,
-        /expression\s*\(/gi
+        /expression\s*\(/gi,
+        /data:text\/html/gi,
+        /vbscript:/gi,
+        /onload\s*=/gi,
+        /onerror\s*=/gi
       ];
       return patterns.some(pattern => pattern.test(str));
     };
 
-    // Recursively check object for malicious content
+    // SQL injection pattern detection
+    const checkForSQLInjection = (str) => {
+      if (typeof str !== 'string') return false;
+      const sqlPatterns = [
+        /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/gi,
+        /(--|#|\/\*|\*\/)/gi,
+        /(\b(or|and)\s+[\d\w]+\s*=\s*[\d\w]+)/gi
+      ];
+      return sqlPatterns.some(pattern => pattern.test(str));
+    };
+
+    // Recursively sanitize objects
     const sanitizeObject = (obj) => {
       if (typeof obj === 'string') {
-        if (checkForInjection(obj)) {
+        if (checkForInjection(obj) || checkForSQLInjection(obj)) {
           throw new Error('Potentially malicious content detected');
+        }
+        // Limit string length to prevent DoS
+        if (obj.length > 10000) {
+          throw new Error('Input too long');
         }
         return obj.trim();
       }
       if (typeof obj === 'object' && obj !== null) {
         const sanitized = {};
         for (const [key, value] of Object.entries(obj)) {
-          sanitized[key] = sanitizeObject(value);
+          // Sanitize keys too
+          const cleanKey = key.replace(/[^a-zA-Z0-9_-]/g, '');
+          sanitized[cleanKey] = sanitizeObject(value);
         }
         return sanitized;
       }
@@ -654,7 +684,13 @@ function validateInput(req, res, next) {
 
     next();
   } catch (error) {
-    logError(error, { url: req.url, method: req.method, type: 'input_validation' });
+    logError(error, { 
+      url: req.url, 
+      method: req.method, 
+      type: 'input_validation',
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
     res.status(400).json({ error: 'Invalid input detected' });
   }
 }
@@ -715,17 +751,37 @@ function rateLimitMiddleware(req, res, next) {
 app.use('/api/', rateLimitMiddleware);
 app.use('/chat', rateLimitMiddleware);
 
-// Security headers with additional protections
+// Enhanced security headers with CSP and additional protections
 app.use((req, res, next) => {
+  // Basic security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Powered-By', 'ERGOVIA-AI');
   
-  // Add CORS headers for production
+  // Content Security Policy
+  const cspPolicy = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https:",
+    "connect-src 'self' https://api.openai.com https://api.deepseek.com https://api.telegram.org",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ].join('; ');
+  
+  res.setHeader('Content-Security-Policy', cspPolicy);
+  
+  // Additional security headers
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  
+  // CORS configuration
   const allowedOrigins = process.env.CORS_ORIGIN ? 
-    process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com'];
+    process.env.CORS_ORIGIN.split(',') : ['https://ergovia-ai.com', 'https://workspace.ernagabriel2077.repl.co'];
   
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -885,6 +941,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Manual key generation failed:', error);
+    logError(error, { type: 'openai_key_generation', business_name });
     res.status(500).json({
       success: false,
       error: 'Failed to generate personal OpenAI key',
@@ -893,6 +950,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
   }
 });
 
+// Utility function for number formatting
 function formatNumber(num) {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';

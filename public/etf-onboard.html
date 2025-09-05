@@ -1732,15 +1732,15 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="dataRetentionYears">Data Retention (Years)</label>
-                            <select id="dataRetentionYears" name="data_retention_years">
-                                <option value="5" selected>5 Years</option>
-                                <option value="7">7 Years</option>
-                                <option value="10">10 Years</option>
-                                <option value="permanent">Permanent</option>
+                            <label for="primaryDataRetention">Data Retention Policy</label>
+                            <select id="primaryDataRetention" name="data_retention_years">
+                                <option value="5" selected>5 Years (Standard)</option>
+                                <option value="7">7 Years (Extended)</option>
+                                <option value="10">10 Years (Long-term)</option>
+                                <option value="permanent">Permanent Storage</option>
                             </select>
                             <div class="form-help">
-                                How long to keep archived data.
+                                How long to keep archived patient and business data for compliance.
                             </div>
                         </div>
                         <div class="form-group">
@@ -2055,18 +2055,6 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="dataRetentionYears">Data Retention (Years)</label>
-                            <select id="dataRetentionYears" name="data_retention_years">
-                                <option value="5" selected>5 Years</option>
-                                <option value="7">7 Years</option>
-                                <option value="10">10 Years</option>
-                                <option value="permanent">Permanent</option>
-                            </select>
-                            <div class="form-help">
-                                How long to keep archived data.
-                            </div>
-                        </div>
-                        <div class="form-group">
                             <label for="backupFrequency">Backup Frequency</label>
                             <select id="backupFrequency" name="backup_frequency">
                                 <option value="daily" selected>Daily</option>
@@ -2074,7 +2062,19 @@
                                 <option value="monthly">Monthly</option>
                             </select>
                             <div class="form-help">
-                                How often to backup data.
+                                How often to backup your clinic data to secure storage.
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="maintenanceWindow">Maintenance Window</label>
+                            <select id="maintenanceWindow" name="maintenance_window">
+                                <option value="2-4am">2:00 AM - 4:00 AM</option>
+                                <option value="12-2am" selected>12:00 AM - 2:00 AM</option>
+                                <option value="3-5am">3:00 AM - 5:00 AM</option>
+                                <option value="1-3am">1:00 AM - 3:00 AM</option>
+                            </select>
+                            <div class="form-help">
+                                Preferred time window for system maintenance and updates.
                             </div>
                         </div>
                     </div>
