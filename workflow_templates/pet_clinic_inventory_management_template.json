@@ -1,3 +1,4 @@
+
 {
   "nodes": [
     {
@@ -18,7 +19,7 @@
         -200,
         300
       ],
-      "id": "1ab3adfc-8651-495e-8e1e-9aae3d860bc0"
+      "id": "{{NODE_ID_DAILY_INVENTORY_CHECK}}"
     },
     {
       "parameters": {
@@ -36,7 +37,7 @@
         20,
         300
       ],
-      "id": "8524b100-deac-4709-85b9-7b6e57bfc2af",
+      "id": "{{NODE_ID_READ_INVENTORY_HUB}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -55,7 +56,7 @@
         260,
         300
       ],
-      "id": "ae414909-58cb-4f84-928b-802297804fc9"
+      "id": "{{NODE_ID_ANALYZE_STOCK_LEVELS}}"
     },
     {
       "parameters": {
@@ -75,7 +76,7 @@
         -16,
         -224
       ],
-      "id": "dc003579-9584-43f0-818c-3181d2f60bfa",
+      "id": "{{NODE_ID_SEND_INVENTORY_ALERT_EMAIL}}",
       "credentials": {
         "gmailOAuth2": {
           "id": "{{GMAIL_CREDENTIAL_ID}}",
@@ -94,7 +95,7 @@
           },
           "conditions": [
             {
-              "id": "critical-alert-check",
+              "id": "{{CONDITION_ID_CRITICAL_ALERT_CHECK}}",
               "leftValue": "={{ $json.alertType }}",
               "rightValue": "CRITICAL",
               "operator": {
@@ -115,7 +116,7 @@
         740,
         300
       ],
-      "id": "critical-items-check"
+      "id": "{{NODE_ID_CRITICAL_ITEMS_CHECK}}"
     },
     {
       "parameters": {
@@ -131,7 +132,7 @@
         980,
         200
       ],
-      "id": "urgent-sms-alert",
+      "id": "{{NODE_ID_SEND_URGENT_SMS_ALERT}}",
       "credentials": {
         "twilioApi": {
           "id": "{{TWILIO_CREDENTIAL_ID}}",
@@ -168,7 +169,7 @@
         980,
         400
       ],
-      "id": "log-alert-activity",
+      "id": "{{NODE_ID_LOG_ALERT_ACTIVITY}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -205,7 +206,7 @@
         260,
         600
       ],
-      "id": "3729431b-874c-431f-9d10-48489fa246ac",
+      "id": "{{NODE_ID_UPDATE_INVENTORY_SHEET}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -242,7 +243,7 @@
         500,
         600
       ],
-      "id": "log-inventory-transaction",
+      "id": "{{NODE_ID_LOG_INVENTORY_TRANSACTION}}",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "{{GOOGLE_SHEETS_CREDENTIAL_ID}}",
@@ -263,7 +264,7 @@
         740,
         600
       ],
-      "id": "send-success-response"
+      "id": "{{NODE_ID_SEND_SUCCESS_RESPONSE}}"
     },
     {
       "parameters": {
@@ -279,7 +280,7 @@
         600
       ],
       "webhookId": "{{INVENTORY_UPDATE_WEBHOOK_ID}}",
-      "id": "78057068-1467-4051-9323-f99031ba2eda"
+      "id": "{{NODE_ID_MANUAL_INVENTORY_UPDATE_WEBHOOK}}"
     },
     {
       "parameters": {
@@ -292,7 +293,7 @@
         20,
         600
       ],
-      "id": "process-update-request"
+      "id": "{{NODE_ID_PROCESS_UPDATE_REQUEST}}"
     },
     {
       "parameters": {
@@ -307,7 +308,7 @@
         -100
       ],
       "typeVersion": 1,
-      "id": "workflow-description-note",
+      "id": "{{NODE_ID_WORKFLOW_DESCRIPTION_NOTE}}",
       "name": "PET WF11 - Workflow Description"
     }
   ],
@@ -433,7 +434,7 @@
   "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false,
-    "instanceId": "TEMPLATE_INSTANCE"
+    "instanceId": "{{INSTANCE_ID}}"
   },
   "variables": [
     {
