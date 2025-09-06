@@ -957,7 +957,7 @@
             <div class="config-action">Click to connect Calendly</div>
         </div>
 
-        
+
 
         <!-- Facebook Integration -->
         <div class="config-box credential-box" data-config="facebook" onclick="openConfigModal('facebook')">
@@ -1106,7 +1106,7 @@
             telegram: {},
             twilio: {},
             calendly: {},
-            
+
             facebook: {},
             twitter: {},
             slack: {},
@@ -1122,7 +1122,7 @@
             telegram: 'disconnected',
             twilio: 'disconnected',
             calendly: 'disconnected',
-            
+
             facebook: 'disconnected',
             twitter: 'disconnected',
             slack: 'disconnected',
@@ -1243,7 +1243,7 @@
                 isCredentialSection: true,
                 credentialType: 'calendly'
             },
-            
+
             deepseek: {
                 title: "DeepSeek AI (Alternative)",
                 icon: "brain",
@@ -1395,7 +1395,7 @@
                 ],
                 setupGuide: 'Generate an API token from your Calendly Integrations page.'
             },
-            
+
             deepseek: {
                 name: 'DeepSeek AI',
                 description: 'Alternative AI model for text processing',
@@ -1613,9 +1613,36 @@
                 `;
             }
 
+            // For non-connected states (other services)
+            let fieldsHTML = '';
+            if (config.fields) {
+                config.fields.forEach(field => {
+                    fieldsHTML += `
+                        <input type="${field.type === 'password' ? 'password' : 'text'}" 
+                               class="credential-input" 
+                               id="${key}_${field.name}" 
+                               placeholder="${field.placeholder || field.label}"
+                               ${field.required ? 'required' : ''}>
+                    `;
+                });
+            } else {
+                // Default for API keys if no fields specified
+                fieldsHTML = `
+                    <input type="password" class="credential-input" id="${key}_api_key" 
+                           placeholder="Enter your ${config.name} API key" required>
+                `;
+            }
+
+            let actionButtonsHTML = `
+                ${fieldsHTML}
+                <button class="credential-btn primary" onclick="saveCredential('${key}')" style="margin-top: 8px;">
+                    <i data-lucide="save"></i> Save Credential
+                </button>
+            `;
+
             // Special handling for OpenAI - Automatic Key Generation
             if (key === 'openai') {
-                return `
+                actionButtonsHTML = `
                     <div class="openai-auto-generation" style="background: linear-gradient(135deg, rgba(0, 167, 126, 0.1) 0%, rgba(0, 167, 126, 0.05) 100%); border: 2px solid rgba(0, 167, 126, 0.2); border-radius: 12px; padding: 24px; margin-bottom: 20px;">
                         <div class="auto-gen-header" style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
                             <div class="auto-gen-icon" style="width: 48px; height: 48px; background: linear-gradient(135deg, #00a67e 0%, #00d4aa 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🔑</div>
@@ -1624,7 +1651,7 @@
                                 <p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 0.9rem;">We'll create a dedicated OpenAI API key just for your pet clinic</p>
                             </div>
                         </div>
-                        
+
                         <div class="auto-gen-features" style="background: rgba(0, 167, 126, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
                             <div class="features-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 0.85rem;">
                                 <div style="display: flex; align-items: center; gap: 8px; color: #00a67e;">
@@ -1668,7 +1695,7 @@
                         <button class="credential-btn primary" onclick="generatePersonalOpenAIKey()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #00a67e 0%, #00d4aa 100%); border: none; font-size: 1rem; font-weight: 700;">
                             <i data-lucide="zap"></i> Generate My Dedicated API Key
                         </button>
-                        
+
                         <div class="generation-status" id="openai-generation-status" style="display: none; margin-top: 16px; padding: 16px; border-radius: 8px;">
                             <!-- Status will be populated dynamically -->
                         </div>
@@ -1691,33 +1718,6 @@
                     </details>
                 `;
             }
-
-            // For non-connected states (other services)
-            let fieldsHTML = '';
-            if (config.fields) {
-                config.fields.forEach(field => {
-                    fieldsHTML += `
-                        <input type="${field.type === 'password' ? 'password' : 'text'}" 
-                               class="credential-input" 
-                               id="${key}_${field.name}" 
-                               placeholder="${field.placeholder || field.label}"
-                               ${field.required ? 'required' : ''}>
-                    `;
-                });
-            } else {
-                // Default for API keys if no fields specified
-                fieldsHTML = `
-                    <input type="password" class="credential-input" id="${key}_api_key" 
-                           placeholder="Enter your ${config.name} API key" required>
-                `;
-            }
-
-            let actionButtonsHTML = `
-                ${fieldsHTML}
-                <button class="credential-btn primary" onclick="saveCredential('${key}')" style="margin-top: 8px;">
-                    <i data-lucide="save"></i> Save Credential
-                </button>
-            `;
 
             // Special handling for Google OAuth
             if (key === 'google') {
@@ -2158,158 +2158,127 @@
         // Placeholder for actual API call to deploy workflows
         function deployETFWorkflows() {
             console.log("Deploying ETF Workflows...");
-            const originalHTML = document.getElementById('generateBtn').innerHTML;
-            document.getElementById('generateBtn').innerHTML = '<div class="loading"></div> Deploying...';
-            document.getElementById('generateBtn').disabled = true;
-
-            // Simulate API call
-            setTimeout(() => {
-                alert("Pet Clinic AI Workflows Deployed Successfully!");
-                document.getElementById('generateBtn').innerHTML = originalHTML;
-                document.getElementById('generateBtn').disabled = false;
-                // Optionally redirect or show results
-            }, 2000);
-        }
-
-        // OpenAI Key Generation Functions
-        async function generatePersonalOpenAIKey() {
-            const btn = event.target;
+            const btn = document.getElementById('generateBtn');
             const originalHTML = btn.innerHTML;
-            const statusDiv = document.getElementById('openai-generation-status');
-            
+            btn.innerHTML = '<div class="loading"></div> Deploying...';
             btn.disabled = true;
-            btn.innerHTML = '<div class="loading"></div> Generating your dedicated API key...';
-            statusDiv.style.display = 'block';
-            statusDiv.className = 'generation-status';
-            statusDiv.style.background = 'rgba(245, 158, 11, 0.1)';
-            statusDiv.style.border = '1px solid rgba(245, 158, 11, 0.3)';
-            statusDiv.style.color = '#f59e0b';
-            statusDiv.innerHTML = '⏳ Generating your personal OpenAI API key... This may take a moment.';
 
-            try {
-                // Collect business data for key generation
-                const businessData = {
-                    business_name: configData.businessInfo?.business_name || 'Pet Clinic',
-                    business_email: configData.businessInfo?.business_email || configData.staffInfo?.admin_email || 'clinic@example.com',
-                    workflow_count: Object.keys(configSections).length,
-                    setup_type: 'pet_clinic_workbench'
+            // Collect all configuration data for the deployment payload
+            const deploymentPayload = collectAllConfigData();
+
+            // Simulate an API call to deploy workflows
+            // In a real application, this would be a fetch request to your backend API
+            // For demonstration, we'll use a setTimeout and mock a response
+            setTimeout(() => {
+                // Mock successful deployment response
+                const mockResponse = {
+                    success: true,
+                    client_id: 'CLNT_1234567890',
+                    message: 'Your Pet Clinic AI Assistant has been deployed successfully.',
+                    redirect_url: '/etf-client-panel.html', // The URL for the client panel
+                    openai_setup: {
+                        success: true,
+                        client_id: 'CLNT_OPAI_XYZ123',
+                        message: 'Dedicated OpenAI API key configured.'
+                    }
                 };
 
-                const response = await fetch('/api/generate-personal-openai-key', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(businessData)
-                });
+                // Process the response
+                const result = mockResponse;
+                const resultDiv = document.createElement('div'); // Placeholder for where to display status
+                resultDiv.style.marginTop = '20px';
 
-                const result = await response.json();
-
-                if (result.success) {
-                    // Update status to success
-                    statusDiv.style.background = 'rgba(16, 185, 129, 0.1)';
-                    statusDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
-                    statusDiv.style.color = '#10b981';
-                    statusDiv.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
-                            <strong>✅ Your dedicated OpenAI API key has been generated!</strong>
+                let workflowDetails = '';
+                if (result.workflow_details) {
+                    workflowDetails = `
+                        <div style="margin-top: 15px; background: var(--bg-tertiary); padding: 15px; border-radius: 8px;">
+                            <h4>🚀 Deployed Workflows:</h4>
+                            <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary); font-size: 0.9rem;">
+                                ${result.workflow_details.map(wf => `<li>${wf}</li>`).join('')}
+                            </ul>
                         </div>
-                        <div style="background: rgba(16, 185, 129, 0.05); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-size: 0.85rem;">Key preview:</span>
-                                <code style="font-family: monospace; font-size: 0.8rem;">${result.key_preview}</code>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <span style="font-size: 0.85rem;">Monthly limit:</span>
-                                <span style="font-weight: 600;">${result.token_limit?.toLocaleString()} tokens</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span style="font-size: 0.85rem;">Client ID:</span>
-                                <code style="font-family: monospace; font-size: 0.8rem;">${result.client_id}</code>
-                            </div>
-                        </div>
-                        <small style="color: var(--text-muted); font-size: 0.75rem;">
-                            Your API key is automatically configured and ready to use with all pet clinic workflows.
-                        </small>
                     `;
-
-                    // Mark OpenAI as connected
-                    credentialStates.openai = 'connected';
-                    configData.openai = {
-                        client_id: result.client_id,
-                        key_preview: result.key_preview,
-                        token_limit: result.token_limit,
-                        auto_generated: true
-                    };
-
-                    updateConfigBox('openai');
-                    updateProgress();
-                    
-                    // Update button to show success
-                    btn.innerHTML = '<i data-lucide="check"></i> API Key Generated Successfully';
-                    btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                    
-                } else {
-                    throw new Error(result.error || 'Failed to generate API key');
                 }
 
-            } catch (error) {
-                console.error('OpenAI key generation error:', error);
-                statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-                statusDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                statusDiv.style.color = '#ef4444';
-                statusDiv.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <i data-lucide="x-circle" style="width: 20px; height: 20px;"></i>
-                        <span>❌ Failed to generate API key: ${error.message}</span>
+                // Show success message with dashboard link
+                resultDiv.innerHTML = `
+                    <div class="success-message">
+                        <h3>✅ ETF Deployment Successful!</h3>
+                        <p><strong>Client:</strong> ${result.client_id}</p>
+                        <p><strong>Message:</strong> ${result.message}</p>
+
+                        ${workflowDetails}
+
+                        <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                            <h4>🎛️ Opening Your ETF Control Panel...</h4>
+                            <p>Your personalized control panel is opening automatically where you can:</p>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li>Monitor all deployed workflows</li>
+                                <li>Update business settings and configurations</li>
+                                <li>View deployment history and logs</li>
+                                <li>Manage workflow credentials</li>
+                            </ul>
+                            <button onclick="window.open('${result.redirect_url}', '_blank')" 
+                                    class="btn-primary" 
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; margin: 10px 5px;">
+                                🎛️ Open Control Panel
+                            </button>
+                        </div>
+
+                        ${result.openai_setup && result.openai_setup.success ? `
+                            <div style="margin-top: 15px; padding: 15px; background: #d4edda; border-radius: 8px;">
+                                <h4>🔑 Personal OpenAI Access Configured</h4>
+                                <p>Your dedicated OpenAI API access has been set up with budget tracking.</p>
+                                <button onclick="openOpenAIDashboard('${result.openai_setup.client_id || ''}')" 
+                                        class="btn-secondary" 
+                                        style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px;">
+                                    📊 View OpenAI Dashboard
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
-                
-                btn.disabled = false;
+
+                // Automatically open the client panel after successful deployment
+                console.log('🎛️ Auto-opening ETF Client Control Panel...');
+                setTimeout(() => {
+                    window.open(result.redirect_url, '_blank');
+                }, 2000); // 2-second delay to allow user to see the success message
+
+                // Reset form
+                document.getElementById('workbenchForm')?.reset(); // Use optional chaining if workbenchForm might not exist
+                updateProgress();
+                showMessage('success', '✅ ETF workflows deployed successfully! Opening control panel...');
+
+                console.log('✅ ETF Deployment completed:', result);
+
+                // Restore button state
                 btn.innerHTML = originalHTML;
-            }
+                btn.disabled = false;
 
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
+            }, 3000); // Simulate a 3-second deployment process
+        }
+
+        // Helper function to display messages (e.g., success, error)
+        function showMessage(type, message) {
+            // This is a basic implementation. You might want to integrate a toast notification system.
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            // Example: Displaying in a dedicated message area
+            const messageArea = document.getElementById('messageArea'); // Assuming you have an element with this ID
+            if (messageArea) {
+                messageArea.innerHTML = `<p class="${type}">${message}</p>`;
+                setTimeout(() => {
+                    messageArea.innerHTML = '';
+                }, 5000); // Clear message after 5 seconds
             }
         }
 
-        function saveManualOpenAIKey() {
-            const keyInput = document.getElementById('openai_manual_key');
-            const apiKey = keyInput.value.trim();
-            
-            if (!apiKey) {
-                alert('Please enter your OpenAI API key');
-                return;
-            }
-            
-            if (!apiKey.startsWith('sk-')) {
-                alert('Invalid OpenAI API key format. Keys should start with "sk-"');
-                return;
-            }
-
-            // Save the manual key
-            configData.openai = {
-                api_key: apiKey,
-                manual_entry: true,
-                key_preview: apiKey.substring(0, 7) + '...' + apiKey.slice(-4)
-            };
-            
-            credentialStates.openai = 'connected';
-            updateConfigBox('openai');
-            updateProgress();
-            
-            alert('✅ OpenAI API key saved successfully!');
-            closeConfigModal();
-        }
-
-        function viewOpenAIDashboard() {
-            const clientId = configData.openai?.client_id;
+        // Helper function to open OpenAI dashboard
+        function openOpenAIDashboard(clientId) {
             if (clientId) {
                 window.open(`/client-openai-dashboard.html?client_id=${clientId}`, '_blank');
             } else {
-                alert('Dashboard not available for manually entered keys');
+                alert('OpenAI client ID not available.');
             }
         }
 
