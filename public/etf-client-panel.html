@@ -1379,8 +1379,30 @@
         document.getElementById('resetChanges').addEventListener('click', resetChanges);
         document.getElementById('refreshLogs').addEventListener('click', loadDeploymentLogs);
 
+        // --- URL Parameter Handling ---
+        function getEmailFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('email');
+        }
+
         // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', initializePanel);
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if email is provided in URL (from deployment redirect)
+            const emailFromURL = getEmailFromURL();
+            if (emailFromURL) {
+                try {
+                    // Load deployments directly with the provided email
+                    await loadClientDeployments(emailFromURL);
+                } catch (error) {
+                    console.error('Error loading from URL email:', error);
+                    // Fall back to normal auth check
+                    initializePanel();
+                }
+            } else {
+                // Normal initialization flow
+                initializePanel();
+            }
+        });
 
         // --- Mock API Endpoints for Development (Remove in Production) ---
         // These mocks should be replaced with actual API calls to your backend.

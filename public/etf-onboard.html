@@ -20,7 +20,7 @@
             --ergovia-navy: linear-gradient(135deg, #6B5B1A 0%, #8B7E2A 100%);
             --ergovia-gold: linear-gradient(135deg, #8B7E2A 0%, #B8A548 50%, #FFD700 100%);
             --ergovia-text-gradient: linear-gradient(135deg, #c6cfdb, #cdd5e0, #f4efe8, #ffffff);
-            
+
             --bg-primary: #0f0f0f;
             --bg-secondary: #1a1a1a;
             --bg-tertiary: #262626;
@@ -308,7 +308,7 @@
         }
 
         .required {
-            color: #FFD700;
+            color: var(--text-secondary);
         }
 
         .form-group input,
@@ -1025,7 +1025,7 @@
             padding: 12px;
             margin-top: 8px;
         }
-        
+
         .missing-fields-list li {
             color: #dc3545;
             font-weight: 600;
@@ -1315,7 +1315,7 @@
                             <div style="position: relative;">
                                 <input type="password" id="telegramBotToken" name="telegram_bot_token" required
                                        placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
-                                <button type="button" class="test-btn" onclick="testTelegramCredentials()" 
+                                <button type="button" class="test-btn" onclick="testTelegramCredentials()"
                                         style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
                                     Test
                                 </button>
@@ -1386,7 +1386,7 @@
                         <i data-lucide="brain" style="width: 20px; height: 20px;"></i>
                         AI Service Credentials
                     </h3>
-                    
+
                     <!-- OpenAI Key Generation Section -->
                     <div class="credential-card" style="border: 2px solid #FFD700; background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%); margin-bottom: 20px;">
                         <div class="credential-header">
@@ -1427,7 +1427,7 @@
                                 <div style="position: relative;">
                                     <input type="password" id="openaiApiKey" name="openai_api_key"
                                            placeholder="sk-xxxxxxxxxxxxxxxx">
-                                    <button type="button" class="test-btn" onclick="testOpenAIKey()" 
+                                    <button type="button" class="test-btn" onclick="testOpenAIKey()"
                                             style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
                                         Test
                                     </button>
@@ -1812,7 +1812,7 @@
                         <div class="credential-help" style="margin-top: 15px;">
                             <h4>📊 Automated Google Sheets Creation:</h4>
                             <p><strong>✨ No manual setup needed!</strong> The system automatically creates:</p>
-                            <ul>
+                            <ul style="margin-left: 20px; color: var(--text-muted);">
                                 <li><strong>Appointments Sheet:</strong> Date, Time, Customer Name, Email, Phone, Pet Name, Service, Veterinarian, Status, Notes</li>
                                 <li><strong>Master Tracking:</strong> Complete appointment logs from all sources</li>
                                 <li><strong>Staff Database:</strong> Employee information and training records</li>
@@ -2274,7 +2274,8 @@
                 client_data: {
                     name: configData.businessName,
                     email: configData.businessEmail,
-                    phone: configData.businessPhone
+                    phone: configData.businessPhone,
+                    client_email: configData.businessEmail // Added for redirect
                 },
                 config_data: configData
             };
@@ -2295,10 +2296,27 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showSuccess(`Your workflow "${result.workflow_name}" has been deployed successfully! Workflow ID: <code>${result.workflow_id}</code>. ${result.webhook_url ? `Webhook URL: <code>${result.webhook_url}</code>.` : ''}`);
-                    // Optionally reset the form or show a confirmation message
-                    form.reset();
-                    updateProgress(); // Reset progress bar
+                    resultDiv.className = 'status success';
+                    resultDiv.innerHTML = `
+                        <h3>🎉 Deployment Successful!</h3>
+                        <p><strong>Client ID:</strong> ${result.client_id}</p>
+                        <p><strong>Workflows Deployed:</strong> ${result.total_processed}</p>
+                        <p><strong>Activated:</strong> ${result.activated_workflows}</p>
+                        <p><strong>Need Setup:</strong> ${result.workflows_needing_credentials}</p>
+                        <p>${result.message}</p>
+                        <div style="margin-top: 20px;">
+                            <p>🔄 Redirecting to your control panel...</p>
+                        </div>
+                    `;
+
+                    // Redirect to client panel after 2 seconds
+                    setTimeout(() => {
+                        if (result.redirect_url) {
+                            window.location.href = result.redirect_url;
+                        } else {
+                            window.location.href = `/etf-client-panel?email=${encodeURIComponent(configData.businessEmail)}`;
+                        }
+                    }, 2000);
                 } else {
                     throw new Error(result.error || 'Deployment failed due to an unknown error.');
                 }
@@ -2370,21 +2388,21 @@
                     status.style.background = 'rgba(40, 167, 69, 0.15)';
                     status.style.color = '#28a745';
                     status.style.borderColor = 'rgba(40, 167, 69, 0.3)';
-                    
+
                     result.style.display = 'block';
-                    
+
                     btn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i>Key Generated';
                     btn.style.background = '#28a745';
-                    
+
                     // Store client ID for form submission
                     const hiddenInput = document.createElement('input');
                     hiddenInput.type = 'hidden';
                     hiddenInput.name = 'generated_client_id';
                     hiddenInput.value = clientId;
                     document.getElementById('etfOnboardingForm').appendChild(hiddenInput);
-                    
+
                     showSuccess(`OpenAI key generated successfully! Key preview: ${data.key_preview}`);
-                    
+
                 } else {
                     throw new Error(data.error || 'Failed to generate OpenAI key');
                 }
@@ -2553,22 +2571,22 @@
         // Show missing fields alert
         function showMissingFieldsAlert(missingFields) {
             const alertDiv = document.getElementById('missing-fields-alert') || createMissingFieldsAlert();
-            const fieldsList = missingFields.map(field => `• ${field}`).join('<br>');
-            
+            const fieldsList = missingFields.map(field => `<li>${field}</li>`).join('');
+
             alertDiv.innerHTML = `
                 <div class="alert-content">
                     <h4><i data-lucide="alert-triangle"></i> Missing Required Fields</h4>
                     <p>Please fill in the following required fields:</p>
-                    <div class="missing-fields-list">${fieldsList}</div>
+                    <div class="missing-fields-list"><ul>${fieldsList}</ul></div>
                     <button onclick="hideMissingFieldsAlert()" class="alert-close-btn">
                         <i data-lucide="x"></i>
                     </button>
                 </div>
             `;
-            
+
             alertDiv.style.display = 'block';
             alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
+
             // Re-initialize icons
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -2590,11 +2608,11 @@
                 position: relative;
                 animation: slideInUp 0.3s ease-out;
             `;
-            
+
             // Insert after form container
             const formContainer = document.querySelector('.form-container');
             formContainer.parentNode.insertBefore(alertDiv, formContainer.nextSibling);
-            
+
             return alertDiv;
         }
 

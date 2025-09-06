@@ -1484,6 +1484,7 @@ app.get('/api/auth/stytch/test', async (req, res) => {
       failed_workflows: failedCount,
       tag_applied: clientTag,
       openai_setup: openaiSetupResult,
+      redirect_url: `/etf-client-panel?email=${encodeURIComponent(client_data.email)}`,
       message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiSetupResult.success ? ' Personal OpenAI access configured with budget tracking.' : ''}`
     });
 
