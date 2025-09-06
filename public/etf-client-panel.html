@@ -20,6 +20,13 @@
             --warning-color: #ffc107;
             --info-color: #17a2b8;
             --bg-tertiary: #2c2c2e; /* Dark background for logs */
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --radius: 8px;
+            --radius-xl: 12px;
+            --shadow-xl: 0 4px 15px rgba(0,0,0,0.1);
+            --transition: all 0.3s;
+            --bg-secondary: #343a40; /* For modal content */
+            --border-light: #dee2e6;
         }
 
         body {
@@ -39,10 +46,10 @@
         }
 
         .panel-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
             padding: 30px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             margin-bottom: 30px;
             text-align: center;
         }
@@ -71,9 +78,9 @@
 
         .panel-section {
             background: white;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-xl);
         }
 
         .section-title {
@@ -117,9 +124,9 @@
             width: 100%;
             padding: 12px 15px;
             border: 2px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius);
             font-size: 14px;
-            transition: border-color 0.3s;
+            transition: var(--transition);
         }
 
         .form-group input:focus,
@@ -143,7 +150,7 @@
         .workflow-item {
             padding: 15px;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: var(--radius);
             background: var(--background-light);
             display: flex;
             justify-content: space-between;
@@ -189,11 +196,11 @@
         .btn {
             padding: 10px 20px;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius);
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            transition: all 0.3s;
+            transition: var(--transition);
             text-decoration: none;
             display: inline-block;
             text-align: center;
@@ -250,7 +257,7 @@
             border-left: 3px solid var(--primary-color);
             margin-bottom: 10px;
             background: var(--background-light);
-            border-radius: 0 6px 6px 0;
+            border-radius: 0 var(--radius) var(--radius) 0;
             transition: background 0.3s;
         }
 
@@ -279,9 +286,9 @@
 
         .save-section {
             background: white;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-xl);
             text-align: center;
         }
 
@@ -296,7 +303,7 @@
             color: var(--error-color);
             padding: 15px;
             background: rgba(220, 53, 69, 0.1);
-            border-radius: 6px;
+            border-radius: var(--radius);
             margin: 15px 0;
             border: 1px solid rgba(220, 53, 69, 0.3);
         }
@@ -305,7 +312,7 @@
             color: var(--success-color);
             padding: 15px;
             background: rgba(40, 167, 69, 0.1);
-            border-radius: 6px;
+            border-radius: var(--radius);
             margin: 15px 0;
             border: 1px solid rgba(40, 167, 69, 0.3);
         }
@@ -313,7 +320,7 @@
         .info-card {
             background: #e3f2fd;
             border: 1px solid #90caf9;
-            border-radius: 8px;
+            border-radius: var(--radius);
             padding: 15px;
             margin-bottom: 20px;
             color: #1976d2;
@@ -336,7 +343,7 @@
         .error-boundary {
             background: rgba(220, 53, 69, 0.1);
             border: 2px solid rgba(220, 53, 69, 0.3);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 20px;
             margin: 20px 0;
             text-align: center;
@@ -353,7 +360,7 @@
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 6px;
+            border-radius: var(--radius);
             cursor: pointer;
             margin: 5px;
             font-size: 1rem;
@@ -366,7 +373,7 @@
         .monitoring-section {
             background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
             border: 2px solid rgba(40, 167, 69, 0.3);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             padding: 25px;
             margin: 20px 0;
         }
@@ -385,7 +392,7 @@
         .metric-card {
             background: rgba(255, 255, 255, 0.05);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius);
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -404,7 +411,7 @@
 
         .deployment-log {
             background: var(--bg-tertiary);
-            border-radius: 8px;
+            border-radius: var(--radius);
             padding: 15px;
             max-height: 300px;
             overflow-y: auto;
@@ -460,11 +467,11 @@
             color: white;
             border: none;
             padding: 8px 15px;
-            border-radius: 6px;
+            border-radius: var(--radius);
             cursor: pointer;
             font-size: 0.9rem;
             margin-left: 10px;
-            transition: background 0.3s;
+            transition: var(--transition);
         }
 
         .refresh-btn:hover {
@@ -503,7 +510,7 @@
             background: var(--success-color);
             color: white;
             padding: 15px 20px;
-            border-radius: 8px;
+            border-radius: var(--radius);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 1000;
             transform: translateX(400px);
@@ -523,6 +530,144 @@
         .toast-notification.warning {
             background: var(--warning-color);
             color: #000;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 0;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(80vh - 100px);
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .settings-form .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .settings-form .form-group {
+            margin-bottom: 0;
+        }
+
+        .settings-form .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .settings-form .form-group input,
+        .settings-form .form-group select,
+        .settings-form .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .settings-form .form-group input:focus,
+        .settings-form .form-group select:focus,
+        .settings-form .form-group textarea:focus {
+            outline: none;
+            border-color: #FFD700;
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+            background: var(--bg-primary);
+        }
+
+        .modal-actions {
+            padding: 20px 30px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            background: var(--bg-tertiary);
+        }
+
+        .btn-save {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-light);
         }
     </style>
 </head>
@@ -722,6 +867,184 @@
             `;
         }
 
+        // --- Workflow management functions ---
+        function viewWorkflowDetails(deploymentId) {
+            // Show workflow details modal
+            showWorkflowDetailsModal(deploymentId);
+        }
+
+        function editWorkflowSettings(deploymentId) {
+            // Show workflow settings editor
+            showWorkflowSettingsModal(deploymentId);
+        }
+
+        function showWorkflowDetailsModal(deploymentId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Workflow Details</h3>
+                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-secondary btn-small">Close</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Loading workflow details...</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function showWorkflowSettingsModal(deploymentId) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Workflow Settings</h3>
+                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-secondary btn-small">Close</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="settings-form" id="workflowSettingsForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="businessName">Business Name</label>
+                                    <input type="text" id="businessName" name="businessName">
+                                </div>
+                                <div class="form-group">
+                                    <label for="businessEmail">Business Email</label>
+                                    <input type="email" id="businessEmail" name="businessEmail">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="businessPhone">Business Phone</label>
+                                    <input type="tel" id="businessPhone" name="businessPhone">
+                                </div>
+                                <div class="form-group">
+                                    <label for="clinicHours">Clinic Hours</label>
+                                    <input type="text" id="clinicHours" name="clinicHours">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emergencyContact">Emergency Contact</label>
+                                    <input type="tel" id="emergencyContact" name="emergencyContact">
+                                </div>
+                                <div class="form-group">
+                                    <label for="primary_veterinarian">Primary Veterinarian</label>
+                                    <input type="text" id="primary_veterinarian" name="primary_veterinarian">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="servicesOffered">Services Offered</label>
+                                <textarea id="servicesOffered" name="servicesOffered" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="telegram_bot_token">Telegram Bot Token</label>
+                                    <input type="password" id="telegram_bot_token" name="telegram_bot_token">
+                                </div>
+                                <div class="form-group">
+                                    <label for="telegram_chat_id">Telegram Chat ID</label>
+                                    <input type="text" id="telegram_chat_id" name="telegram_chat_id">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="timezone">Timezone</label>
+                                    <select id="timezone" name="timezone">
+                                        <option value="America/New_York">Eastern Time</option>
+                                        <option value="America/Chicago">Central Time</option>
+                                        <option value="America/Denver">Mountain Time</option>
+                                        <option value="America/Los_Angeles">Pacific Time</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reminderInterval">Reminder Interval (hours)</label>
+                                    <select id="reminderInterval" name="reminder_interval">
+                                        <option value="1">Every Hour</option>
+                                        <option value="2">Every 2 Hours</option>
+                                        <option value="4">Every 4 Hours</option>
+                                        <option value="6">Every 6 Hours</option>
+                                        <option value="12">Every 12 Hours</option>
+                                        <option value="24">Daily</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="saveWorkflowSettings('${deploymentId}')" class="btn btn-save">Save Changes</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Load current settings
+            try {
+                const response = await fetch(`/api/etf/client-config/${currentClientId}`);
+                const data = await response.json();
+                if (data.config) {
+                    const config = JSON.parse(data.config);
+                    populateWorkflowSettingsForm(config);
+                }
+            } catch (error) {
+                console.error('Error loading workflow settings:', error);
+            }
+        }
+
+        function populateWorkflowSettingsForm(config) {
+            const form = document.getElementById('workflowSettingsForm');
+            if (!form) return;
+
+            Object.keys(config).forEach(key => {
+                const input = form.querySelector(`[name="${key}"]`);
+                if (input && config[key]) {
+                    input.value = config[key];
+                }
+            });
+        }
+
+        async function saveWorkflowSettings(deploymentId) {
+            const form = document.getElementById('workflowSettingsForm');
+            const formData = new FormData(form);
+            const settings = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (value.trim()) {
+                    settings[key] = value;
+                }
+            }
+
+            try {
+                const response = await fetch(`/api/etf/update-workflow-settings/${deploymentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ settings })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('✅ Workflow settings updated successfully!');
+                    document.querySelector('.modal-overlay').remove();
+                    // Refresh the panel data
+                    await loadClientData();
+                    await loadChangeHistory();
+                } else {
+                    throw new Error(result.error || 'Failed to update settings');
+                }
+            } catch (error) {
+                console.error('Error saving workflow settings:', error);
+                showToast(`Error: ${error.message}`, 'error');
+            }
+        }
+
+
         // --- Core Functions ---
         async function initializePanel() {
             try {
@@ -858,9 +1181,8 @@
                         </span>
                     </div>
                     <div class="workflow-actions">
-                        <a href="${workflow.n8n_url}" target="_blank" class="btn btn-secondary btn-small">
-                            View in N8N
-                        </a>
+                        <button onclick="viewWorkflowDetails('${workflow.deployment_id}')" class="btn btn-secondary btn-small">Details</button>
+                        <button onclick="editWorkflowSettings('${workflow.deployment_id}')" class="btn btn-primary btn-small">Settings</button>
                     </div>
                 </div>
             `).join('');

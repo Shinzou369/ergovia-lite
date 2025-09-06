@@ -2061,6 +2061,97 @@ app.get('/etf-client-panel', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-client-panel.html'));
 });
 
+// Update workflow settings and propagate to N8N
+app.post('/api/etf/update-workflow-settings/:deploymentId', async (req, res) => {
+  try {
+    const { deploymentId } = req.params;
+    const { settings } = req.body;
+
+    if (!deploymentId || !settings) {
+      return res.status(400).json({ error: 'Deployment ID and settings are required' });
+    }
+
+    // Get deployment details
+    const deployment = await new Promise((resolve, reject) => {
+      etfDB.get(
+        'SELECT * FROM etf_deployments WHERE id = ?',
+        [deploymentId],
+        (err, row) => err ? reject(err) : resolve(row)
+      );
+    });
+
+    if (!deployment) {
+      return res.status(404).json({ error: 'Deployment not found' });
+    }
+
+    const currentConfig = JSON.parse(deployment.config_data || '{}');
+    const updatedConfig = { ...currentConfig, ...settings };
+
+    // Update N8N workflow with new settings
+    if (deployment.n8n_workflow_id) {
+      try {
+        const workflow = await n8nClient.getWorkflow(deployment.n8n_workflow_id);
+        
+        // Personalize workflow nodes with updated config
+        const updatedNodes = personalizeWorkflowNodes(
+          workflow.nodes,
+          updatedConfig,
+          { name: currentConfig.businessName || currentConfig.clinic_name }
+        );
+
+        // Update the workflow in N8N
+        await n8nClient.updateWorkflow(deployment.n8n_workflow_id, {
+          ...workflow,
+          nodes: updatedNodes
+        });
+
+        console.log(`✅ Updated N8N workflow ${deployment.n8n_workflow_id} with new settings`);
+      } catch (n8nError) {
+        console.error(`❌ Failed to update N8N workflow: ${n8nError.message}`);
+        // Continue with database update even if N8N update fails
+      }
+    }
+
+    // Update database
+    await new Promise((resolve, reject) => {
+      etfDB.run(
+        'UPDATE etf_deployments SET config_data = ? WHERE id = ?',
+        [JSON.stringify(updatedConfig), deploymentId],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    // Log the change
+    const changedFields = Object.keys(settings);
+    await new Promise((resolve, reject) => {
+      etfDB.run(
+        'INSERT INTO etf_client_history (client_id, action, details, timestamp) VALUES (?, ?, ?, ?)',
+        [
+          deployment.client_id,
+          'Workflow Settings Updated',
+          `Updated ${changedFields.length} workflow settings: ${changedFields.join(', ')}`,
+          new Date().toISOString()
+        ],
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    res.json({
+      success: true,
+      message: 'Workflow settings updated successfully',
+      updated_fields: changedFields.length,
+      n8n_updated: !!deployment.n8n_workflow_id
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating workflow settings:', error);
+    res.status(500).json({
+      error: 'Failed to update workflow settings',
+      details: error.message
+    });
+  }
+});
+
 // Get client monitoring data
 app.get('/api/etf/monitoring/:clientId', (req, res) => {
   const { clientId } = req.params;
