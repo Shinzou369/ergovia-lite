@@ -14,7 +14,9 @@ async function checkAuthStatus() {
     // If not authenticated but we suspect user should be (coming from auth flow)
     if (!data.authenticated && (
       window.location.search.includes('from_stytch') ||
+      window.location.search.includes('from_google') ||
       sessionStorage.getItem('stytch_auth_completed') ||
+      sessionStorage.getItem('google_auth_completed') ||
       localStorage.getItem('stytch_user_email')
     )) {
       console.log('🔄 Auth flow detected but not authenticated, retrying...');

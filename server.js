@@ -3586,38 +3586,25 @@ app.get("/auth/google/callback",
   }),
   (req, res) => {
     if (req.user) {
-      const userEmail = req.user.emails?.[0]?.value;
-      const existingUser = findUserByEmail(userEmail);
-
-      // Check if this was a signup or login request
-      const authIntent = req.session.authIntent || 'login';
-
-      // Clear the auth intent after use
-      delete req.session.authIntent;
-
-      if (authIntent === 'signup') {
-        if (existingUser) {
-          // User already exists, show option to login instead
-          return res.redirect('/account-exists');
-        } else {
-          // New user, redirect to complete signup
-          return res.redirect('/complete-signup');
+      // Store user in session for persistence
+      req.session.googleUser = req.user;
+      req.session.authMethod = 'google';
+      
+      // Force session save before redirecting
+      req.session.save((err) => {
+        if (err) {
+          console.error('Google OAuth session save error:', err);
+          return res.redirect('/login-failed');
         }
-      } else {
-        // Login flow
-        if (existingUser) {
-          // Check if user needs role selection
-          if (!existingUser.role || existingUser.needsRoleSelection) {
-            return res.redirect('/select-role');
-          }
-          return res.redirect('/confirm-login');
-        } else {
-          // No account exists, redirect to signup
-          return res.redirect('/no-account');
-        }
-      }
+        
+        console.log('✅ Google OAuth successful for:', req.user.emails?.[0]?.value);
+        
+        // Redirect with success indicator for frontend
+        res.redirect('/chat?from_google=1&google_auth_completed=1');
+      });
+    } else {
+      res.redirect("/login-failed");
     }
-    res.redirect('/login-failed');
   }
 );
 
