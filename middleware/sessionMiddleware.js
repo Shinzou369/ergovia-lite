@@ -106,7 +106,8 @@ function redirectToLogin(req, res, next) {
  * Get authentication status for API endpoints
  */
 function getAuthStatus(req, res) {
-  if (req.user) {
+  // Check Stytch authentication first
+  if (req.user && req.user.stytch_user_id) {
     return res.json({
       authenticated: true,
       user: {
@@ -125,12 +126,34 @@ function getAuthStatus(req, res) {
         needsRoleSelection: false
       }
     });
-  } else {
-    return res.json({ 
-      authenticated: false, 
-      user: null 
+  }
+  
+  // Check Google OAuth authentication via Passport.js
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+    const googleUser = req.user;
+    return res.json({
+      authenticated: true,
+      user: {
+        user_id: googleUser.id,
+        email: googleUser.emails?.[0]?.value || '',
+        email_verified: googleUser.emails?.[0]?.verified || true,
+        first_name: googleUser.name?.givenName || '',
+        last_name: googleUser.name?.familyName || '',
+        name: googleUser.displayName || googleUser.emails?.[0]?.value || '',
+        authMethod: 'google',
+        role: 'user',
+        isPremium: false,
+        hasUnlimitedAccess: false,
+        isComplete: !!(googleUser.name?.givenName && googleUser.name?.familyName),
+        needsRoleSelection: false
+      }
     });
   }
+  
+  return res.json({ 
+    authenticated: false, 
+    user: null 
+  });
 }
 
 module.exports = {

@@ -520,8 +520,9 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: "https://ergovia-ai.com/auth/google/callback"
-  //callbackURL: "/auth/google/callback"
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? "https://ergovia-ai.com/auth/google/callback"
+    : "/auth/google/callback"  // Use relative URL for development
 },
 (accessToken, refreshToken, profile, done) => {
   return done(null, profile);
