@@ -96,8 +96,9 @@ function requireAuth(req, res, next) {
  * Middleware to redirect unauthenticated users to login
  */
 function redirectToLogin(req, res, next) {
-  if (!req.user) {
-    return res.redirect('/stytch-auth?return_to=' + encodeURIComponent(req.originalUrl));
+  // Check for both Stytch and Google OAuth authentication
+  if (!req.user && !(req.isAuthenticated && req.isAuthenticated())) {
+    return res.redirect('/?login_required=1&return_to=' + encodeURIComponent(req.originalUrl));
   }
   next();
 }
@@ -141,7 +142,7 @@ function getAuthStatus(req, res) {
         last_name: googleUser.name?.familyName || '',
         name: googleUser.displayName || googleUser.emails?.[0]?.value || '',
         authMethod: 'google',
-        role: 'user',
+        role: 'client', // Google users are clients only
         isPremium: false,
         hasUnlimitedAccess: false,
         isComplete: !!(googleUser.name?.givenName && googleUser.name?.familyName),

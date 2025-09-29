@@ -753,6 +753,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Protected route for Taskforce - clients only
+app.get('/taskforce', redirectToLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'taskforce.html'));
+});
+
 // Clean URL routing - serve .html files for clean URLs
 app.get('/:page', (req, res, next) => {
   const page = req.params.page;
