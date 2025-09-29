@@ -154,38 +154,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function updateUIForLoggedInUser(user) {
-  // Check if user needs role selection
-  if (!user.role || user.needsRoleSelection) {
-    // Only redirect to role selection if we're not already there
-    if (!window.location.pathname.includes('select-role')) {
-      window.location.href = '/select-role';
-      return;
-    }
-  }
-
-  // For clients (Google OAuth users), always redirect to taskforce
-  if (user.role === 'client') {
+  // Google OAuth users are automatically clients and don't need role selection
+  if (user.authMethod === 'google') {
     const currentPath = window.location.pathname;
     
-    // Don't redirect if user is already on taskforce or auth pages
+    // Don't redirect if user is already on an acceptable page
     if (currentPath === '/taskforce' || 
-        currentPath.startsWith('/stytch-') || currentPath.startsWith('/auth')) {
+        currentPath.startsWith('/complete-signup') ||
+        currentPath.startsWith('/stytch-') || 
+        currentPath.startsWith('/auth')) {
       // User is on an acceptable page, don't redirect
-    } else {
-      // Redirect clients to taskforce from any other page
-      console.log(`Redirecting client from ${currentPath} to /taskforce`);
+    } else if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
+      // Redirect from home/login/signup to taskforce
+      console.log(`Redirecting Google user from ${currentPath} to /taskforce`);
       window.location.href = '/taskforce';
       return;
     }
   }
-  
-  // Legacy support for affiliates (though they're ignored for now)
-  if (user.role === 'affiliate') {
+
+  // For Stytch users (affiliates), redirect to chat
+  if (user.authMethod === 'stytch' || user.role === 'affiliate') {
     const currentPath = window.location.pathname;
     if (currentPath === '/chat' || 
         currentPath.startsWith('/stytch-') || currentPath.startsWith('/auth')) {
       // User is on an acceptable page, don't redirect
-    } else if (currentPath === '/' || !currentPath.startsWith('/chat')) {
+    } else if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
       console.log(`Redirecting affiliate from ${currentPath} to /chat`);
       window.location.href = '/chat';
       return;

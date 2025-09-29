@@ -103,11 +103,18 @@ function redirectToLogin(req, res, next) {
     hasUser: !!req.user,
     isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
     sessionId: req.session?.id,
-    googleUser: req.session?.googleUser ? 'present' : 'missing'
+    googleUser: req.session?.googleUser ? 'present' : 'missing',
+    pendingSignup: req.session?.pendingSignup
   });
   
+  // If user is in the middle of signup process, allow access to complete-signup
+  if (req.session?.pendingSignup && req.originalUrl === '/complete-signup') {
+    console.log('✅ Pending signup, allowing access to complete-signup');
+    return next();
+  }
+  
   // Check for Google OAuth in session (our implementation)
-  if (req.session?.googleUser) {
+  if (req.session?.googleUser && !req.session?.pendingSignup) {
     console.log('✅ Google user found in session, allowing access');
     return next();
   }
@@ -124,8 +131,8 @@ function redirectToLogin(req, res, next) {
     return next();
   }
   
-  console.log('❌ No authentication found, redirecting to login');
-  return res.redirect('/?login_required=1&return_to=' + encodeURIComponent(req.originalUrl));
+  console.log('❌ No authentication found, redirecting to home');
+  return res.redirect('/?login_required=1');
 }
 
 /**

@@ -329,21 +329,11 @@
         const data = await response.json();
 
         if (data.success) {
-          showMessage('Account setup completed successfully! Redirecting...', 'success');
+          showMessage('Signup completed! Redirecting...', 'success');
 
-          // Wait a moment then redirect to dashboard
           setTimeout(() => {
-            // Check for return_to parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const returnTo = urlParams.get('return_to');
-
-            if (returnTo) {
-              window.location.href = decodeURIComponent(returnTo);
-            } else if (data.redirectTo) {
-              window.location.href = data.redirectTo;
-            } else {
-              window.location.href = '/select-role';
-            }
+            // Google OAuth users are always clients, redirect to taskforce
+            window.location.href = data.redirectTo || '/taskforce';
           }, 1500);
         } else {
           throw new Error(data.error || 'Signup completion failed');
