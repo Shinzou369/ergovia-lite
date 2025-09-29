@@ -3599,8 +3599,11 @@ app.get("/auth/google/callback",
         
         console.log('✅ Google OAuth successful for:', req.user.emails?.[0]?.value);
         
-        // Redirect with success indicator for frontend
-        res.redirect('/chat?from_google=1&google_auth_completed=1');
+        // Set user as client role (ignore affiliates for now)
+        req.session.userRole = 'client';
+        
+        // Redirect clients directly to taskforce
+        res.redirect('/taskforce?from_google=1&google_auth_completed=1');
       });
     } else {
       res.redirect("/login-failed");
