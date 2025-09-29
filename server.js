@@ -3563,6 +3563,14 @@ function updateUserRole(googleId, role) {
 
 // Google OAuth routes with proper account selection
 app.get("/auth/google",
+  (req, res, next) => {
+    console.log('🚀 Google OAuth initiation:', {
+      host: req.get('host'),
+      userAgent: req.get('user-agent')?.substring(0, 50),
+      referer: req.get('referer')
+    });
+    next();
+  },
   passport.authenticate("google", { 
     scope: ["profile", "email"],
     prompt: 'select_account'
@@ -3586,6 +3594,17 @@ app.get("/auth/google/login",
 );
 
 app.get("/auth/google/callback",
+  (req, res, next) => {
+    console.log('🔥 OAuth callback attempt detected!', {
+      query: req.query,
+      headers: {
+        host: req.get('host'),
+        userAgent: req.get('user-agent')?.substring(0, 50),
+        referer: req.get('referer')
+      }
+    });
+    next();
+  },
   passport.authenticate("google", {
     failureRedirect: "/login-failed"
   }),
