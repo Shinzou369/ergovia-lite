@@ -27,15 +27,14 @@ async function validateSession(req, res, next) {
     const sessionJWT = req.cookies?.stytch_session;
     
     if (!sessionJWT) {
-      // No session cookie found
-      req.user = null;
+      // No Stytch session cookie found - preserve any existing authentication (like Google OAuth)
       return next();
     }
 
     if (!stytchClient) {
       console.error('❌ Stytch client not available for session validation');
       res.clearCookie('stytch_session');
-      req.user = null;
+      // Don't clear req.user - preserve existing authentication
       return next();
     }
 
@@ -69,11 +68,14 @@ async function validateSession(req, res, next) {
   } catch (error) {
     console.warn('⚠️ Session validation failed:', error.message);
     
-    // Clear invalid session
+    // Clear invalid Stytch session but preserve Google OAuth if present
     res.clearCookie('stytch_session');
     delete req.session.user;
     delete req.session.stytch_session_id;
-    req.user = null;
+    // Only clear req.user if it was a Stytch user
+    if (req.user && req.user.authMethod === 'stytch') {
+      req.user = null;
+    }
     
     return next();
   }
