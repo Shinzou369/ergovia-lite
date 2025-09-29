@@ -96,19 +96,50 @@ function requireAuth(req, res, next) {
  * Middleware to redirect unauthenticated users to login
  */
 function redirectToLogin(req, res, next) {
-  // Check for both Stytch and Google OAuth authentication
-  if (!req.user && !(req.isAuthenticated && req.isAuthenticated())) {
-    return res.redirect('/?login_required=1&return_to=' + encodeURIComponent(req.originalUrl));
+  console.log('🔍 Route Protection Check:', {
+    path: req.originalUrl,
+    hasUser: !!req.user,
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+    sessionId: req.session?.id,
+    googleUser: req.session?.googleUser ? 'present' : 'missing'
+  });
+  
+  // Check for Google OAuth in session (our implementation)
+  if (req.session?.googleUser) {
+    console.log('✅ Google user found in session, allowing access');
+    return next();
   }
-  next();
+  
+  // Check for Passport.js authentication
+  if (req.user || (req.isAuthenticated && req.isAuthenticated())) {
+    console.log('✅ Passport user found, allowing access');
+    return next();
+  }
+  
+  // Check for Stytch authentication
+  if (req.session?.user || req.session?.stytch_session_id) {
+    console.log('✅ Stytch user found, allowing access');
+    return next();
+  }
+  
+  console.log('❌ No authentication found, redirecting to login');
+  return res.redirect('/?login_required=1&return_to=' + encodeURIComponent(req.originalUrl));
 }
 
 /**
  * Get authentication status for API endpoints
  */
 function getAuthStatus(req, res) {
+  console.log('🔍 Auth Status Check:', {
+    hasUser: !!req.user,
+    isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+    hasGoogleInSession: !!req.session?.googleUser,
+    hasStytchUser: !!(req.user && req.user.stytch_user_id)
+  });
+
   // Check Stytch authentication first
   if (req.user && req.user.stytch_user_id) {
+    console.log('✅ Returning Stytch user status');
     return res.json({
       authenticated: true,
       user: {
@@ -132,6 +163,7 @@ function getAuthStatus(req, res) {
   // Check Google OAuth authentication via Passport.js
   if (req.isAuthenticated && req.isAuthenticated() && req.user) {
     const googleUser = req.user;
+    console.log('✅ Returning Google Passport user status for:', googleUser.emails?.[0]?.value);
     return res.json({
       authenticated: true,
       user: {
@@ -151,6 +183,30 @@ function getAuthStatus(req, res) {
     });
   }
   
+  // Check Google OAuth user stored in session (our fallback)
+  if (req.session?.googleUser) {
+    const googleUser = req.session.googleUser;
+    console.log('✅ Returning Google session user status for:', googleUser.emails?.[0]?.value);
+    return res.json({
+      authenticated: true,
+      user: {
+        user_id: googleUser.id,
+        email: googleUser.emails?.[0]?.value || '',
+        email_verified: googleUser.emails?.[0]?.verified || true,
+        first_name: googleUser.name?.givenName || '',
+        last_name: googleUser.name?.familyName || '',
+        name: googleUser.displayName || googleUser.emails?.[0]?.value || '',
+        authMethod: 'google',
+        role: 'client', // Google users are clients only
+        isPremium: false,
+        hasUnlimitedAccess: false,
+        isComplete: !!(googleUser.name?.givenName && googleUser.name?.familyName),
+        needsRoleSelection: false
+      }
+    });
+  }
+  
+  console.log('❌ No authentication found, returning false');
   return res.json({ 
     authenticated: false, 
     user: null 

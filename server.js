@@ -3590,27 +3590,39 @@ app.get("/auth/google/callback",
     failureRedirect: "/login-failed"
   }),
   (req, res) => {
+    console.log('🔍 OAuth Callback reached:', {
+      hasUser: !!req.user,
+      userEmail: req.user?.emails?.[0]?.value,
+      sessionId: req.sessionID?.substring(0, 8) + '...'
+    });
+    
     if (req.user) {
+      console.log('👤 Google user authenticated:', {
+        id: req.user.id,
+        email: req.user.emails?.[0]?.value,
+        name: req.user.displayName
+      });
+      
       // Store user in session for persistence
       req.session.googleUser = req.user;
       req.session.authMethod = 'google';
+      req.session.userRole = 'client'; // Set user as client role
       
       // Force session save before redirecting
       req.session.save((err) => {
         if (err) {
-          console.error('Google OAuth session save error:', err);
+          console.error('❌ Google OAuth session save error:', err);
           return res.redirect('/login-failed');
         }
         
-        console.log('✅ Google OAuth successful for:', req.user.emails?.[0]?.value);
-        
-        // Set user as client role (ignore affiliates for now)
-        req.session.userRole = 'client';
+        console.log('✅ Google OAuth session saved successfully for:', req.user.emails?.[0]?.value);
+        console.log('🚀 Redirecting to taskforce...');
         
         // Redirect clients directly to taskforce
         res.redirect('/taskforce?from_google=1&google_auth_completed=1');
       });
     } else {
+      console.log('❌ No user in OAuth callback, redirecting to login failed');
       res.redirect("/login-failed");
     }
   }
