@@ -853,15 +853,8 @@
       }
 
       function redirectToClient() {
-        // Check if user is logged in first
-        checkAuthAndRedirect().then(isAuthenticated => {
-          if (isAuthenticated) {
-            window.location.href = '/taskforce';
-          } else {
-            // Not logged in, start Google OAuth for clients
-            initiateGoogleLogin();
-          }
-        });
+        // Directly navigate to taskforce - login modal will handle authentication
+        window.location.href = '/taskforce';
       }
 
       // Google login function

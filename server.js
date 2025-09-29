@@ -753,8 +753,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Protected route for Taskforce - clients only
-app.get('/taskforce', redirectToLogin, (req, res) => {
+// Taskforce route - no longer protected, login modal handles authentication
+app.get('/taskforce', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'taskforce.html'));
 });
 
