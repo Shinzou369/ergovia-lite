@@ -163,23 +163,32 @@ async function updateUIForLoggedInUser(user) {
     }
   }
 
-  // If user has a role, only redirect if they're on the homepage or wrong page
-  if (user.role) {
+  // For clients (Google OAuth users), always redirect to taskforce
+  if (user.role === 'client') {
     const currentPath = window.location.pathname;
     
-    // Don't redirect if user is already on an appropriate page
-    if (currentPath === '/chat' || currentPath === '/taskforce' || 
-        currentPath === '/select-role' || currentPath === '/complete-signup' ||
+    // Don't redirect if user is already on taskforce or auth pages
+    if (currentPath === '/taskforce' || 
         currentPath.startsWith('/stytch-') || currentPath.startsWith('/auth')) {
       // User is on an acceptable page, don't redirect
     } else {
-      // Only redirect from homepage or inappropriate pages
-      const targetPage = user.role === 'affiliate' ? '/chat' : '/taskforce';
-      if (currentPath === '/' || (!currentPath.startsWith('/chat') && !currentPath.startsWith('/taskforce'))) {
-        console.log(`Redirecting ${user.role} from ${currentPath} to appropriate page: ${targetPage}`);
-        window.location.href = targetPage;
-        return;
-      }
+      // Redirect clients to taskforce from any other page
+      console.log(`Redirecting client from ${currentPath} to /taskforce`);
+      window.location.href = '/taskforce';
+      return;
+    }
+  }
+  
+  // Legacy support for affiliates (though they're ignored for now)
+  if (user.role === 'affiliate') {
+    const currentPath = window.location.pathname;
+    if (currentPath === '/chat' || 
+        currentPath.startsWith('/stytch-') || currentPath.startsWith('/auth')) {
+      // User is on an acceptable page, don't redirect
+    } else if (currentPath === '/' || !currentPath.startsWith('/chat')) {
+      console.log(`Redirecting affiliate from ${currentPath} to /chat`);
+      window.location.href = '/chat';
+      return;
     }
   }
 

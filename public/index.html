@@ -853,7 +853,15 @@
       }
 
       function redirectToClient() {
-        window.location.href = '/taskforce.html';
+        // Check if user is logged in first
+        checkAuthAndRedirect().then(isAuthenticated => {
+          if (isAuthenticated) {
+            window.location.href = '/taskforce';
+          } else {
+            // Not logged in, start Google OAuth for clients
+            initiateGoogleLogin();
+          }
+        });
       }
 
       // Google login function
