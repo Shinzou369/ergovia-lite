@@ -85,13 +85,19 @@ async function validateSession(req, res, next) {
  * Middleware to require authentication
  */
 function requireAuth(req, res, next) {
-  if (!req.user) {
-    return res.status(401).json({ 
-      error: 'Authentication required',
-      redirect: '/stytch-auth'
-    });
+  if (req.session?.user) {
+    req.user = req.session.user;
+    return next();
   }
-  next();
+  
+  if (req.user) {
+    return next();
+  }
+  
+  return res.status(401).json({ 
+    error: 'Authentication required',
+    redirect: '/login'
+  });
 }
 
 /**
