@@ -341,6 +341,14 @@ function initETFDatabase() {
 
         // Create tables with error handling
         const createTables = [
+          `CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`,
           `CREATE TABLE IF NOT EXISTS etf_clients (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
