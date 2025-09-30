@@ -69,8 +69,8 @@ async function logout() {
       clearUserData();
     }
     
-    // Call Stytch logout endpoint
-    await fetch('/api/auth/stytch/logout', {
+    // Call logout endpoint
+    await fetch('/api/auth/logout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
