@@ -113,11 +113,11 @@ function redirectToLogin(req, res, next) {
     return next();
   }
   
-  // Check for Passport.js authentication
-  if (req.user || (req.isAuthenticated && req.isAuthenticated())) {
-    console.log('✅ Passport user found, allowing access');
-    return next();
-  }
+  // Passport.js removed - using local authentication only
+  // if (req.user || (req.isAuthenticated && req.isAuthenticated())) {
+  //   console.log('✅ Passport user found, allowing access');
+  //   return next();
+  // }
   
   // Check for Stytch authentication
   if (req.session?.stytch_session_id) {

@@ -4,8 +4,9 @@ const path = require("path");
 const OpenAI = require('openai');
 const session = require("express-session");
 const FileStore = require('session-file-store')(session);
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
+// Google OAuth removed - using local authentication
+// const passport = require("passport");
+// const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const fs = require('fs');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -451,9 +452,7 @@ initScheduler();
 
 // Environment variable validation with detailed feedback
 const requiredEnvVars = [
-  { name: 'OPENAI_API_KEY', description: 'OpenAI API key for chat functionality' },
-  { name: 'GOOGLE_CLIENT_ID', description: 'Google OAuth client ID for authentication' },
-  { name: 'GOOGLE_CLIENT_SECRET', description: 'Google OAuth client secret for authentication' }
+  { name: 'OPENAI_API_KEY', description: 'OpenAI API key for chat functionality' }
 ];
 
 const optionalEnvVars = [
@@ -518,25 +517,25 @@ const { validateSession, redirectToLogin, getAuthStatus } = require('./middlewar
 const authRoutes = require('./routes/authRoutes');
 const { router: localAuthRouter, setDatabase: setLocalAuthDatabase } = require('./routes/localAuthRoutes');
 
-// Passport configuration
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
+// Passport configuration removed - using local authentication
+// passport.serializeUser((user, done) => {
+//   done(null, user);
+// });
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
+// passport.deserializeUser((user, done) => {
+//   done(null, user);
+// });
 
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.NODE_ENV === 'production' 
-    ? "https://ergovia-ai.com/auth/google/callback"
-    : "/auth/google/callback"  // Use relative URL for development
-},
-(accessToken, refreshToken, profile, done) => {
-  return done(null, profile);
-}));
+// passport.use(new GoogleStrategy({
+//   clientID: process.env.GOOGLE_CLIENT_ID,
+//   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+//   callbackURL: process.env.NODE_ENV === 'production' 
+//     ? "https://ergovia-ai.com/auth/google/callback"
+//     : "/auth/google/callback"
+// },
+// (accessToken, refreshToken, profile, done) => {
+//   return done(null, profile);
+// }));
 
 // Session configuration with environment-based security
 const sessionConfig = {
@@ -579,8 +578,9 @@ const sessionConfig = {
 };
 
 app.use(session(sessionConfig));
-app.use(passport.initialize());
-app.use(passport.session());
+// Passport removed - using local authentication
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 // Debug middleware to track session issues
 app.use((req, res, next) => {
@@ -590,10 +590,10 @@ app.use((req, res, next) => {
 
     console.log('Session Debug:', {
       sessionID: req.sessionID.substring(0, 8) + '...',
-      googleAuth: req.isAuthenticated(),
+      localAuth: !!req.session.user,
       stytchAuth: hasStytchSession,
-      userEmail: req.user?.emails?.[0]?.value || stytchEmail || 'none',
-      authMethod: req.session.user?.authMethod || 'google'
+      userEmail: req.session.user?.email || stytchEmail || 'none',
+      authMethod: req.session.user?.authMethod || 'local'
     });
   }
   next();
@@ -3572,109 +3572,89 @@ function updateUserRole(googleId, role) {
   return null;
 }
 
-// Google OAuth routes with proper account selection
-app.get("/auth/google",
-  (req, res, next) => {
-    console.log('🚀 Google OAuth initiation:', {
-      host: req.get('host'),
-      userAgent: req.get('user-agent')?.substring(0, 50),
-      referer: req.get('referer')
-    });
-    next();
-  },
-  passport.authenticate("google", { 
-    scope: ["profile", "email"],
-    prompt: 'select_account'
-  })
-);
+// Google OAuth routes removed - using local authentication
+// app.get("/auth/google",
+//   (req, res, next) => {
+//     console.log('🚀 Google OAuth initiation:', {
+//       host: req.get('host'),
+//       userAgent: req.get('user-agent')?.substring(0, 50),
+//       referer: req.get('referer')
+//     });
+//     next();
+//   },
+//   passport.authenticate("google", { 
+//     scope: ["profile", "email"],
+//     prompt: 'select_account'
+//   })
+// );
 
-// Separate signup route with forced account selection
-app.get("/auth/google/signup",
-  passport.authenticate("google", { 
-    scope: ["profile", "email"],
-    prompt: 'select_account consent'
-  })
-);
+// app.get("/auth/google/signup",
+//   passport.authenticate("google", { 
+//     scope: ["profile", "email"],
+//     prompt: 'select_account consent'
+//   })
+// );
 
-// Separate login route with account selection
-app.get("/auth/google/login",
-  passport.authenticate("google", { 
-    scope: ["profile", "email"],
-    prompt: 'select_account'
-  })
-);
+// app.get("/auth/google/login",
+//   passport.authenticate("google", { 
+//     scope: ["profile", "email"],
+//     prompt: 'select_account'
+//   })
+// );
 
-app.get("/auth/google/callback",
-  (req, res, next) => {
-    console.log('🔥 OAuth callback attempt detected!', {
-      query: req.query,
-      headers: {
-        host: req.get('host'),
-        userAgent: req.get('user-agent')?.substring(0, 50),
-        referer: req.get('referer')
-      }
-    });
-    next();
-  },
-  passport.authenticate("google", {
-    failureRedirect: "/login-failed"
-  }),
-  (req, res) => {
-    console.log('🔍 OAuth Callback reached:', {
-      hasUser: !!req.user,
-      userEmail: req.user?.emails?.[0]?.value,
-      sessionId: req.sessionID?.substring(0, 8) + '...'
-    });
-    
-    if (req.user) {
-      console.log('👤 Google user authenticated:', {
-        id: req.user.id,
-        email: req.user.emails?.[0]?.value,
-        name: req.user.displayName
-      });
-      
-      // Store user in session for persistence
-      req.session.googleUser = req.user;
-      req.session.authMethod = 'google';
-      req.session.userRole = 'client'; // Set user as client role
-      
-      // Force session save before redirecting
-      req.session.save((err) => {
-        if (err) {
-          console.error('❌ Google OAuth session save error:', err);
-          return res.redirect('/login-failed');
-        }
-        
-        console.log('✅ Google OAuth session saved successfully for:', req.user.emails?.[0]?.value);
-        console.log('🚀 Redirecting to taskforce...');
-        
-        // Redirect clients directly to taskforce
-        res.redirect('/taskforce?from_google=1&google_auth_completed=1');
-      });
-    } else {
-      console.log('❌ No user in OAuth callback, redirecting to login failed');
-      res.redirect("/login-failed");
-    }
-  }
-);
-
-// Set auth intent and clear any existing session
-app.get('/set-auth-intent/:type', (req, res) => {
-  // Clear any existing authentication
-  req.logout(() => {
-    req.session.destroy((err) => {
-      // Create new session with auth intent
-      req.session = req.sessionStore.createSession(req, {});
-      req.session.authIntent = req.params.type;
-
-      if (req.params.type === 'signup') {
-        res.redirect('/auth/google/signup');
-      } else {
-        res.redirect('/auth/google/login');
-      }
-    });
-  });
-});
+// app.get("/auth/google/callback",
+//   (req, res, next) => {
+//     console.log('🔥 OAuth callback attempt detected!', {
+//       query: req.query,
+//       headers: {
+//         host: req.get('host'),
+//         userAgent: req.get('user-agent')?.substring(0, 50),
+//         referer: req.get('referer')
+//       }
+//     });
+//     next();
+//   },
+//   passport.authenticate("google", {
+//     failureRedirect: "/login-failed"
+//   }),
+//   (req, res) => {
+//     console.log('🔍 OAuth Callback reached:', {
+//       hasUser: !!req.user,
+//       userEmail: req.user?.emails?.[0]?.value,
+//       sessionId: req.sessionID?.substring(0, 8) + '...'
+//     });
+//     
+//     if (req.user) {
+//       console.log('👤 Google user authenticated:', {
+//         id: req.user.id,
+//         email: req.user.emails?.[0]?.value,
+//         name: req.user.displayName
+//       });
+//       
+//       // Store user in session for persistence
+//       req.session.googleUser = req.user;
+//       req.session.authMethod = 'google';
+//       req.session.userRole = 'client'; // Set user as client role
+//       
+//       // Force session save before redirecting
+//       req.session.save((err) => {
+//         if (err) {
+//           console.error('❌ Google OAuth session save error:', err);
+//           return res.redirect('/login-failed');
+//         }
+//         
+//         console.log('✅ Google OAuth session saved successfully for:', req.user.emails?.[0]?.value);
+//         console.log('🚀 Redirecting to taskforce...');
+//         
+//         // Redirect clients directly to taskforce
+//         res.redirect('/taskforce?from_google=1&google_auth_completed=1');
+//       });
+//     } else {
+//       console.log('❌ No user in OAuth callback, redirecting to login failed');
+//       res.redirect("/login-failed");
+//     }
+//   }
+// );
 
 app.get("/logout", (req, res) => {
   req.logout(() => {
@@ -4616,8 +4596,8 @@ app.use((err, req, res, next) => {
     method: req.method,
     userAgent: req.headers['user-agent'],
     ip: req.ip,
-    authenticated: req.isAuthenticated(),
-    userEmail: req.user?.emails?.[0]?.value
+    authenticated: !!req.session?.user,
+    userEmail: req.session?.user?.email
   };
 
   logError(err, context);
