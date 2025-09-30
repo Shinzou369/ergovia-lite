@@ -426,6 +426,7 @@ let etfDB;
 initETFDatabase()
   .then(database => {
     etfDB = database;
+    setLocalAuthDatabase(database);
   })
   .catch(err => {
     console.error('❌ Failed to initialize ETF database:', err.message);
@@ -515,6 +516,7 @@ const openai = new OpenAI({
 // Import middleware and routes
 const { validateSession, redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
 const authRoutes = require('./routes/authRoutes');
+const { router: localAuthRouter, setDatabase: setLocalAuthDatabase } = require('./routes/localAuthRoutes');
 
 // Passport configuration
 passport.serializeUser((user, done) => {
@@ -801,6 +803,7 @@ app.use(express.static('public'));
 
 // Mount authentication routes
 app.use('/auth', authRoutes);
+app.use('/api/auth', localAuthRouter);
 
 // Taskforce onboarding routes - redirect all to ETF onboarding
 app.get('/taskforce/pet-clinic/onboard', (req, res) => {

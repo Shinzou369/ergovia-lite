@@ -107,15 +107,9 @@ function redirectToLogin(req, res, next) {
     pendingSignup: req.session?.pendingSignup
   });
   
-  // If user is in the middle of signup process, allow access to complete-signup
-  if (req.session?.pendingSignup && req.originalUrl === '/complete-signup') {
-    console.log('✅ Pending signup, allowing access to complete-signup');
-    return next();
-  }
-  
-  // Check for Google OAuth in session (our implementation)
-  if (req.session?.googleUser && !req.session?.pendingSignup) {
-    console.log('✅ Google user found in session, allowing access');
+  // Check for local authentication (session-based)
+  if (req.session?.user) {
+    console.log('✅ Local auth user found in session, allowing access');
     return next();
   }
   
@@ -126,13 +120,13 @@ function redirectToLogin(req, res, next) {
   }
   
   // Check for Stytch authentication
-  if (req.session?.user || req.session?.stytch_session_id) {
+  if (req.session?.stytch_session_id) {
     console.log('✅ Stytch user found, allowing access');
     return next();
   }
   
-  console.log('❌ No authentication found, redirecting to home');
-  return res.redirect('/?login_required=1');
+  console.log('❌ No authentication found, redirecting to login');
+  return res.redirect('/login?return_to=' + encodeURIComponent(req.originalUrl));
 }
 
 /**
@@ -141,12 +135,33 @@ function redirectToLogin(req, res, next) {
 function getAuthStatus(req, res) {
   console.log('🔍 Auth Status Check:', {
     hasUser: !!req.user,
+    hasSessionUser: !!req.session?.user,
     isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
     hasGoogleInSession: !!req.session?.googleUser,
     hasStytchUser: !!(req.user && req.user.stytch_user_id)
   });
 
-  // Check Stytch authentication first
+  // Check local authentication first (session-based)
+  if (req.session?.user) {
+    const user = req.session.user;
+    console.log('✅ Returning local auth user status for:', user.email);
+    return res.json({
+      authenticated: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name || user.email,
+        authMethod: 'local',
+        role: 'client',
+        isPremium: false,
+        hasUnlimitedAccess: false,
+        isComplete: !!user.name,
+        needsRoleSelection: false
+      }
+    });
+  }
+
+  // Check Stytch authentication
   if (req.user && req.user.stytch_user_id) {
     console.log('✅ Returning Stytch user status');
     return res.json({
@@ -160,56 +175,10 @@ function getAuthStatus(req, res) {
         name: req.user.first_name && req.user.last_name ? 
           `${req.user.first_name} ${req.user.last_name}` : req.user.email,
         authMethod: 'stytch',
-        role: 'affiliate', // Stytch users are affiliates
+        role: 'affiliate',
         isPremium: false,
         hasUnlimitedAccess: false,
         isComplete: !!(req.user.first_name && req.user.last_name),
-        needsRoleSelection: false
-      }
-    });
-  }
-  
-  // Check Google OAuth authentication via Passport.js
-  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
-    const googleUser = req.user;
-    console.log('✅ Returning Google Passport user status for:', googleUser.emails?.[0]?.value);
-    return res.json({
-      authenticated: true,
-      user: {
-        user_id: googleUser.id,
-        email: googleUser.emails?.[0]?.value || '',
-        email_verified: googleUser.emails?.[0]?.verified || true,
-        first_name: googleUser.name?.givenName || '',
-        last_name: googleUser.name?.familyName || '',
-        name: googleUser.displayName || googleUser.emails?.[0]?.value || '',
-        authMethod: 'google',
-        role: 'client', // Google users are clients only
-        isPremium: false,
-        hasUnlimitedAccess: false,
-        isComplete: !!(googleUser.name?.givenName && googleUser.name?.familyName),
-        needsRoleSelection: false
-      }
-    });
-  }
-  
-  // Check Google OAuth user stored in session (our fallback)
-  if (req.session?.googleUser) {
-    const googleUser = req.session.googleUser;
-    console.log('✅ Returning Google session user status for:', googleUser.emails?.[0]?.value);
-    return res.json({
-      authenticated: true,
-      user: {
-        user_id: googleUser.id,
-        email: googleUser.emails?.[0]?.value || '',
-        email_verified: googleUser.emails?.[0]?.verified || true,
-        first_name: googleUser.name?.givenName || '',
-        last_name: googleUser.name?.familyName || '',
-        name: googleUser.displayName || googleUser.emails?.[0]?.value || '',
-        authMethod: 'google',
-        role: 'client', // Google users are clients only
-        isPremium: false,
-        hasUnlimitedAccess: false,
-        isComplete: !!(googleUser.name?.givenName && googleUser.name?.familyName),
         needsRoleSelection: false
       }
     });
