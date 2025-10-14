@@ -1,4 +1,4 @@
-// Authentication helper functions
+// Authentication helper functions - Local Auth Only
 async function checkAuthStatus() {
   try {
     const response = await fetch('/api/auth/status', {
@@ -10,34 +10,6 @@ async function checkAuthStatus() {
     const data = await response.json();
     
     console.log('Auth status check result:', data);
-    
-    // If not authenticated but we suspect user should be (coming from auth flow)
-    if (!data.authenticated && (
-      window.location.search.includes('from_stytch') ||
-      window.location.search.includes('from_google') ||
-      sessionStorage.getItem('stytch_auth_completed') ||
-      sessionStorage.getItem('google_auth_completed') ||
-      localStorage.getItem('stytch_user_email')
-    )) {
-      console.log('🔄 Auth flow detected but not authenticated, retrying...');
-      
-      // Wait and retry once
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const retryResponse = await fetch('/api/auth/status', {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const retryData = await retryResponse.json();
-      
-      console.log('Auth status retry result:', retryData);
-      
-      if (retryData.authenticated) {
-        // Clear the temporary indicators
-        sessionStorage.removeItem('stytch_auth_completed');
-        return retryData;
-      }
-    }
-    
     return data;
   } catch (error) {
     console.error('Error checking auth status:', error);
@@ -58,10 +30,6 @@ async function getUserProfile() {
   }
 }
 
-function initiateGoogleLogin() {
-  window.location.href = '/auth/google';
-}
-
 async function logout() {
   try {
     // Clear user data before redirecting
@@ -75,8 +43,8 @@ async function logout() {
       headers: { 'Content-Type': 'application/json' }
     });
     
-    // Also handle Google logout if applicable
-    window.location.href = '/logout';
+    // Redirect to home
+    window.location.href = '/';
   } catch (error) {
     console.error('Logout error:', error);
     // Force redirect even if logout call fails
@@ -92,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const currentPath = window.location.pathname;
   
   // Prevent auth checks on specific pages to avoid loops
-  const skipAuthPages = ['/stytch-logged-in', '/login', '/signup', '/complete-signup', '/select-role', '/confirm-login', '/no-account', '/account-exists'];
+  const skipAuthPages = ['/login', '/signup', '/complete-signup', '/select-role', '/confirm-login', '/no-account', '/account-exists'];
   
   if (skipAuthPages.includes(currentPath)) {
     console.log('On auth flow page, skipping automatic auth check');
@@ -102,28 +70,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // For chat page, allow auth check but handle carefully
   if (currentPath === '/chat') {
-    // Check if coming from Stytch auth and give it time to establish session
-    const fromStytchAuth = window.location.search.includes('stytch_auth_completed') ||
-                          window.location.search.includes('from_stytch') ||
-                          sessionStorage.getItem('stytch_auth_completed');
-    
-    let authStatus = await checkAuthStatus();
-    
-    // If not authenticated but coming from Stytch, retry with delay
-    if (!authStatus.authenticated && fromStytchAuth) {
-      console.log('🔄 Coming from Stytch auth, retrying authentication check...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      authStatus = await checkAuthStatus();
-    }
+    const authStatus = await checkAuthStatus();
     
     if (authStatus.authenticated) {
       console.log('✅ User authenticated on chat page:', authStatus.user.email);
       window.currentUser = authStatus.user;
-      // Clean up auth completion indicators
-      sessionStorage.removeItem('stytch_auth_completed');
-      const url = new URL(window.location);
-      url.searchParams.delete('stytch_auth_completed');
-      window.history.replaceState({}, document.title, url.pathname);
       updateUIForLoggedInUser(authStatus.user);
     } else {
       console.log('User not authenticated, showing login options on chat page');
@@ -154,35 +105,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function updateUIForLoggedInUser(user) {
-  // Google OAuth users are automatically clients and don't need role selection
-  if (user.authMethod === 'google') {
-    const currentPath = window.location.pathname;
-    
-    // Don't redirect if user is already on an acceptable page
-    if (currentPath === '/taskforce' || 
-        currentPath.startsWith('/complete-signup') ||
-        currentPath.startsWith('/stytch-') || 
-        currentPath.startsWith('/auth')) {
-      // User is on an acceptable page, don't redirect
-    } else if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
-      // Redirect from home/login/signup to taskforce
-      console.log(`Redirecting Google user from ${currentPath} to /taskforce`);
-      window.location.href = '/taskforce';
-      return;
-    }
-  }
-
-  // For Stytch users (affiliates), redirect to chat
-  if (user.authMethod === 'stytch' || user.role === 'affiliate') {
-    const currentPath = window.location.pathname;
-    if (currentPath === '/chat' || 
-        currentPath.startsWith('/stytch-') || currentPath.startsWith('/auth')) {
-      // User is on an acceptable page, don't redirect
-    } else if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
-      console.log(`Redirecting affiliate from ${currentPath} to /chat`);
-      window.location.href = '/chat';
-      return;
-    }
+  const currentPath = window.location.pathname;
+  
+  // Local auth users default to taskforce
+  if (currentPath === '/' || currentPath === '/login' || currentPath === '/signup') {
+    console.log(`Redirecting local user from ${currentPath} to /taskforce`);
+    window.location.href = '/taskforce';
+    return;
   }
 
   // Set global login state
@@ -285,7 +214,6 @@ function updateTopNavForUser(user) {
       </div>
       <div class="user-info">
         <span class="user-name">${user.name} ${roleBadge} ${premiumBadge}</span>
-        ${user.authMethod === 'stytch' ? '<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">🔐 Stytch Auth</div>' : ''}
       </div>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
@@ -309,8 +237,8 @@ function updateTopNavForGuest() {
   const authContainer = document.createElement('div');
   authContainer.className = 'auth-container';
   authContainer.innerHTML = `
-    <button class="login-btn" onclick="initiateGoogleLogin()">Login</button>
-    <button class="signup-btn" onclick="initiateGoogleLogin()">Sign Up</button>
+    <button class="login-btn" onclick="window.location.href='/login'">Login</button>
+    <button class="signup-btn" onclick="window.location.href='/signup'">Sign Up</button>
   `;
 
   // Insert before existing nav items
