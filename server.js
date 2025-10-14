@@ -24,7 +24,7 @@ const {
   getPoolStats 
 } = require('./utils/keyManager');
 const { initScheduler } = require('./utils/scheduler');
-const stytch = require('stytch');
+// Stytch removed - using local authentication only
 
 // ========================================
 // ETF Integration - N8N Configuration
@@ -460,10 +460,7 @@ const optionalEnvVars = [
   { name: 'N8N_BASE_URL', description: 'N8N instance URL for ETF functionality' },
   { name: 'N8N_API_KEY', description: 'N8N API key for workflow management' },
   { name: 'SESSION_SECRET', description: 'Secret key for session encryption' },
-  { name: 'LEMONSQUEEZY_API_KEY', description: 'Payment processing API key' },
-  { name: 'STYTCH_PROJECT_ID', description: 'Stytch project ID for modern authentication' },
-  { name: 'STYTCH_SECRET', description: 'Stytch secret key for backend authentication' },
-  { name: 'STYTCH_PUBLIC_TOKEN', description: 'Stytch public token for frontend integration' }
+  { name: 'LEMONSQUEEZY_API_KEY', description: 'Payment processing API key' }
 ];
 
 function validateEnvironment() {
@@ -513,8 +510,7 @@ const openai = new OpenAI({
 });
 
 // Import middleware and routes
-const { validateSession, redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
-const authRoutes = require('./routes/authRoutes');
+const { redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
 const { router: localAuthRouter, setDatabase: setLocalAuthDatabase } = require('./routes/localAuthRoutes');
 
 // Passport configuration removed - using local authentication
@@ -585,15 +581,10 @@ app.use(session(sessionConfig));
 // Debug middleware to track session issues
 app.use((req, res, next) => {
   if (req.session && req.sessionID) {
-    const hasStytchSession = !!(req.session.stytch_session_id || req.session.user?.stytch_user_id);
-    const stytchEmail = req.session.user?.email;
-
     console.log('Session Debug:', {
       sessionID: req.sessionID.substring(0, 8) + '...',
-      localAuth: !!req.session.user,
-      stytchAuth: hasStytchSession,
-      userEmail: req.session.user?.email || stytchEmail || 'none',
-      authMethod: req.session.user?.authMethod || 'local'
+      authenticated: !!req.session.user,
+      userEmail: req.session.user?.email || 'none'
     });
   }
   next();
@@ -676,13 +667,8 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Add cookie parser for Stytch session handling
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+// Cookie parser and Stytch removed - using local auth only
 app.use(validateInput);
-
-// Add session validation middleware to all routes
-app.use(validateSession);
 
 // Rate limiting configuration
 const rateLimit = {
@@ -802,7 +788,7 @@ app.use((req, res, next) => {
 app.use(express.static('public'));
 
 // Mount authentication routes
-app.use('/auth', authRoutes);
+// Stytch authRoutes removed - using local auth only
 app.use('/api/auth', localAuthRouter);
 
 // Taskforce onboarding routes - redirect all to ETF onboarding
@@ -1256,10 +1242,7 @@ app.get('/client-openai-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client-openai-dashboard.html'));
 });
 
-// Serve Stytch logged-in confirmation page
-app.get('/stytch-logged-in', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'stytch-logged-in.html'));
-});
+// Stytch logged-in route removed - using local auth only
 
     // Credentials will be left blank for manual configuration
 
@@ -1425,42 +1408,7 @@ app.get('/stytch-logged-in', (req, res) => {
         );
 
 
-// Test Stytch configuration endpoint
-app.get('/api/auth/stytch/test', async (req, res) => {
-  try {
-    const testResult = {
-      client_initialized: !!stytchClient,
-      project_id_set: !!process.env.STYTCH_PROJECT_ID,
-      secret_set: !!process.env.STYTCH_SECRET,
-      environment: process.env.NODE_ENV || 'development'
-    };
-
-    if (stytchClient && process.env.STYTCH_PROJECT_ID) {
-      // Test a simple API call to verify connection
-      try {
-        const projectResponse = await stytchClient.projects.get();
-        testResult.api_connection = 'success';
-        testResult.project_name = projectResponse.project?.project_name || 'unknown';
-      } catch (apiError) {
-        testResult.api_connection = 'failed';
-        testResult.api_error = apiError.message;
-        testResult.api_status_code = apiError.status_code;
-      }
-    } else {
-      testResult.api_connection = 'not_tested';
-      testResult.reason = 'Client not initialized or missing credentials';
-    }
-
-    console.log('🧪 Stytch test result:', testResult);
-    res.json(testResult);
-  } catch (error) {
-    console.error('❌ Stytch test error:', error);
-    res.status(500).json({
-      error: 'Test failed',
-      details: error.message
-    });
-  }
-});
+// Stytch test endpoint removed - using local auth only
 
       } else if (workflow.activation_status === 'activated') {
         logDeploymentEvent(
@@ -3025,10 +2973,8 @@ function requireAuth(req, res, next) {
   // Check Google OAuth authentication
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
 
-  // Check Stytch authentication
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
-
-  const isAuthenticated = isGoogleAuth || isStytchAuth;
+  // Check local authentication
+  const isAuthenticated = isGoogleAuth || !!req.session?.user;
 
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -3040,16 +2986,16 @@ function requireAuth(req, res, next) {
 function requirePremium(req, res, next) {
   // Check if user is authenticated using multiple methods
   const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
-    !!(req.user || req.session?.user || req.session?.stytch_session_id);
+    !!(req.user || req.session?.user);
 
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  // Get user from various sources (Google OAuth, Stytch, or session)
+  // Get user from various sources (session)
   let currentUser = req.user || req.session?.user;
-  if (!currentUser && req.session?.stytch_session_id) {
-    // For Stytch users, create a user object from session data
+  if (!currentUser) {
+    // No user found in session
     currentUser = req.session.user || {};
   }
 
@@ -3686,24 +3632,7 @@ app.get("/api/profile", (req, res) => {
   });
 });
 
-// Legacy Stytch endpoints for backward compatibility
-app.post('/api/auth/stytch/magic-links/send', (req, res, next) => {
-  // Redirect to new auth route
-  req.url = '/auth/magic-links/send';
-  authRoutes(req, res, next);
-});
-
-app.get('/api/auth/stytch/authenticate', (req, res, next) => {
-  // Redirect to new auth route
-  req.url = '/auth/callback';
-  authRoutes(req, res, next);
-});
-
-app.post('/api/auth/stytch/logout', (req, res, next) => {
-  // Redirect to new auth route
-  req.url = '/auth/logout';
-  authRoutes(req, res, next);
-});
+// Legacy Stytch endpoints removed - using local auth only
 
 // Enhanced Credential Management API
 
@@ -4469,8 +4398,7 @@ app.get("/chat", (req, res) => {
 
   // Check if user is authenticated (for logging purposes)
   const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-  const isStytchAuth = !!(req.session?.stytch_session_id || req.session?.user?.stytch_user_id);
-  const isAuthenticated = isGoogleAuth || isStytchAuth;
+  const isAuthenticated = isGoogleAuth || !!req.session?.user;
 
   if (isAuthenticated) {
     console.log('✅ Authenticated user accessing chat page');
