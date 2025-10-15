@@ -873,8 +873,15 @@
           const response = await fetch('/api/auth/status');
           const authData = await response.json();
 
-          if (authData.authenticated) {
-            // User is logged in, show login button for quick access
+          if (authData.authenticated && authData.user) {
+            // User is logged in - redirect to their assigned page based on role
+            const userRole = authData.user.role || 'client';
+            
+            if (userRole === 'affiliate') {
+              window.location.href = '/chat';
+            } else {
+              window.location.href = '/taskforce';
+            }
             return true; // User is authenticated
           }
 
