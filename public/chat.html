@@ -1101,9 +1101,10 @@
         try {
           console.log('🚪 Logging out user...');
 
-          // Call Stytch logout endpoint
-          await fetch('/api/auth/stytch/logout', {
+          // Call local auth logout endpoint
+          await fetch('/api/auth/logout', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' }
           });
 

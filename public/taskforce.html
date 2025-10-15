@@ -592,6 +592,47 @@
         document.getElementById('successBanner').style.display = 'none';
       }
 
+      // Logout function
+      async function logout() {
+        try {
+          console.log('🚪 Logging out user...');
+
+          // Call local auth logout endpoint
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          // Redirect to home
+          window.location.href = '/';
+        } catch (error) {
+          console.error('Logout error:', error);
+          // Force redirect even if logout call fails
+          window.location.href = '/';
+        }
+      }
+
+      // Update top nav to show user info and logout button
+      function updateTopNavForUser(user) {
+        const authContainer = document.getElementById('auth-container');
+        if (authContainer && !authContainer.querySelector('.user-info')) {
+          authContainer.innerHTML = `
+            <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
+              <span style="color: var(--text-secondary); font-size: 0.9rem;">${user.name || user.email}</span>
+              <button onclick="logout()" style="background: rgba(255, 215, 0, 0.1); border: 1px solid rgba(255, 215, 0, 0.3); color: var(--text-primary); padding: 8px 16px; border-radius: var(--radius); cursor: pointer; font-size: 0.9rem; transition: all 0.3s ease;">
+                <i data-lucide="log-out" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i>
+                Logout
+              </button>
+            </div>
+          `;
+          // Reinitialize Lucide icons
+          if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+          }
+        }
+      }
+
       // Check authentication status on page load
       document.addEventListener('DOMContentLoaded', async function() {
         console.log('🔍 Taskforce page loaded, checking auth status...');
