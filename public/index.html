@@ -306,8 +306,6 @@
           rgba(255, 215, 0, 0.1) 100%),
           radial-gradient(circle at 30% 70%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
         border-right: 2px solid rgba(255, 215, 0, 0.1);
-        filter: grayscale(70%) brightness(0.6);
-        cursor: not-allowed;
       }
 
       /* Client Section - Right */
@@ -332,11 +330,11 @@
         filter: brightness(0.8);
       }
 
-      /* Disable hover effects for affiliate section */
+      /* Enable hover effects for affiliate section */
       .affiliate-section:hover {
-        flex: 1;
-        transform: none;
-        z-index: 1;
+        flex: 1.2;
+        transform: scale(1.02);
+        z-index: 2;
       }
 
       /* Section Content */
@@ -374,7 +372,6 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        opacity: 0.5;
       }
 
       .client-section .section-title {
@@ -393,7 +390,7 @@
       }
 
       .affiliate-section .section-subtitle {
-        color: rgba(255, 255, 255, 0.4);
+        color: rgba(255, 255, 255, 0.9);
       }
 
       .client-section .section-subtitle {
@@ -421,12 +418,9 @@
       }
 
       .affiliate-section .cta-button {
-        border-color: rgba(255, 215, 0, 0.2);
-        box-shadow: 0 8px 32px rgba(255, 215, 0, 0.1);
-        background: rgba(100, 100, 100, 0.3);
-        opacity: 0.6;
-        cursor: not-allowed;
-        pointer-events: none;
+        border-color: rgba(255, 215, 0, 0.3);
+        box-shadow: 0 8px 32px rgba(255, 215, 0, 0.2);
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(184, 165, 72, 0.3) 100%);
       }
 
       .client-section .cta-button {
@@ -442,9 +436,9 @@
       }
 
       .affiliate-section .cta-button:hover {
-        transform: none;
-        box-shadow: 0 8px 32px rgba(255, 215, 0, 0.1);
-        border-color: rgba(255, 215, 0, 0.2);
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 15px 40px rgba(255, 215, 0, 0.4);
+        border-color: rgba(255, 215, 0, 0.8);
       }
 
       .client-section .cta-button:hover {
@@ -506,11 +500,11 @@
       }
 
       .affiliate-section .section-icon {
-        opacity: 0.4;
+        opacity: 1;
       }
 
       .affiliate-section .features-list li {
-        color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.9);
       }
 
       .client-section .features-list li {
