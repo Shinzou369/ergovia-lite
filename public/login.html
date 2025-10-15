@@ -146,7 +146,7 @@
 <body>
   <div class="auth-container">
     <a href="/" class="back-link">← Back to Home</a>
-    
+
     <div class="auth-header">
       <h1>Welcome Back</h1>
       <p>Log in to access your Ergovia AI account</p>
@@ -190,6 +190,20 @@
   </div>
 
   <script>
+    // Get role from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role');
+    const returnTo = urlParams.get('return_to') || (role === 'affiliate' ? '/chat' : '/taskforce');
+
+    // Check if user is already logged in
+    fetch('/api/auth/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated) {
+          window.location.href = returnTo;
+        }
+      });
+
     const form = document.getElementById('loginForm');
     const errorDiv = document.getElementById('errorMessage');
     const submitButton = document.getElementById('loginButton');
@@ -220,13 +234,12 @@
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, password, role })
         });
 
         const data = await response.json();
 
         if (response.ok && data.success) {
-          const returnTo = new URLSearchParams(window.location.search).get('return_to') || '/taskforce';
           window.location.href = returnTo;
         } else {
           showError(data.error || 'Login failed. Please try again.');

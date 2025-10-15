@@ -784,9 +784,10 @@
             Partner with us and earn recurring commissions by promoting ERGOVIA-AI's powerful automation solutions to businesses worldwide.
           </p>
 
-          <div class="cta-button">
-              Coming Soon
-            </div>
+          <a href="/login?role=affiliate" class="cta-button">
+            <span class="cta-text">Join as Affiliate</span>
+            <span class="cta-arrow">→</span>
+          </a>
 
           <ul class="features-list">
             <li><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 8 18 12 13 7 9 11 2 3"></polyline><path d="M18 8v6l4 4"></path></svg> Recurring Commissions</li>
@@ -849,7 +850,8 @@
 
       // Redirect functions
       function redirectToAffiliate() {
-        window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+        // Updated to use local auth for affiliate login
+        window.location.href = '/login?role=affiliate';
       }
 
       function redirectToClient() {
@@ -862,11 +864,11 @@
         window.location.href = '/auth/google';
       }
 
-      // Function to start the affiliate flow (Stytch authentication)
+      // Function to start the affiliate flow (Local authentication)
       function startAffiliateFlow(event) {
         event.preventDefault(); // Prevent default link behavior
-        console.log("Initiating Stytch authentication for affiliate...");
-        window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
+        console.log("Initiating local authentication for affiliate...");
+        window.location.href = '/login?role=affiliate';
       }
 
 
@@ -875,12 +877,12 @@
         try {
           const response = await fetch('/api/auth/status');
           const authData = await response.json();
-          
+
           if (authData.authenticated) {
             // User is logged in, show login button for quick access
             return true; // User is authenticated
           }
-          
+
           return false; // User is not authenticated
         } catch (error) {
           console.error('Auth check error:', error);
@@ -892,12 +894,12 @@
       function handleLogin() {
         // Check if user has used Stytch before (affiliate) or Google (client/affiliate)
         const hasStytchHistory = localStorage.getItem('stytch_user_email');
-        
+
         if (hasStytchHistory) {
-          // Redirect to Stytch auth for affiliates
+          // Redirect to Stytch auth for affiliates (This part might need review if Stytch is fully removed)
           window.location.href = '/stytch-auth?return_to=' + encodeURIComponent('/chat');
         } else {
-          // Fallback to Google OAuth
+          // Fallback to Google OAuth for clients or if local auth is preferred
           window.location.href = '/auth/google';
         }
       }
@@ -906,18 +908,18 @@
       document.addEventListener("DOMContentLoaded", async () => {
         // Check if user is already authenticated
         const isAuthenticated = await checkAuthAndRedirect();
-        
+
         if (!isAuthenticated) {
           // User is not authenticated, check if they're a returning user
           const hasStytchHistory = localStorage.getItem('stytch_user_email');
           const hasGoogleHistory = localStorage.getItem('google_user_email');
-          
+
           if (hasStytchHistory || hasGoogleHistory) {
             // Show login button for returning users
             document.getElementById('loginBtn').style.display = 'flex';
           }
         }
-        
+
         // Hide loading overlay
         setTimeout(() => {
           document.getElementById('loadingOverlay').classList.add('hidden');

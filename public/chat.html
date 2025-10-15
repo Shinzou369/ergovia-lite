@@ -974,7 +974,9 @@
 
           // If user is authenticated, update UI and continue
           if (authData.authenticated && authData.user) {
-            const authMethod = authData.user.authMethod;
+            console.log('✅ User authenticated via local auth, allowing chat access');
+            // User is authenticated with local auth, allow access
+            return;
             const userRole = authData.user.role;
 
             console.log('✅ User authenticated:', authData.user.email || 'no email', 'Method:', authMethod, 'Role:', userRole);

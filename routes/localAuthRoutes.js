@@ -11,7 +11,7 @@ function setDatabase(db) {
 
 router.post('/signup', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, role } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ 
@@ -73,7 +73,8 @@ router.post('/signup', async (req, res) => {
             const user = {
               id: userId,
               email: normalizedEmail,
-              name: name || null
+              name: name || null,
+              role: role || 'affiliate' // Default to affiliate role
             };
 
             req.session.user = user;

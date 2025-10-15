@@ -152,7 +152,7 @@
 <body>
   <div class="auth-container">
     <a href="/" class="back-link">← Back to Home</a>
-    
+
     <div class="auth-header">
       <h1>Create Account</h1>
       <p>Sign up to access Ergovia AI</p>
@@ -210,6 +210,20 @@
   </div>
 
   <script>
+      // Get role from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const role = urlParams.get('role') || 'affiliate';
+      const returnTo = urlParams.get('return_to') || (role === 'affiliate' ? '/chat' : '/taskforce');
+
+      // Check if user is already logged in
+      fetch('/api/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.authenticated) {
+            window.location.href = returnTo;
+          }
+        });
+
     const form = document.getElementById('signupForm');
     const errorDiv = document.getElementById('errorMessage');
     const submitButton = document.getElementById('signupButton');
@@ -241,18 +255,18 @@
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify({ name, email, password })
+          body: JSON.stringify({ email, password, name, role })
         });
 
         const data = await response.json();
 
-        if (response.ok && data.success) {
-          window.location.href = '/taskforce';
-        } else {
-          showError(data.error || 'Signup failed. Please try again.');
-          submitButton.disabled = false;
-          submitButton.textContent = 'Sign Up';
-        }
+        if (data.success) {
+            window.location.href = returnTo;
+          } else {
+            showError(data.error || 'Signup failed. Please try again.');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Sign Up';
+          }
       } catch (error) {
         console.error('Signup error:', error);
         showError('An unexpected error occurred. Please try again.');

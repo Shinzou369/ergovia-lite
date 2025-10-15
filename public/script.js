@@ -682,6 +682,10 @@ function initializeWebsiteCards() {
 }
 
 // Affiliate Flow Starter
+function startAffiliateFlow() {
+  // Redirect to login with affiliate role parameter
+  window.location.href = '/login?role=affiliate&return_to=/chat';
+}
 function startAffiliateFlow(event) {
   event.preventDefault();
   
