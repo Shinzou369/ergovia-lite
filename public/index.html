@@ -285,7 +285,6 @@
       }
 
       .split-section {
-        flex: 1;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -297,19 +296,21 @@
         overflow: hidden;
       }
 
-      /* Affiliate Section - Left */
+      /* Affiliate Section - Left (45% width - more compact) */
       .affiliate-section {
+        flex: 0 0 45%;
         background: linear-gradient(135deg,
           rgba(107, 91, 26, 0.5) 0%,
           rgba(139, 126, 42, 0.4) 30%,
           rgba(184, 165, 72, 0.4) 60%,
           rgba(255, 215, 0, 0.3) 100%),
           radial-gradient(circle at 30% 70%, rgba(255, 215, 0, 0.2) 0%, transparent 50%);
-        border-right: 2px solid rgba(255, 215, 0, 0.4);
+        border-right: 3px solid rgba(255, 215, 0, 0.5);
       }
 
-      /* Client Section - Right */
+      /* Client Section - Right (55% width - more prominent) */
       .client-section {
+        flex: 0 0 55%;
         background: linear-gradient(135deg,
           rgba(15, 15, 35, 0.95) 0%,
           rgba(26, 26, 46, 0.9) 30%,
