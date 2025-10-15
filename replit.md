@@ -12,6 +12,8 @@ Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketin
 - **Session-Based Auth**: Server-side session management with httpOnly cookies and 7-day expiration
 - **Clean Frontend**: Updated UI to remove all third-party login buttons and OAuth references
 - **Removed Files**: Deleted routes/authRoutes.js, public/stytch-logged-in.html, and all Stytch-related endpoints
+- **Affiliate & Client Roles**: Added role-based system supporting both affiliate partners and clients with local authentication
+- **Role Column Migration**: Successfully added role column to users table with 'client' as default
 
 # User Preferences
 
@@ -35,15 +37,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Storage Solutions
 - **SQLite Database**: Local file-based database for user accounts, ETF client data, and history
-- **Users Table**: Stores user credentials with id (UUID), email (unique), password_hash (bcrypt), name, and timestamps
+- **Users Table**: Stores user credentials with id (UUID), email (unique), password_hash (bcrypt), name, role (affiliate/client), and timestamps
 - **JSON File Storage**: Chat threads, token usage, and configuration data stored in JSON files
 - **Session Storage**: File-based session persistence for user authentication state with FileStore
 
 ## Authentication and Authorization
 - **Local Email/Password Auth**: Exclusive authentication method using bcrypt password hashing (12 rounds) with secure session management
-- **Users Database**: SQLite table storing user accounts with UUID IDs, unique email constraints, and hashed passwords
+- **Users Database**: SQLite table storing user accounts with UUID IDs, unique email constraints, hashed passwords, and role (affiliate/client)
 - **Session-Based Auth**: Server-side session management with httpOnly cookies and 7-day expiration
 - **Route Protection**: Middleware checks for req.session.user to secure protected endpoints
+- **Role-Based Access**: Users can be affiliates (accessing /chat) or clients (accessing /taskforce)
+- **Role Selection**: Support for URL parameter-based role selection during signup and dedicated role selection page
 - **Premium User System**: Role-based access control with premium features and unlimited token usage
 - **No Third-Party Auth**: Completely self-contained authentication system without Google OAuth or Stytch
 
