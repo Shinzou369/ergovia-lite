@@ -543,9 +543,12 @@
         </div>
       </div>
       <div class="nav-right">
-        <button class="taskforce-btn" onclick="window.location.href='/taskforce'" title="Ergovia TaskForce">
-          <span>Ergovia TaskForce</span>
-        </button>
+        <a href="/login" class="login-btn" style="background: var(--bg-tertiary); color: var(--text-primary); padding: 8px 16px; border-radius: var(--radius); text-decoration: none; font-weight: 500; margin-right: 8px; border: 1px solid var(--border-color); transition: var(--transition);">
+          Log In
+        </a>
+        <a href="/signup" class="signup-btn" style="background: linear-gradient(135deg, #f9d423, #ff8c00); color: #000; padding: 8px 16px; border-radius: var(--radius); text-decoration: none; font-weight: 500; margin-right: 12px; transition: var(--transition);">
+          Sign Up
+        </a>
         <!-- Auth container will be dynamically populated by auth.js -->
         <a href="admin.html" class="admin-link" title="Model Configuration">
           <i data-lucide="settings"></i>
