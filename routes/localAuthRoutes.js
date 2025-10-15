@@ -59,8 +59,8 @@ router.post('/signup', async (req, res) => {
         const userId = uuidv4();
 
         etfDB.run(
-          'INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)',
-          [userId, normalizedEmail, passwordHash, name || null],
+          'INSERT INTO users (id, email, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
+          [userId, normalizedEmail, passwordHash, name || null, role || 'client'],
           function(insertErr) {
             if (insertErr) {
               console.error('Error creating user:', insertErr);
@@ -74,7 +74,7 @@ router.post('/signup', async (req, res) => {
               id: userId,
               email: normalizedEmail,
               name: name || null,
-              role: role || 'affiliate' // Default to affiliate role
+              role: role || 'client' // Default to client role
             };
 
             req.session.user = user;
@@ -130,7 +130,7 @@ router.post('/login', async (req, res) => {
     const normalizedEmail = email.toLowerCase().trim();
 
     etfDB.get(
-      'SELECT id, email, password_hash, name FROM users WHERE email = ?',
+      'SELECT id, email, password_hash, name, role FROM users WHERE email = ?',
       [normalizedEmail],
       async (err, user) => {
         if (err) {
@@ -170,7 +170,8 @@ router.post('/login', async (req, res) => {
             const sessionUser = {
               id: user.id,
               email: user.email,
-              name: user.name
+              name: user.name,
+              role: user.role || 'client'
             };
 
             req.session.user = sessionUser;
@@ -189,7 +190,8 @@ router.post('/login', async (req, res) => {
                 user: {
                   id: sessionUser.id,
                   email: sessionUser.email,
-                  name: sessionUser.name
+                  name: sessionUser.name,
+                  role: sessionUser.role
                 }
               });
             });
