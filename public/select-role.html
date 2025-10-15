@@ -215,31 +215,23 @@
   <script>
     async function selectRole(role) {
       try {
-        // For affiliates, redirect to Stytch login first
-        if (role === 'affiliate') {
-          // Store the role selection intent and redirect to Stytch
-          sessionStorage.setItem('pendingRole', 'affiliate');
-          window.location.href = '/stytch-login.html?return_to=' + encodeURIComponent('/chat') + '&from=role-selection';
-          return;
-        }
-
-        // For clients, use existing Google OAuth flow
         const response = await fetch('/api/select-role', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify({ role: role })
         });
 
         const data = await response.json();
 
         if (data.success) {
-          // Clients go to taskforce
-          if (role === 'client') {
-            window.location.href = '/taskforce';
+          // Redirect based on role
+          if (role === 'affiliate') {
+            window.location.href = '/chat';
           } else {
-            window.location.href = data.redirectTo;
+            window.location.href = '/taskforce';
           }
         } else {
           alert('Error selecting role: ' + data.error);
@@ -261,14 +253,6 @@
         // Already has role, redirect to appropriate page
         const redirectTo = authStatus.user.role === 'affiliate' ? '/chat' : '/taskforce';
         window.location.href = redirectTo;
-      }
-      
-      // Check if user came from Stytch login with pending affiliate role
-      const pendingRole = sessionStorage.getItem('pendingRole');
-      if (pendingRole === 'affiliate' && authStatus.authenticated) {
-        // Auto-select affiliate role for Stytch users
-        sessionStorage.removeItem('pendingRole');
-        await selectRole('affiliate');
       }
       // If authenticated and needs role selection, stay on this page
     });

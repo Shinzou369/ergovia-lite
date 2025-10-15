@@ -63,7 +63,7 @@ function getAuthStatus(req, res) {
         email: user.email,
         name: user.name || user.email,
         authMethod: 'local',
-        role: 'client',
+        role: user.role || 'client',
         isPremium: false,
         hasUnlimitedAccess: false,
         isComplete: !!user.name,

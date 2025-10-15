@@ -4259,7 +4259,11 @@ app.post("/api/complete-signup", (req, res) => {
 
 // Role selection endpoint
 app.post("/api/select-role", (req, res) => {
-  if (!req.isAuthenticated()) {
+  // Check for local auth or OAuth
+  const isLocalAuth = !!req.session?.user;
+  const isOAuth = req.isAuthenticated && req.isAuthenticated();
+
+  if (!isLocalAuth && !isOAuth) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
@@ -4273,6 +4277,46 @@ app.post("/api/select-role", (req, res) => {
     });
   }
 
+  // Handle local auth users
+  if (isLocalAuth) {
+    const userId = req.session.user.id;
+    
+    etfDB.run(
+      'UPDATE users SET role = ? WHERE id = ?',
+      [role, userId],
+      function(err) {
+        if (err) {
+          console.error('Error updating user role:', err);
+          return res.status(500).json({ error: "Failed to update role" });
+        }
+
+        // Update session
+        req.session.user.role = role;
+        
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error:', saveErr);
+          }
+
+          console.log('✅ Role Selected (Local Auth):', {
+            email: req.session.user.email,
+            role: role,
+            timestamp: new Date().toISOString()
+          });
+
+          res.json({ 
+            success: true, 
+            message: "Role selected successfully",
+            role: role,
+            redirectTo: role === 'affiliate' ? '/chat' : '/taskforce'
+          });
+        });
+      }
+    );
+    return;
+  }
+
+  // Handle OAuth users (legacy)
   const googleId = req.user.id;
   const updatedUser = updateUserRole(googleId, role);
 
@@ -4285,7 +4329,7 @@ app.post("/api/select-role", (req, res) => {
   req.user.needsRoleSelection = false;
   req.user.savedUserData = updatedUser;
 
-  console.log('✅ Role Selected:', {
+  console.log('✅ Role Selected (OAuth):', {
     name: `${updatedUser.preferredFirstName} ${updatedUser.preferredLastName}`,
     email: updatedUser.email,
     role: role,
