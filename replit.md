@@ -15,6 +15,13 @@ Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketin
 - **Affiliate & Client Roles**: Added role-based system supporting both affiliate partners and clients with local authentication
 - **Role Column Migration**: Successfully added role column to users table with 'client' as default
 
+## Role-Based UX Improvements (October 15, 2025)
+- **Visual Distinction**: Affiliate and client sections on home page have distinct styling (45%/55% split with different color schemes)
+- **Auto-Redirect**: Logged-in users automatically redirected to their role-specific page (affiliate→/chat, client→/taskforce)
+- **Logout Functionality**: Added logout buttons to both chat and taskforce pages with proper session destruction
+- **Dual-Role Prevention**: Same email cannot be used for both affiliate and client accounts with specific error message
+- **Token Usage Database**: Created token_usage table in SQLite for persistent token tracking per user (replacing JSON files)
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -36,9 +43,10 @@ Preferred communication style: Simple, everyday language.
 - **Token Management**: Custom token counting and usage tracking system per user
 
 ## Data Storage Solutions
-- **SQLite Database**: Local file-based database for user accounts, ETF client data, and history
+- **SQLite Database**: Local file-based database for user accounts, ETF client data, history, and token usage
 - **Users Table**: Stores user credentials with id (UUID), email (unique), password_hash (bcrypt), name, role (affiliate/client), and timestamps
-- **JSON File Storage**: Chat threads, token usage, and configuration data stored in JSON files
+- **Token Usage Table**: Persistent storage for token tracking per user with limits, usage counts, and reset dates
+- **JSON File Storage**: Chat threads and configuration data stored in JSON files
 - **Session Storage**: File-based session persistence for user authentication state with FileStore
 
 ## Authentication and Authorization
