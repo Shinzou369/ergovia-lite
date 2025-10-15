@@ -389,6 +389,16 @@ function initETFDatabase() {
             user_agent TEXT,
             url TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`,
+          `CREATE TABLE IF NOT EXISTS token_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            tokens_used INTEGER DEFAULT 0,
+            tokens_limit INTEGER DEFAULT 50000,
+            reset_date TEXT,
+            last_used DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
           )`
         ];
 
