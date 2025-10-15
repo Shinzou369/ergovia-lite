@@ -38,7 +38,7 @@ router.post('/signup', async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    etfDB.get('SELECT id FROM users WHERE email = ?', [normalizedEmail], async (err, existingUser) => {
+    etfDB.get('SELECT id, role FROM users WHERE email = ?', [normalizedEmail], async (err, existingUser) => {
       if (err) {
         console.error('Database error during signup:', err);
         return res.status(500).json({ 
@@ -48,10 +48,24 @@ router.post('/signup', async (req, res) => {
       }
 
       if (existingUser) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'An account with this email already exists' 
-        });
+        const requestedRole = role || 'client';
+        const existingRole = existingUser.role || 'client';
+        
+        if (existingRole === requestedRole) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'An account with this email already exists. Please login instead.' 
+          });
+        } else {
+          const roleNames = {
+            'affiliate': 'affiliate',
+            'client': 'client'
+          };
+          return res.status(400).json({ 
+            success: false, 
+            error: `This email is already registered as a ${roleNames[existingRole]}. You cannot use the same email for both affiliate and client accounts. Please use a different email address.` 
+          });
+        }
       }
 
       try {
