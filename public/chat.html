@@ -1034,70 +1034,23 @@
               }
             }
 
-            console.log('❌ Stytch authentication failed after retries, showing login options');
+            console.log('❌ Authentication failed after retries, redirecting to login');
           }
 
-          // No pending auth, show login options
-          showLoginOptions();
+          // No pending auth, redirect to login
+          redirectToLogin();
           return false;
         } catch (error) {
           console.error('❌ Auth check failed:', error);
-          showLoginOptions();
+          redirectToLogin();
           return false;
         }
       }
 
-      // Show login options instead of automatic redirect
-      function showLoginOptions(reason = 'not_authenticated') {
-        // Remove any existing login prompts to avoid duplicates
-        const existingPrompt = document.querySelector('.auth-prompt');
-        if (existingPrompt) {
-          existingPrompt.remove();
-        }
-
-        let title = "Welcome to ERGOVIA-AI Chat";
-        let message = "This chat interface is for Affiliates only. Please sign in with your affiliate account.";
-
-        if (reason === 'role_mismatch') {
-          title = "Access Restricted";
-          message = "The chat interface is for Affiliates only. Clients should use the Taskforce portal.";
-        }
-
-        const authPrompt = document.createElement('div');
-        authPrompt.className = 'auth-prompt';
-        authPrompt.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-lg);
-          padding: 32px;
-          text-align: center;
-          z-index: 10000;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-          max-width: 400px;
-        `;
-
-        authPrompt.innerHTML = `
-          <h3 style="color: var(--text-primary); margin-bottom: 16px;">${title}</h3>
-          <p style="color: var(--text-secondary); margin-bottom: 24px;">${message}</p>
-          <button onclick="window.location.href='/login?role=affiliate&return_to=' + encodeURIComponent('/chat')" 
-                  style="background: var(--primary-gradient); color: white; border: none; padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer; margin-bottom: 12px; width: 100%;">
-            💼 Sign In as Affiliate (Email)
-          </button>
-          <div style="margin: 16px 0; color: var(--text-muted); font-size: 0.9rem;">or</div>
-          <button onclick="window.location.href='/taskforce'" 
-                  style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: var(--radius); font-weight: 600; cursor: pointer; width: 100%;">
-            🚀 Client Portal (Taskforce)
-          </button>
-          <div style="margin-top: 16px;">
-            <a href="/auth-test" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">🧪 Test Authentication</a>
-          </div>
-        `;
-
-        document.body.appendChild(authPrompt);
+      // Redirect unauthenticated users to login page
+      function redirectToLogin(reason = 'not_authenticated') {
+        const returnUrl = encodeURIComponent('/chat');
+        window.location.href = `/login?return_to=${returnUrl}`;
       }
 
       // Update UI for authenticated users
@@ -1224,7 +1177,7 @@
       window.handleTokenUsageClick = handleTokenUsageClick;
       window.startAffiliateFlow = startAffiliateFlow;
       window.logout = logout; // Export logout function
-      window.showLoginOptions = showLoginOptions; // Export showLoginOptions
+      window.redirectToLogin = redirectToLogin; // Export redirectToLogin
       window.checkAffiliateAuth = checkAffiliateAuth; // Export checkAffiliateAuth
       window.updateAuthenticatedUI = updateAuthenticatedUI; // Export updateAuthenticatedUI
       window.checkAuthStatus = checkAuthStatus; // Export checkAuthStatus
