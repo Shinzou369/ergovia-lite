@@ -347,6 +347,7 @@ function initETFDatabase() {
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             name TEXT,
+            role TEXT DEFAULT 'client',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )`,
@@ -409,6 +410,15 @@ function initETFDatabase() {
               } else {
                 console.log('✅ All ETF tables created successfully');
               }
+
+              // Add role column to existing users table (migration)
+              etfDB.run(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'client'`, (migrationErr) => {
+                if (migrationErr && !migrationErr.message.includes('duplicate column')) {
+                  console.log('⚠️ Role column migration note:', migrationErr.message);
+                } else if (!migrationErr) {
+                  console.log('✅ Added role column to users table');
+                }
+              });
 
               console.log('✅ ETF Database initialized');
               resolve(etfDB);
