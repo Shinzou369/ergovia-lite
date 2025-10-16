@@ -1090,6 +1090,11 @@
             } else {
               navRight.appendChild(profileBtn);
             }
+
+            // Re-initialize Lucide icons for the new elements
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+              lucide.createIcons();
+            }
           }
         }
       }
@@ -1123,6 +1128,12 @@
       // Run authentication check immediately when page loads
       document.addEventListener('DOMContentLoaded', async () => {
         console.log('🔐 Chat page loaded - checking authentication');
+
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+          lucide.createIcons();
+          console.log('✨ Lucide icons initialized');
+        }
 
         // Special handling if coming from Stytch auth
         const urlParams = new URLSearchParams(window.location.search);

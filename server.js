@@ -203,8 +203,7 @@ class N8NApiClient {
 // Request logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
-  const userInfo = req.isAuthenticated() ? 
-    req.user?.emails?.[0]?.value || 'authenticated' : 'anonymous';
+  const userInfo = req.session?.user?.email || 'anonymous';
 
   // Log request start
   console.log(`📥 ${req.method} ${req.url} - ${userInfo} - ${req.ip}`);
@@ -2990,11 +2989,8 @@ app.post('/api/etf/test-google-credential/:credentialId', async (req, res) => {
 
 // Middleware to check if user is authenticated
 function requireAuth(req, res, next) {
-  // Check Google OAuth authentication
-  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-
   // Check local authentication
-  const isAuthenticated = isGoogleAuth || !!req.session?.user;
+  const isAuthenticated = !!req.session?.user;
 
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -3004,16 +3000,15 @@ function requireAuth(req, res, next) {
 
 // Middleware to check if user has premium access
 function requirePremium(req, res, next) {
-  // Check if user is authenticated using multiple methods
-  const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : 
-    !!(req.user || req.session?.user);
+  // Check if user is authenticated
+  const isAuthenticated = !!req.session?.user;
 
   if (!isAuthenticated) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  // Get user from various sources (session)
-  let currentUser = req.user || req.session?.user;
+  // Get user from session
+  let currentUser = req.session?.user;
   if (!currentUser) {
     // No user found in session
     currentUser = req.session.user || {};
@@ -3428,8 +3423,8 @@ app.post('/chat', requireAuth, async (req, res) => {
     const data = await response.json();
 
     // Increment prompt count for authenticated users
-    if (req.isAuthenticated()) {
-      incrementUserPromptCount(req.user.id);
+    if (req.session?.user) {
+      incrementUserPromptCount(req.session.user.id);
     }
 
     res.json({
@@ -3630,12 +3625,12 @@ app.get("/logout", (req, res) => {
 
 // API endpoint to get user profile data
 app.get("/api/profile", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  // First check session for user data, then fallback to saved data
-  let userData = req.user.savedUserData;
+  // First check session for user data
+  let userData = req.session.user;
   if (!userData) {
     const userEmail = req.user.emails?.[0]?.value;
     userData = findUserByEmail(userEmail);
@@ -3658,11 +3653,11 @@ app.get("/api/profile", (req, res) => {
 
 // Get all user credentials
 app.get("/api/credentials", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const userEmail = req.user.emails?.[0]?.value;
+  const userEmail = req.session.user.email;
   if (!userEmail) {
     return res.status(400).json({ error: "User email not found" });
   }
@@ -3687,7 +3682,7 @@ app.get("/api/credentials", (req, res) => {
 
 // Save API key credential
 app.post("/api/credentials/:service/api-key", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
@@ -3723,12 +3718,12 @@ app.post("/api/credentials/:service/api-key", (req, res) => {
 
 // Test credential connection
 app.post("/api/credentials/:service/test", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
   const { service } = req.params;
-  const userEmail = req.user.emails?.[0]?.value;
+  const userEmail = req.session.user.email;
 
   try {
     const credential = getUserCredential(userEmail, service);
@@ -3761,12 +3756,12 @@ app.post("/api/credentials/:service/test", (req, res) => {
 
 // Delete credential
 app.delete("/api/credentials/:service", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
   const { service } = req.params;
-  const userEmail = req.user.emails?.[0]?.value;
+  const userEmail = req.session.user.email;
 
   try {
     deleteUserCredential(userEmail, service);
@@ -3786,12 +3781,12 @@ app.get("/api/credentials/:service/oauth/callback", (req, res) => {
   const { service } = req.params;
   const { code, state } = req.query;
 
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.redirect('/login?error=not_authenticated');
   }
 
   // Handle OAuth token exchange based on service
-  handleOAuthCallback(service, code, req.user.emails?.[0]?.value)
+  handleOAuthCallback(service, code, req.session.user.email)
     .then(credential => {
       res.redirect(`/workflow-builder?credential_added=${service}`);
     })
@@ -4036,7 +4031,7 @@ app.get("/api/auth/status", getAuthStatus);
 
 // Get user threads
 app.get('/api/threads', requireAuth, async (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
@@ -4096,11 +4091,11 @@ function incrementUserPromptCount(userId) {
 
 // Token usage API endpoints
 app.get("/api/token-usage", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const userId = req.user.id;
+  const userId = req.session.user.id;
   const usage = getUserTokenUsage(userId);
 
   // Handle both old format (number) and new format (object)
@@ -4112,11 +4107,11 @@ app.get("/api/token-usage", (req, res) => {
 });
 
 app.post("/api/token-usage", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const userId = req.user.id;
+  const userId = req.session.user.id;
   const { usage } = req.body;
 
   updateUserTokenUsage(userId, usage);
@@ -4124,11 +4119,11 @@ app.post("/api/token-usage", (req, res) => {
 });
 
 app.post("/api/token-usage/increment", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const userId = req.user.id;
+  const userId = req.session.user.id;
   const currentUsage = getUserTokenUsage(userId);
 
   // Handle both old format (number) and new format (object)
@@ -4147,11 +4142,11 @@ app.post("/api/token-usage/increment", (req, res) => {
 });
 
 app.post("/api/token-usage/increment-prompt", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-  const userId = req.user.id;
+  const userId = req.session.user.id;
   incrementUserPromptCount(userId);
   const currentUsage = getUserTokenUsage(userId);
 
@@ -4159,7 +4154,7 @@ app.post("/api/token-usage/increment-prompt", (req, res) => {
 });
 
 app.post("/api/threads", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
@@ -4411,7 +4406,7 @@ app.get("/complete-signup", (req, res) => {
 
 // Confirm login route
 app.get("/confirm-login", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.redirect("/signup");
   }
   res.sendFile(path.join(__dirname, "public", "confirm-login.html"));
@@ -4419,7 +4414,7 @@ app.get("/confirm-login", (req, res) => {
 
 // Account exists route (for signup attempts with existing accounts)
 app.get("/account-exists", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.redirect("/signup");
   }
   res.sendFile(path.join(__dirname, "public", "account-exists.html"));
@@ -4427,7 +4422,7 @@ app.get("/account-exists", (req, res) => {
 
 // No account route (for login attempts without accounts)
 app.get("/no-account", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.redirect("/login");
   }
   res.sendFile(path.join(__dirname, "public", "no-account.html"));
@@ -4445,7 +4440,7 @@ app.get("/login", (req, res) => {
 
 // Serve role selection page
 app.get("/select-role", (req, res) => {
-  if (!req.isAuthenticated()) {
+  if (!req.session?.user) {
     return res.redirect("/login");
   }
   res.sendFile(path.join(__dirname, "public", "select-role.html"));
@@ -4461,8 +4456,7 @@ app.get("/chat", (req, res) => {
   console.log('📄 Chat page requested');
 
   // Check if user is authenticated (for logging purposes)
-  const isGoogleAuth = req.isAuthenticated && req.isAuthenticated();
-  const isAuthenticated = isGoogleAuth || !!req.session?.user;
+  const isAuthenticated = !!req.session?.user;
 
   if (isAuthenticated) {
     console.log('✅ Authenticated user accessing chat page');
