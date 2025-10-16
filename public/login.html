@@ -190,17 +190,14 @@
   </div>
 
   <script>
-    // Get role from URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const role = urlParams.get('role');
-    const returnTo = urlParams.get('return_to') || (role === 'affiliate' ? '/chat' : '/taskforce');
-
-    // Check if user is already logged in
+    // Check if user is already logged in and redirect to their role-specific page
     fetch('/api/auth/status')
       .then(res => res.json())
       .then(data => {
-        if (data.authenticated) {
-          window.location.href = returnTo;
+        if (data.authenticated && data.user) {
+          // Redirect based on actual user role from session
+          const redirectUrl = data.user.role === 'affiliate' ? '/chat' : '/taskforce';
+          window.location.href = redirectUrl;
         }
       });
 
@@ -234,13 +231,15 @@
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify({ email, password, role })
+          body: JSON.stringify({ email, password })
         });
 
         const data = await response.json();
 
         if (response.ok && data.success) {
-          window.location.href = returnTo;
+          // Redirect based on actual user role from database
+          const redirectUrl = data.user.role === 'affiliate' ? '/chat' : '/taskforce';
+          window.location.href = redirectUrl;
         } else {
           showError(data.error || 'Login failed. Please try again.');
           submitButton.disabled = false;

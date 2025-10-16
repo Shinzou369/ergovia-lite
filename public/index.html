@@ -779,10 +779,14 @@
             Partner with us and earn recurring commissions by promoting ERGOVIA-AI's powerful automation solutions to businesses worldwide.
           </p>
 
-          <a href="/login?role=affiliate" class="cta-button">
+          <a href="/signup?role=affiliate" class="cta-button">
             <span class="cta-text">Join as Affiliate</span>
             <span class="cta-arrow">→</span>
           </a>
+          
+          <p style="margin-top: 16px; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);">
+            Already have an account? <a href="/login" style="color: #ffd700; text-decoration: none; font-weight: 600;">Login</a>
+          </p>
 
           <ul class="features-list">
             <li><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trending-up"><polyline points="22 8 18 12 13 7 9 11 2 3"></polyline><path d="M18 8v6l4 4"></path></svg> Recurring Commissions</li>
@@ -794,7 +798,7 @@
       </div>
 
       <!-- Client Section - Right -->
-      <div class="split-section client-section" onclick="redirectToClient()">
+      <div class="split-section client-section">
         <!-- Animated Background Shapes -->
         <div class="bg-shapes">
           <div class="shape"></div>
@@ -809,9 +813,14 @@
             Transform your business operations with our AI-powered TaskForce solutions. Automate workflows, boost efficiency, and scale your success.
           </p>
 
-          <div class="cta-button">
-            Start Automating
-          </div>
+          <a href="/signup?role=client" class="cta-button">
+            <span class="cta-text">Start Automating</span>
+            <span class="cta-arrow">→</span>
+          </a>
+          
+          <p style="margin-top: 16px; font-size: 0.9rem; color: var(--text-secondary);">
+            Already have an account? <a href="/login" style="color: #ffd700; text-decoration: none; font-weight: 600;">Login</a>
+          </p>
 
           <ul class="features-list">
             <li><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"></polygon></svg> Instant Deployment</li>
@@ -843,30 +852,6 @@
         document.documentElement.setAttribute("data-theme", savedTheme);
       })();
 
-      // Redirect functions
-      function redirectToAffiliate() {
-        // Updated to use local auth for affiliate login
-        window.location.href = '/login?role=affiliate';
-      }
-
-      function redirectToClient() {
-        // Directly navigate to taskforce - login modal will handle authentication
-        window.location.href = '/taskforce';
-      }
-
-      // Google login function
-      function initiateGoogleLogin() {
-        window.location.href = '/auth/google';
-      }
-
-      // Function to start the affiliate flow (Local authentication)
-      function startAffiliateFlow(event) {
-        event.preventDefault(); // Prevent default link behavior
-        console.log("Initiating local authentication for affiliate...");
-        window.location.href = '/login?role=affiliate';
-      }
-
-
       // Check authentication status and handle user flow
       async function checkAuthAndRedirect() {
         try {
@@ -894,16 +879,8 @@
 
       // Handle login for returning users
       function handleLogin() {
-        // Check if user has used Stytch before (affiliate) or Google (client/affiliate)
-        const hasStytchHistory = localStorage.getItem('stytch_user_email');
-
-        if (hasStytchHistory) {
-          // Redirect to Stytch auth for affiliates (This part might need review if Stytch is fully removed)
-          window.location.href = '/stytch-auth?return_to=' + encodeURIComponent('/chat');
-        } else {
-          // Fallback to Google OAuth for clients or if local auth is preferred
-          window.location.href = '/auth/google';
-        }
+        // Redirect to unified login page
+        window.location.href = '/login';
       }
 
       // Initialize page after DOM loads
