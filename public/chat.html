@@ -977,27 +977,18 @@
 
           // If user is authenticated, update UI and continue
           if (authData.authenticated && authData.user) {
-            console.log('✅ User authenticated via local auth, allowing chat access');
-            // User is authenticated with local auth, allow access
-            return;
             const userRole = authData.user.role;
+            console.log('✅ User authenticated:', authData.user.email || 'no email', 'Role:', userRole);
 
-            console.log('✅ User authenticated:', authData.user.email || 'no email', 'Method:', authMethod, 'Role:', userRole);
-
-            // Check if user should be on chat page based on their role
-            if (authMethod === 'stytch' && userRole === 'affiliate') {
-              // Stytch users (affiliates) belong on chat page
+            // Check if affiliate role - affiliates belong on chat page
+            if (userRole === 'affiliate') {
+              console.log('✅ Affiliate user authenticated, updating UI');
               updateAuthenticatedUI(authData.user);
               return true;
-            } else if (authMethod === 'google' && userRole === 'client') {
-              // Google users (clients) should be on taskforce page
-              console.log('🔄 Google client should be on taskforce page, redirecting...');
+            } else if (userRole === 'client') {
+              // Client users should be on taskforce page
+              console.log('🔄 Client should be on taskforce page, redirecting...');
               window.location.href = '/taskforce';
-              return false;
-            } else if (authMethod === 'google' && !userRole) {
-              // Google user without role, needs role selection
-              console.log('🔄 Google user needs role selection...');
-              window.location.href = '/select-role';
               return false;
             } else {
               // Any other case, let them stay but update UI
@@ -1064,18 +1055,21 @@
         const navRight = document.querySelector('.nav-right');
         if (navRight) {
           // Remove existing auth buttons
-          const existingAuth = navRight.querySelector('.login-btn, .signup-btn');
-          if (existingAuth) {
-            existingAuth.parentElement.remove();
-          }
+          const loginBtn = navRight.querySelector('.login-btn');
+          const signupBtn = navRight.querySelector('.signup-btn');
+          if (loginBtn) loginBtn.remove();
+          if (signupBtn) signupBtn.remove();
 
           // Add profile button if not already present
           if (!navRight.querySelector('.user-profile-btn')) {
+            const userName = user.name || user.email?.split('@')[0] || 'User';
+            const displayName = userName.split(' ')[0]; // Get first name
+            
             const profileBtn = document.createElement('button');
             profileBtn.className = 'user-profile-btn';
             profileBtn.innerHTML = `
               <div class="profile-info">
-                <span class="user-name">${user.preferredFirstName || user.name?.split(' ')[0] || 'User'}</span>
+                <span class="user-name">${displayName}</span>
                 <span class="user-role">${user.role === 'affiliate' ? '💼 Affiliate' : '🚀 Client'}</span>
                 ${user.isPremium ? '<span class="premium-badge">👑</span>' : ''}
               </div>
@@ -1089,9 +1083,13 @@
               </div>
             `;
 
-            // Insert before the theme button
-            const themeBtn = navRight.querySelector('.theme-btn');
-            navRight.insertBefore(profileBtn, themeBtn);
+            // Insert before the admin link
+            const adminLink = navRight.querySelector('.admin-link');
+            if (adminLink) {
+              navRight.insertBefore(profileBtn, adminLink);
+            } else {
+              navRight.appendChild(profileBtn);
+            }
           }
         }
       }
