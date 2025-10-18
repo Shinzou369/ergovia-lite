@@ -1154,46 +1154,12 @@
       });
 
 
-      // --- Placeholder functions (ensure these are defined in auth.js or script.js) ---
-      // These are placeholders to ensure the code runs without immediate errors
-      // if they are not yet defined in the included JS files.
-
-      function sendMessage() { console.log('sendMessage called'); }
-      function newChat() { console.log('newChat called'); }
-      function loadThread(threadId) { console.log('loadThread called with:', threadId); }
-      function deleteThread(threadId) { console.log('deleteThread called with:', threadId); }
-      function showPaymentModal() { console.log('showPaymentModal called'); }
-      function hidePaymentModal() { console.log('hidePaymentModal called'); }
-      function toggleTheme() { console.log('toggleTheme called'); }
-      function openCustomerService() { console.log('openCustomerService called'); }
-      function handleTokenUsageClick() { console.log('handleTokenUsageClick called'); }
-      function startAffiliateFlow() { console.log('startAffiliateFlow called'); }
-      function clearUserData() { console.log('clearUserData called'); } // Added placeholder for clearUserData
-      function setLoadingState(isLoading) { console.log('setLoadingState called with:', isLoading); } // Added placeholder for setLoadingState
-      function checkAuthStatus() { // Mock checkAuthStatus for initial testing if needed
-        console.log("Mock checkAuthStatus called");
-        // Return a mock auth status, e.g., unauthenticated
-        return Promise.resolve({ authenticated: false, user: null });
-      }
-
-
-      // Export functions for global access
-      window.sendMessage = sendMessage;
-      window.newChat = newChat;
-      window.loadThread = loadThread;
-      window.deleteThread = deleteThread;
-      window.showPaymentModal = showPaymentModal;
-      window.hidePaymentModal = hidePaymentModal;
-      window.toggleTheme = toggleTheme;
+      // Export functions for global access from chat page
       window.toggleSidebar = toggleSidebar;
-      window.openCustomerService = openCustomerService;
-      window.handleTokenUsageClick = handleTokenUsageClick;
-      window.startAffiliateFlow = startAffiliateFlow;
-      window.logout = logout; // Export logout function
-      window.redirectToLogin = redirectToLogin; // Export redirectToLogin
-      window.checkAffiliateAuth = checkAffiliateAuth; // Export checkAffiliateAuth
-      window.updateAuthenticatedUI = updateAuthenticatedUI; // Export updateAuthenticatedUI
-      window.checkAuthStatus = checkAuthStatus; // Export checkAuthStatus
+      window.logout = logout;
+      window.redirectToLogin = redirectToLogin;
+      window.checkAffiliateAuth = checkAffiliateAuth;
+      window.updateAuthenticatedUI = updateAuthenticatedUI;
     </script>
   </body>
 </html>
