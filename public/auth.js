@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const currentPath = window.location.pathname;
   
   // Prevent auth checks on specific pages to avoid loops
-  const skipAuthPages = ['/login', '/signup', '/complete-signup', '/select-role', '/confirm-login', '/no-account', '/account-exists'];
+  const skipAuthPages = ['/login', '/signup'];
   
   if (skipAuthPages.includes(currentPath)) {
     console.log('On auth flow page, skipping automatic auth check');

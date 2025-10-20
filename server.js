@@ -850,13 +850,6 @@ app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
 });
 
-// Credential routes removed - files deleted
-
-// Credential Design Documentation
-app.get('/credential-design-doc', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'credential-design-doc.html'));
-});
-
 // Get available templates from n8n
 app.get('/api/etf/templates', async (req, res) => {
   try {
@@ -900,7 +893,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
         client_id: setupResult.client_id,
         key_preview: setupResult.key_preview,
         token_limit: calculatedLimit,
-        dashboard_url: `/client-openai-dashboard?client_id=${setupResult.client_id}`,
+        dashboard_url: `/etf-admin?client_id=${setupResult.client_id}`,
         features: [
           'Dedicated API key for your business',
           `${formatNumber(calculatedLimit)} monthly token budget`,
@@ -1260,14 +1253,6 @@ app.post('/api/etf/deploy', async (req, res) => {
     const clientTag = `PET[${client_data.name}]`;
 
     // Skip credential creation - focus on placeholder personalization only
-
-// Serve client OpenAI dashboard
-app.get('/client-openai-dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'client-openai-dashboard.html'));
-});
-
-// Stytch logged-in route removed - using local auth only
-
     // Credentials will be left blank for manual configuration
 
     console.log(`🏷️ Creating client identification tag: "${clientTag}"`);
@@ -1473,7 +1458,7 @@ app.get('/client-openai-dashboard', (req, res) => {
       failed_workflows: failedCount,
       tag_applied: clientTag,
       openai_setup: openaiSetupResult,
-      redirect_url: `/etf-client-panel?email=${encodeURIComponent(client_data.email)}`,
+      redirect_url: `/etf-admin?email=${encodeURIComponent(client_data.email)}`,
       message: `Successfully processed ${duplicatedWorkflows.length} workflows for ${client_data.name}. ${activatedCount} activated, ${needsCredentialsCount} need credentials, ${failedCount} failed.${openaiSetupResult.success ? ' Personal OpenAI access configured with budget tracking.' : ''}`
     });
 
@@ -2046,10 +2031,6 @@ app.get('/api/etf/client-history/:clientId', (req, res) => {
   });
 });
 
-// ETF Client Panel route
-app.get('/etf-client-panel', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'etf-client-panel.html'));
-});
 
 // Update workflow settings and propagate to N8N
 app.post('/api/etf/update-workflow-settings/:deploymentId', async (req, res) => {
@@ -4189,83 +4170,6 @@ app.delete("/api/threads/:threadId", (req, res) => {
   res.json({ success: true });
 });
 
-// Complete signup route
-app.post("/api/complete-signup", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Not authenticated", code: "AUTH_REQUIRED" });
-  }
-
-  const { firstName, lastName } = req.body;
-  const sanitizedFirstName = sanitizeUserInput(firstName);
-  const sanitizedLastName = sanitizeUserInput(lastName);
-
-  const validationErrors = validateUserData({
-    email: req.user.emails?.[0]?.value,
-    preferredFirstName: sanitizedFirstName,
-    preferredLastName: sanitizedLastName
-  });
-
-  if (validationErrors.length > 0) {
-    return res.status(400).json({ 
-      error: "Validation failed", 
-      code: "VALIDATION_ERROR",
-      details: validationErrors 
-    });
-  }
-
-  const userData = {
-    googleId: req.user.id,
-    email: req.user.emails?.[0]?.value,
-    googleName: req.user.displayName,
-    profilePicture: req.user.photos?.[0]?.value,
-    preferredFirstName: firstName,
-    preferredLastName: lastName,
-    createdAt: new Date().toISOString(),
-    isComplete: true,
-    role: null, // Will be set after role selection
-    needsRoleSelection: true
-  };
-
-  // Save user data to persistent storage
-  saveUser(userData);
-
-  // Update the session user object with complete profile data
-  req.user.preferredFirstName = firstName;
-  req.user.preferredLastName = lastName;
-  req.user.isComplete = true;
-  req.user.savedUserData = userData;
-
-  // Ensure session is marked as modified to trigger save
-  req.session.passport.user = req.user;
-
-  // Force session save before responding
-  req.session.save((err) => {
-    if (err) {
-      console.error('Session save error:', err);
-      return res.status(500).json({ error: "Session save failed" });
-    }
-
-    console.log('✅ New User Signup:', {
-      name: `${firstName} ${lastName}`,
-      email: userData.email,
-      id: userData.googleId,
-      timestamp: userData.createdAt
-    });
-
-    res.json({ 
-      success: true, 
-      message: "Signup completed successfully",
-      user: {
-        name: `${firstName} ${lastName}`,
-        email: userData.email,
-        picture: userData.profilePicture,
-        preferredFirstName: firstName,
-        preferredLastName: lastName,
-        isComplete: true
-      }
-    });
-  });
-});
 
 // Role selection endpoint
 app.post("/api/select-role", (req, res) => {
@@ -4354,101 +4258,15 @@ app.post("/api/select-role", (req, res) => {
   });
 });
 
-// Confirm login route
-app.post("/api/confirm-login", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
-  const userEmail = req.user.emails?.[0]?.value;
-  const existingUser = findUserByEmail(userEmail);
-
-  if (!existingUser) {
-    return res.status(404).json({ error: "User not found" });
-  }
-
-  // Load user data into session for consistent access
-  req.user.preferredFirstName = existingUser.preferredFirstName;
-  req.user.preferredLastName = existingUser.preferredLastName;
-  req.user.isComplete = existingUser.isComplete;
-  req.user.savedUserData = existingUser;
-
-  // Store user session data properly
-  req.session.user = {
-    googleId: existingUser.googleId,
-    email: existingUser.email,
-    isPremium: existingUser.isPremium,
-    hasUnlimitedAccess: existingUser.hasUnlimitedAccess
-  };
-
-  console.log('✅ User Login:', {
-    name: `${existingUser.preferredFirstName} ${existingUser.preferredLastName}`,
-    email: existingUser.email,
-    id: existingUser.googleId,
-    isPremium: existingUser.isPremium,
-    timestamp: new Date().toISOString()
-  });
-
-  res.json({ 
-    success: true, 
-    message: "Login confirmed",
-    storeEmail: true,
-    email: existingUser.email
-  });
-});
 
 // Serve signup and login pages
 app.get("/signup", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "signup.html"));
 });
 
-app.get("/complete-signup", (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.redirect("/signup");
-  }
-  res.sendFile(path.join(__dirname, "public", "complete-signup.html"));
-});
-
-// Confirm login route
-app.get("/confirm-login", (req, res) => {
-  if (!req.session?.user) {
-    return res.redirect("/signup");
-  }
-  res.sendFile(path.join(__dirname, "public", "confirm-login.html"));
-});
-
-// Account exists route (for signup attempts with existing accounts)
-app.get("/account-exists", (req, res) => {
-  if (!req.session?.user) {
-    return res.redirect("/signup");
-  }
-  res.sendFile(path.join(__dirname, "public", "account-exists.html"));
-});
-
-// No account route (for login attempts without accounts)
-app.get("/no-account", (req, res) => {
-  if (!req.session?.user) {
-    return res.redirect("/login");
-  }
-  res.sendFile(path.join(__dirname, "public", "no-account.html"));
-});
-
-// Login failed route
-app.get("/login-failed", (req, res) => {
-  res.redirect("/?error=auth_failed");
-});
-
 // Serve login page
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
-// Serve role selection page
-app.get("/select-role", (req, res) => {
-  if (!req.session?.user) {
-    return res.redirect("/login");
-  }
-  res.sendFile(path.join(__dirname, "public", "select-role.html"));
 });
 
 // Serve the frontend

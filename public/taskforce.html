@@ -44,7 +44,7 @@
       </div>
 
       <div class="nav-right">
-        <a href="/etf-client-panel" class="taskforce-btn" title="My Taskforce Control Panel">
+        <a href="/etf-admin" class="taskforce-btn" title="My Taskforce Control Panel">
           <span>My Taskforce</span>
         </a>
         <div class="auth-container" id="auth-container">
@@ -288,7 +288,7 @@
             if (template.id === "pet-clinic") {
               if (hasUserDeployment) {
                 // User has Pet Clinic deployment - show Control Panel
-                onclickAction = `onclick="window.location.href='/etf-client-panel'"`;
+                onclickAction = `onclick="window.location.href='/etf-admin'"`;
                 overlayContent = `<div class="coming-soon-overlay deployed">
                     <i class="overlay-icon" data-lucide="settings"></i>
                     <span class="overlay-text">Control Panel</span>

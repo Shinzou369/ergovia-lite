@@ -2309,12 +2309,12 @@
                         </div>
                     `;
 
-                    // Redirect to client panel after 2 seconds
+                    // Redirect to admin panel after 2 seconds
                     setTimeout(() => {
                         if (result.redirect_url) {
                             window.location.href = result.redirect_url;
                         } else {
-                            window.location.href = `/etf-client-panel?email=${encodeURIComponent(configData.businessEmail)}`;
+                            window.location.href = `/etf-admin?email=${encodeURIComponent(configData.businessEmail)}`;
                         }
                     }, 2000);
                 } else {

@@ -120,5 +120,18 @@
       "authenticated": true,
       "userEmail": "ernagabriel2077@gmail.com"
     }
+  },
+  {
+    "timestamp": "2025-10-20T08:15:06.468Z",
+    "message": "loadUsage is not defined",
+    "stack": "ReferenceError: loadUsage is not defined\n    at getUserTokenUsage (/home/runner/workspace/server.js:4079:22)\n    at /home/runner/workspace/server.js:4104:17\n    at Layer.handleRequest (/home/runner/workspace/node_modules/router/lib/layer.js:152:17)\n    at next (/home/runner/workspace/node_modules/router/lib/route.js:157:13)\n    at Route.dispatch (/home/runner/workspace/node_modules/router/lib/route.js:117:3)\n    at handle (/home/runner/workspace/node_modules/router/index.js:435:11)\n    at Layer.handleRequest (/home/runner/workspace/node_modules/router/lib/layer.js:152:17)\n    at /home/runner/workspace/node_modules/router/index.js:295:15\n    at processParams (/home/runner/workspace/node_modules/router/index.js:582:12)\n    at next (/home/runner/workspace/node_modules/router/index.js:291:5)",
+    "context": {
+      "url": "/api/token-usage",
+      "method": "GET",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "ip": "172.31.89.2",
+      "authenticated": true,
+      "userEmail": "gabrielmarius2077@gmail.com"
+    }
   }
 ]
