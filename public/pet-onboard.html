@@ -121,9 +121,16 @@
                     <label for="businessAddress" class="form-label">Business Address <span class="required-asterisk">*</span></label>
                     <input type="text" class="form-control" id="businessAddress" required>
                 </div>
-                <div class="mb-3">
-                    <label for="businessWebsite" class="form-label">Business Website</label>
-                    <input type="url" class="form-control" id="businessWebsite" placeholder="https://www.yourclinic.com">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="clinicLocation" class="form-label">Clinic Location <span class="required-asterisk">*</span></label>
+                        <input type="text" class="form-control" id="clinicLocation" placeholder="Downtown Springfield" required>
+                        <div class="form-text">City/neighborhood for customer reference</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="businessWebsite" class="form-label">Business Website</label>
+                        <input type="url" class="form-control" id="businessWebsite" placeholder="https://www.yourclinic.com">
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -177,9 +184,17 @@
         <div class="card mb-4">
             <h2 class="card-header">Operational Information</h2>
             <div class="card-body">
-                <div class="mb-3">
-                    <label for="clinicHours" class="form-label">Clinic Hours <span class="required-asterisk">*</span></label>
-                    <textarea class="form-control" id="clinicHours" rows="3" placeholder="e.g., Mon-Fri: 9am - 5pm, Sat: 10am - 2pm, Sun: Closed" required></textarea>
+                <h5 class="card-title mb-3">Hours & Availability</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="clinicHours" class="form-label">Clinic Hours <span class="required-asterisk">*</span></label>
+                        <textarea class="form-control" id="clinicHours" rows="3" placeholder="Mon-Fri: 9am-5pm, Sat: 10am-2pm, Sun: Closed" required></textarea>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="emergencyHours" class="form-label">Emergency Hours</label>
+                        <textarea class="form-control" id="emergencyHours" rows="3" placeholder="24/7 Emergency Line Available"></textarea>
+                        <div class="form-text">When emergency services are available</div>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -191,6 +206,32 @@
                         <input type="text" class="form-control" id="timezone" placeholder="e.g., America/New_York" required>
                     </div>
                 </div>
+                
+                <h5 class="card-title mb-3 mt-4">Appointment & Pricing Information</h5>
+                <div class="mb-3">
+                    <label for="appointmentTypes" class="form-label">Appointment Types <span class="required-asterisk">*</span></label>
+                    <textarea class="form-control" id="appointmentTypes" rows="3" placeholder="Wellness Exam, Vaccination, Surgery, Emergency, Dental Cleaning" required></textarea>
+                    <div class="form-text">List all types of appointments your clinic offers</div>
+                </div>
+                <div class="mb-3">
+                    <label for="pricingInfo" class="form-label">Pricing Information</label>
+                    <textarea class="form-control" id="pricingInfo" rows="3" placeholder="Wellness Exam: $75, Vaccination: $45, Surgery: Starting at $500"></textarea>
+                    <div class="form-text">Helps the AI provide accurate cost estimates to clients</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="bookingSystemUrl" class="form-label">Online Booking URL</label>
+                        <input type="url" class="form-control" id="bookingSystemUrl" placeholder="https://your-booking-system.com">
+                        <div class="form-text">Link to your appointment scheduling system</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="bookingPhone" class="form-label">Booking Phone</label>
+                        <input type="tel" class="form-control" id="bookingPhone" placeholder="(555) 123-4567">
+                        <div class="form-text">Phone number for appointment bookings</div>
+                    </div>
+                </div>
+                
+                <h5 class="card-title mb-3 mt-4">Policies</h5>
                  <div class="mb-3">
                     <label for="cancellationPolicy" class="form-label">Cancellation Policy</label>
                     <textarea class="form-control" id="cancellationPolicy" rows="2"></textarea>
@@ -211,8 +252,8 @@
                 <h5 class="card-title mb-3">Staff Information</h5>
                 <div class="mb-3">
                     <label for="primaryVet" class="form-label">Primary Veterinarian <span class="required-asterisk">*</span></label>
-                    <input type="text" class="form-control" id="primaryVet" required>
-                    <div class="form-text">For system use only. The AI Taskforce will contact this person for critical situations.</div>
+                    <input type="text" class="form-control" id="primaryVet" placeholder="Dr. Smith" required>
+                    <div class="form-text">Head veterinarian - AI will reference this person for medical inquiries</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">All Veterinarians <span class="required-asterisk">*</span></label>
@@ -226,7 +267,20 @@
                  <div class="mb-3">
                     <label for="practiceManager" class="form-label">Practice Manager/Owner</label>
                     <input type="text" class="form-control" id="practiceManager">
-                    <div class="form-text">For system use only. The AI Taskforce will contact this person for business-level decisions.</div>
+                    <div class="form-text">The AI will contact this person for business-level decisions</div>
+                </div>
+                
+                <h5 class="card-title mb-3 mt-4">On-Call Staff</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="onCallStaffName" class="form-label">On-Call Staff Name <span class="required-asterisk">*</span></label>
+                        <input type="text" class="form-control" id="onCallStaffName" placeholder="Dr. Johnson" required>
+                        <div class="form-text">Staff member available for emergencies</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="onCallPhone" class="form-label">On-Call Phone <span class="required-asterisk">*</span></label>
+                        <input type="tel" class="form-control" id="onCallPhone" placeholder="(555) 987-6543" required>
+                    </div>
                 </div>
             </div>
         </div>
@@ -235,16 +289,26 @@
         <div class="card mb-4">
             <h2 class="card-header">System Configuration</h2>
             <div class="card-body">
-                <h5 class="card-title mb-3">Operational Settings</h5>
+                <h5 class="card-title mb-3">AI Behavior Settings</h5>
+                <div class="mb-3">
+                    <label for="responseGreeting" class="form-label">Welcome Message</label>
+                    <input type="text" class="form-control" id="responseGreeting" placeholder="Hello! Welcome to Happy Paws Clinic">
+                    <div class="form-text">The AI's greeting when customers first contact your clinic</div>
+                </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="aiToneClient" class="form-label">AI Tone (for Pet Owners)</label>
-                        <input type="text" class="form-control" id="aiToneClient" placeholder="e.g., Friendly, warm, and reassuring">
+                        <input type="text" class="form-control" id="aiToneClient" placeholder="Friendly, warm, and reassuring">
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="aiToneTeam" class="form-label">AI Tone (for Clinic Team)</label>
-                        <input type="text" class="form-control" id="aiToneTeam" placeholder="e.g., Direct, professional, and concise">
+                        <input type="text" class="form-control" id="aiToneTeam" placeholder="Direct, professional, and concise">
                     </div>
+                </div>
+                <div class="mb-3">
+                    <label for="confidenceThreshold" class="form-label">AI Confidence Threshold</label>
+                    <input type="number" class="form-control" id="confidenceThreshold" placeholder="95" min="0" max="100">
+                    <div class="form-text">Minimum confidence % before AI handles a request automatically (0-100). Higher = more human review.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Reminder Check Interval</label>
@@ -273,6 +337,33 @@
                         <div class="form-text ms-2">Used for personalizing emails and other communications to match your brand.</div>
                     </div>
                 </div>
+                <h5 class="card-title mt-4 mb-3">Google Sheets Integration</h5>
+                <p class="text-muted">Connect your Google Sheets for lead tracking and FAQ management</p>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="leadsSheetId" class="form-label">Google Sheets ID</label>
+                        <input type="text" class="form-control" id="leadsSheetId" placeholder="1YLIQeQ79ki6ZSHy...">
+                        <div class="form-text">The ID from your Google Sheets URL</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="faqSheetName" class="form-label">FAQ Sheet Name</label>
+                        <input type="text" class="form-control" id="faqSheetName" placeholder="INFO">
+                        <div class="form-text">Tab name containing FAQs</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="hitlQueueSheetName" class="form-label">Review Queue Sheet Name</label>
+                    <input type="text" class="form-control" id="hitlQueueSheetName" placeholder="Sheet6">
+                    <div class="form-text">Tab name for human-in-the-loop review items</div>
+                </div>
+                
+                <h5 class="card-title mt-4 mb-3">Team Communication</h5>
+                <div class="mb-3">
+                    <label for="staffSlackChannel" class="form-label">Slack Channel ID</label>
+                    <input type="text" class="form-control" id="staffSlackChannel" placeholder="C1234567890">
+                    <div class="form-text">Your team's Slack channel for AI notifications (optional)</div>
+                </div>
+                
                 <h5 class="card-title mt-4 mb-3">Advanced Settings & Integrations</h5>
                 <div class="mb-3">
                     <label for="webhookSecret" class="form-label">Webhook Secret</label>
@@ -309,25 +400,48 @@
     document.getElementById('petNicheForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Collect form data
+        // Collect form data - mapping to backend expected field names
         const formData = {
-            businessName: document.getElementById('businessName').value,
-            clinicDisplayName: document.getElementById('clinicDisplayName').value,
-            businessEmail: document.getElementById('businessEmail').value,
-            businessPhone: document.getElementById('businessPhone').value,
-            businessAddress: document.getElementById('businessAddress').value,
-            businessWebsite: document.getElementById('businessWebsite').value,
-            clinicHours: document.getElementById('clinicHours').value,
-            emergencyContact: document.getElementById('emergencyContact').value,
+            // Business Information
+            clinic_name: document.getElementById('businessName').value,
+            clinic_display_name: document.getElementById('clinicDisplayName').value,
+            business_email: document.getElementById('businessEmail').value,
+            clinic_phone: document.getElementById('businessPhone').value,
+            business_address: document.getElementById('businessAddress').value,
+            clinic_location: document.getElementById('clinicLocation').value,
+            business_website: document.getElementById('businessWebsite').value,
+            
+            // Operational Information
+            clinic_hours: document.getElementById('clinicHours').value,
+            emergency_hours: document.getElementById('emergencyHours').value,
+            emergency_contact: document.getElementById('emergencyContact').value,
             timezone: document.getElementById('timezone').value,
-            cancellationPolicy: document.getElementById('cancellationPolicy').value,
-            cancellationFee: document.getElementById('cancellationFee').value,
-            primaryVet: document.getElementById('primaryVet').value,
-            practiceManager: document.getElementById('practiceManager').value,
-            aiToneClient: document.getElementById('aiToneClient').value,
-            aiToneTeam: document.getElementById('aiToneTeam').value,
-            brandColor: document.getElementById('brandColor').value,
-            webhookSecret: document.getElementById('webhookSecret').value
+            appointment_types: document.getElementById('appointmentTypes').value,
+            pricing_info: document.getElementById('pricingInfo').value,
+            booking_system_url: document.getElementById('bookingSystemUrl').value,
+            booking_phone: document.getElementById('bookingPhone').value,
+            cancellation_policy: document.getElementById('cancellationPolicy').value,
+            cancellation_fee: document.getElementById('cancellationFee').value,
+            
+            // Staff Information
+            head_veterinarian: document.getElementById('primaryVet').value,
+            practice_manager: document.getElementById('practiceManager').value,
+            on_call_staff_name: document.getElementById('onCallStaffName').value,
+            on_call_phone: document.getElementById('onCallPhone').value,
+            
+            // AI Configuration
+            response_greeting: document.getElementById('responseGreeting').value,
+            ai_tone_client: document.getElementById('aiToneClient').value,
+            ai_tone_team: document.getElementById('aiToneTeam').value,
+            confidence_threshold: document.getElementById('confidenceThreshold').value,
+            brand_color: document.getElementById('brandColor').value,
+            
+            // Integrations
+            leads_sheet_id: document.getElementById('leadsSheetId').value,
+            faq_sheet_name: document.getElementById('faqSheetName').value,
+            hitl_queue_sheet_name: document.getElementById('hitlQueueSheetName').value,
+            staff_slack_channel: document.getElementById('staffSlackChannel').value,
+            webhook_secret: document.getElementById('webhookSecret').value
         };
 
         // Collect all veterinarians
