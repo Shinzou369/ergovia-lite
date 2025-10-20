@@ -840,6 +840,11 @@ app.get('/etf-onboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-onboard.html'));
 });
 
+// Pet Clinic Onboarding Page (Bootstrap design)
+app.get('/pet-onboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pet-onboard.html'));
+});
+
 // ETF Admin dashboard
 app.get('/etf-admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
