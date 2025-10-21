@@ -183,6 +183,7 @@
             "An AI office assistant for tradespeople. Manages customer inquiries, appointment booking, quote follow-ups, and connects jobs to your calendar.",
           icon: "🔧",
           tags: ["Contractors", "Scheduling", "Customer Service"],
+          comingSoon: true,
         },
         {
           id: "tutoring-centers",
@@ -191,6 +192,7 @@
             "An AI academic coordinator. Responds to parent/student inquiries, shares class schedules, follows up on payments, and helps fill class slots faster.",
           icon: "📚",
           tags: ["Education", "Scheduling", "Coordination"],
+          comingSoon: true,
         },
         {
           id: "dental-office",
@@ -199,6 +201,7 @@
             "An AI front desk agent. Handles appointment requests, sends reminders, reschedules visits, and answers common patient questions — automatically.",
           icon: "🦷",
           tags: ["Healthcare", "Appointments", "Patient Care"],
+          comingSoon: true,
         },
         {
           id: "gym-fitness",
@@ -207,6 +210,7 @@
             "An AI membership manager. Answers new member inquiries, sends trial invites, collects feedback, and reminds leads or clients to take action.",
           icon: "🏋️",
           tags: ["Fitness", "Membership", "Customer Engagement"],
+          comingSoon: true,
         },
         {
           id: "massage-therapy",
@@ -215,6 +219,7 @@
             "An AI receptionist. Books sessions, manages reminders, handles inquiries about services, and keeps your schedule filled without lifting a finger.",
           icon: "💆",
           tags: ["Wellness", "Booking", "Customer Service"],
+          comingSoon: true,
         },
         {
           id: "pet-clinic",
@@ -224,6 +229,7 @@
           icon: "🐾",
           tags: ["Veterinary", "Pet Care", "Appointments"],
           hasOnboarding: true,
+          comingSoon: false,
         },
       ];
 
@@ -282,7 +288,15 @@
             const hasUserDeployment = hasDeployment(template.id);
             let onclickAction, overlayContent;
 
-            if (template.id === "pet-clinic") {
+            if (template.comingSoon) {
+              // Coming Soon templates - show coming soon overlay and disable click
+              onclickAction = `onclick="event.preventDefault(); return false;"`;
+              overlayContent = `<div class="coming-soon-overlay" style="background: linear-gradient(135deg, rgba(156, 163, 175, 0.95) 0%, rgba(107, 114, 128, 0.95) 100%);">
+                  <i class="overlay-icon" data-lucide="clock"></i>
+                  <span class="overlay-text">Coming Soon</span>
+                  <span class="overlay-subtitle">This taskforce is currently in development</span>
+                </div>`;
+            } else if (template.id === "pet-clinic") {
               if (hasUserDeployment) {
                 // User has Pet Clinic deployment - show Control Panel
                 onclickAction = `onclick="window.location.href='/etf-admin'"`;
@@ -310,8 +324,12 @@
                 </div>`;
             }
 
+            // Add coming soon styling if applicable
+            const comingSoonClass = template.comingSoon ? 'coming-soon-template' : '';
+            const cardStyle = template.comingSoon ? 'style="opacity: 0.6; filter: grayscale(50%);"' : '';
+            
             return `
-        <div class="template-card ${hasUserDeployment ? 'deployed' : ''}" ${onclickAction}>
+        <div class="template-card ${hasUserDeployment ? 'deployed' : ''} ${comingSoonClass}" ${onclickAction} ${cardStyle}>
           ${overlayContent}
           <div class="card-icon">${template.icon}</div>
           <div class="card-content">
