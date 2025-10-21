@@ -4,9 +4,7 @@ const path = require("path");
 const OpenAI = require('openai');
 const session = require("express-session");
 const FileStore = require('session-file-store')(session);
-// Google OAuth removed - using local authentication
-// const passport = require("passport");
-// const GoogleStrategy = require("passport-google-oauth20").Strategy;
+// Using local authentication only
 const fs = require('fs');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -532,26 +530,6 @@ const openai = new OpenAI({
 const { redirectToLogin, getAuthStatus } = require('./middleware/sessionMiddleware');
 const { router: localAuthRouter, setDatabase: setLocalAuthDatabase } = require('./routes/localAuthRoutes');
 
-// Passport configuration removed - using local authentication
-// passport.serializeUser((user, done) => {
-//   done(null, user);
-// });
-
-// passport.deserializeUser((user, done) => {
-//   done(null, user);
-// });
-
-// passport.use(new GoogleStrategy({
-//   clientID: process.env.GOOGLE_CLIENT_ID,
-//   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-//   callbackURL: process.env.NODE_ENV === 'production' 
-//     ? "https://ergovia-ai.com/auth/google/callback"
-//     : "/auth/google/callback"
-// },
-// (accessToken, refreshToken, profile, done) => {
-//   return done(null, profile);
-// }));
-
 // Session configuration with environment-based security
 const sessionConfig = {
   store: new FileStore({
@@ -562,7 +540,7 @@ const sessionConfig = {
     maxTimeout: 1000,
     logFn: function() {}, // Disable logging to avoid spam
     ttl: 7 * 24 * 60 * 60, // 7 days TTL for session files
-    reapInterval: 60 * 60 * 1000 // Clean up expired sessions every hour
+    reapInterval: 60 * 60 // Clean up expired sessions every hour (in seconds)
   }),
   secret: process.env.SESSION_SECRET || (() => {
     const fallbackSecret = 'ergovia-ai-stable-secret-key-2024-production';
@@ -588,14 +566,11 @@ const sessionConfig = {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
-    sameSite: 'lax' // OAuth flows require 'lax' for cross-origin redirects
+    sameSite: 'lax' // 'lax' for cross-origin form submissions
   }
 };
 
 app.use(session(sessionConfig));
-// Passport removed - using local authentication
-// app.use(passport.initialize());
-// app.use(passport.session());
 
 // Debug middleware to track session issues
 app.use((req, res, next) => {
@@ -975,7 +950,6 @@ app.get('/api/system/status', async (req, res) => {
     status.configuration = {
       session_secret: !!process.env.SESSION_SECRET,
       openai_key: !!process.env.OPENAI_API_KEY,
-      google_oauth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       n8n_configured: !!(N8N_BASE_URL && N8N_API_KEY),
       environment: process.env.NODE_ENV || 'development'
     };

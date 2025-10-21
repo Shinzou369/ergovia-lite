@@ -50,9 +50,6 @@
         <div class="auth-container" id="auth-container">
           <!-- Auth content will be populated by auth.js -->
         </div>
-        <a href="admin.html" class="admin-link" title="Model Configuration">
-          <i data-lucide="settings"></i>
-        </a>
         <button class="theme-btn" onclick="toggleTheme()">
           <i data-lucide="moon"></i>
         </button>
@@ -662,25 +659,7 @@
         }
       });
 
-      // Handle login completion from OAuth redirect
-      if (window.location.search.includes('from_google=1')) {
-        console.log('🔄 Google OAuth redirect detected, checking auth status...');
-        setTimeout(async () => {
-          try {
-            const authStatus = await checkAuthStatus();
-            if (authStatus.authenticated) {
-              console.log('✅ OAuth successful, user authenticated');
-              showSuccessBanner(authStatus.user.name || authStatus.user.email);
-              updateTopNavForUser(authStatus.user);
-              
-              // Clean up URL
-              window.history.replaceState({}, document.title, '/taskforce');
-            }
-          } catch (error) {
-            console.error('Error verifying OAuth completion:', error);
-          }
-        }, 1500);
-      }
+      // No OAuth handling needed - using local authentication only
     </script>
 
     <style>

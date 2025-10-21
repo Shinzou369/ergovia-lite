@@ -682,15 +682,11 @@ function initializeWebsiteCards() {
 }
 
 // Affiliate Flow Starter
-function startAffiliateFlow() {
+function startAffiliateFlow(event) {
+  if (event) event.preventDefault();
+  
   // Redirect to login with affiliate role parameter
   window.location.href = '/login?role=affiliate&return_to=/chat';
-}
-function startAffiliateFlow(event) {
-  event.preventDefault();
-  
-  // Always redirect to Stytch auth - let Stytch handle the authentication state
-  window.location.href = '/stytch-auth?flow=affiliate&return_to=' + encodeURIComponent('/chat');
 }
 
 // Export functions for global access

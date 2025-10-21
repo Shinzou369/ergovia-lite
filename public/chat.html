@@ -550,9 +550,6 @@
           Sign Up
         </a>
         <!-- Auth container will be dynamically populated by auth.js -->
-        <a href="admin.html" class="admin-link" title="Model Configuration">
-          <i data-lucide="settings"></i>
-        </a>
         <button class="theme-btn" onclick="toggleTheme()">
           <i data-lucide="sun" id="theme-icon"></i>
         </button>
@@ -997,41 +994,8 @@
             }
           }
 
-          // User not authenticated - wait a moment for any pending auth to complete
-          console.log('❌ User not authenticated, checking if auth is in progress...');
-
-          // If we're coming from Stytch auth, wait a bit and check again
-          const fromStytchAuth = document.referrer.includes('stytch-logged-in') || 
-                                window.location.search.includes('stytch_session') ||
-                                window.location.search.includes('from_stytch');
-
-          if (fromStytchAuth) {
-            console.log('🔄 Coming from Stytch auth, waiting for session to be established...');
-
-            // Try multiple times with increasing delays
-            for (let attempt = 1; attempt <= 3; attempt++) {
-              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-
-              console.log(`🔄 Retry attempt ${attempt}/3...`);
-              const retryResponse = await fetch('/api/auth/status', {
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
-              });
-              const retryData = await retryResponse.json();
-
-              console.log(`🔍 Retry ${attempt} result:`, retryData);
-
-              if (retryData.authenticated && retryData.user.authMethod === 'stytch') {
-                console.log(`✅ Stytch affiliate session established on retry ${attempt}`);
-                updateAuthenticatedUI(retryData.user);
-                return true;
-              }
-            }
-
-            console.log('❌ Authentication failed after retries, redirecting to login');
-          }
-
-          // No pending auth, redirect to login
+          // User not authenticated - redirect to login
+          console.log('❌ User not authenticated, redirecting to login');
           redirectToLogin();
           return false;
         } catch (error) {
@@ -1135,22 +1099,8 @@
           console.log('✨ Lucide icons initialized');
         }
 
-        // Special handling if coming from Stytch auth
-        const urlParams = new URLSearchParams(window.location.search);
-        const fromStytch = urlParams.get('from_stytch') === 'true';
-
-        if (fromStytch) {
-          console.log('🔄 Coming from Stytch auth, ensuring session is ready...');
-          // Remove the parameter from URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-
-          // Wait a moment for session to be fully established
-          setTimeout(async () => {
-            await checkAffiliateAuth();
-          }, 500);
-        } else {
-          await checkAffiliateAuth();
-        }
+        // Run authentication check
+        await checkAffiliateAuth();
       });
 
 

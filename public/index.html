@@ -889,14 +889,7 @@
         const isAuthenticated = await checkAuthAndRedirect();
 
         if (!isAuthenticated) {
-          // User is not authenticated, check if they're a returning user
-          const hasStytchHistory = localStorage.getItem('stytch_user_email');
-          const hasGoogleHistory = localStorage.getItem('google_user_email');
-
-          if (hasStytchHistory || hasGoogleHistory) {
-            // Show login button for returning users
-            document.getElementById('loginBtn').style.display = 'flex';
-          }
+          // User is not authenticated - no need to check old auth history
         }
 
         // Hide loading overlay
