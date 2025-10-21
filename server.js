@@ -4554,7 +4554,25 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
       req.session.save();
 
       console.log('✅ Google OAuth flow completed successfully');
-      res.redirect('/etf-onboard?google_connected=true');
+      
+      // Send completion message to parent window for pet-onboard integration
+      res.send(`
+        <html>
+          <body>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({
+                  type: 'google_oauth_complete',
+                  credentialId: '${credentialResult.credentialId}',
+                  success: true
+                }, '*');
+              }
+              window.close();
+            </script>
+            <p>Authentication successful! You can close this window.</p>
+          </body>
+        </html>
+      `);
     } else {
       throw new Error('Failed to create n8n credential');
     }
