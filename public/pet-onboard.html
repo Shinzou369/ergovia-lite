@@ -395,7 +395,12 @@
         </div>
 
         <div class="text-center">
-            <button type="submit" class="btn btn-primary btn-lg">Save Configuration</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                <span id="submitBtnText">Save Configuration</span>
+                <span id="submitBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            </button>
+            <div id="formErrors" class="alert alert-danger mt-3 d-none" role="alert"></div>
+            <div id="formSuccess" class="alert alert-success mt-3 d-none" role="alert"></div>
         </div>
     </form>
 </div>
@@ -483,6 +488,21 @@
 
     document.getElementById('petNicheForm').addEventListener('submit', async function(e) {
         e.preventDefault();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        const submitBtnText = document.getElementById('submitBtnText');
+        const submitBtnSpinner = document.getElementById('submitBtnSpinner');
+        const formErrors = document.getElementById('formErrors');
+        const formSuccess = document.getElementById('formSuccess');
+        
+        // Clear previous messages
+        formErrors.classList.add('d-none');
+        formSuccess.classList.add('d-none');
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtnText.textContent = 'Deploying...';
+        submitBtnSpinner.classList.remove('d-none');
         
         // Collect form data - mapping to backend expected field names
         const formData = {
@@ -577,17 +597,29 @@
             const result = await response.json();
             
             if (result.success) {
-                alert('Pet clinic setup completed successfully! Your AI assistant is now being deployed.');
-                // Redirect to admin dashboard
-                if (result.redirect_url) {
-                    window.location.href = result.redirect_url;
-                }
+                formSuccess.textContent = `✅ Setup completed! Deployed ${result.total_processed || 0} workflows. Redirecting to dashboard...`;
+                formSuccess.classList.remove('d-none');
+                
+                // Redirect after showing success message
+                setTimeout(() => {
+                    if (result.redirect_url) {
+                        window.location.href = result.redirect_url;
+                    } else {
+                        window.location.href = '/etf-admin';
+                    }
+                }, 2000);
             } else {
                 throw new Error(result.error || 'Deployment failed');
             }
         } catch (error) {
             console.error('Submission error:', error);
-            alert('Failed to submit form: ' + error.message);
+            formErrors.textContent = `❌ Failed to submit form: ${error.message}`;
+            formErrors.classList.remove('d-none');
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtnText.textContent = 'Save Configuration';
+            submitBtnSpinner.classList.add('d-none');
         }
     });
 </script>
