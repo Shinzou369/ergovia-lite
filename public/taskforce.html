@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prismity AI TaskForce - AI Templates</title>
+    <title>Ergovia AI TaskForce - AI Templates</title>
     <link rel="stylesheet" href="style.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -38,13 +38,17 @@
           </svg>
         </a>
         <div class="logo-container">
-          <img src="LOGO.png" alt="Prismity AI" class="logo-icon" />
-          <span class="logo-text">Prismity Taskforce</span>
+          <img src="LOGO.png" alt="Ergovia AI" class="logo-icon" />
+          <span class="logo-text">Ergovia Taskforce</span>
         </div>
       </div>
 
       <div class="nav-right">
-        <a href="/etf-admin" class="taskforce-btn" title="My Taskforce Control Panel">
+        <a
+          href="/etf-admin"
+          class="taskforce-btn"
+          title="My Taskforce Control Panel"
+        >
           <span>My Taskforce</span>
         </a>
         <div class="auth-container" id="auth-container">
@@ -61,7 +65,7 @@
       <header class="taskforce-hero animate__animated animate__fadeInUp">
         <div class="hero-content">
           <h1 class="hero-title">
-            Prismity Taskforce
+            Ergovia Taskforce
             <button
               class="info-button"
               id="taskforce-info-btn"
@@ -73,7 +77,7 @@
           <div class="info-tooltip" id="taskforce-info-tooltip">
             <div class="info-tooltip-content">
               <p>
-                Down below are your Prismity Taskforce agents — ready to deploy
+                Down below are your Ergovia Taskforce agents — ready to deploy
                 into real businesses.
               </p>
               <p>
@@ -244,25 +248,28 @@
             return;
           }
 
-          const response = await fetch(`/api/etf/client-deployments?email=${encodeURIComponent(authStatus.user.email)}`);
+          const response = await fetch(
+            `/api/etf/client-deployments?email=${encodeURIComponent(authStatus.user.email)}`,
+          );
           const data = await response.json();
 
           if (response.ok && data.deployments) {
             userDeployments = data.deployments;
           }
         } catch (error) {
-          console.log('Could not check user deployments:', error);
+          console.log("Could not check user deployments:", error);
         }
       }
 
       // Check if user has deployed a specific template type
       function hasDeployment(templateId) {
-        if (templateId === 'pet-clinic') {
+        if (templateId === "pet-clinic") {
           // Check if user has any Pet Clinic deployments
-          return userDeployments.some(deployment => 
-            deployment.total_workflows > 0 && 
-            deployment.client_name && 
-            deployment.client_name.toLowerCase().includes('pet')
+          return userDeployments.some(
+            (deployment) =>
+              deployment.total_workflows > 0 &&
+              deployment.client_name &&
+              deployment.client_name.toLowerCase().includes("pet"),
           );
         }
         return false;
@@ -325,11 +332,15 @@
             }
 
             // Add coming soon styling if applicable
-            const comingSoonClass = template.comingSoon ? 'coming-soon-template' : '';
-            const cardStyle = template.comingSoon ? 'style="opacity: 0.6; filter: grayscale(50%);"' : '';
-            
+            const comingSoonClass = template.comingSoon
+              ? "coming-soon-template"
+              : "";
+            const cardStyle = template.comingSoon
+              ? 'style="opacity: 0.6; filter: grayscale(50%);"'
+              : "";
+
             return `
-        <div class="template-card ${hasUserDeployment ? 'deployed' : ''} ${comingSoonClass}" ${onclickAction} ${cardStyle}>
+        <div class="template-card ${hasUserDeployment ? "deployed" : ""} ${comingSoonClass}" ${onclickAction} ${cardStyle}>
           ${overlayContent}
           <div class="card-icon">${template.icon}</div>
           <div class="card-content">
@@ -391,14 +402,14 @@
         // Store the correct Hero section content
         const correctHeroContent = `
           <h1 class="hero-title">
-            Prismity Taskforce
+            Ergovia Taskforce
             <button class="info-button" id="taskforce-info-btn" title="Click for more info">
               <i data-lucide="info"></i>
             </button>
           </h1>
           <div class="info-tooltip" id="taskforce-info-tooltip">
             <div class="info-tooltip-content">
-              <p>Down below are your Prismity Taskforce agents — ready to deploy into real businesses.</p>
+              <p>Down below are your Ergovia Taskforce agents — ready to deploy into real businesses.</p>
               <p>Think of it like running your own AI-powered VA agency: you're the boss.</p>
               <p>You find businesses that need help, and you offer them a Taskforce — an AI agent that works 24/7 like a virtual employee.</p>
               <p>Every time a business signs up, you earn $30/month recurring income, as long as they stay subscribed.</p>
@@ -439,7 +450,7 @@
             if (
               !currentTitle ||
               !currentTitle.querySelector("#taskforce-info-btn") ||
-              currentTitle.textContent.indexOf("Prismity Taskforce") === -1 ||
+              currentTitle.textContent.indexOf("Ergovia Taskforce") === -1 ||
               !currentSubtitle ||
               !currentSubtitle.textContent.includes(
                 "Start your AI Taskforce business",
@@ -513,7 +524,7 @@
 
               // Only allow setting if it contains all correct elements
               if (
-                value.includes("Prismity Taskforce") &&
+                value.includes("Ergovia Taskforce") &&
                 value.includes(
                   '<button class="info-button" id="taskforce-info-btn"',
                 ) &&
@@ -545,14 +556,17 @@
       });
     </script>
     <!-- Login Modal -->
-    <div class="modal-overlay" id="loginModal" style="display: none;">
+    <div class="modal-overlay" id="loginModal" style="display: none">
       <div class="modal-content">
         <div class="modal-header">
           <h3>Welcome to Taskforce!</h3>
           <button class="modal-close" onclick="closeLoginModal()">×</button>
         </div>
         <div class="modal-body">
-          <p>Please log in or create an account to access your business automation tools.</p>
+          <p>
+            Please log in or create an account to access your business
+            automation tools.
+          </p>
           <div class="login-options">
             <a href="/login" class="auth-link-btn login-btn-primary">
               Log In
@@ -566,7 +580,7 @@
     </div>
 
     <!-- Success Banner for Logged-in Users -->
-    <div class="success-banner" id="successBanner" style="display: none;">
+    <div class="success-banner" id="successBanner" style="display: none">
       <div class="success-content">
         <i data-lucide="check-circle"></i>
         <span id="welcomeMessage">Welcome back!</span>
@@ -579,24 +593,26 @@
     <script>
       // Google login function
       function initiateGoogleLogin() {
-        window.location.href = '/auth/google';
+        window.location.href = "/auth/google";
       }
 
       // Modal management
       function showLoginModal() {
-        document.getElementById('loginModal').style.display = 'flex';
+        document.getElementById("loginModal").style.display = "flex";
       }
 
       function closeLoginModal() {
-        document.getElementById('loginModal').style.display = 'none';
+        document.getElementById("loginModal").style.display = "none";
       }
 
       function showSuccessBanner(userName) {
-        const banner = document.getElementById('successBanner');
-        const message = document.getElementById('welcomeMessage');
-        message.textContent = userName ? `Welcome back, ${userName}!` : 'You are logged in!';
-        banner.style.display = 'flex';
-        
+        const banner = document.getElementById("successBanner");
+        const message = document.getElementById("welcomeMessage");
+        message.textContent = userName
+          ? `Welcome back, ${userName}!`
+          : "You are logged in!";
+        banner.style.display = "flex";
+
         // Auto-hide after 5 seconds
         setTimeout(() => {
           hideSuccessBanner();
@@ -604,34 +620,34 @@
       }
 
       function hideSuccessBanner() {
-        document.getElementById('successBanner').style.display = 'none';
+        document.getElementById("successBanner").style.display = "none";
       }
 
       // Logout function
       async function logout() {
         try {
-          console.log('🚪 Logging out user...');
+          console.log("🚪 Logging out user...");
 
           // Call local auth logout endpoint
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' }
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
           });
 
           // Redirect to home
-          window.location.href = '/';
+          window.location.href = "/";
         } catch (error) {
-          console.error('Logout error:', error);
+          console.error("Logout error:", error);
           // Force redirect even if logout call fails
-          window.location.href = '/';
+          window.location.href = "/";
         }
       }
 
       // Update top nav to show user info and logout button
       function updateTopNavForUser(user) {
-        const authContainer = document.getElementById('auth-container');
-        if (authContainer && !authContainer.querySelector('.user-info')) {
+        const authContainer = document.getElementById("auth-container");
+        if (authContainer && !authContainer.querySelector(".user-info")) {
           authContainer.innerHTML = `
             <div class="user-info" style="display: flex; align-items: center; gap: 12px;">
               <span style="color: var(--text-secondary); font-size: 0.9rem;">${user.name || user.email}</span>
@@ -642,35 +658,35 @@
             </div>
           `;
           // Reinitialize Lucide icons
-          if (typeof lucide !== 'undefined') {
+          if (typeof lucide !== "undefined") {
             lucide.createIcons();
           }
         }
       }
 
       // Check authentication status on page load
-      document.addEventListener('DOMContentLoaded', async function() {
-        console.log('🔍 Taskforce page loaded, checking auth status...');
-        
+      document.addEventListener("DOMContentLoaded", async function () {
+        console.log("🔍 Taskforce page loaded, checking auth status...");
+
         try {
           const authStatus = await checkAuthStatus();
-          console.log('Auth status result:', authStatus);
-          
+          console.log("Auth status result:", authStatus);
+
           if (authStatus.authenticated) {
-            console.log('✅ User is authenticated:', authStatus.user.email);
+            console.log("✅ User is authenticated:", authStatus.user.email);
             showSuccessBanner(authStatus.user.name || authStatus.user.email);
-            
+
             // Update auth container in nav
             updateTopNavForUser(authStatus.user);
           } else {
-            console.log('❌ User not authenticated, showing login modal');
+            console.log("❌ User not authenticated, showing login modal");
             // Small delay to let page load fully
             setTimeout(() => {
               showLoginModal();
             }, 1000);
           }
         } catch (error) {
-          console.error('Error checking auth status:', error);
+          console.error("Error checking auth status:", error);
           setTimeout(() => {
             showLoginModal();
           }, 1000);

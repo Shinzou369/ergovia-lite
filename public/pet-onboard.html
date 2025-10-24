@@ -79,6 +79,35 @@
             color: #59369a;
             text-decoration: underline;
         }
+        .service-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+        .service-item label {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .price-input {
+            width: 150px;
+            padding: 5px 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .price-input:focus {
+            outline: none;
+            border-color: #6f42c1;
+            box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+        }
+        .form-control.is-invalid {
+            border-color: #dc3545 !important;
+            border-width: 2px;
+        }
+        .form-control:invalid:not(:focus) {
+            border-color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -134,25 +163,25 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Business Category</label>
-                    <div class="form-text mb-2">Click on a main category to see options. Check all that apply to your business.</div>
+                    <label class="form-label">Business Category & Pricing</label>
+                    <div class="form-text mb-2">Click on a main category to see options. Check the services you offer and enter their prices.</div>
                     
                     <details>
                         <summary>I. Veterinary and Health Services</summary>
                         <div class="category-section">
                             <h6>A. Core Clinic Care</h6>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="General Check-ups" id="cat1a1"><label class="form-check-label" for="cat1a1">General Check-ups (Wellness Exams)</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Vaccinations" id="cat1a2"><label class="form-check-label" for="cat1a2">Vaccinations (Routine & Specialty)</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Parasite Prevention" id="cat1a3"><label class="form-check-label" for="cat1a3">Parasite Prevention (Flea/Tick/Heartworm)</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Microchipping" id="cat1a4"><label class="form-check-label" for="cat1a4">Microchipping</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Spay/Neuter" id="cat1a5"><label class="form-check-label" for="cat1a5">Spay/Neuter Procedures</label></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="General Check-ups" id="cat1a1" data-price-id="price1a1"><label class="form-check-label" for="cat1a1">General Check-ups (Wellness Exams)</label><input type="text" class="price-input" id="price1a1" placeholder="$75" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Vaccinations" id="cat1a2" data-price-id="price1a2"><label class="form-check-label" for="cat1a2">Vaccinations (Routine & Specialty)</label><input type="text" class="price-input" id="price1a2" placeholder="$45" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Parasite Prevention" id="cat1a3" data-price-id="price1a3"><label class="form-check-label" for="cat1a3">Parasite Prevention (Flea/Tick/Heartworm)</label><input type="text" class="price-input" id="price1a3" placeholder="$30" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Microchipping" id="cat1a4" data-price-id="price1a4"><label class="form-check-label" for="cat1a4">Microchipping</label><input type="text" class="price-input" id="price1a4" placeholder="$50" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Spay/Neuter" id="cat1a5" data-price-id="price1a5"><label class="form-check-label" for="cat1a5">Spay/Neuter Procedures</label><input type="text" class="price-input" id="price1a5" placeholder="$200" style="display:none;"></div>
                             <hr>
                             <h6>B. Diagnostics & Treatment</h6>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="In-House Bloodwork" id="cat1b1"><label class="form-check-label" for="cat1b1">In-House Bloodwork/Labs</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Radiology" id="cat1b2"><label class="form-check-label" for="cat1b2">Radiology (X-Rays)</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Ultrasound" id="cat1b3"><label class="form-check-label" for="cat1b3">Ultrasound</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Dental Procedures" id="cat1b4"><label class="form-check-label" for="cat1b4">Dental Procedures (Cleaning, Extraction)</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="General Surgery" id="cat1b5"><label class="form-check-label" for="cat1b5">General Surgery (Soft Tissue)</label></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="In-House Bloodwork" id="cat1b1" data-price-id="price1b1"><label class="form-check-label" for="cat1b1">In-House Bloodwork/Labs</label><input type="text" class="price-input" id="price1b1" placeholder="$120" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Radiology" id="cat1b2" data-price-id="price1b2"><label class="form-check-label" for="cat1b2">Radiology (X-Rays)</label><input type="text" class="price-input" id="price1b2" placeholder="$150" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Ultrasound" id="cat1b3" data-price-id="price1b3"><label class="form-check-label" for="cat1b3">Ultrasound</label><input type="text" class="price-input" id="price1b3" placeholder="$250" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Dental Procedures" id="cat1b4" data-price-id="price1b4"><label class="form-check-label" for="cat1b4">Dental Procedures (Cleaning, Extraction)</label><input type="text" class="price-input" id="price1b4" placeholder="$300" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="General Surgery" id="cat1b5" data-price-id="price1b5"><label class="form-check-label" for="cat1b5">General Surgery (Soft Tissue)</label><input type="text" class="price-input" id="price1b5" placeholder="$500" style="display:none;"></div>
                         </div>
                     </details>
 
@@ -160,8 +189,8 @@
                         <summary>II. Pet Supplies and Retail</summary>
                         <div class="category-section">
                              <h6>A. Pet Food & Nutrition</h6>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Standard Food" id="cat2a1"><label class="form-check-label" for="cat2a1">Standard Dry/Wet Food</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Prescription Diets" id="cat2a2"><label class="form-check-label" for="cat2a2">Prescription Diets (Vet-Authorized)</label></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Standard Food" id="cat2a1" data-price-id="price2a1"><label class="form-check-label" for="cat2a1">Standard Dry/Wet Food</label><input type="text" class="price-input" id="price2a1" placeholder="$40/bag" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Prescription Diets" id="cat2a2" data-price-id="price2a2"><label class="form-check-label" for="cat2a2">Prescription Diets (Vet-Authorized)</label><input type="text" class="price-input" id="price2a2" placeholder="$60/bag" style="display:none;"></div>
                         </div>
                     </details>
 
@@ -169,11 +198,11 @@
                         <summary>III. Pet Services (Non-Medical)</summary>
                         <div class="category-section">
                             <h6>A. Grooming</h6>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Basic Wash" id="cat3a1"><label class="form-check-label" for="cat3a1">Basic Wash & Brush</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Full Haircut" id="cat3a2"><label class="form-check-label" for="cat3a2">Full Haircut/Styling Services</label></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Basic Wash" id="cat3a1" data-price-id="price3a1"><label class="form-check-label" for="cat3a1">Basic Wash & Brush</label><input type="text" class="price-input" id="price3a1" placeholder="$35" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Full Haircut" id="cat3a2" data-price-id="price3a2"><label class="form-check-label" for="cat3a2">Full Haircut/Styling Services</label><input type="text" class="price-input" id="price3a2" placeholder="$65" style="display:none;"></div>
                              <h6>B. Boarding & Daycare</h6>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Overnight Boarding" id="cat3b1"><label class="form-check-label" for="cat3b1">Overnight Boarding (Kennel/Suite options)</label></div>
-                            <div class="form-check"><input class="form-check-input" type="checkbox" value="Dog Daycare" id="cat3b2"><label class="form-check-label" for="cat3b2">Dog Daycare (Full-Day/Half-Day)</label></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Overnight Boarding" id="cat3b1" data-price-id="price3b1"><label class="form-check-label" for="cat3b1">Overnight Boarding (Kennel/Suite options)</label><input type="text" class="price-input" id="price3b1" placeholder="$45/night" style="display:none;"></div>
+                            <div class="service-item"><input class="form-check-input service-checkbox" type="checkbox" value="Dog Daycare" id="cat3b2" data-price-id="price3b2"><label class="form-check-label" for="cat3b2">Dog Daycare (Full-Day/Half-Day)</label><input type="text" class="price-input" id="price3b2" placeholder="$30/day" style="display:none;"></div>
                         </div>
                     </details>
                 </div>
@@ -207,17 +236,7 @@
                     </div>
                 </div>
                 
-                <h5 class="card-title mb-3 mt-4">Appointment & Pricing Information</h5>
-                <div class="mb-3">
-                    <label for="appointmentTypes" class="form-label">Appointment Types <span class="required-asterisk">*</span></label>
-                    <textarea class="form-control" id="appointmentTypes" rows="3" placeholder="Wellness Exam, Vaccination, Surgery, Emergency, Dental Cleaning" required></textarea>
-                    <div class="form-text">List all types of appointments your clinic offers</div>
-                </div>
-                <div class="mb-3">
-                    <label for="pricingInfo" class="form-label">Pricing Information</label>
-                    <textarea class="form-control" id="pricingInfo" rows="3" placeholder="Wellness Exam: $75, Vaccination: $45, Surgery: Starting at $500"></textarea>
-                    <div class="form-text">Helps the AI provide accurate cost estimates to clients</div>
-                </div>
+                <h5 class="card-title mb-3 mt-4">Booking Information</h5>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="bookingSystemUrl" class="form-label">Online Booking URL</label>
@@ -268,6 +287,25 @@
                     <label for="practiceManager" class="form-label">Practice Manager/Owner</label>
                     <input type="text" class="form-control" id="practiceManager">
                     <div class="form-text">The AI will contact this person for business-level decisions</div>
+                </div>
+                
+                <h5 class="card-title mb-3 mt-4">Employees & Contact Information</h5>
+                <div class="mb-3">
+                    <label class="form-label">Team Members</label>
+                    <div id="employees-container">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" name="employee_name[]" placeholder="Employee Name">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="tel" class="form-control" name="employee_contact[]" placeholder="Contact (Phone/Email)">
+                            </div>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="add-input-btn" onclick="addEmployee()">
+                        <i class="fas fa-plus-circle"></i> Add another employee
+                    </a>
+                    <div class="form-text">Add all team members and their contact information</div>
                 </div>
                 
                 <h5 class="card-title mb-3 mt-4">On-Call Staff</h5>
@@ -380,10 +418,15 @@
                     <div class="form-text">Connect Gmail, Google Sheets, and Calendar for automated workflows</div>
                 </div>
                 
+                <div class="mb-3 mt-3">
+                    <button type="button" class="btn btn-outline-primary" id="generateOpenAIBtn" onclick="generateOpenAIKey()">
+                        <i class="fas fa-robot"></i> Generate Personal OpenAI Key
+                    </button>
+                    <span id="openaiKeyStatus" class="ms-2"></span>
+                    <div class="form-text">Activate AI automation with a dedicated OpenAI key for budget tracking</div>
+                </div>
+                
                 <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-                     <button type="button" class="btn btn-outline-secondary" disabled>
-                         <i class="fas fa-robot"></i> Connect OpenAI (Coming Soon)
-                     </button>
                      <button type="button" class="btn btn-outline-secondary" disabled>
                          <i class="fas fa-paper-plane"></i> Connect Telegram (Coming Soon)
                      </button>
@@ -476,6 +519,22 @@
         });
     }
 
+    // Add dynamic employee row
+    function addEmployee() {
+        const container = document.getElementById('employees-container');
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = `
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="employee_name[]" placeholder="Employee Name">
+            </div>
+            <div class="col-md-6">
+                <input type="tel" class="form-control" name="employee_contact[]" placeholder="Contact (Phone/Email)">
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
     function addInput(containerId, inputName, placeholder = '') {
         const container = document.getElementById(containerId);
         const input = document.createElement('input');
@@ -484,6 +543,98 @@
         input.name = inputName;
         input.placeholder = placeholder;
         container.appendChild(input);
+    }
+
+    // Handle service checkbox changes to show/hide price inputs
+    document.addEventListener('DOMContentLoaded', function() {
+        const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
+        serviceCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const priceInputId = this.getAttribute('data-price-id');
+                const priceInput = document.getElementById(priceInputId);
+                if (this.checked) {
+                    priceInput.style.display = 'block';
+                } else {
+                    priceInput.style.display = 'none';
+                    priceInput.value = ''; // Clear value when unchecked
+                }
+            });
+        });
+
+        // Add validation for required fields
+        const form = document.getElementById('petNicheForm');
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            field.addEventListener('blur', function() {
+                if (!this.value.trim()) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            field.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        });
+    });
+
+    // OpenAI Key Generation
+    let openaiClientId = null;
+
+    async function generateOpenAIKey() {
+        const generateBtn = document.getElementById('generateOpenAIBtn');
+        const statusSpan = document.getElementById('openaiKeyStatus');
+        
+        // Get business info for key generation
+        const businessName = document.getElementById('businessName').value;
+        const businessEmail = document.getElementById('businessEmail').value;
+        
+        if (!businessName || !businessEmail) {
+            alert('Please fill in Business Name and Business Email first.');
+            return;
+        }
+        
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        statusSpan.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/openai/generate-client-key', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    business_name: businessName,
+                    business_email: businessEmail,
+                    token_limit: 100000, // 100K tokens default
+                    workflow_count: 15 // Pet clinic workflows
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                openaiClientId = data.client_id;
+                generateBtn.innerHTML = '<i class="fas fa-check"></i> OpenAI Key Generated';
+                generateBtn.classList.remove('btn-outline-primary');
+                generateBtn.classList.add('btn-success');
+                statusSpan.innerHTML = `<span class="badge bg-success">✓ ${data.token_limit.toLocaleString()} tokens/month</span>`;
+                alert('OpenAI key generated successfully! Token usage will be tracked for budget management.');
+            } else {
+                throw new Error(data.error || 'Failed to generate key');
+            }
+        } catch (error) {
+            console.error('OpenAI key generation error:', error);
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="fas fa-robot"></i> Generate Personal OpenAI Key';
+            statusSpan.innerHTML = '<span class="badge bg-danger">Generation failed</span>';
+            alert('Failed to generate OpenAI key: ' + error.message);
+        }
     }
 
     document.getElementById('petNicheForm').addEventListener('submit', async function(e) {
@@ -520,8 +671,6 @@
             emergency_hours: document.getElementById('emergencyHours').value,
             emergency_contact: document.getElementById('emergencyContact').value,
             timezone: document.getElementById('timezone').value,
-            appointment_types: document.getElementById('appointmentTypes').value,
-            pricing_info: document.getElementById('pricingInfo').value,
             booking_system_url: document.getElementById('bookingSystemUrl').value,
             booking_phone: document.getElementById('bookingPhone').value,
             cancellation_policy: document.getElementById('cancellationPolicy').value,
@@ -552,14 +701,37 @@
         const vetInputs = document.querySelectorAll('input[name="all_veterinarians[]"]');
         formData.allVeterinarians = Array.from(vetInputs).map(input => input.value).filter(val => val);
 
-        // Collect business categories
-        const categories = [];
-        document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-            if (checkbox.id.startsWith('cat')) {
-                categories.push(checkbox.value);
+        // Collect employees
+        const employeeNames = document.querySelectorAll('input[name="employee_name[]"]');
+        const employeeContacts = document.querySelectorAll('input[name="employee_contact[]"]');
+        const employees = [];
+        employeeNames.forEach((nameInput, index) => {
+            if (nameInput.value.trim()) {
+                employees.push({
+                    name: nameInput.value.trim(),
+                    contact: employeeContacts[index].value.trim()
+                });
             }
         });
+        formData.employees = employees;
+
+        // Collect business categories with pricing
+        const services = [];
+        const categories = [];
+        document.querySelectorAll('.service-checkbox:checked').forEach(checkbox => {
+            const serviceName = checkbox.value;
+            const priceInputId = checkbox.getAttribute('data-price-id');
+            const priceInput = document.getElementById(priceInputId);
+            const price = priceInput.value.trim();
+            
+            categories.push(serviceName);
+            services.push({
+                name: serviceName,
+                price: price || 'Contact for pricing'
+            });
+        });
         formData.businessCategories = categories;
+        formData.services = services;
 
         // Collect reminder intervals
         const reminders = [];
@@ -572,6 +744,11 @@
         // Add Google credential ID if connected
         if (googleCredentialId) {
             formData.google_credential_id = googleCredentialId;
+        }
+
+        // Add OpenAI client ID if generated
+        if (openaiClientId) {
+            formData.openai_client_id = openaiClientId;
         }
 
         console.log('Form data:', formData);
