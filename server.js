@@ -1852,6 +1852,39 @@ app.get('/api/etf/client-deployments', async (req, res) => {
   }
 });
 
+// Get latest client configuration (for Control Panel display)
+app.get('/api/etf/latest-config', (req, res) => {
+  const sql = `
+    SELECT config_data, client_id, deployed_at
+    FROM etf_deployments 
+    ORDER BY deployed_at DESC 
+    LIMIT 1
+  `;
+
+  etfDB.get(sql, [], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch configuration' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'No configuration found' });
+    }
+
+    try {
+      const config = typeof row.config_data === 'string' ? JSON.parse(row.config_data) : row.config_data;
+      res.json({ 
+        config: config,
+        client_id: row.client_id,
+        deployed_at: row.deployed_at
+      });
+    } catch (parseError) {
+      console.error('Error parsing config_data:', parseError);
+      res.status(500).json({ error: 'Failed to parse configuration' });
+    }
+  });
+});
+
 // Get client configuration
 app.get('/api/etf/client-config/:clientId', (req, res) => {
   const { clientId } = req.params;

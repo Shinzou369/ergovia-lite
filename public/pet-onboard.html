@@ -603,7 +603,7 @@
         statusSpan.innerHTML = '';
 
         try {
-            const response = await fetch('/api/openai/generate-client-key', {
+            const response = await fetch('/api/generate-personal-openai-key', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -611,8 +611,7 @@
                 body: JSON.stringify({
                     business_name: businessName,
                     business_email: businessEmail,
-                    token_limit: 100000, // 100K tokens default
-                    workflow_count: 15 // Pet clinic workflows
+                    token_limit: 100000 // 100K tokens default
                 })
             });
 
@@ -774,9 +773,6 @@
             const result = await response.json();
             
             if (result.success) {
-                // Save configuration to localStorage for Control Panel display
-                localStorage.setItem('petClinicConfig', JSON.stringify(formData));
-                
                 formSuccess.textContent = `✅ Setup completed! Deployed ${result.total_processed || 0} workflows. Redirecting to dashboard...`;
                 formSuccess.classList.remove('d-none');
                 

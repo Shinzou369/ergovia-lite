@@ -309,10 +309,11 @@
             const contentDiv = document.getElementById('clientConfigContent');
             
             try {
-                // Try to get the stored config from localStorage (saved during onboarding)
-                const savedConfig = localStorage.getItem('petClinicConfig');
+                // Fetch the latest configuration from the database
+                const response = await fetch('/api/etf/latest-config');
+                const data = await response.json();
                 
-                if (!savedConfig) {
+                if (!response.ok) {
                     contentDiv.innerHTML = `
                         <div class="empty-state">
                             <h3>No Configuration Data</h3>
@@ -323,7 +324,7 @@
                     return;
                 }
                 
-                const config = JSON.parse(savedConfig);
+                const config = data.config;
                 
                 // Build the configuration display
                 let html = '<div style="display: grid; gap: 20px;">';
