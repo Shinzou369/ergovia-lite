@@ -774,6 +774,9 @@
             const result = await response.json();
             
             if (result.success) {
+                // Save configuration to localStorage for Control Panel display
+                localStorage.setItem('petClinicConfig', JSON.stringify(formData));
+                
                 formSuccess.textContent = `✅ Setup completed! Deployed ${result.total_processed || 0} workflows. Redirecting to dashboard...`;
                 formSuccess.classList.remove('d-none');
                 

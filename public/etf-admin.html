@@ -256,6 +256,16 @@
             </div>
         </div>
 
+        <!-- Client Configuration -->
+        <div class="section">
+            <div class="section-header">
+                <h2>🏥 Client Configuration</h2>
+            </div>
+            <div class="section-content">
+                <div id="clientConfigContent" class="loading">Loading client configuration...</div>
+            </div>
+        </div>
+
         <!-- Recent Deployments -->
         <div class="section">
             <div class="section-header">
@@ -290,8 +300,191 @@
                 testN8NConnection(),
                 loadStats(),
                 loadTemplates(),
+                loadClientConfig(),
                 loadDeployments()
             ]);
+        }
+
+        async function loadClientConfig() {
+            const contentDiv = document.getElementById('clientConfigContent');
+            
+            try {
+                // Try to get the stored config from localStorage (saved during onboarding)
+                const savedConfig = localStorage.getItem('petClinicConfig');
+                
+                if (!savedConfig) {
+                    contentDiv.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Configuration Data</h3>
+                            <p>Complete the onboarding form to see client configuration here.</p>
+                            <a href="/pet-onboard" class="btn">Go to Onboarding</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const config = JSON.parse(savedConfig);
+                
+                // Build the configuration display
+                let html = '<div style="display: grid; gap: 20px;">';
+                
+                // Business Information
+                html += `
+                    <div>
+                        <h3 style="margin-bottom: 10px; color: #667eea;">Business Information</h3>
+                        <table class="table">
+                            <tr><th>Business Name</th><td>${config.clinic_name || 'N/A'}</td></tr>
+                            <tr><th>Display Name</th><td>${config.clinic_display_name || 'N/A'}</td></tr>
+                            <tr><th>Email</th><td>${config.business_email || 'N/A'}</td></tr>
+                            <tr><th>Phone</th><td>${config.clinic_phone || 'N/A'}</td></tr>
+                            <tr><th>Address</th><td>${config.business_address || 'N/A'}</td></tr>
+                            <tr><th>Location</th><td>${config.clinic_location || 'N/A'}</td></tr>
+                            <tr><th>Website</th><td>${config.business_website || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                `;
+                
+                // Services & Pricing
+                if (config.services && config.services.length > 0) {
+                    html += `
+                        <div>
+                            <h3 style="margin-bottom: 10px; color: #667eea;">Services & Pricing</h3>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Name</th>
+                                        <th>Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${config.services.map(service => `
+                                        <tr>
+                                            <td>${service.name}</td>
+                                            <td><strong>${service.price}</strong></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+                
+                // Operational Information
+                html += `
+                    <div>
+                        <h3 style="margin-bottom: 10px; color: #667eea;">Operational Information</h3>
+                        <table class="table">
+                            <tr><th>Clinic Hours</th><td>${config.clinic_hours || 'N/A'}</td></tr>
+                            <tr><th>Emergency Hours</th><td>${config.emergency_hours || 'N/A'}</td></tr>
+                            <tr><th>Emergency Contact</th><td>${config.emergency_contact || 'N/A'}</td></tr>
+                            <tr><th>Timezone</th><td>${config.timezone || 'N/A'}</td></tr>
+                            <tr><th>Booking URL</th><td>${config.booking_system_url || 'N/A'}</td></tr>
+                            <tr><th>Booking Phone</th><td>${config.booking_phone || 'N/A'}</td></tr>
+                            <tr><th>Cancellation Policy</th><td>${config.cancellation_policy || 'N/A'}</td></tr>
+                            <tr><th>Cancellation Fee</th><td>${config.cancellation_fee || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                `;
+                
+                // Staff Information
+                html += `
+                    <div>
+                        <h3 style="margin-bottom: 10px; color: #667eea;">Staff Information</h3>
+                        <table class="table">
+                            <tr><th>Head Veterinarian</th><td>${config.head_veterinarian || 'N/A'}</td></tr>
+                            <tr><th>Practice Manager</th><td>${config.practice_manager || 'N/A'}</td></tr>
+                            <tr><th>On-Call Staff</th><td>${config.on_call_staff_name || 'N/A'}</td></tr>
+                            <tr><th>On-Call Phone</th><td>${config.on_call_phone || 'N/A'}</td></tr>
+                        </table>
+                `;
+                
+                // Veterinarians
+                if (config.allVeterinarians && config.allVeterinarians.length > 0) {
+                    html += `
+                        <h4 style="margin-top: 15px; margin-bottom: 5px;">All Veterinarians</h4>
+                        <ul>
+                            ${config.allVeterinarians.map(vet => `<li>${vet}</li>`).join('')}
+                        </ul>
+                    `;
+                }
+                
+                // Employees
+                if (config.employees && config.employees.length > 0) {
+                    html += `
+                        <h4 style="margin-top: 15px; margin-bottom: 5px;">Employees</h4>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${config.employees.map(emp => `
+                                    <tr>
+                                        <td>${emp.name}</td>
+                                        <td>${emp.contact}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                }
+                
+                html += `</div>`; // Close staff section
+                
+                // AI Configuration
+                html += `
+                    <div>
+                        <h3 style="margin-bottom: 10px; color: #667eea;">AI Configuration</h3>
+                        <table class="table">
+                            <tr><th>Welcome Message</th><td>${config.response_greeting || 'N/A'}</td></tr>
+                            <tr><th>AI Tone (Client)</th><td>${config.ai_tone_client || 'N/A'}</td></tr>
+                            <tr><th>AI Tone (Team)</th><td>${config.ai_tone_team || 'N/A'}</td></tr>
+                            <tr><th>Confidence Threshold</th><td>${config.confidence_threshold || 'N/A'}%</td></tr>
+                            <tr><th>Brand Color</th><td>${config.brand_color || 'N/A'}</td></tr>
+                        </table>
+                `;
+                
+                // Reminder Intervals
+                if (config.reminderIntervals && config.reminderIntervals.length > 0) {
+                    html += `
+                        <h4 style="margin-top: 15px; margin-bottom: 5px;">Reminder Intervals</h4>
+                        <p>${config.reminderIntervals.join(', ')}</p>
+                    `;
+                }
+                
+                html += `</div>`; // Close AI config section
+                
+                // Integration Status
+                html += `
+                    <div>
+                        <h3 style="margin-bottom: 10px; color: #667eea;">Integration Status</h3>
+                        <table class="table">
+                            <tr>
+                                <th>Google Services</th>
+                                <td>${config.google_credential_id ? '<span class="status active">Connected</span>' : '<span class="status inactive">Not Connected</span>'}</td>
+                            </tr>
+                            <tr>
+                                <th>OpenAI Key</th>
+                                <td>${config.openai_client_id ? '<span class="status active">Generated</span>' : '<span class="status inactive">Not Generated</span>'}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+                
+                html += '</div>'; // Close main grid
+                
+                contentDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load client config:', error);
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Configuration</h3>
+                        <p>There was an issue loading the configuration data.</p>
+                    </div>
+                `;
+            }
         }
 
         async function testN8NConnection() {
