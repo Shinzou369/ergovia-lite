@@ -2473,6 +2473,158 @@ app.post('/api/client/generate-openai-key', async (req, res) => {
   }
 });
 
+// OpenAI-compatible proxy endpoint for n8n and other tools
+// This endpoint mimics OpenAI's API but uses custom sk-ergovia-* keys
+app.post('/v1/chat/completions', async (req, res) => {
+  try {
+    // Extract custom API key from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: {
+          message: 'Missing or invalid Authorization header. Expected: Bearer sk-ergovia-...',
+          type: 'invalid_request_error',
+          code: 'invalid_api_key'
+        }
+      });
+    }
+
+    const customKey = authHeader.replace('Bearer ', '').trim();
+
+    // Validate custom key format
+    if (!customKey.startsWith('sk-ergovia-')) {
+      return res.status(401).json({
+        error: {
+          message: 'Invalid API key format. Expected key starting with sk-ergovia-',
+          type: 'invalid_request_error',
+          code: 'invalid_api_key'
+        }
+      });
+    }
+
+    // Find client by custom key
+    const clientData = loadClientData();
+    const client = clientData.find(c => c.openai_key === customKey);
+
+    if (!client) {
+      return res.status(401).json({
+        error: {
+          message: 'Invalid API key provided.',
+          type: 'invalid_request_error',
+          code: 'invalid_api_key'
+        }
+      });
+    }
+
+    // Extract request parameters (OpenAI format)
+    const { messages, model, temperature, max_tokens, stream } = req.body;
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({
+        error: {
+          message: 'messages field is required and must be a non-empty array',
+          type: 'invalid_request_error',
+          code: 'invalid_messages'
+        }
+      });
+    }
+
+    // Count input tokens
+    const inputTokens = countConversationTokens(messages);
+    const estimatedOutputTokens = max_tokens || 500;
+    const estimatedTotal = inputTokens + estimatedOutputTokens;
+
+    // Check budget
+    if (!checkBudget(client.client_id, estimatedTotal)) {
+      return res.status(429).json({
+        error: {
+          message: `Monthly token limit reached. Used: ${client.used_tokens}/${client.limit_tokens} tokens`,
+          type: 'insufficient_quota',
+          code: 'quota_exceeded'
+        }
+      });
+    }
+
+    // Streaming is not supported in this implementation
+    if (stream === true) {
+      return res.status(400).json({
+        error: {
+          message: 'Streaming is not supported in this proxy. Please set stream: false',
+          type: 'invalid_request_error',
+          code: 'streaming_not_supported'
+        }
+      });
+    }
+
+    const selectedModel = model || 'gpt-3.5-turbo';
+
+    // Get the actual OpenAI key from the pool
+    const keys = loadKeys();
+    const actualKey = keys.find(k => k.key === customKey);
+    
+    if (!actualKey) {
+      // Fall back to using any available OpenAI key from environment
+      console.warn(`⚠️ Custom key ${customKey} not found in pool, using fallback`);
+    }
+
+    const realOpenAIKey = process.env.OPENAI_API_KEY;
+
+    // Forward request to OpenAI
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${realOpenAIKey}`
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages: messages,
+        temperature: temperature || 0.7,
+        max_tokens: max_tokens || 1500
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.json();
+      console.error('❌ OpenAI API Error:', errorData);
+      return res.status(openaiResponse.status).json({
+        error: {
+          message: errorData.error?.message || 'OpenAI API request failed',
+          type: errorData.error?.type || 'api_error',
+          code: errorData.error?.code || 'upstream_error'
+        }
+      });
+    }
+
+    const openaiData = await openaiResponse.json();
+
+    // Extract actual token usage from OpenAI response
+    const actualUsage = openaiData.usage || {
+      prompt_tokens: inputTokens,
+      completion_tokens: estimatedOutputTokens,
+      total_tokens: estimatedTotal
+    };
+
+    // Update client's token usage
+    updateTokenUsage(client.client_id, actualUsage.total_tokens);
+
+    console.log(`✅ Proxy request successful - Client: ${client.client_id.substring(0, 8)}... | Model: ${selectedModel} | Tokens: ${actualUsage.total_tokens}`);
+
+    // Return OpenAI-compatible response
+    res.json(openaiData);
+
+  } catch (error) {
+    console.error('❌ Proxy endpoint error:', error);
+    res.status(500).json({
+      error: {
+        message: 'Internal server error while processing request',
+        type: 'server_error',
+        code: 'internal_error'
+      }
+    });
+  }
+});
+
 // Client GPT endpoint - uses their assigned key and tracks usage
 app.post('/api/client/ask-gpt', async (req, res) => {
   try {
@@ -2529,7 +2681,7 @@ app.post('/api/client/ask-gpt', async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${clientApiKey}`
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: selectedModel,
