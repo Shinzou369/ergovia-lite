@@ -486,6 +486,7 @@
       try {
         console.log('Attempting to generate API key for:', userName);
 
+        // Use relative URL so it works with whatever domain you're on
         const response = await fetch('/api/generate-personal-openai-key', {
           method: 'POST',
           headers: {
