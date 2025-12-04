@@ -831,6 +831,8 @@ app.get('/api/etf/templates', async (req, res) => {
 
 // Manual OpenAI key generation for users - no auth required, uses email from request
 app.post('/api/generate-personal-openai-key', async (req, res) => {
+  console.log('📥 OpenAI key generation request received:', req.body);
+  
   // Ensure we always return JSON
   res.setHeader('Content-Type', 'application/json');
   
@@ -889,6 +891,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Manual key generation failed:', error);
+    console.error('Error stack:', error.stack);
     return res.status(500).json({
       success: false,
       error: 'Failed to generate personal OpenAI key',
@@ -896,6 +899,8 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
     });
   }
 });
+
+console.log('✅ API key generation endpoint registered at POST /api/generate-personal-openai-key');
 
 function formatNumber(num) {
   if (num >= 1000000) {

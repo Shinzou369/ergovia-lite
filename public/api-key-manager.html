@@ -472,6 +472,8 @@
       generateBtn.innerHTML = '<div class="loading-spinner"></div> Generating...';
 
       try {
+        console.log('Attempting to generate API key for:', userEmail);
+        
         const response = await fetch('/api/generate-personal-openai-key', {
           method: 'POST',
           headers: {
@@ -487,9 +489,18 @@
           })
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Server error:', errorText);
+          console.error('Server error response:', errorText.substring(0, 500));
+          
+          // Check if this is a server not running error (502/404)
+          if (response.status === 502 || response.status === 404) {
+            throw new Error('Server is not responding. Please make sure the application is running.');
+          }
+          
           throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
         }
 
@@ -497,7 +508,7 @@
         if (!contentType || !contentType.includes('application/json')) {
           const text = await response.text();
           console.error('Non-JSON response:', text.substring(0, 200));
-          throw new Error('Server returned invalid response format');
+          throw new Error('Server returned invalid response format. The server may not be running properly.');
         }
 
         const data = await response.json();
