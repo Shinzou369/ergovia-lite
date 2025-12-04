@@ -475,8 +475,10 @@
         const response = await fetch('/api/generate-personal-openai-key', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify({
             business_name: userEmail.split('@')[0],
             business_email: userEmail,
@@ -484,6 +486,19 @@
             workflow_count: 0
           })
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Server error:', errorText);
+          throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          console.error('Non-JSON response:', text.substring(0, 200));
+          throw new Error('Server returned invalid response format');
+        }
 
         const data = await response.json();
 

@@ -831,6 +831,9 @@ app.get('/api/etf/templates', async (req, res) => {
 
 // Manual OpenAI key generation for users - no auth required, uses email from request
 app.post('/api/generate-personal-openai-key', async (req, res) => {
+  // Ensure we always return JSON
+  res.setHeader('Content-Type', 'application/json');
+  
   try {
     const { business_name, business_email, token_limit, workflow_count } = req.body;
 
@@ -865,7 +868,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
       // Get full dashboard data including the actual key (only shown once)
       const dashboardData = keyGenerator.getClientDashboard(setupResult.client_id);
       
-      res.json({
+      return res.status(200).json({
         success: true,
         message: 'Personal OpenAI key generated successfully!',
         client_id: setupResult.client_id,
@@ -886,7 +889,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Manual key generation failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Failed to generate personal OpenAI key',
       details: error.message
