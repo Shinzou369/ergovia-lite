@@ -7,7 +7,6 @@ channel = "stable-23_11"
 packages = ["run", "pup"]
 
 [deployment]
-publicDir = "public"
 deploymentTarget = "cloudrun"
 run = ["sh", "-c", "npm start"]
 build = ["sh", "-c", "npm install"]
