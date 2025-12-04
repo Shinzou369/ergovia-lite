@@ -390,8 +390,8 @@
     let usageChart = null;
 
     async function checkExistingKey() {
-      const user = await checkAuth();
-      if (!user) {
+      const authStatus = await checkAuthStatus();
+      if (!authStatus.authenticated || !authStatus.user) {
         window.location.href = '/login';
         return;
       }
@@ -410,20 +410,21 @@
       generateBtn.innerHTML = '<div class="loading-spinner"></div> Generating...';
 
       try {
-        const user = await checkAuth();
-        if (!user) {
+        const authStatus = await checkAuthStatus();
+        if (!authStatus.authenticated || !authStatus.user) {
           window.location.href = '/login';
           return;
         }
 
         const response = await fetch('/api/generate-personal-openai-key', {
+          credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            business_name: user.name || user.email,
-            business_email: user.email,
+            business_name: authStatus.user.name || authStatus.user.email,
+            business_email: authStatus.user.email,
             token_limit: 100000,
             workflow_count: 0
           })
