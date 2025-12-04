@@ -19,5 +19,32 @@
     "created_date": "2025-01-01",
     "assigned_date": "2025-08-11T14:13:38.713Z",
     "client_id": "19cb3ca4-b9ea-472a-9785-d11d7fabc306"
+  },
+  {
+    "key": "sk-ergovia-4GMnhzGd4Vv2vKB6PD7GF7S8l4",
+    "assigned": true,
+    "created_date": "2025-12-04T05:21:16.255Z",
+    "assigned_date": "2025-12-04T05:21:16.257Z",
+    "client_id": "client-712edfcf-miqzn2zi"
+  },
+  {
+    "key": "sk-ergovia-zFa5fqT2fOQJ3ksbQuE6PCYn5M",
+    "assigned": false,
+    "created_date": "2025-12-04T05:21:16.255Z"
+  },
+  {
+    "key": "sk-ergovia-VXA4ZDm8SGdW98iRfJ6pEfrHDc",
+    "assigned": false,
+    "created_date": "2025-12-04T05:21:16.255Z"
+  },
+  {
+    "key": "sk-ergovia-KeiczzUblz9DuGfRUd3IjnudzZc",
+    "assigned": false,
+    "created_date": "2025-12-04T05:21:16.255Z"
+  },
+  {
+    "key": "sk-ergovia-65xPEtjg92wVdEgbdlY5YyHn5k8",
+    "assigned": false,
+    "created_date": "2025-12-04T05:21:16.255Z"
   }
 ]

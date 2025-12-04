@@ -28,5 +28,15 @@
     "reset_date": "2025-09-01T00:00:00.000Z",
     "created_date": "2025-08-11T14:13:38.713Z",
     "last_used": null
+  },
+  {
+    "client_id": "client-712edfcf-miqzn2zi",
+    "openai_key": "sk-ergovia-4GMnhzGd4Vv2vKB6PD7GF7S8l4",
+    "used_tokens": 0,
+    "limit_tokens": 100000,
+    "workflow_id": "manual-generation",
+    "reset_date": "2026-01-01T00:00:00.000Z",
+    "created_date": "2025-12-04T05:21:16.257Z",
+    "last_used": null
   }
 ]
