@@ -778,57 +778,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files
-app.use(express.static('public'));
-
-// Mount authentication routes
-// Stytch authRoutes removed - using local auth only
-app.use('/api/auth', localAuthRouter);
-
-// Taskforce onboarding routes - redirect all to ETF onboarding
-app.get('/taskforce/pet-clinic/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=dental');
-});
-
-app.get('/taskforce/gym/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=gym');
-});
-
-app.get('/taskforce/contractors/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=contractors');
-});
-
-app.get('/taskforce/tutoring/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=tutoring');
-});
-
-app.get('/taskforce/massage/onboard', (req, res) => {
-  res.redirect('/etf-onboard?type=massage');
-});
-
-// ========================================
-// ETF Routes
-// ========================================
-
-// ETF Onboarding page
-app.get('/etf-onboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'etf-onboard.html'));
-});
-
-// Pet Clinic Onboarding Page (Bootstrap design)
-app.get('/pet-onboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'pet-onboard.html'));
-});
-
-// ETF Admin dashboard
-app.get('/etf-admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
-});
-
-// Get available templates from n8n
-app.get('/api/etf/templates', async (req, res) => {
-  try {
-
 // Manual OpenAI key generation for users - no auth required, uses email from request
 app.post('/api/generate-personal-openai-key', async (req, res) => {
   console.log('📥 OpenAI key generation request received:', req.body);
@@ -909,6 +858,56 @@ function formatNumber(num) {
   return num.toString();
 }
 
+// Serve static files
+app.use(express.static('public'));
+
+// Mount authentication routes
+// Stytch authRoutes removed - using local auth only
+app.use('/api/auth', localAuthRouter);
+
+// Taskforce onboarding routes - redirect all to ETF onboarding
+app.get('/taskforce/pet-clinic/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=dental');
+});
+
+app.get('/taskforce/gym/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=gym');
+});
+
+app.get('/taskforce/contractors/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=contractors');
+});
+
+app.get('/taskforce/tutoring/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=tutoring');
+});
+
+app.get('/taskforce/massage/onboard', (req, res) => {
+  res.redirect('/etf-onboard?type=massage');
+});
+
+// ========================================
+// ETF Routes
+// ========================================
+
+// ETF Onboarding page
+app.get('/etf-onboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'etf-onboard.html'));
+});
+
+// Pet Clinic Onboarding Page (Bootstrap design)
+app.get('/pet-onboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pet-onboard.html'));
+});
+
+// ETF Admin dashboard
+app.get('/etf-admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'etf-admin.html'));
+});
+
+// Get available templates from n8n
+app.get('/api/etf/templates', async (req, res) => {
+  try {
 
 // System status and error recovery endpoint
 app.get('/api/system/status', async (req, res) => {
