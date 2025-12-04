@@ -486,8 +486,9 @@
       try {
         console.log('Attempting to generate API key for:', userName);
 
-        // Use relative URL so it works with whatever domain you're on
-        const response = await fetch('/api/generate-personal-openai-key', {
+        // Use absolute URL to port 5000 where server is running
+        const baseUrl = window.location.origin.replace(':3002', ':5000');
+        const response = await fetch(`${baseUrl}/api/generate-personal-openai-key`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -562,7 +563,8 @@
       if (!clientId) return;
 
       try {
-        const response = await fetch(`/api/client/usage/${clientId}`);
+        const baseUrl = window.location.origin.replace(':3002', ':5000');
+        const response = await fetch(`${baseUrl}/api/client/usage/${clientId}`);
         const data = await response.json();
 
         if (data.error) {
