@@ -862,19 +862,22 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
     });
 
     if (setupResult.success) {
+      // Get full dashboard data including the actual key (only shown once)
+      const dashboardData = keyGenerator.getClientDashboard(setupResult.client_id);
+      
       res.json({
         success: true,
         message: 'Personal OpenAI key generated successfully!',
         client_id: setupResult.client_id,
-        key_preview: setupResult.key_preview,
+        key_preview: dashboardData.full_key, // Show full key only on first generation
         token_limit: calculatedLimit,
-        dashboard_url: `/etf-admin?client_id=${setupResult.client_id}`,
+        dashboard_url: `/api-key-manager`,
         features: [
           'Dedicated API key for your business',
           `${formatNumber(calculatedLimit)} monthly token budget`,
           'Usage tracking and monitoring',
           'Automatic monthly reset',
-          'Works with all ETF workflows'
+          'Works with all integrations'
         ]
       });
     } else {
@@ -2574,25 +2577,21 @@ app.post('/api/client/ask-gpt', async (req, res) => {
 app.get('/api/client/usage/:client_id', (req, res) => {
   try {
     const { client_id } = req.params;
-    const clientData = getClientData(client_id);
+    const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
+    const keyGenerator = new AutoKeyGenerator();
+    
+    const dashboardData = keyGenerator.getClientDashboard(client_id);
 
-    if (!clientData) {
+    if (dashboardData.error) {
       return res.status(404).json({
-        error: 'Client not found'
+        error: dashboardData.error
       });
     }
 
-    const percentage = Math.round((clientData.used_tokens / clientData.limit_tokens) * 100);
+    // Remove full_key from response for security (only show preview)
+    const { full_key, ...safeData } = dashboardData;
 
-    res.json({
-      client_id: client_id,
-      used_tokens: clientData.used_tokens,
-      limit_tokens: clientData.limit_tokens,
-      percentage: percentage,
-      reset_date: clientData.reset_date,
-      last_used: clientData.last_used,
-      status: percentage >= 100 ? 'limit_reached' : percentage >= 80 ? 'warning' : 'ok'
-    });
+    res.json(safeData);
 
   } catch (error) {
     console.error('❌ Error fetching usage:', error);

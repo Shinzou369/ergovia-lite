@@ -659,6 +659,11 @@
                   <div class="website-desc">Token usage & analytics</div>
                 </div>
               </div>
+              <!-- Add link to API Key Manager -->
+              <a href="/api-key-manager" class="nav-link">
+                <i data-lucide="key"></i>
+                <span>API Keys</span>
+              </a>
             </div>
           <!-- AI status indicator at bottom -->
           <div class="ai-status">
@@ -1028,7 +1033,7 @@
           if (!navRight.querySelector('.user-profile-btn')) {
             const userName = user.name || user.email?.split('@')[0] || 'User';
             const displayName = userName.split(' ')[0]; // Get first name
-            
+
             const profileBtn = document.createElement('button');
             profileBtn.className = 'user-profile-btn';
             profileBtn.innerHTML = `

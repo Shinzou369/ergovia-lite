@@ -180,6 +180,7 @@ class AutoKeyGenerator {
         days_until_reset: Math.max(0, daysUntilReset)
       },
       key_preview: this.maskKey(clientData.openai_key),
+      full_key: clientData.openai_key, // Include full key for immediate display after generation
       last_used: clientData.last_used,
       created_date: clientData.created_date
     };
