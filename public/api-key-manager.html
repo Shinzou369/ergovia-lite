@@ -267,15 +267,37 @@
 </head>
 <body>
   <div class="key-manager-container">
-    <a href="/chat" class="back-link">
-      <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
-      Back to Chat
-    </a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <a href="/" class="back-link">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+        Home
+      </a>
+      <button onclick="logout()" style="padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); cursor: pointer;">
+        <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
+        Logout
+      </button>
+    </div>
 
     <div class="page-header">
       <h1>🔑 Personal API Key Manager</h1>
       <p>Generate and manage your dedicated OpenAI API key with built-in usage tracking</p>
+      <p id="userEmailDisplay" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;"></p>
     </div>
+
+    <script>
+      function logout() {
+        localStorage.removeItem('api_key_user_email');
+        localStorage.removeItem('ergovia_client_id');
+        window.location.reload();
+      }
+
+      // Display user email
+      const emailDisplay = document.getElementById('userEmailDisplay');
+      const storedEmail = localStorage.getItem('api_key_user_email');
+      if (storedEmail && emailDisplay) {
+        emailDisplay.textContent = `Logged in as: ${storedEmail}`;
+      }
+    </script>
 
     <!-- Key Status Card -->
     <div class="key-card">
@@ -383,20 +405,22 @@
   </div>
 
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <script src="auth.js"></script>
   <script>
     let myAPIKey = null;
     let clientId = null;
     let usageChart = null;
+    let userEmail = null;
 
     async function checkExistingKey() {
-      const authStatus = await checkAuthStatus();
-      if (!authStatus.authenticated || !authStatus.user) {
-        window.location.href = '/login';
+      // Check if user has email stored
+      userEmail = localStorage.getItem('api_key_user_email');
+      
+      if (!userEmail) {
+        showEmailPrompt();
         return;
       }
 
-      // Try to get existing key from localStorage or check server
+      // Try to get existing key from localStorage
       const savedClientId = localStorage.getItem('ergovia_client_id');
       if (savedClientId) {
         clientId = savedClientId;
@@ -404,27 +428,58 @@
       }
     }
 
+    function showEmailPrompt() {
+      const emailPrompt = document.createElement('div');
+      emailPrompt.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+      emailPrompt.innerHTML = `
+        <div style="background: var(--bg-secondary); padding: 40px; border-radius: 16px; max-width: 400px; width: 90%;">
+          <h2 style="margin: 0 0 20px 0; color: var(--text-primary);">Enter Your Email</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px;">We'll use your email to track your API key usage</p>
+          <input type="email" id="userEmailInput" placeholder="your@email.com" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); margin-bottom: 20px;">
+          <button onclick="saveUserEmail()" style="width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Continue</button>
+        </div>
+      `;
+      document.body.appendChild(emailPrompt);
+    }
+
+    window.saveUserEmail = function() {
+      const input = document.getElementById('userEmailInput');
+      const email = input.value.trim();
+      
+      if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
+      localStorage.setItem('api_key_user_email', email);
+      userEmail = email;
+      
+      // Remove prompt
+      document.querySelector('[style*="position: fixed"]').remove();
+      
+      // Check for existing key
+      checkExistingKey();
+    }
+
     async function generateAPIKey() {
+      if (!userEmail) {
+        showEmailPrompt();
+        return;
+      }
+
       const generateBtn = document.getElementById('generateKeyBtn');
       generateBtn.disabled = true;
       generateBtn.innerHTML = '<div class="loading-spinner"></div> Generating...';
 
       try {
-        const authStatus = await checkAuthStatus();
-        if (!authStatus.authenticated || !authStatus.user) {
-          window.location.href = '/login';
-          return;
-        }
-
         const response = await fetch('/api/generate-personal-openai-key', {
-          credentials: 'include',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            business_name: authStatus.user.name || authStatus.user.email,
-            business_email: authStatus.user.email,
+            business_name: userEmail.split('@')[0],
+            business_email: userEmail,
             token_limit: 100000,
             workflow_count: 0
           })

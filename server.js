@@ -829,7 +829,7 @@ app.get('/etf-admin', (req, res) => {
 app.get('/api/etf/templates', async (req, res) => {
   try {
 
-// Manual OpenAI key generation for users
+// Manual OpenAI key generation for users - no auth required, uses email from request
 app.post('/api/generate-personal-openai-key', async (req, res) => {
   try {
     const { business_name, business_email, token_limit, workflow_count } = req.body;
