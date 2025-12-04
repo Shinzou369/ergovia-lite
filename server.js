@@ -900,8 +900,6 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
   }
 });
 
-console.log('✅ API key generation endpoint registered at POST /api/generate-personal-openai-key');
-
 function formatNumber(num) {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
