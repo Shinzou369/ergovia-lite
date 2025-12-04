@@ -244,9 +244,9 @@ if (!N8N_API_KEY) {
   console.error('ETF functionality will be disabled');
 }
 
-const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
-
 const app = express();
+
+const n8nClient = new N8NApiClient({ baseURL: N8N_BASE_URL });
 
 // Initialize SQLite database with error recovery
 let db;
