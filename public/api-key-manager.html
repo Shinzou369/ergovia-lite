@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -310,13 +309,24 @@
           </div>
         </div>
 
-        <!-- Generate Section (shown when no key) -->
+        <!-- Generate Section (shown when no key exists) -->
         <div id="generateSection" class="generate-section">
           <h3>Get Your Personal OpenAI API Key</h3>
           <p style="color: var(--text-muted); margin: 16px 0;">
             We'll create a dedicated API key just for you with automatic usage tracking and budget management.
           </p>
-          
+
+          <div class="form-group" style="margin: 24px 0;">
+            <label for="userName" style="display: block; margin-bottom: 8px; font-weight: 600;">Your Name</label>
+            <input 
+              type="text" 
+              id="userName" 
+              placeholder="Enter your name" 
+              style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;"
+              required
+            />
+          </div>
+
           <ul class="features-list">
             <li>
               <span class="feature-icon">✅</span>
@@ -414,7 +424,7 @@
     async function checkExistingKey() {
       // Check if user has email stored
       userEmail = localStorage.getItem('api_key_user_email');
-      
+
       if (!userEmail) {
         showEmailPrompt();
         return;
@@ -445,7 +455,7 @@
     window.saveUserEmail = function() {
       const input = document.getElementById('userEmailInput');
       const email = input.value.trim();
-      
+
       if (!email || !email.includes('@')) {
         alert('Please enter a valid email address');
         return;
@@ -453,37 +463,38 @@
 
       localStorage.setItem('api_key_user_email', email);
       userEmail = email;
-      
+
       // Remove prompt
       document.querySelector('[style*="position: fixed"]').remove();
-      
+
       // Check for existing key
       checkExistingKey();
     }
 
     async function generateAPIKey() {
-      if (!userEmail) {
-        showEmailPrompt();
+      const generateBtn = document.getElementById('generateKeyBtn');
+      const userName = document.getElementById('userName').value.trim();
+
+      if (!userName) {
+        showError('Please enter your name');
         return;
       }
 
-      const generateBtn = document.getElementById('generateKeyBtn');
       generateBtn.disabled = true;
       generateBtn.innerHTML = '<div class="loading-spinner"></div> Generating...';
 
       try {
-        console.log('Attempting to generate API key for:', userEmail);
-        
+        console.log('Attempting to generate API key for:', userName);
+
         const response = await fetch('/api/generate-personal-openai-key', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          credentials: 'include',
           body: JSON.stringify({
-            business_name: userEmail.split('@')[0],
-            business_email: userEmail,
+            business_name: userName,
+            business_email: `${userName.toLowerCase().replace(/\s+/g, '')}@generated.local`,
             token_limit: 100000,
             workflow_count: 0
           })
@@ -495,12 +506,12 @@
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Server error response:', errorText.substring(0, 500));
-          
+
           // Check if this is a server not running error (502/404)
           if (response.status === 502 || response.status === 404) {
             throw new Error('Server is not responding. Please make sure the application is running.');
           }
-          
+
           throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
         }
 
@@ -516,7 +527,7 @@
         if (data.success) {
           clientId = data.client_id;
           myAPIKey = data.key_preview;
-          
+
           // Save client ID to localStorage
           localStorage.setItem('ergovia_client_id', clientId);
 
@@ -532,7 +543,7 @@
 
           // Show usage dashboard
           document.getElementById('usageDashboard').style.display = 'block';
-          
+
           await loadUsageData();
         } else {
           throw new Error(data.error || 'Failed to generate API key');
@@ -574,7 +585,7 @@
         // Show usage alert based on status
         const alertDiv = document.getElementById('usageAlert');
         alertDiv.style.display = 'flex';
-        
+
         if (data.status === 'limit_reached') {
           alertDiv.className = 'alert error';
           alertDiv.innerHTML = '<i data-lucide="alert-circle"></i><span>Token limit reached! Your usage will reset next month.</span>';
@@ -684,9 +695,8 @@
       }
     }, 30000);
 
-    // Initialize
+    // Initialize page
     document.addEventListener('DOMContentLoaded', async () => {
-      await checkExistingKey();
       lucide.createIcons();
     });
   </script>
