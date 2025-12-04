@@ -197,6 +197,9 @@ class N8NApiClient {
     } catch (error) {
       console.warn(`⚠️ Could not check activation eligibility for workflow ${workflowId}`);
       return false;
+    }
+  }
+}
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -230,10 +233,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-    }
-  }
-}
 
 // Validate N8N configuration and exit if critical vars missing
 if (!N8N_BASE_URL) {
@@ -413,7 +412,7 @@ function initETFDatabase() {
 
             if (tablesCreated === createTables.length) {
               if (tableErrors.length > 0) {
-                console.error('⚠️ Some ETF tables failed to create:', tableErrors);
+                console.log('⚠️ Some ETF tables failed to create:', tableErrors);
               } else {
                 console.log('✅ All ETF tables created successfully');
               }
@@ -643,7 +642,7 @@ app.use(express.json({
     if (req.url && (req.url.includes('/webhook/') || req.url.includes('/oauth') || req.url.includes('/callback'))) {
       return;
     }
-    
+
     try {
       if (buf && buf.length > 0) {
         JSON.parse(buf);
@@ -778,13 +777,22 @@ app.use((req, res, next) => {
   next();
 });
 
-// Manual OpenAI key generation for users - no auth required, uses email from request
+// Helper function to format numbers for display (e.g., 1.5M, 200K)
+function formatNumber(num) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+}
+
+// Manual OpenAI key generation - must come BEFORE static file serving
 app.post('/api/generate-personal-openai-key', async (req, res) => {
   console.log('📥 OpenAI key generation request received:', req.body);
-  
-  // Ensure we always return JSON
+
   res.setHeader('Content-Type', 'application/json');
-  
+
   try {
     const { business_name, business_email, token_limit, workflow_count } = req.body;
 
@@ -818,7 +826,7 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
     if (setupResult.success) {
       // Get full dashboard data including the actual key (only shown once)
       const dashboardData = keyGenerator.getClientDashboard(setupResult.client_id);
-      
+
       return res.status(200).json({
         success: true,
         message: 'Personal OpenAI key generated successfully!',
@@ -848,15 +856,6 @@ app.post('/api/generate-personal-openai-key', async (req, res) => {
     });
   }
 });
-
-function formatNumber(num) {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
-}
 
 // Serve static files
 app.use(express.static('public'));
@@ -1339,7 +1338,7 @@ app.post('/api/etf/deploy', async (req, res) => {
 
         duplicatedWorkflows.push({
           original_id: result.originalId,
-          original_name: result.name,
+          original_name: newWorkflowName,
           new_id: newWorkflowId,
           new_name: newWorkflowName,
           deployment_id: deployment_id,
@@ -1371,6 +1370,20 @@ app.post('/api/etf/deploy', async (req, res) => {
         (err) => err ? reject(err) : resolve()
       );
     });
+
+    // Count activation statuses for summary
+    const activatedCount = duplicatedWorkflows.filter(w => 
+      w.activation_status === 'activated'
+    ).length;
+    const needsCredentialsCount = duplicatedWorkflows.filter(w => 
+      w.activation_status === 'needs_credentials'
+    ).length;
+    const noTriggerCount = duplicatedWorkflows.filter(w => 
+      w.activation_status === 'no_trigger'
+    ).length;
+    const failedCount = duplicatedWorkflows.filter(w => 
+      w.activation_status === 'failed' || w.activation_status === 'processing_error' || w.activation_status === 'failed_creation'
+    ).length;
 
     // Log the initial deployment to history with detailed metrics
     const deploymentSummary = {
@@ -1414,20 +1427,6 @@ app.post('/api/etf/deploy', async (req, res) => {
     if (duplicatedWorkflows.length === 0) {
       throw new Error('Failed to create or process any workflows.');
     }
-
-    // Count activation statuses for summary
-    const activatedCount = duplicatedWorkflows.filter(w => 
-      w.activation_status === 'activated'
-    ).length;
-    const needsCredentialsCount = duplicatedWorkflows.filter(w => 
-      w.activation_status === 'needs_credentials'
-    ).length;
-    const noTriggerCount = duplicatedWorkflows.filter(w => 
-      w.activation_status === 'no_trigger'
-    ).length;
-    const failedCount = duplicatedWorkflows.filter(w => 
-      w.activation_status === 'failed' || w.activation_status === 'processing_error' || w.activation_status === 'failed_creation'
-    ).length;
 
     res.json({
       success: true,
@@ -2077,7 +2076,7 @@ app.post('/api/etf/update-workflow-settings/:deploymentId', async (req, res) => 
     if (deployment.n8n_workflow_id) {
       try {
         const workflow = await n8nClient.getWorkflow(deployment.n8n_workflow_id);
-        
+
         // Personalize workflow nodes with updated config
         const updatedNodes = personalizeWorkflowNodes(
           workflow.nodes,
@@ -2561,7 +2560,7 @@ app.post('/v1/chat/completions', async (req, res) => {
     // Get the actual OpenAI key from the pool
     const keys = loadKeys();
     const actualKey = keys.find(k => k.key === customKey);
-    
+
     if (!actualKey) {
       // Fall back to using any available OpenAI key from environment
       console.warn(`⚠️ Custom key ${customKey} not found in pool, using fallback`);
@@ -2736,7 +2735,7 @@ app.get('/api/client/usage/:client_id', (req, res) => {
     const { client_id } = req.params;
     const { AutoKeyGenerator } = require('./utils/autoKeyGenerator');
     const keyGenerator = new AutoKeyGenerator();
-    
+
     const dashboardData = keyGenerator.getClientDashboard(client_id);
 
     if (dashboardData.error) {
@@ -4357,7 +4356,7 @@ app.post("/api/select-role", (req, res) => {
   // Handle local auth users
   if (isLocalAuth) {
     const userId = req.session.user.id;
-    
+
     etfDB.run(
       'UPDATE users SET role = ? WHERE id = ?',
       [role, userId],
@@ -4369,7 +4368,7 @@ app.post("/api/select-role", (req, res) => {
 
         // Update session
         req.session.user.role = role;
-        
+
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('Session save error:', saveErr);
@@ -4743,7 +4742,7 @@ app.get('/api/auth/google-n8n-callback', async (req, res) => {
       req.session.save();
 
       console.log('✅ Google OAuth flow completed successfully');
-      
+
       // Send completion message to parent window for pet-onboard integration
       res.send(`
         <html>
@@ -5719,7 +5718,9 @@ function analyzeWorkflowConfig(workflow) {
   return {
     fields: uniqueFields,
     promptInstructions: promptInstructions.instructions,
-    credentialsRequired: promptInstructions.credentials
+    credentialsRequired: credentials.filter((c, index, self) => 
+      index === self.findIndex(t => (t.service === c.service && t.type === c.type))
+    ) // Remove duplicate credentials
   };
 }
 
