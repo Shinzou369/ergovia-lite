@@ -22,6 +22,7 @@ const {
   getPoolStats 
 } = require('./utils/keyManager');
 const { initScheduler } = require('./utils/scheduler');
+const proxyRouter = require('./proxy/router');
 // Stytch removed - using local authentication only
 
 // ========================================
@@ -608,6 +609,9 @@ function validateInput(req, res, next) {
         }
         return obj.trim();
       }
+      if (Array.isArray(obj)) {
+        return obj.map(item => sanitizeObject(item));
+      }
       if (typeof obj === 'object' && obj !== null) {
         const sanitized = {};
         for (const [key, value] of Object.entries(obj)) {
@@ -663,6 +667,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Cookie parser and Stytch removed - using local auth only
 app.use(validateInput);
+
+// OpenAI Proxy API (for client keys)
+app.use('/v1', proxyRouter);
 
 // Rate limiting configuration
 const rateLimit = {
