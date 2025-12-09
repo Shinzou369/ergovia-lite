@@ -1,50 +1,110 @@
-# Ergovia API Key Proxy Backend
+# Overview
 
-## Project Overview
-A secure API Key Proxy Backend that generates client-specific API keys and proxies requests to OpenAI. Designed for n8n compatibility and multi-tenant API key management.
+Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketing and automation tasks. The application provides a ChatGPT-like interface for conversational AI interactions, along with specialized features including workflow templates (Taskforce), client onboarding systems, and integration with n8n automation platform. The system supports multiple AI models with intelligent routing, secure local email/password authentication with bcrypt, and includes an ETF (Exchange Traded Fund) system for automated workflow deployment to clients.
 
-## Architecture
-- **Node.js/Express** server on port 5000
-- **SQLite** database (`src/ergovia_proxy.sqlite`)
-- **OpenAI SDK** for proxying requests
+# Recent Changes (October 2025)
 
-## File Structure
-```
-/src
-  app.js          - Main Express server (entry point)
-  keyManager.js   - API key generation/validation with SHA256 hashing
-  usageLogger.js  - Token usage logging to SQLite
-  openaiProxy.js  - OpenAI API proxy functions
-```
+## Complete Local Authentication Migration
+- **Pure Local Authentication System**: Completely removed all third-party authentication providers (Google OAuth and Stytch)
+- **Simplified Codebase**: Removed Passport.js, cookie-parser, Stytch SDK, and all OAuth-related middleware and routes
+- **Clean Session Management**: Streamlined session middleware to only handle local email/password authentication
+- **Secure Password Storage**: bcrypt password hashing (12 salt rounds) with SQLite users table
+- **Session-Based Auth**: Server-side session management with httpOnly cookies and 7-day expiration
+- **Clean Frontend**: Updated UI to remove all third-party login buttons and OAuth references
+- **Removed Files**: Deleted routes/authRoutes.js, public/stytch-logged-in.html, and all Stytch-related endpoints
+- **Affiliate & Client Roles**: Added role-based system supporting both affiliate partners and clients with local authentication
+- **Role Column Migration**: Successfully added role column to users table with 'client' as default
 
-## Environment Variables
-- `OPENAI_API_KEY` - Master OpenAI API key (required)
-- `PORT` - Server port (optional, defaults to 5000)
+## Role-Based UX Improvements (October 15, 2025)
+- **Visual Distinction**: Affiliate and client sections on home page have distinct styling (45%/55% split with different color schemes)
+- **Auto-Redirect**: Logged-in users automatically redirected to their role-specific page (affiliate→/chat, client→/taskforce)
+- **Logout Functionality**: Added logout buttons to both chat and taskforce pages with proper session destruction
+- **Dual-Role Prevention**: Same email cannot be used for both affiliate and client accounts with specific error message
+- **Token Usage Database**: Created token_usage table in SQLite for persistent token tracking per user (replacing JSON files)
 
-## API Endpoints
+# User Preferences
 
-### Admin Endpoints (no auth required)
-- `POST /admin/create-client` - Create client, returns `sk-ergovia-xxx` key
-- `GET /admin/clients` - List all clients with usage totals
-- `GET /admin/usage/:clientId` - Detailed usage logs for a client
-- `POST /admin/reset-key` - Regenerate client API key
-- `POST /admin/delete-client` - Delete a client
+Preferred communication style: Simple, everyday language.
 
-### OpenAI-Compatible Endpoints (require Bearer token)
-- `GET /v1/models` - List available models
-- `POST /v1/chat/completions` - Chat completions proxy
+# System Architecture
 
-## Security
-- API keys are NEVER stored in plain text
-- Only SHA256 hash stored in database
-- Keys prefixed with `sk-ergovia-` for identification
+## Frontend Architecture
+- **Static HTML/CSS/JavaScript**: Traditional multi-page application using vanilla JavaScript
+- **Responsive Design**: Mobile-first approach with CSS Grid and Flexbox
+- **Animation Framework**: Animate.css for UI transitions and loading states
+- **Icon System**: Lucide icons for consistent iconography
+- **Theme System**: Dark/light mode support with CSS custom properties
 
-## Usage Tracking
-- Per-request logging: clientId, model, tokens (prompt/completion/total)
-- Client totals updated in real-time
-- lastUsedAt timestamp tracking
+## Backend Architecture
+- **Node.js/Express Server**: RESTful API with Express.js framework
+- **Session Management**: File-based sessions using express-session with FileStore
+- **Authentication**: Local email/password authentication with bcrypt password hashing (no third-party providers)
+- **AI Integration**: OpenAI API integration with intelligent model routing based on prompt complexity
+- **Token Management**: Custom token counting and usage tracking system per user
 
-## n8n Integration
-Configure n8n OpenAI Chat Model Node with:
-- API URL: Your Replit deployment URL
-- API Key: Client's `sk-ergovia-xxx` key
+## Data Storage Solutions
+- **SQLite Database**: Local file-based database for user accounts, ETF client data, history, and token usage
+- **Users Table**: Stores user credentials with id (UUID), email (unique), password_hash (bcrypt), name, role (affiliate/client), and timestamps
+- **Token Usage Table**: Persistent storage for token tracking per user with limits, usage counts, and reset dates
+- **JSON File Storage**: Chat threads and configuration data stored in JSON files
+- **Session Storage**: File-based session persistence for user authentication state with FileStore
+
+## Authentication and Authorization
+- **Local Email/Password Auth**: Exclusive authentication method using bcrypt password hashing (12 rounds) with secure session management
+- **Users Database**: SQLite table storing user accounts with UUID IDs, unique email constraints, hashed passwords, and role (affiliate/client)
+- **Session-Based Auth**: Server-side session management with httpOnly cookies and 7-day expiration
+- **Route Protection**: Middleware checks for req.session.user to secure protected endpoints
+- **Role-Based Access**: Users can be affiliates (accessing /chat) or clients (accessing /taskforce)
+- **Role Selection**: Support for URL parameter-based role selection during signup and dedicated role selection page
+- **Premium User System**: Role-based access control with premium features and unlimited token usage
+- **No Third-Party Auth**: Completely self-contained authentication system without Google OAuth or Stytch
+
+## AI and Model Management
+- **Multi-Model Support**: GPT-4 Turbo, GPT-4, GPT-3.5 Turbo, and DeepSeek Chat
+- **Intelligent Model Routing**: Automatic model selection based on prompt keywords and complexity
+- **Token Tracking**: Real-time token usage monitoring with daily limits for free users
+- **Conversation Threading**: ChatGPT-style conversation management with persistent threads
+
+## Workflow and Automation Integration
+- **n8n Integration**: Full API integration for workflow creation, duplication, and management
+- **ETF System**: Automated client onboarding with workflow template deployment
+- **Credential Management**: Secure handling of API keys and OAuth credentials for workflow automation
+- **Template Sanitization**: Automated conversion of workflows into reusable templates with placeholder replacement
+
+# External Dependencies
+
+## AI Services
+- **OpenAI API**: Primary AI service for GPT models (GPT-4 Turbo, GPT-4, GPT-3.5 Turbo)
+- **DeepSeek API**: Alternative AI model for creative and innovative responses
+
+## Authentication Services
+- **None**: Fully self-contained local authentication system (no external auth providers)
+
+## Automation Platform
+- **n8n**: Self-hosted automation platform for workflow creation and management
+- **n8n API**: RESTful API for programmatic workflow operations and credential management
+
+## Communication Services
+- **Nodemailer**: Email service integration for notifications and communications
+- **Twilio**: SMS and voice communication services (configured but not actively used)
+- **SendGrid**: Email delivery service for transactional emails
+
+## Development and Deployment
+- **SQLite3**: Embedded database for user accounts and local data storage
+- **Express Session**: Server-side session management with FileStore
+- **Bcrypt**: Password hashing and verification for secure authentication
+- **Axios**: HTTP client for external API communications
+- **Node Cron**: Scheduled task execution for maintenance and cleanup operations
+
+## Frontend Libraries
+- **Marked**: Markdown parsing for AI response formatting
+- **Highlight.js**: Syntax highlighting for code blocks in AI responses
+- **DOMPurify**: XSS protection for user-generated content
+- **Lucide**: Icon library for consistent UI iconography
+- **Animate.css**: CSS animation library for UI transitions
+
+## Utilities and Security
+- **UUID**: Unique identifier generation for sessions and threads
+- **Crypto**: Built-in Node.js cryptographic functionality
+- **CORS**: Cross-origin resource sharing configuration
+- **Body Parser**: Request body parsing middleware
