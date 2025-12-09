@@ -1,10 +1,11 @@
 {
-  "name": "taskai",
+  "name": "ergovia-api-proxy",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "src/app.js",
   "scripts": {
-    "start": "node ./server.js",
-    "dev": "nodemon server.js"
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "start:legacy": "node ./server.js"
   },
   "keywords": [],
   "author": "",
