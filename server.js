@@ -397,6 +397,21 @@ function initETFDatabase() {
             last_used DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+          )`,
+          `CREATE TABLE IF NOT EXISTS client_configs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id TEXT UNIQUE NOT NULL,
+            business_name TEXT NOT NULL,
+            greeting TEXT,
+            webhook_secret TEXT,
+            openai_project_key TEXT,
+            telegram_bot_token TEXT,
+            whatsapp_number TEXT,
+            timezone TEXT DEFAULT 'America/New_York',
+            settings TEXT,
+            status TEXT DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )`
         ];
 
@@ -1928,6 +1943,111 @@ app.get('/api/etf/client-config/:clientId', (req, res) => {
     });
   });
 });
+
+// ========================================
+// Multi-Tenant Workflow API (POC)
+// ========================================
+
+// Get client config for multi-tenant workflows (no auth - called by n8n)
+app.get('/api/mt/client/:clientId', (req, res) => {
+  const { clientId } = req.params;
+
+  const sql = `
+    SELECT 
+      client_id,
+      business_name,
+      greeting,
+      timezone,
+      settings,
+      status
+    FROM client_configs 
+    WHERE client_id = ? AND status = 'active'
+  `;
+
+  etfDB.get(sql, [clientId], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch client config' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'Client not found', client_id: clientId });
+    }
+
+    // Parse settings if it's JSON string
+    let settings = {};
+    if (row.settings) {
+      try {
+        settings = JSON.parse(row.settings);
+      } catch (e) {
+        settings = {};
+      }
+    }
+
+    res.json({
+      success: true,
+      client_id: row.client_id,
+      business_name: row.business_name,
+      greeting: row.greeting || `Welcome to ${row.business_name}!`,
+      timezone: row.timezone,
+      settings: settings
+    });
+  });
+});
+
+// List all active clients (admin only)
+app.get('/api/mt/clients', (req, res) => {
+  const sql = `SELECT client_id, business_name, status, created_at FROM client_configs ORDER BY created_at DESC`;
+  
+  etfDB.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch clients' });
+    }
+    res.json({ clients: rows });
+  });
+});
+
+// Add new client config
+app.post('/api/mt/client', (req, res) => {
+  const { client_id, business_name, greeting, timezone, settings } = req.body;
+
+  if (!client_id || !business_name) {
+    return res.status(400).json({ error: 'client_id and business_name are required' });
+  }
+
+  const sql = `
+    INSERT INTO client_configs (client_id, business_name, greeting, timezone, settings)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  etfDB.run(sql, [
+    client_id,
+    business_name,
+    greeting || `Welcome to ${business_name}!`,
+    timezone || 'America/New_York',
+    settings ? JSON.stringify(settings) : null
+  ], function(err) {
+    if (err) {
+      if (err.message.includes('UNIQUE constraint')) {
+        return res.status(409).json({ error: 'Client ID already exists' });
+      }
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to create client' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Client created successfully',
+      client_id: client_id,
+      id: this.lastID
+    });
+  });
+});
+
+// ========================================
+// End Multi-Tenant Workflow API
+// ========================================
 
 // Get client workflows
 app.get('/api/etf/client-workflows/:clientId', (req, res) => {
