@@ -406,6 +406,7 @@ function initETFDatabase() {
             webhook_secret TEXT,
             openai_project_key TEXT,
             telegram_bot_token TEXT,
+            telegram_chat_id TEXT,
             whatsapp_number TEXT,
             timezone TEXT DEFAULT 'America/New_York',
             settings TEXT,
@@ -440,6 +441,15 @@ function initETFDatabase() {
                   console.log('⚠️ Role column migration note:', migrationErr.message);
                 } else if (!migrationErr) {
                   console.log('✅ Added role column to users table');
+                }
+              });
+
+              // Add telegram_chat_id column to client_configs (migration)
+              etfDB.run(`ALTER TABLE client_configs ADD COLUMN telegram_chat_id TEXT`, (migrationErr) => {
+                if (migrationErr && !migrationErr.message.includes('duplicate column')) {
+                  console.log('⚠️ telegram_chat_id migration note:', migrationErr.message);
+                } else if (!migrationErr) {
+                  console.log('✅ Added telegram_chat_id column to client_configs');
                 }
               });
 
@@ -2041,6 +2051,105 @@ app.post('/api/mt/client', (req, res) => {
       message: 'Client created successfully',
       client_id: client_id,
       id: this.lastID
+    });
+  });
+});
+
+// Lookup client by Telegram chat ID (for n8n Telegram trigger)
+app.get('/api/mt/client-by-chat/:chatId', (req, res) => {
+  const { chatId } = req.params;
+
+  const sql = `
+    SELECT 
+      client_id,
+      business_name,
+      greeting,
+      timezone,
+      settings,
+      telegram_bot_token
+    FROM client_configs 
+    WHERE telegram_chat_id = ? AND status = 'active'
+  `;
+
+  etfDB.get(sql, [chatId], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch client config' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'No client found for this chat ID', chat_id: chatId });
+    }
+
+    let settings = {};
+    if (row.settings) {
+      try {
+        settings = JSON.parse(row.settings);
+      } catch (e) {
+        settings = {};
+      }
+    }
+
+    res.json({
+      success: true,
+      client_id: row.client_id,
+      business_name: row.business_name,
+      greeting: row.greeting || `Welcome to ${row.business_name}!`,
+      timezone: row.timezone,
+      settings: settings,
+      telegram_bot_token: row.telegram_bot_token
+    });
+  });
+});
+
+// Update client config (for adding Telegram credentials)
+app.patch('/api/mt/client/:clientId', (req, res) => {
+  const { clientId } = req.params;
+  const { telegram_bot_token, telegram_chat_id, greeting, settings } = req.body;
+
+  const updates = [];
+  const values = [];
+
+  if (telegram_bot_token !== undefined) {
+    updates.push('telegram_bot_token = ?');
+    values.push(telegram_bot_token);
+  }
+  if (telegram_chat_id !== undefined) {
+    updates.push('telegram_chat_id = ?');
+    values.push(telegram_chat_id);
+  }
+  if (greeting !== undefined) {
+    updates.push('greeting = ?');
+    values.push(greeting);
+  }
+  if (settings !== undefined) {
+    updates.push('settings = ?');
+    values.push(JSON.stringify(settings));
+  }
+
+  if (updates.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+  values.push(clientId);
+
+  const sql = `UPDATE client_configs SET ${updates.join(', ')} WHERE client_id = ?`;
+
+  etfDB.run(sql, values, function(err) {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to update client' });
+    }
+
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Client updated successfully',
+      client_id: clientId
     });
   });
 });
