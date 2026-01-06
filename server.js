@@ -2055,6 +2055,52 @@ app.post('/api/mt/client', (req, res) => {
   });
 });
 
+// Lookup client by Telegram bot ID (preferred - each client has unique bot)
+app.get('/api/mt/client-by-bot/:botId', (req, res) => {
+  const { botId } = req.params;
+
+  const sql = `
+    SELECT 
+      client_id,
+      business_name,
+      greeting,
+      timezone,
+      settings,
+      telegram_bot_token
+    FROM client_configs 
+    WHERE telegram_bot_token LIKE ? AND status = 'active'
+  `;
+
+  etfDB.get(sql, [`${botId}:%`], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Failed to fetch client config' });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: 'No client found for this bot', bot_id: botId });
+    }
+
+    let settings = {};
+    if (row.settings) {
+      try {
+        settings = JSON.parse(row.settings);
+      } catch (e) {
+        settings = {};
+      }
+    }
+
+    res.json({
+      success: true,
+      client_id: row.client_id,
+      business_name: row.business_name,
+      greeting: row.greeting || `Welcome to ${row.business_name}!`,
+      timezone: row.timezone,
+      settings: settings
+    });
+  });
+});
+
 // Lookup client by Telegram chat ID (for n8n Telegram trigger)
 app.get('/api/mt/client-by-chat/:chatId', (req, res) => {
   const { chatId } = req.params;
