@@ -6044,6 +6044,247 @@ function extractWebhookUrl(nodes) {
   return null;
 }
 
+// ========================================
+// POC Control Panel API Endpoints
+// ========================================
+
+// POC: Get settings
+app.get('/api/poc/settings', (req, res) => {
+  res.json({
+    n8nUrl: N8N_BASE_URL,
+    configured: !!N8N_API_KEY
+  });
+});
+
+// POC: Test N8N connection
+app.get('/api/poc/n8n/test', async (req, res) => {
+  try {
+    const workflows = await n8nClient.getWorkflows();
+    const workflowList = Array.isArray(workflows) ? workflows : (workflows.data || []);
+    res.json({
+      success: true,
+      workflowCount: workflowList.length,
+      message: 'Connection successful'
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Helper function to clean workflow for N8N API
+function cleanWorkflowForN8N(workflowData) {
+  // Remove read-only and auto-generated fields
+  const cleanNodes = (workflowData.nodes || []).map(node => {
+    const cleanNode = { ...node };
+    delete cleanNode.id;
+    delete cleanNode.webhookId;
+    return cleanNode;
+  });
+  
+  // Only include fields that N8N API accepts for creation
+  return {
+    name: workflowData.name,
+    nodes: cleanNodes,
+    connections: workflowData.connections || {},
+    settings: workflowData.settings || {},
+    staticData: workflowData.staticData || null
+  };
+}
+
+// POC: Deploy single workflow
+app.post('/api/poc/deploy-single', async (req, res) => {
+  try {
+    const { workflowIndex, businessName, placeholders } = req.body;
+    
+    if (workflowIndex === undefined || workflowIndex < 0 || workflowIndex > 23) {
+      return res.status(400).json({ success: false, error: 'Invalid workflow index' });
+    }
+    
+    const workflowFileName = `Workflow_${String(workflowIndex).padStart(2, '0')}.json`;
+    const workflowPath = path.join(__dirname, 'extracted_workflows', workflowFileName);
+    
+    if (!fs.existsSync(workflowPath)) {
+      return res.status(404).json({ success: false, error: `Workflow file not found: ${workflowFileName}` });
+    }
+    
+    const workflowContent = fs.readFileSync(workflowPath, 'utf8');
+    let workflowData = JSON.parse(workflowContent);
+    
+    // Replace placeholders in the workflow
+    let workflowStr = JSON.stringify(workflowData);
+    for (const [key, value] of Object.entries(placeholders || {})) {
+      const placeholder = `<__PLACEHOLDER_VALUE__${key}__>`;
+      workflowStr = workflowStr.split(placeholder).join(value);
+    }
+    workflowData = JSON.parse(workflowStr);
+    
+    // Rename workflow with business name prefix
+    const sanitizedName = businessName.replace(/[^a-zA-Z0-9_]/g, '_');
+    workflowData.name = `[${sanitizedName}] ${workflowData.name}`;
+    
+    // Clean workflow for N8N API
+    workflowData = cleanWorkflowForN8N(workflowData);
+    
+    // Create the workflow in N8N
+    const createdWorkflow = await n8nClient.createWorkflow(workflowData);
+    
+    // Create and apply tag for business name
+    try {
+      const tag = await n8nClient.createTag(sanitizedName);
+      if (tag && tag.id) {
+        await n8nClient.updateWorkflowTags(createdWorkflow.id, [tag]);
+      }
+    } catch (tagError) {
+      console.warn(`Warning: Could not apply tag to workflow: ${tagError.message}`);
+    }
+    
+    res.json({
+      success: true,
+      workflowId: createdWorkflow.id,
+      workflowName: createdWorkflow.name
+    });
+    
+  } catch (error) {
+    console.error('Deploy single workflow error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POC: Deploy all workflows (streaming)
+app.post('/api/poc/deploy-all', async (req, res) => {
+  const { businessName, placeholders } = req.body;
+  
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  
+  const sanitizedName = businessName.replace(/[^a-zA-Z0-9_]/g, '_');
+  let successCount = 0;
+  let tag = null;
+  
+  // Create tag first
+  try {
+    tag = await n8nClient.createTag(sanitizedName);
+    res.write(JSON.stringify({ type: 'info', message: `Created tag: ${sanitizedName}` }) + '\n');
+  } catch (tagError) {
+    res.write(JSON.stringify({ type: 'warning', message: `Could not create tag: ${tagError.message}` }) + '\n');
+  }
+  
+  for (let i = 0; i < 24; i++) {
+    const workflowFileName = `Workflow_${String(i).padStart(2, '0')}.json`;
+    const workflowPath = path.join(__dirname, 'extracted_workflows', workflowFileName);
+    
+    try {
+      if (!fs.existsSync(workflowPath)) {
+        res.write(JSON.stringify({
+          type: 'progress',
+          current: i + 1,
+          total: 24,
+          workflowIndex: i,
+          workflowName: workflowFileName,
+          success: false,
+          error: 'File not found'
+        }) + '\n');
+        continue;
+      }
+      
+      const workflowContent = fs.readFileSync(workflowPath, 'utf8');
+      let workflowData = JSON.parse(workflowContent);
+      
+      // Replace placeholders
+      let workflowStr = JSON.stringify(workflowData);
+      for (const [key, value] of Object.entries(placeholders || {})) {
+        const placeholder = `<__PLACEHOLDER_VALUE__${key}__>`;
+        workflowStr = workflowStr.split(placeholder).join(value);
+      }
+      workflowData = JSON.parse(workflowStr);
+      
+      // Rename workflow
+      const originalName = workflowData.name;
+      workflowData.name = `[${sanitizedName}] ${workflowData.name}`;
+      
+      // Clean workflow for N8N API
+      workflowData = cleanWorkflowForN8N(workflowData);
+      
+      // Create the workflow
+      const createdWorkflow = await n8nClient.createWorkflow(workflowData);
+      
+      // Apply tag if available
+      if (tag && tag.id) {
+        try {
+          await n8nClient.updateWorkflowTags(createdWorkflow.id, [tag]);
+        } catch (e) {
+          console.warn(`Could not apply tag to workflow ${createdWorkflow.id}`);
+        }
+      }
+      
+      successCount++;
+      
+      res.write(JSON.stringify({
+        type: 'progress',
+        current: i + 1,
+        total: 24,
+        workflowIndex: i,
+        workflowName: originalName,
+        workflowId: createdWorkflow.id,
+        success: true
+      }) + '\n');
+      
+    } catch (error) {
+      res.write(JSON.stringify({
+        type: 'progress',
+        current: i + 1,
+        total: 24,
+        workflowIndex: i,
+        workflowName: workflowFileName,
+        success: false,
+        error: error.message
+      }) + '\n');
+    }
+  }
+  
+  res.write(JSON.stringify({
+    type: 'complete',
+    successful: successCount,
+    total: 24,
+    businessName: sanitizedName
+  }) + '\n');
+  
+  res.end();
+});
+
+// POC: Get deployed workflows for a business
+app.get('/api/poc/workflows/:businessName', async (req, res) => {
+  try {
+    const { businessName } = req.params;
+    const sanitizedName = businessName.replace(/[^a-zA-Z0-9_]/g, '_');
+    
+    const allWorkflows = await n8nClient.getWorkflows();
+    const workflowList = Array.isArray(allWorkflows) ? allWorkflows : (allWorkflows.data || []);
+    
+    const businessWorkflows = workflowList.filter(wf => 
+      wf.name && wf.name.startsWith(`[${sanitizedName}]`)
+    );
+    
+    res.json({
+      success: true,
+      businessName: sanitizedName,
+      workflows: businessWorkflows.map(wf => ({
+        id: wf.id,
+        name: wf.name,
+        active: wf.active,
+        createdAt: wf.createdAt,
+        updatedAt: wf.updatedAt
+      }))
+    });
+    
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Start server
 const port = process.env.PORT || 5000;
 

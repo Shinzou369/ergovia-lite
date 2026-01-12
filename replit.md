@@ -2,6 +2,17 @@
 
 Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketing and automation tasks. The application provides a ChatGPT-like interface for conversational AI interactions, along with specialized features including workflow templates (Taskforce), client onboarding systems, and integration with n8n automation platform. The system supports multiple AI models with intelligent routing, secure local email/password authentication with bcrypt, and includes an ETF (Exchange Traded Fund) system for automated workflow deployment to clients.
 
+# Recent Changes (January 2026)
+
+## POC Control Panel for N8N Workflow Deployment
+- **POC Control Panel Page**: New `/poc-control-panel.html` page for Demo Veterinary Service
+- **24 Workflow Templates**: Extracted and configured 24 n8n workflow templates
+- **Workflow Deployment API**: New endpoints `/api/poc/deploy-single` and `/api/poc/deploy-all` for deploying workflows
+- **N8N Tagging System**: Workflows are tagged with business name (e.g., "Demo_Veterinary_Service") for organization
+- **Sample Placeholder Values**: All placeholders use clearly marked SAMPLE values (e.g., `SAMPLE_SHEET_ID_1234567890`)
+- **Streaming Deployment**: Deploy-all endpoint supports streaming progress updates
+- **Connection Testing**: Test N8N connection via `/api/poc/n8n/test`
+
 # Recent Changes (October 2025)
 
 ## Complete Local Authentication Migration
