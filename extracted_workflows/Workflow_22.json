@@ -1,0 +1,1206 @@
+{
+  "name": "Workflow 22: Integration Hub",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guest-conversation",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "6c3eb65c-4767-4eb0-bec8-12b3b2188f01",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2096,
+        2096
+      ],
+      "webhookId": "a98f47e0-a1b1-4578-88bf-0ff1bff336fa"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "booking_id",
+              "value": "={{ $json.body.booking_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "guest_message",
+              "value": "={{ $json.body.guest_message }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "channel_type",
+              "value": "={{ $json.body.channel_type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "d38abac4-7733-4786-9c4d-3587883de1c8",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1872,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Bookings Sheet ID__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "<__PLACEHOLDER_VALUE__Bookings Sheet Name__>"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "booking_id",
+              "lookupValue": "={{ $('Workflow Configuration').item.json.booking_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "id": "da0d2b56-2a50-42a7-a407-5fa9b718ae2f",
+      "name": "Get Booking Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1648,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Properties Sheet ID__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "<__PLACEHOLDER_VALUE__Properties Sheet Name__>"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_id",
+              "lookupValue": "={{ $('Get Booking Data').item.json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fe30a415-0307-4d8c-8a9a-c600baed7f15",
+      "name": "Get Property Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1424,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Property Configurations Sheet ID__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "<__PLACEHOLDER_VALUE__Property Configurations Sheet Name__>"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_id",
+              "lookupValue": "={{ $('Get Booking Data').item.json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c09a071f-e7f7-4176-bdc9-7d1cf6e5eb4e",
+      "name": "Get Property Configurations",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1200,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const bookingData = $input.item.json;\n\nlet conversationHistory = [];\n\nif (bookingData.conversation_history && bookingData.conversation_history !== '') {\n  try {\n    conversationHistory = JSON.parse(bookingData.conversation_history);\n  } catch (e) {\n    conversationHistory = [];\n  }\n}\n\nreturn {\n  json: {\n    ...bookingData,\n    parsed_conversation_history: conversationHistory\n  }\n};"
+      },
+      "id": "f1978f4c-cb77-4b93-aeed-e1a212cb04ac",
+      "name": "Parse Conversation History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Guest message: {{ $('Workflow Configuration').item.json.guest_message }}\n\nBooking Details:\n- Guest Name: {{ $('Get Booking Data').item.json.guest_name }}\n- Property: {{ $('Get Property Data').item.json.property_name }}\n- Check-in: {{ $('Get Booking Data').item.json.check_in }}\n- Check-out: {{ $('Get Booking Data').item.json.check_out }}\n- Number of Guests: {{ $('Get Booking Data').item.json.number_of_guests }}\n\nProperty Information:\n- Address: {{ $('Get Property Data').item.json.address }}\n- WiFi Network: {{ $('Get Property Data').item.json.wifi_network }}\n- WiFi Password: {{ $('Get Property Data').item.json.wifi_password }}\n- Door Code: {{ $('Get Property Data').item.json.door_code }}\n- Lockbox Location: {{ $('Get Property Data').item.json.lockbox_location }}\n- Parking: {{ $('Get Property Data').item.json.parking_instructions }}\n- Check-in Time: {{ $('Get Property Data').item.json.check_in_time }}\n- Check-out Time: {{ $('Get Property Data').item.json.check_out_time }}\n- House Rules: {{ $('Get Property Data').item.json.house_rules }}\n\nConversation History:\n{{ JSON.stringify($('Parse Conversation History').item.json.parsed_conversation_history) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a professional property manager assistant helping current and upcoming guests with their stay.\n\nYour role is to provide helpful, friendly assistance while following strict escalation rules for requests that require approval or action.\n\n**ESCALATION RULES - You MUST respond with these exact control signals:**\n\n1. **CREATE_MAINTENANCE** - For broken items, malfunctions, or maintenance issues\n   - Format: control_signal=\"CREATE_MAINTENANCE\", metadata=\"[category]:[description]\"\n   - Example: Broken AC, leaking faucet, damaged furniture\n\n2. **REQUEST_SUPPLIES** - For supply requests\n   - Format: control_signal=\"REQUEST_SUPPLIES\", metadata=\"[items]\"\n   - Example: Towels, toiletries, toilet paper, cleaning supplies\n\n3. **CHECK_EXTENSION** - For stay extension requests\n   - Format: control_signal=\"CHECK_EXTENSION\", metadata=\"[current_checkout]:[requested_checkout]\"\n\n4. **LATE_CHECKOUT** - For late checkout requests\n   - Format: control_signal=\"LATE_CHECKOUT\", metadata=\"[requested_time]\"\n\n5. **EARLY_CHECKOUT** - For early departure\n   - Format: control_signal=\"EARLY_CHECKOUT\", metadata=\"[departure_date]\"\n\n6. **MID_STAY_CLEANING** - For mid-stay cleaning requests\n   - Format: control_signal=\"MID_STAY_CLEANING\", metadata=\"[requested_date]\"\n\n7. **ESCALATE_TO_CONTACT** - For other requests needing approval\n   - Format: control_signal=\"ESCALATE_TO_CONTACT\", metadata=\"[reason]\"\n\n**SPECIAL CASE - Guest Locked Out:**\nIf guest is locked out or asking for door code urgently, provide the door code immediately with control_signal=\"NONE\"\n\n**For all other questions:**\n- Provide helpful answers about the property, WiFi, parking, check-in procedures, local tips, house rules\n- Keep responses under 150 words\n- Be friendly and professional\n- Use control_signal=\"NONE\" and put your response in response_text\n\nAlways include the appropriate control_signal, response_text, and metadata fields in your structured output."
+        }
+      },
+      "id": "e7a288d2-d824-4f2c-8976-97b3c9ac0001",
+      "name": "Guest Assistant AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -752,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "1f730064-dbd2-4d4f-980d-18fea0e2d5af",
+      "name": "OpenAI GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        2320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "hjgRmf9Z6sBnirP3",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"control_signal\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Control signal for routing: CREATE_MAINTENANCE, REQUEST_SUPPLIES, CHECK_EXTENSION, LATE_CHECKOUT, EARLY_CHECKOUT, MID_STAY_CLEANING, ESCALATE_TO_CONTACT, or NONE\"\n\t\t},\n\t\t\"response_text\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"The response message to send to the guest\"\n\t\t},\n\t\t\"metadata\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Additional metadata for the control signal (e.g., category:description for maintenance, items for supplies)\"\n\t\t}\n\t}\n}"
+      },
+      "id": "9a26505f-48a4-412f-8d2e-f21116a659a0",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -624,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutput = $input.item.json;\n\nreturn {\n  json: {\n    control_signal: aiOutput.control_signal || 'NONE',\n    response_text: aiOutput.response_text || '',\n    metadata: aiOutput.metadata || '',\n    original_input: $('Workflow Configuration').item.json,\n    booking_data: $('Get Booking Data').item.json,\n    property_data: $('Get Property Data').item.json,\n    config_data: $('Get Property Configurations').item.json\n  }\n};"
+      },
+      "id": "1140dbc0-9364-49ae-ad51-213c3af48d0c",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "CREATE_MAINTENANCE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CREATE_MAINTENANCE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "REQUEST_SUPPLIES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REQUEST_SUPPLIES"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "CHECK_EXTENSION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CHECK_EXTENSION"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "LATE_CHECKOUT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LATE_CHECKOUT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "EARLY_CHECKOUT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "EARLY_CHECKOUT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "MID_STAY_CLEANING",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "MID_STAY_CLEANING"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.control_signal }}",
+                    "rightValue": "ESCALATE_TO_CONTACT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESCALATE_TO_CONTACT"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "NONE"
+        }
+      },
+      "id": "96a6adec-258f-4501-8652-cfa2248db74f",
+      "name": "Route by Control Signal",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Maintenance Ticket Creator Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "property_id",
+              "value": "={{ $json.property_data.property_id }}"
+            },
+            {
+              "name": "description",
+              "value": "={{ $json.metadata }}"
+            },
+            {
+              "name": "reported_by",
+              "value": "={{ $json.booking_data.guest_name }}"
+            },
+            {
+              "name": "channel_type",
+              "value": "={{ $json.original_input.channel_type }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fd2a66f7-120a-40ae-948b-04dd2bcbe274",
+      "name": "Call Maintenance Ticket Creator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Availability Checker Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "property_name",
+              "value": "={{ $json.property_data.property_name }}"
+            },
+            {
+              "name": "dates",
+              "value": "={{ $json.metadata }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f9910471-fb68-4845-93b2-88afafc471ce",
+      "name": "Call Availability Checker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        48,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Properties Sheet ID__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "<__PLACEHOLDER_VALUE__Properties Sheet Name__>"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupValue": "={{ $('Get Property Data').item.json.area }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b22d8a97-96ab-4a71-ba4b-76c95953a9ec",
+      "name": "Get Alternative Properties",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        272,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Cleaners Sheet ID__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "<__PLACEHOLDER_VALUE__Cleaners Sheet Name__>"
+        },
+        "options": {}
+      },
+      "id": "e0138dd2-7b41-4272-879c-970997664608",
+      "name": "Get Cleaners Workload",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cleaners = $input.all();\nlet bestCleaner = cleaners[0];\nlet lowestWorkload = parseInt(cleaners[0].json.current_workload || 0);\n\nfor (let i = 1; i < cleaners.length; i++) {\n  const workload = parseInt(cleaners[i].json.current_workload || 0);\n  if (workload < lowestWorkload) {\n    lowestWorkload = workload;\n    bestCleaner = cleaners[i];\n  }\n}\n\nreturn {\n  json: {\n    ...bestCleaner.json,\n    recommended: true,\n    previous_data: $('Parse AI Response').item.json\n  }\n};"
+      },
+      "id": "7eea75c6-77b5-496a-84d1-87ca886422c6",
+      "name": "Calculate Best Cleaner",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "f6aca88f-5cb1-4fbb-a79e-48bad16398db",
+      "name": "Wait for Supply Request Response",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        2016
+      ],
+      "webhookId": "cbb0b67e-38a3-42ce-b4fe-f6198a01f650"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "3d7498e5-0033-4ced-8c77-7ee3a2433521",
+      "name": "Wait for Extension Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        1632
+      ],
+      "webhookId": "05b160f2-f7f4-425b-94ea-67a4abec0e7e"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "29d387c3-5464-46b1-8273-2a26235c96d0",
+      "name": "Wait for Late Checkout Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        2304
+      ],
+      "webhookId": "0f36bdb3-66c8-457d-acce-8ffed82c02ab"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "99b3a87b-4898-41fe-a043-58d3256d993e",
+      "name": "Wait for Early Checkout Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        2496
+      ],
+      "webhookId": "55dc04fd-0e78-4c2e-b665-0c5b07292082"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "d41ff9e8-df7c-4afc-b5e8-578269a88bbb",
+      "name": "Wait for Cleaning Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        1824
+      ],
+      "webhookId": "70f1398b-742a-4e2f-a39d-02ea2becd661"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "7b588381-8d10-4644-a4e9-650304261bed",
+      "name": "Wait for Escalation Response",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        2688
+      ],
+      "webhookId": "4af1d4c5-7586-4348-b780-7ac3972fcd38"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SMS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b54cb976-a972-4053-aec0-e1b79b1191aa",
+      "name": "Route Guest Response",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio Phone Number__>",
+        "to": "={{ $('Parse AI Response').item.json.booking_data.guest_phone }}",
+        "message": "={{ $json.response_text || $('Parse AI Response').item.json.response_text }}",
+        "options": {}
+      },
+      "id": "1afabbe1-cf64-437b-9b79-015353d3397b",
+      "name": "Send SMS to Guest",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        944,
+        1904
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Parse AI Response').item.json.booking_data.guest_phone }}",
+        "textBody": "={{ $json.response_text || $('Parse AI Response').item.json.response_text }}",
+        "additionalFields": {}
+      },
+      "id": "9e7721f1-f098-4c5d-b60e-8d4ee09224fe",
+      "name": "Send WhatsApp to Guest",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        944,
+        2096
+      ],
+      "webhookId": "92038504-b1a4-4a4e-9e2f-da2682258354"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse AI Response').item.json.booking_data.guest_phone }}",
+        "text": "={{ $json.response_text || $('Parse AI Response').item.json.response_text }}",
+        "additionalFields": {}
+      },
+      "id": "aced43ac-3429-4a05-aac2-9d2093b2a5a0",
+      "name": "Send Telegram to Guest",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        2288
+      ],
+      "webhookId": "8110dd6e-1519-4307-a6d2-8297cf91ebb5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parseData = $('Parse AI Response').item.json;\nconst workflowConfig = $('Workflow Configuration').item.json;\nconst bookingData = $('Get Booking Data').item.json;\n\nlet conversationHistory = [];\nif (bookingData.conversation_history && bookingData.conversation_history !== '') {\n  try {\n    conversationHistory = JSON.parse(bookingData.conversation_history);\n  } catch (e) {\n    conversationHistory = [];\n  }\n}\n\nconversationHistory.push({\n  role: 'user',\n  content: workflowConfig.guest_message,\n  timestamp: new Date().toISOString()\n});\n\nconversationHistory.push({\n  role: 'assistant',\n  content: $input.item.json.response_text || parseData.response_text,\n  control_signal: parseData.control_signal,\n  timestamp: new Date().toISOString()\n});\n\nreturn {\n  json: {\n    booking_id: workflowConfig.booking_id,\n    conversation_history: JSON.stringify(conversationHistory)\n  }\n};"
+      },
+      "id": "5d894ec1-4255-41fd-a3d4-42abf2589a35",
+      "name": "Update Conversation History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        2096
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Bookings Sheet ID__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "<__PLACEHOLDER_VALUE__Bookings Sheet Name__>"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "booking_id": "={{ $json.booking_id }}",
+            "conversation_history": "={{ $json.conversation_history }}"
+          },
+          "matchingColumns": [
+            "booking_id"
+          ],
+          "schema": [
+            {
+              "id": "booking_id",
+              "displayName": "booking_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "conversation_history",
+              "displayName": "conversation_history",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "43f9b0a8-8bf3-428b-8246-7dbf18e06658",
+      "name": "Update Booking Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1392,
+        2096
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Get Property Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Data": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configurations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configurations": {
+      "main": [
+        [
+          {
+            "node": "Parse Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Conversation History": {
+      "main": [
+        [
+          {
+            "node": "Guest Assistant AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest Assistant AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Guest Assistant AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Guest Assistant AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Route by Control Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Control Signal": {
+      "main": [
+        [
+          {
+            "node": "Call Maintenance Ticket Creator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for Supply Request Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Availability Checker",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for Late Checkout Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for Early Checkout Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Cleaners Workload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait for Escalation Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Maintenance Ticket Creator": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Availability Checker": {
+      "main": [
+        [
+          {
+            "node": "Get Alternative Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Alternative Properties": {
+      "main": [
+        [
+          {
+            "node": "Wait for Extension Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cleaners Workload": {
+      "main": [
+        [
+          {
+            "node": "Calculate Best Cleaner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Best Cleaner": {
+      "main": [
+        [
+          {
+            "node": "Wait for Cleaning Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Supply Request Response": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Extension Approval": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Late Checkout Approval": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Early Checkout Approval": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Cleaning Approval": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Escalation Response": {
+      "main": [
+        [
+          {
+            "node": "Route Guest Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Guest Response": {
+      "main": [
+        [
+          {
+            "node": "Send SMS to Guest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp to Guest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram to Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS to Guest": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp to Guest": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram to Guest": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Conversation History": {
+      "main": [
+        [
+          {
+            "node": "Update Booking Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1aca3647d1bd3d705ea9a2cf179f53f1dc08ce2a64f422c564c85aa22e45e3e2"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

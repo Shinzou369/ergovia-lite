@@ -1,0 +1,424 @@
+{
+  "name": "Workflow 19: Emergency Response",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-confirmation",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "f3a528d5-652f-4c78-8b22-58f46322a4d4",
+      "name": "Booking Confirmation Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1792,
+        656
+      ],
+      "webhookId": "8b59f714-ee15-47b1-8e61-50e95e891681"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "guest_journey_webhook_url",
+              "value": "<__PLACEHOLDER_VALUE__Guest Journey Scheduler Webhook URL__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "cleaning_scheduler_webhook_url",
+              "value": "<__PLACEHOLDER_VALUE__Cleaning Scheduler Webhook URL__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "property_configurations_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Property Configurations Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "bookings_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Bookings Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "property_calendar_id",
+              "value": "<__PLACEHOLDER_VALUE__Property Google Calendar ID__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "730bcaf5-4dea-4ebc-915b-b56134ff25f6",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1568,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get webhook data from the first item\nconst webhookData = $input.first().json;\n\n// Generate booking ID using timestamp\nconst timestamp = Date.now();\nconst booking_id = `BK${timestamp}`;\n\n// Parse check-in and check-out dates\nconst checkInDate = new Date(webhookData.check_in);\nconst checkOutDate = new Date(webhookData.check_out);\n\n// Calculate number of nights\nconst timeDiff = checkOutDate.getTime() - checkInDate.getTime();\nconst nights = Math.ceil(timeDiff / (1000 * 3600 * 24));\n\n// Get current timestamp for created_date\nconst created_date = new Date().toISOString();\n\n// Return all webhook data plus calculated fields\nreturn [{\n  json: {\n    ...webhookData,\n    booking_id: booking_id,\n    nights: nights,\n    booking_status: 'confirmed',\n    payment_confirmed: true,\n    created_date: created_date\n  }\n}];"
+      },
+      "id": "b6b638d4-f6f4-4114-8df8-4cd411e7ece2",
+      "name": "Generate Booking ID and Calculate Nights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1344,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.bookings_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Bookings"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "booking_id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1ef76ef-1f30-4439-9a38-3ac0f92309a0",
+      "name": "Append Booking to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1120,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.property_calendar_id }}"
+        },
+        "start": "={{ $json.check_in }}",
+        "end": "={{ $json.check_out }}",
+        "additionalFields": {
+          "description": "={{ 'Booking ID: ' + $json.booking_id }}",
+          "summary": "={{ $json.guest_name }}"
+        }
+      },
+      "id": "115b121d-ce62-4902-9b06-5c4dcfae7feb",
+      "name": "Block Dates on Property Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -896,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Workflow Configuration').first().json.guest_journey_webhook_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"booking_id\": \"={{ $json.booking_id }}\",\n  \"channel_type\": \"={{ $json.channel_type }}\"\n}",
+        "options": {}
+      },
+      "id": "1405576f-feae-4294-8037-1e451105b415",
+      "name": "Trigger Guest Journey Scheduler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -672,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Workflow Configuration').first().json.cleaning_scheduler_webhook_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"property_name\": \"={{ $json.property_name }}\",\n  \"check_out\": \"={{ $json.check_out }}\",\n  \"booking_id\": \"={{ $json.booking_id }}\"\n}",
+        "options": {}
+      },
+      "id": "8c3709ca-b0bf-48a0-8da0-65f3c7ec21af",
+      "name": "Trigger Cleaning Scheduler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -448,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.property_configurations_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Property_Configurations"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_name",
+              "lookupValue": "={{ $json.property_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7c4cd398-ecc2-4b86-a679-58bd009a1fea",
+      "name": "Query Property Configurations",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -224,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.booking_notification_contact }}",
+        "text": "=New Booking Confirmed!\n\nGuest: {{ $('Generate Booking ID and Calculate Nights').first().json.guest_name }}\nProperty: {{ $('Generate Booking ID and Calculate Nights').first().json.property_name }}\nCheck-in: {{ $('Generate Booking ID and Calculate Nights').first().json.check_in }}\nCheck-out: {{ $('Generate Booking ID and Calculate Nights').first().json.check_out }}\nNights: {{ $('Generate Booking ID and Calculate Nights').first().json.nights }}\nGuests: {{ $('Generate Booking ID and Calculate Nights').first().json.number_of_guests }}\n\nIMPORTANT: Please block these dates on Airbnb, Vrbo, and Booking.com to prevent double bookings.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "I've Blocked on All Platforms",
+                    "additionalFields": {
+                      "callback_data": "blocked_all_platforms"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View Booking Details",
+                    "additionalFields": {
+                      "callback_data": "view_booking_details"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Contact Guest",
+                    "additionalFields": {
+                      "callback_data": "contact_guest"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "84b5b1c5-6b2e-4c86-82fe-e984c847518b",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        560
+      ],
+      "webhookId": "555defa9-11b5-479e-8af2-074a97648f95"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.booking_notification_contact }}",
+        "textBody": "=New Booking Confirmed!\n\nGuest: {{ $('Generate Booking ID and Calculate Nights').first().json.guest_name }}\nProperty: {{ $('Generate Booking ID and Calculate Nights').first().json.property_name }}\nCheck-in: {{ $('Generate Booking ID and Calculate Nights').first().json.check_in }}\nCheck-out: {{ $('Generate Booking ID and Calculate Nights').first().json.check_out }}\nNights: {{ $('Generate Booking ID and Calculate Nights').first().json.nights }}\nGuests: {{ $('Generate Booking ID and Calculate Nights').first().json.number_of_guests }}\n\nIMPORTANT: Please block these dates on Airbnb, Vrbo, and Booking.com to prevent double bookings.",
+        "additionalFields": {}
+      },
+      "id": "a6bf60ec-8c81-4801-bce4-2966d28757d7",
+      "name": "Send WhatsApp Notification",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        752
+      ],
+      "webhookId": "b394692c-3484-42c3-b8ae-3d959b9f56f6"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"booking_id\": \"={{ $('Generate Booking ID and Calculate Nights').first().json.booking_id }}\"\n}",
+        "options": {}
+      },
+      "id": "dd2e255c-0dd7-4673-86f6-9520b433f4f6",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        656
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Booking Confirmation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Generate Booking ID and Calculate Nights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Booking ID and Calculate Nights": {
+      "main": [
+        [
+          {
+            "node": "Append Booking to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Booking to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Block Dates on Property Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Block Dates on Property Calendar": {
+      "main": [
+        [
+          {
+            "node": "Trigger Guest Journey Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Guest Journey Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Trigger Cleaning Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Cleaning Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Query Property Configurations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Property Configurations": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1aca3647d1bd3d705ea9a2cf179f53f1dc08ce2a64f422c564c85aa22e45e3e2"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

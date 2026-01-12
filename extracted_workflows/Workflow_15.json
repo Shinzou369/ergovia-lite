@@ -1,0 +1,1719 @@
+{
+  "name": "Workflow 15: Inventory Predictor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cleaning-usage",
+        "options": {
+          "responseData": "{ \"trigger_type\": \"cleaning_usage\" }"
+        }
+      },
+      "id": "fdffa68e-b1d2-4251-a150-072ad4554eee",
+      "name": "Webhook - Cleaning Usage",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "228d243d-10d1-4955-bb41-3aabbab80d39"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-booking",
+        "options": {
+          "responseData": "{ \"trigger_type\": \"booking_prediction\" }"
+        }
+      },
+      "id": "5e250a3d-bcd1-4b69-82e1-c01e3e36dc2d",
+      "name": "Webhook - New Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "ab9586cb-16bf-4d05-bece-b50af869157d"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "id": "d2c2cf46-551a-4eab-82e5-b6c015f56a83",
+      "name": "Schedule - Weekly Audit",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2928,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "869dbd57-71b7-4cb1-a05a-fccd5b2ca6dd",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2704,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "inventory_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets Inventory Document ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "property_config_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets Property Configurations Document ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "purchase_orders_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets Purchase Orders Document ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "suppliers_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets Suppliers Document ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "toilet_paper_rate",
+              "value": 0.5,
+              "type": "number"
+            },
+            {
+              "id": "id-6",
+              "name": "paper_towels_rate",
+              "value": 0.3,
+              "type": "number"
+            },
+            {
+              "id": "id-7",
+              "name": "trash_bags_rate",
+              "value": 0.5,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "13523cb6-b7c6-43c1-843d-1af0dae2e306",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2480,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.trigger_type }}",
+                    "rightValue": "cleaning_usage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cleaning Usage"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.trigger_type }}",
+                    "rightValue": "weekly_audit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Weekly Audit"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.trigger_type }}",
+                    "rightValue": "booking_prediction",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Booking Prediction"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e257d7fc-d53d-49c0-97f8-2608aad1a32a",
+      "name": "Route by Trigger Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2256,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process supplies_used array from webhook body\nconst webhookData = $input.first().json;\nconst suppliesUsed = webhookData.body?.supplies_used || webhookData.supplies_used || [];\n\n// Create an item for each supply with required fields\nconst items = suppliesUsed.map(supply => ({\n  json: {\n    item_name: supply.item_name,\n    quantity_used: supply.quantity_used,\n    property_id: supply.property_id\n  }\n}));\n\nreturn items;"
+      },
+      "id": "f4ffc437-10c6-4603-8939-0a57b9df33c2",
+      "name": "Process Supplies Used",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.inventory_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Inventory"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "id": "f6356f20-5fdd-4181-9d47-71c9b086d7a6",
+      "name": "Get All Inventory Items",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2032,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter items where current quantity is at or below reorder point\nconst itemsBelowReorderPoint = [];\n\nfor (const item of $input.all()) {\n  const currentQty = item.json.current_qty || 0;\n  const reorderPoint = item.json.reorder_point || 0;\n  \n  if (currentQty <= reorderPoint) {\n    itemsBelowReorderPoint.push(item);\n  }\n}\n\nreturn itemsBelowReorderPoint;"
+      },
+      "id": "3072ee05-0e3d-4478-ba63-2a73eacbd2c0",
+      "name": "Filter Items Below Reorder Point",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate predicted usage based on guest nights from booking\nconst bookingData = $input.first().json;\nconst configData = $('Workflow Configuration').first().json;\n\n// Get guest nights from booking\nconst guestNights = bookingData.guest_nights || 0;\nconst propertyId = bookingData.property_id;\n\n// Get usage rates from configuration\nconst toiletPaperRate = configData.toilet_paper_rate || 0.5;\nconst paperTowelsRate = configData.paper_towels_rate || 0.3;\nconst trashBagsRate = configData.trash_bags_rate || 0.2;\n\n// Calculate predicted usage for each item\nconst items = [\n  {\n    item_name: 'Toilet Paper',\n    predicted_usage: Math.ceil(guestNights * toiletPaperRate),\n    property_id: propertyId\n  },\n  {\n    item_name: 'Paper Towels',\n    predicted_usage: Math.ceil(guestNights * paperTowelsRate),\n    property_id: propertyId\n  },\n  {\n    item_name: 'Trash Bags',\n    predicted_usage: Math.ceil(guestNights * trashBagsRate),\n    property_id: propertyId\n  }\n];\n\nreturn items.map(item => ({ json: item }));"
+      },
+      "id": "67fbd389-bb0c-4f5a-be0f-c8223831f3c1",
+      "name": "Calculate Predicted Usage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "02479ab6-2435-4547-85ec-d358c55db086",
+      "name": "Merge All Items Needing Attention",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1584,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "14f2e444-24aa-4102-ba05-b2a1208086f4",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1360,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.inventory_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Inventory"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "item_name",
+              "lookupValue": "={{ $json.item_name }}"
+            },
+            {
+              "lookupColumn": "property_id",
+              "lookupValue": "={{ $json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6eb7f006-6e29-4c8d-8776-4ed98d842ab6",
+      "name": "Lookup Item in Inventory",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1136,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get the current item data\nconst item = $input.item.json;\n\n// Calculate new quantity\n// Subtract quantity_used if present, otherwise subtract predicted_usage\nconst quantityToSubtract = item.quantity_used || item.predicted_usage || 0;\nconst new_qty = item.current_qty - quantityToSubtract;\n\n// Check if below reorder point\nconst below_threshold = new_qty < item.reorder_point;\n\n// Return the item with new fields\nreturn {\n  ...item,\n  new_qty: new_qty,\n  below_threshold: below_threshold\n};"
+      },
+      "id": "fb089416-3c34-4811-b7f6-4c6c087290f5",
+      "name": "Calculate New Quantity and Check Threshold",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.inventory_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Inventory"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "item_name": "={{ $json.item_name }}",
+            "current_qty": "={{ $json.new_qty }}"
+          },
+          "matchingColumns": [
+            "item_name"
+          ],
+          "schema": [
+            {
+              "id": "item_name",
+              "displayName": "item_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "current_qty",
+              "displayName": "current_qty",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "09223037-3815-4a54-91c0-9ab19d8e293b",
+      "name": "Update Inventory Quantity",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -688,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.below_threshold }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6f67a780-9044-427f-b63f-32d55cba6abc",
+      "name": "Check If Below Reorder Point",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -464,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "item_name"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "19599eeb-e3c1-4794-b8b2-3ebc5cc288ab",
+      "name": "Collect Items for Reorder",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Group items by property_id and supplier\nconst grouped = {};\n\n// Process all input items\nfor (const item of $input.all()) {\n  const propertyId = item.json.property_id;\n  const supplier = item.json.supplier;\n  \n  // Initialize property if it doesn't exist\n  if (!grouped[propertyId]) {\n    grouped[propertyId] = {};\n  }\n  \n  // Initialize supplier array if it doesn't exist\n  if (!grouped[propertyId][supplier]) {\n    grouped[propertyId][supplier] = [];\n  }\n  \n  // Add item to the appropriate group\n  grouped[propertyId][supplier].push(item.json);\n}\n\n// Return the grouped data\nreturn [{ json: { grouped } }];"
+      },
+      "id": "675cb1ed-aa28-4013-8151-3d214e90f5ac",
+      "name": "Group Items by Supplier and Property",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "properties",
+        "options": {}
+      },
+      "id": "2d42f21f-b89a-46f1-8944-c7bab57ec4dd",
+      "name": "Split Out Property Groups",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        208,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.property_config_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Property_Configurations"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_id",
+              "lookupValue": "={{ $json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3c7953dd-9856-44e1-8f35-846ba370a398",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create purchase order proposals with property info and supplier groupings\nconst items = $input.all();\n\nif (items.length === 0) {\n  return [];\n}\n\n// Get property configuration from the first item\nconst propertyConfig = items[0].json;\nconst propertyName = propertyConfig.property_name;\nconst inventoryManagerContact = propertyConfig.inventory_manager_contact;\nconst preferredPlatform = propertyConfig.preferred_platform;\n\n// Get the grouped items data\nconst groupedItems = propertyConfig.items || [];\n\n// Create purchase order proposals grouped by supplier\nconst proposals = [];\n\nfor (const group of groupedItems) {\n  const proposal = {\n    property_name: propertyName,\n    inventory_manager_contact: inventoryManagerContact,\n    preferred_platform: preferredPlatform,\n    supplier_name: group.supplier_name,\n    supplier_id: group.supplier_id,\n    items: group.items.map(item => ({\n      item_name: item.item_name,\n      item_id: item.item_id,\n      current_quantity: item.current_quantity,\n      reorder_point: item.reorder_point,\n      reorder_quantity: item.reorder_quantity,\n      unit_cost: item.unit_cost,\n      total_cost: (item.reorder_quantity * item.unit_cost).toFixed(2)\n    })),\n    total_order_cost: group.items.reduce((sum, item) => \n      sum + (item.reorder_quantity * item.unit_cost), 0\n    ).toFixed(2),\n    item_count: group.items.length\n  };\n  \n  proposals.push({ json: proposal });\n}\n\nreturn proposals;"
+      },
+      "id": "50f7b7f2-856f-4613-a280-66b8756bd94a",
+      "name": "Create Purchase Order Proposals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b0e464e6-7489-4e20-b2b6-1abff84b411b",
+      "name": "Route by Contact Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.inventory_manager_contact }}",
+        "text": "=\ud83d\udd14 **Inventory Alert - Supplies Running Low**\n\n{{ $json.properties_affected ? '\ud83c\udfe0 **Properties Affected:** ' + $json.properties_affected.join(', ') + '\n\n' : '' }}\ud83d\udce6 **Items Needing Reorder:**\n\n{{ $json.grouped_by_supplier ? Object.keys($json.grouped_by_supplier).map(supplier => {\n  const items = $json.grouped_by_supplier[supplier];\n  return '**' + supplier + '**\n' + items.map(item => \n    '  \u2022 ' + item.item_name + ': ' + item.quantity_needed + ' units (Current: ' + item.current_quantity + ', Reorder Point: ' + item.reorder_point + ')'\n  ).join('\n');\n}).join('\n\n') : 'No items grouped' }}\n\n\u23f0 **Recommended Timing:** {{ $json.recommended_timing || 'Order within 2-3 business days' }}\n\n\ud83d\udcb0 **Estimated Total:** {{ $json.estimated_total || 'Calculating...' }}\n\nPlease review and approve the purchase orders below.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\u2705 Approve All Orders",
+                    "additionalFields": {
+                      "callback_data": "approve_all"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\ud83d\udccb Review Each Order Separately",
+                    "additionalFields": {
+                      "callback_data": "review_separately"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\u23ed\ufe0f Skip Reorder This Week",
+                    "additionalFields": {
+                      "callback_data": "skip_reorder"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\u2795 Add Items to Order",
+                    "additionalFields": {
+                      "callback_data": "add_items"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "645b4378-568e-49a3-8e53-fe5f8fdaeb20",
+      "name": "Send Telegram Message to Manager",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        272
+      ],
+      "webhookId": "6f07cc93-2381-477e-8f0a-61798390f180"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $json.inventory_manager_contact }}",
+        "components": {
+          "component": []
+        }
+      },
+      "id": "8d1859c0-fd6b-4f8b-b583-04a40026b373",
+      "name": "Send WhatsApp Message to Manager",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        464
+      ],
+      "webhookId": "81b5c48f-8f20-451f-9449-156967778f06"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "8e8d4801-ef74-406a-b407-de2011c6594d",
+      "name": "Telegram Trigger - Manager Response",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        784
+      ],
+      "webhookId": "5059d9bc-5c1b-44ea-a0e5-963c5213dc88"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "fea5847f-08e4-4925-9f81-0fdd17000570",
+      "name": "WhatsApp Trigger - Manager Response",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        976
+      ],
+      "webhookId": "08c7be39-b6f0-488e-81a0-f80ee7bb7d7b"
+    },
+    {
+      "parameters": {},
+      "id": "6bf68517-675b-444a-a3ee-fb1384968e04",
+      "name": "Merge Manager Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2704,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_data }}",
+                    "rightValue": "Approve All",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message }}",
+                    "rightValue": "Approve All",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Approve All"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_data }}",
+                    "rightValue": "Review Each",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message }}",
+                    "rightValue": "Review Each",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Review Each"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_data }}",
+                    "rightValue": "Skip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message }}",
+                    "rightValue": "Skip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Skip"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_data }}",
+                    "rightValue": "Add Items",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message }}",
+                    "rightValue": "Add Items",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Add Items"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "790f5e99-0800-4c34-b5f6-cbe9be8e9d2c",
+      "name": "Route by Manager Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2480,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.purchase_orders_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Purchase_Orders"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{ $json.order_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "supplier": "={{ $json.supplier }}",
+            "items": "={{ $json.items }}",
+            "quantities": "={{ $json.quantities }}",
+            "order_date": "={{ $json.order_date }}",
+            "status": "={{ $json.status }}"
+          },
+          "matchingColumns": [
+            "order_id"
+          ],
+          "schema": [
+            {
+              "id": "order_id",
+              "displayName": "order_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "property_id",
+              "displayName": "property_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier",
+              "displayName": "supplier",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "items",
+              "displayName": "items",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quantities",
+              "displayName": "quantities",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "order_date",
+              "displayName": "order_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "267a253e-52dd-4367-818c-6b299decf6fb",
+      "name": "Create Purchase Order Record",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2256,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.suppliers_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Suppliers"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "supplier_name",
+              "lookupValue": "={{ $json.supplier }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a26715-5561-4e5b-a45a-6666d13b4f21",
+      "name": "Get Supplier Contact Info",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2032,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SMS"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8bce594-f9b0-49e1-9ace-2a73483a8e0c",
+      "name": "Route by Supplier Contact Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1808,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "<__PLACEHOLDER_VALUE__Your email address__>",
+        "toEmail": "={{ $json.supplier_email }}",
+        "subject": "New Purchase Order - Supplies Needed",
+        "html": "=<h2>New Purchase Order</h2>\n\n<p>Dear Supplier,</p>\n\n<p>We would like to place an order for the following items:</p>\n\n<h3>Order Details:</h3>\n<ul>\n  <li><strong>Purchase Order ID:</strong> {{ $json.po_id }}</li>\n  <li><strong>Property:</strong> {{ $json.property_name }}</li>\n  <li><strong>Order Date:</strong> {{ $json.order_date }}</li>\n</ul>\n\n<h3>Items Requested:</h3>\n<table border=\"1\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse: collapse; width: 100%;\">\n  <thead>\n    <tr style=\"background-color: #f2f2f2;\">\n      <th>Item Name</th>\n      <th>Quantity</th>\n      <th>Unit</th>\n    </tr>\n  </thead>\n  <tbody>\n    {{ $json.items.map(item => `\n    <tr>\n      <td>${item.name}</td>\n      <td>${item.quantity}</td>\n      <td>${item.unit}</td>\n    </tr>\n    `).join('') }}\n  </tbody>\n</table>\n\n<h3>Delivery Instructions:</h3>\n<p>{{ $json.delivery_instructions || 'Please deliver to the property address on file.' }}</p>\n\n<p>Please confirm receipt of this order and provide an estimated delivery date.</p>\n\n<p>Thank you for your service.</p>\n\n<p>Best regards,<br>\nProperty Management Team</p>",
+        "options": {}
+      },
+      "id": "8bf5687c-d506-48cc-b6f6-fde50713331d",
+      "name": "Email Supplier",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -1584,
+        784
+      ],
+      "webhookId": "5f49db2d-4ad8-4ab7-b06b-33c2aea9686b"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $json.supplier_phone }}"
+      },
+      "id": "b6e6e94a-bf0a-4234-80b3-a83d6c88d507",
+      "name": "WhatsApp Supplier",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1584,
+        976
+      ],
+      "webhookId": "3fcc26c2-2908-4712-85fe-80d7262fe4be"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.inventory_sheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Inventory"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "item_name": "={{ $json.item_name }}",
+            "qty_on_order": "={{ $json.qty_on_order + $json.ordered_quantity }}"
+          },
+          "matchingColumns": [
+            "item_name"
+          ],
+          "schema": [
+            {
+              "id": "item_name",
+              "displayName": "item_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "qty_on_order",
+              "displayName": "qty_on_order",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b5ad1bd6-bdaa-4233-bed3-107dd5ca548c",
+      "name": "Update Inventory Qty On Order",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1136,
+        880
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a4584f1d-44da-4f23-a846-7177523afff7",
+      "name": "Merge Supplier Notifications",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1360,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare confirmation message for manager\nconst items = $input.all();\n\nif (items.length === 0) {\n  return [{\n    json: {\n      message: \"No orders were placed.\"\n    }\n  }];\n}\n\n// Extract order details from the input\nconst orderDetails = items.map(item => {\n  const data = item.json;\n  return {\n    supplier: data.supplier_name || data.supplier || 'Unknown Supplier',\n    items: data.items || [],\n    totalAmount: data.total_amount || data.totalAmount || 0,\n    expectedDelivery: data.expected_delivery || data.expectedDelivery || 'TBD',\n    poNumber: data.po_number || data.poNumber || 'N/A'\n  };\n});\n\n// Build the confirmation message\nlet message = \"\u2705 *Purchase Orders Placed Successfully*\n\n\";\n\norderDetails.forEach((order, index) => {\n  message += `\ud83d\udce6 *Order ${index + 1}*\n`;\n  message += `Supplier: ${order.supplier}\n`;\n  message += `PO Number: ${order.poNumber}\n`;\n  message += `Expected Delivery: ${order.expectedDelivery}\n`;\n  message += `Total Amount: $${order.totalAmount.toFixed(2)}\n`;\n  \n  if (order.items.length > 0) {\n    message += `Items:\n`;\n    order.items.forEach(item => {\n      message += `  \u2022 ${item.name || item.item_name}: ${item.quantity} units\n`;\n    });\n  }\n  \n  message += \"\n\";\n});\n\nmessage += \"\n\ud83d\udcca View full inventory status\";\n\nreturn [{\n  json: {\n    message: message,\n    orderCount: orderDetails.length,\n    orders: orderDetails,\n    platform: items[0].json.platform || items[0].json.contact_platform || 'telegram'\n  }\n}];"
+      },
+      "id": "a6fc5f21-3da9-4caf-969d-e6c005c67049",
+      "name": "Prepare Confirmation Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "613c2e02-295e-4295-81f1-64cda2d64aa6",
+      "name": "Route Confirmation by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -688,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.inventory_manager_contact }}",
+        "text": "={{ $json.confirmation_message }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View My Inventory",
+                    "additionalFields": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "8ddac821-5862-4b77-9663-f4eda28cab81",
+      "name": "Send Telegram Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -464,
+        784
+      ],
+      "webhookId": "fc4b8f2f-126e-4b47-8c39-879c91aa8903"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $json.inventory_manager_contact }}"
+      },
+      "id": "7cdff1df-ef90-41af-a31c-937f7824edd2",
+      "name": "Send WhatsApp Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        976
+      ],
+      "webhookId": "c58ac71e-5d6e-4e48-b65c-25053e3740c5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Cleaning Usage": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - New Booking": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Schedule - Weekly Audit": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Route by Trigger Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Trigger Type": {
+      "main": [
+        [
+          {
+            "node": "Process Supplies Used",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get All Inventory Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Predicted Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Supplies Used": {
+      "main": [
+        [
+          {
+            "node": "Merge All Items Needing Attention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Inventory Items": {
+      "main": [
+        [
+          {
+            "node": "Filter Items Below Reorder Point",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Items Below Reorder Point": {
+      "main": [
+        [
+          {
+            "node": "Merge All Items Needing Attention",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Calculate Predicted Usage": {
+      "main": [
+        [
+          {
+            "node": "Merge All Items Needing Attention",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge All Items Needing Attention": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Lookup Item in Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Item in Inventory": {
+      "main": [
+        [
+          {
+            "node": "Calculate New Quantity and Check Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate New Quantity and Check Threshold": {
+      "main": [
+        [
+          {
+            "node": "Update Inventory Quantity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Inventory Quantity": {
+      "main": [
+        [
+          {
+            "node": "Check If Below Reorder Point",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Below Reorder Point": {
+      "main": [
+        [
+          {
+            "node": "Collect Items for Reorder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Items for Reorder": {
+      "main": [
+        [
+          {
+            "node": "Group Items by Supplier and Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group Items by Supplier and Property": {
+      "main": [
+        [
+          {
+            "node": "Split Out Property Groups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Property Groups": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Create Purchase Order Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Purchase Order Proposals": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message to Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Message to Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger - Manager Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Manager Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger - Manager Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Manager Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Manager Responses": {
+      "main": [
+        [
+          {
+            "node": "Route by Manager Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Manager Action": {
+      "main": [
+        [
+          {
+            "node": "Create Purchase Order Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Purchase Order Record": {
+      "main": [
+        [
+          {
+            "node": "Get Supplier Contact Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Supplier Contact Info": {
+      "main": [
+        [
+          {
+            "node": "Route by Supplier Contact Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Supplier Contact Method": {
+      "main": [
+        [
+          {
+            "node": "Email Supplier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp Supplier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Supplier": {
+      "main": [
+        [
+          {
+            "node": "Merge Supplier Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Supplier": {
+      "main": [
+        [
+          {
+            "node": "Merge Supplier Notifications",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Update Inventory Qty On Order": {
+      "main": [
+        [
+          {
+            "node": "Prepare Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Supplier Notifications": {
+      "main": [
+        [
+          {
+            "node": "Update Inventory Qty On Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Confirmation Message": {
+      "main": [
+        [
+          {
+            "node": "Route Confirmation by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Confirmation by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1aca3647d1bd3d705ea9a2cf179f53f1dc08ce2a64f422c564c85aa22e45e3e2"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

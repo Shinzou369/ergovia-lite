@@ -1,0 +1,1307 @@
+{
+  "name": "Workflow 16: Review Monitoring & Response",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "review-monitoring",
+        "options": {}
+      },
+      "id": "a0357243-7b38-46f7-b950-8959dc15070f",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4272,
+        272
+      ],
+      "webhookId": "e271e9b9-f7c6-42b7-be7f-df72463720c9"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c7a82e9b-332b-4918-99b6-d360918c3abc",
+      "name": "Form Trigger",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.4,
+      "position": [
+        -4272,
+        464
+      ],
+      "webhookId": "9d44b0e7-6c21-452f-a241-78451f374a71"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "google_sheets_id",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets ID for Reviews and Property_Configurations__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "openai_api_key",
+              "value": "<__PLACEHOLDER_VALUE__OpenAI API Key__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "0d266299-3e64-4e24-9b2c-577d0e992b6b",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4048,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse review notification data\ntry {\n  const input = $input.item.json;\n  \n  // Extract fields from input\n  const platform_name = input.platform_name || input.platform || '';\n  const guest_name = input.guest_name || input.guestName || input.name || '';\n  const property_name = input.property_name || input.propertyName || input.property || '';\n  const star_rating = input.star_rating || input.rating || input.stars || 0;\n  const review_text = input.review_text || input.reviewText || input.review || input.text || '';\n  \n  // Generate unique review_id using timestamp and random string\n  const timestamp = Date.now();\n  const randomString = Math.random().toString(36).substring(2, 8);\n  const review_id = `review_${timestamp}_${randomString}`;\n  \n  // Check if we have minimum required data\n  const parse_success = !!(platform_name && guest_name && review_text);\n  \n  // Return all extracted fields\n  return {\n    review_id,\n    platform_name,\n    guest_name,\n    property_name,\n    star_rating,\n    review_text,\n    parse_success,\n    parsed_at: new Date().toISOString()\n  };\n  \n} catch (error) {\n  // If parsing fails, return error state\n  return {\n    review_id: '',\n    platform_name: '',\n    guest_name: '',\n    property_name: '',\n    star_rating: 0,\n    review_text: '',\n    parse_success: false,\n    error_message: error.message\n  };\n}"
+      },
+      "id": "e7b935b8-38b5-4629-a2ca-2de4c06e2047",
+      "name": "Parse Review Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3824,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Parse Review Data').item.json.parse_success }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c8533a82-542c-4df2-8be7-4147791f4471",
+      "name": "Check Parse Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3600,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.google_sheets_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Property_Configurations"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_name",
+              "lookupValue": "={{ $('Parse Review Data').first().json.property_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "25b9f12c-94b9-424b-b3fe-e4450fc8fee5",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3376,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "46bad938-9e5e-43a8-99d2-06299e7eb6d8",
+      "name": "Route by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.review_contact_telegram_id }}",
+        "text": "Failed to parse review notification. Please provide the review details manually: Platform, Guest Name, Property Name, Star Rating (1-5), and Review Text.",
+        "additionalFields": {}
+      },
+      "id": "f2aa7ce8-a39e-4214-97d6-8cf297bdbf55",
+      "name": "Send Parse Error to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "d49767a7-450a-4c19-b279-de702e8bc732"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.review_contact_whatsapp }}",
+        "textBody": "Failed to parse review notification. Please provide the review details manually: Platform, Guest Name, Property Name, Star Rating (1-5), and Review Text.",
+        "additionalFields": {}
+      },
+      "id": "d8d57f3c-5f8a-4b7b-8283-c1d1d787feb9",
+      "name": "Send Parse Error to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "b6501d10-492a-4659-a7cc-896383349df7"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.google_sheets_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Reviews"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "platform_name": "={{ $json.platform_name }}",
+            "guest_name": "={{ $json.guest_name }}",
+            "property_name": "={{ $json.property_name }}",
+            "star_rating": "={{ $json.star_rating }}",
+            "review_text": "={{ $json.review_text }}",
+            "received_date": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "review_id"
+          ],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "platform_name",
+              "displayName": "platform_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "guest_name",
+              "displayName": "guest_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "property_name",
+              "displayName": "property_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "star_rating",
+              "displayName": "star_rating",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_text",
+              "displayName": "review_text",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_date",
+              "displayName": "received_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fcbc9726-c3f8-4200-864d-5178c1359ba1",
+      "name": "Append Review to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3376,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Workflow Configuration').first().json.openai_api_key }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert at analyzing vacation rental reviews. Analyze the review and return a JSON object with: sentiment (positive/mixed/negative), topics (array of key themes mentioned), response_text (a warm, professional reply under 150 words that addresses the guest's feedback), and confidence (0-100 score indicating your confidence in the analysis).\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Platform: {{ $json.platform }}\nRating: {{ $json.rating }}\nReview: {{ $json.review_text }}\"\n    }\n  ],\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "db61900c-0889-44f3-b9bb-7075267c553b",
+      "name": "OpenAI Analyze Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -3152,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract AI response from OpenAI API\nconst openAIResponse = $input.item.json;\n\n// Parse the AI response JSON\nlet aiAnalysis;\ntry {\n  // OpenAI returns the response in choices[0].message.content\n  const content = openAIResponse.choices[0].message.content;\n  aiAnalysis = JSON.parse(content);\n} catch (error) {\n  throw new Error('Failed to parse AI response: ' + error.message);\n}\n\n// Extract fields from AI analysis\nconst sentiment = aiAnalysis.sentiment;\nconst topics = aiAnalysis.topics;\nconst response_text = aiAnalysis.response_text;\nconst confidence = aiAnalysis.confidence;\n\n// Get star rating from previous node data\nconst star_rating = $('Parse Review Data').item.json.star_rating;\n\n// Determine if approval is required\n// Approval needed if: confidence < 85 OR star_rating < 4 OR sentiment is 'negative'\nconst approval_required = confidence < 85 || star_rating < 4 || sentiment === 'negative';\n\n// Determine approval urgency\nlet approval_urgency = 'normal';\nif (sentiment === 'negative' && star_rating < 4) {\n  approval_urgency = 'high';\n}\n\n// Return all fields including AI analysis\nreturn {\n  sentiment: sentiment,\n  topics: topics,\n  response_text: response_text,\n  confidence: confidence,\n  star_rating: star_rating,\n  approval_required: approval_required,\n  approval_urgency: approval_urgency,\n  // Include original data from previous nodes\n  ...openAIResponse,\n  ai_analysis: aiAnalysis\n};"
+      },
+      "id": "cf411682-b3d7-4242-8332-bd9a0219d3f3",
+      "name": "Determine Approval Requirement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2928,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.google_sheets_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Reviews"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "sentiment": "={{ $json.sentiment }}",
+            "topics": "={{ $json.topics.join(', ') }}",
+            "response_text": "={{ $json.response_text }}",
+            "confidence": "={{ $json.confidence }}",
+            "approval_required": "={{ $json.approval_required }}",
+            "approval_urgency": "={{ $json.approval_urgency }}"
+          },
+          "matchingColumns": [
+            "review_id"
+          ],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sentiment",
+              "displayName": "sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "topics",
+              "displayName": "topics",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "response_text",
+              "displayName": "response_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "approval_required",
+              "displayName": "approval_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "approval_urgency",
+              "displayName": "approval_urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0180d78-0856-472e-8d40-df7f50ecc208",
+      "name": "Update Review with AI Analysis",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2704,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.google_sheets_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Property_Configurations"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_name",
+              "lookupValue": "={{ $json.property_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c710df0d-0953-4091-be67-e61743cdfb65",
+      "name": "Get Review Contact Info",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2480,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get data from previous nodes\nconst reviewData = $input.item.json;\nconst propertyConfig = $('Get Property Configuration').item.json;\nconst aiAnalysis = $('OpenAI Analyze Review').item.json;\nconst approvalData = $('Determine Approval Requirement').item.json;\n\n// Extract review details\nconst platformName = reviewData.platform || 'Unknown Platform';\nconst propertyName = reviewData.propertyName || propertyConfig.propertyName || 'Unknown Property';\nconst starRating = reviewData.rating || 0;\nconst reviewText = reviewData.reviewText || 'No review text provided';\nconst guestName = reviewData.guestName || 'Guest';\n\n// Create star emoji string\nconst starEmoji = '\u2b50'.repeat(Math.floor(starRating));\n\n// Extract AI analysis data\nconst sentiment = aiAnalysis.sentiment || 'neutral';\nconst topics = aiAnalysis.topics || [];\nconst aiResponse = aiAnalysis.generatedResponse || 'No response generated';\n\n// Format topics as a comma-separated list\nconst topicsText = topics.length > 0 ? topics.join(', ') : 'None identified';\n\n// Check if review needs urgent attention (under 4 stars)\nconst isUrgent = starRating < 4;\nconst urgencyFlag = isUrgent ? '\ud83d\udea9 ' : '';\nconst urgencyNote = isUrgent ? '\n\n\ud83d\udea9 URGENT: This review is below 4 stars and requires immediate attention!' : '';\n\n// Format the message\nconst formattedMessage = `${urgencyFlag}**New Review Received**\n\n**Platform:** ${platformName}\n**Property:** ${propertyName}\n**Guest:** ${guestName}\n**Rating:** ${starEmoji} (${starRating}/5)\n\n**Review:**\n${reviewText}\n\n---\n\n**AI Analysis:**\n\u2022 **Sentiment:** ${sentiment}\n\u2022 **Topics:** ${topicsText}\n\n**AI-Generated Response Draft:**\n${aiResponse}${urgencyNote}\n\n---\n\nPlease choose an action below:`;\n\n// Create inline keyboard buttons for Telegram/WhatsApp\nconst inlineKeyboard = {\n  inline_keyboard: [\n    [\n      { text: '\u2705 Approve This Response', callback_data: 'approve_response' }\n    ],\n    [\n      { text: '\u270f\ufe0f Edit Response', callback_data: 'edit_response' }\n    ],\n    [\n      { text: '\ud83d\udcdd Write My Own Response', callback_data: 'write_own_response' }\n    ],\n    [\n      { text: '\u23ed\ufe0f Skip Responding', callback_data: 'skip_response' }\n    ]\n  ]\n};\n\n// Return the formatted data\nreturn {\n  json: {\n    formattedMessage: formattedMessage,\n    inlineKeyboard: inlineKeyboard,\n    isUrgent: isUrgent,\n    starRating: starRating,\n    platformName: platformName,\n    propertyName: propertyName,\n    reviewText: reviewText,\n    aiResponse: aiResponse\n  }\n};"
+      },
+      "id": "4b36ed84-86e3-4cb5-b281-66e6c3eec20e",
+      "name": "Format Review Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f46f8609-8a9e-4bf1-b1d9-2e28f32f1d1d",
+      "name": "Route by Contact Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2032,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.review_contact_telegram_id }}",
+        "text": "={{ $json.formatted_message }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {}
+      },
+      "id": "d2eaa85d-8fba-4d9d-aaae-1196f606579f",
+      "name": "Send Review to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1808,
+        464
+      ],
+      "webhookId": "3aacfd4b-7f15-483c-9541-d51812fc015e"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.review_contact_whatsapp }}",
+        "textBody": "={{ $json.formatted_message }}",
+        "additionalFields": {}
+      },
+      "id": "f1e0c909-c8f1-4a8c-9d79-797f492e86f7",
+      "name": "Send Review to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1808,
+        656
+      ],
+      "webhookId": "17436365-73dd-495b-940e-ec0b6fb2ffa4"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {
+          "noResponseBody": false,
+          "responseData": "Button click acknowledged"
+        }
+      },
+      "id": "a763e230-70d9-4b82-a5c6-055c5c4afde4",
+      "name": "Wait for Contact Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1584,
+        560
+      ],
+      "webhookId": "171eb16a-defa-4049-ae2a-b5669617e401"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.google_sheets_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Reviews"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "final_response": "={{ $json.response_text || $json.custom_text || '' }}",
+            "response_status": "={{ $json.decision }}",
+            "decision_date": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "review_id"
+          ],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "final_response",
+              "displayName": "final_response",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "response_status",
+              "displayName": "response_status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "decision_date",
+              "displayName": "decision_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "959d26b6-c95b-486a-9359-af30252f1504",
+      "name": "Update Review with Decision",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1360,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get data from previous nodes\nconst platformName = $input.item.json.platform_name || 'the platform';\nconst responseText = $input.item.json.ai_response || 'No response generated';\nconst guestName = $input.item.json.guest_name || 'the guest';\n\n// Generate platform-specific instructions\nlet instructions = '';\n\nif (platformName.toLowerCase().includes('airbnb')) {\n  instructions = `\ud83d\udccb **Instructions to Post Your Response on Airbnb:**\n\n` +\n    `1. Log in to your Airbnb host account at https://www.airbnb.com\n` +\n    `2. Click on \"Menu\" (top right) \u2192 \"Inbox\"\n` +\n    `3. Navigate to the \"Reviews\" tab\n` +\n    `4. Find the review from ${guestName}\n` +\n    `5. Click \"Respond to review\"\n` +\n    `6. Copy and paste the response below into the text box\n` +\n    `7. Click \"Submit\" to post your response\n\n` +\n    `---\n\n` +\n    `**Your Response to Copy:**\n\n` +\n    `${responseText}\n\n` +\n    `---\n\n` +\n    `Once you've posted this response, click the button below to confirm.`;\n} else if (platformName.toLowerCase().includes('vrbo')) {\n  instructions = `\ud83d\udccb **Instructions to Post Your Response on Vrbo:**\n\n` +\n    `1. Log in to your Vrbo owner account at https://www.vrbo.com\n` +\n    `2. Go to \"Dashboard\" \u2192 \"Reviews\"\n` +\n    `3. Find the review from ${guestName}\n` +\n    `4. Click \"Respond\" or \"Reply to review\"\n` +\n    `5. Copy and paste the response below into the text field\n` +\n    `6. Click \"Submit\" or \"Post Response\"\n\n` +\n    `---\n\n` +\n    `**Your Response to Copy:**\n\n` +\n    `${responseText}\n\n` +\n    `---\n\n` +\n    `Once you've posted this response, click the button below to confirm.`;\n} else if (platformName.toLowerCase().includes('booking')) {\n  instructions = `\ud83d\udccb **Instructions to Post Your Response on Booking.com:**\n\n` +\n    `1. Log in to your Booking.com extranet at https://admin.booking.com\n` +\n    `2. Navigate to \"Guest reviews\" in the menu\n` +\n    `3. Find the review from ${guestName}\n` +\n    `4. Click \"Reply to this review\"\n` +\n    `5. Copy and paste the response below into the reply box\n` +\n    `6. Click \"Send reply\" to post your response\n\n` +\n    `---\n\n` +\n    `**Your Response to Copy:**\n\n` +\n    `${responseText}\n\n` +\n    `---\n\n` +\n    `Once you've posted this response, click the button below to confirm.`;\n} else {\n  instructions = `\ud83d\udccb **Instructions to Post Your Response on ${platformName}:**\n\n` +\n    `1. Log in to your host account on ${platformName}\n` +\n    `2. Navigate to the Reviews section\n` +\n    `3. Find the review from ${guestName}\n` +\n    `4. Click on the option to reply or respond to the review\n` +\n    `5. Copy and paste the response below into the text field\n` +\n    `6. Submit your response\n\n` +\n    `---\n\n` +\n    `**Your Response to Copy:**\n\n` +\n    `${responseText}\n\n` +\n    `---\n\n` +\n    `Once you've posted this response, click the button below to confirm.`;\n}\n\n// Create button JSON for confirmation\nconst confirmationButton = {\n  text: \"I've Posted This Response\",\n  callback_data: \"response_posted\"\n};\n\n// Return the formatted data\nreturn {\n  json: {\n    instructions: instructions,\n    confirmation_button: confirmationButton,\n    platform_name: platformName,\n    response_text: responseText,\n    guest_name: guestName\n  }\n};"
+      },
+      "id": "efc4ea31-ec79-4257-aa59-3702bc2f8153",
+      "name": "Format Platform Instructions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6d73ca0e-8e4d-4653-b731-d6604321a173",
+      "name": "Route Instructions by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -912,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.review_contact_telegram_id }}",
+        "text": "={{ $json.platform_instructions }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {}
+      },
+      "id": "6f4db0d5-c227-4c40-be63-0f71f03c3e8a",
+      "name": "Send Instructions to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -688,
+        464
+      ],
+      "webhookId": "77b1c8b9-a6dd-4579-a573-24bfe29ece84"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.review_contact_whatsapp }}",
+        "textBody": "={{ $json.platform_instructions }}",
+        "additionalFields": {}
+      },
+      "id": "be2fe600-de61-4d3d-a019-41c99668c015",
+      "name": "Send Instructions to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -688,
+        656
+      ],
+      "webhookId": "2fbe61ee-5d9a-4048-b45f-3d0958335525"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {
+          "responseData": "Confirmation received"
+        }
+      },
+      "id": "5a187d88-45e3-4315-a5f3-2f49523a01d0",
+      "name": "Wait for Posted Confirmation",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        560
+      ],
+      "webhookId": "4c4001f9-f78a-47c7-a0f5-ea9a7cb48c83"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.google_sheets_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Reviews"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "posted_date": "={{ $now.toISO() }}",
+            "posted_by": "={{ $('Get Property Configuration').first().json.review_contact_name }}"
+          },
+          "matchingColumns": [
+            "review_id"
+          ],
+          "schema": [
+            {
+              "id": "review_id",
+              "displayName": "review_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "posted_date",
+              "displayName": "posted_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "posted_by",
+              "displayName": "posted_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a67196cd-f2d9-4073-a27d-899365f04337",
+      "name": "Update Review as Posted",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -240,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d24928d-7766-4828-b423-8baf5809e2b0",
+      "name": "Route Confirmation by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.review_contact_telegram_id }}",
+        "text": "Thank you for responding to the review! Quick responses help improve your property ranking on the platforms. \ud83c\udf89",
+        "additionalFields": {}
+      },
+      "id": "43b6141f-1032-42e1-bb15-733cabd6186b",
+      "name": "Send Confirmation to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        464
+      ],
+      "webhookId": "46ea52d5-8992-483a-badb-d84da49d9170"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.review_contact_whatsapp }}",
+        "textBody": "Thank you for responding to the review! Quick responses help improve your property ranking on the platforms. \ud83c\udf89",
+        "additionalFields": {}
+      },
+      "id": "1e517a3d-9953-44ae-bf46-0171582acafc",
+      "name": "Send Confirmation to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        656
+      ],
+      "webhookId": "e4dee8e6-7b23-4e5c-9e8c-3a669fbacc82"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Parse Review Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Review Data": {
+      "main": [
+        [
+          {
+            "node": "Check Parse Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Parse Success": {
+      "main": [
+        [
+          {
+            "node": "Append Review to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Route by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Parse Error to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Parse Error to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Review to Sheet": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Analyze Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Analyze Review": {
+      "main": [
+        [
+          {
+            "node": "Determine Approval Requirement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Approval Requirement": {
+      "main": [
+        [
+          {
+            "node": "Update Review with AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Review with AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Get Review Contact Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Review Contact Info": {
+      "main": [
+        [
+          {
+            "node": "Format Review Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Review Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Review to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Review to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait for Contact Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review to WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait for Contact Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Contact Decision": {
+      "main": [
+        [
+          {
+            "node": "Update Review with Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Review with Decision": {
+      "main": [
+        [
+          {
+            "node": "Format Platform Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Platform Instructions": {
+      "main": [
+        [
+          {
+            "node": "Route Instructions by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Instructions by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Instructions to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Instructions to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Instructions to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait for Posted Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Instructions to WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait for Posted Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Posted Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Update Review as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Review as Posted": {
+      "main": [
+        [
+          {
+            "node": "Route Confirmation by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Confirmation by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirmation to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1aca3647d1bd3d705ea9a2cf179f53f1dc08ce2a64f422c564c85aa22e45e3e2"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

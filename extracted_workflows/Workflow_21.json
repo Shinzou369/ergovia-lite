@@ -1,0 +1,413 @@
+{
+  "name": "Workflow 21: Backup & Recovery",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "property-status-update",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "00dfde01-917c-4fdd-a209-fb08ca924e0a",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -848,
+        1616
+      ],
+      "webhookId": "2f29641f-b98d-4617-952f-6219cd5f6b1f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "property_id",
+              "value": "={{ $json.body.property_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "notify_contact",
+              "value": "={{ $json.body.notify_contact || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "id-4",
+              "name": "cleaned_date",
+              "value": "={{ $json.body.cleaned_date }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "maintenance_date",
+              "value": "={{ $json.body.maintenance_date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a9abddc8-1c82-44d3-873b-9ed3d7ed3eb4",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -624,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Google Sheets Document ID for Properties sheet__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Properties"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "property_id": "={{ $json.property_id }}",
+            "status": "={{ $json.status }}",
+            "last_cleaned_date": "={{ $json.cleaned_date }}",
+            "last_maintenance_date": "={{ $json.maintenance_date }}"
+          },
+          "matchingColumns": [
+            "property_id"
+          ],
+          "schema": [
+            {
+              "id": "property_id",
+              "displayName": "property_id",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_cleaned_date",
+              "displayName": "last_cleaned_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_maintenance_date",
+              "displayName": "last_maintenance_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "41a04e5b-dd5e-4e24-a3b2-6bfbf71b667f",
+      "name": "Update Property Status",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -400,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.notify_contact }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5d0a5f12-778c-4561-ab0b-39c7b1863bd6",
+      "name": "Check If Notify Contact",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -176,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "<__PLACEHOLDER_VALUE__Google Sheets Document ID for Property_Configurations sheet__>"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Property_Configurations"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "property_id",
+              "lookupValue": "={{ $json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c3fef7d-1f02-4f97-bb58-4f8d1ab01a18",
+      "name": "Get Property Contact Info",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.preferred_platform }}",
+              "rightValue": "Telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "26db14c4-e24b-4ea3-97d5-db3373376426",
+      "name": "Check Preferred Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        272,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.primary_property_contact }}",
+        "text": "=Property Status Update\n\nProperty: {{ $('Workflow Configuration').item.json.property_name || $('Workflow Configuration').item.json.property_id }}\nNew Status: {{ $('Workflow Configuration').item.json.status }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View Property Details",
+                    "additionalFields": {
+                      "url": "<__PLACEHOLDER_VALUE__Property details URL__>"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "dc427df3-093b-4092-8204-6e860efa2b69",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        1440
+      ],
+      "webhookId": "4ec620de-4f4c-4a2b-bf5e-6ac8d821b1b0"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.primary_property_contact }}",
+        "textBody": "=Property Status Update\n\nProperty: {{ $('Workflow Configuration').item.json.property_name || $('Workflow Configuration').item.json.property_id }}\nNew Status: {{ $('Workflow Configuration').item.json.status }}\n\nView Property Details: <__PLACEHOLDER_VALUE__Property details URL__>",
+        "additionalFields": {}
+      },
+      "id": "57f8653c-8092-4c26-b899-603936a1c236",
+      "name": "Send WhatsApp Notification",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        1632
+      ],
+      "webhookId": "489fd739-1f54-466a-9e09-5399ecadd07c"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true\n}",
+        "options": {}
+      },
+      "id": "4c69c4b1-83a8-44d4-af0f-41c4b38c4bf0",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        1632
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Update Property Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Property Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Notify Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Notify Contact": {
+      "main": [
+        [
+          {
+            "node": "Get Property Contact Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Contact Info": {
+      "main": [
+        [
+          {
+            "node": "Check Preferred Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Preferred Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1aca3647d1bd3d705ea9a2cf179f53f1dc08ce2a64f422c564c85aa22e45e3e2"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

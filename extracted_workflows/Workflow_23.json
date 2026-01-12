@@ -1,0 +1,702 @@
+{
+  "name": "Workflow 23: Advanced Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident-log",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "998daeb4-c3da-48cc-89f2-dbdfe4c79030",
+      "name": "Incident Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1968,
+        1680
+      ],
+      "webhookId": "ed51f835-6911-4c17-8067-387a8677161f"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst incident_id = 'INC-' + now.getTime();\nconst incident_date = now.toISOString();\n\nreturn [{\n  json: {\n    ...items[0].json,\n    incident_id,\n    incident_date\n  }\n}];"
+      },
+      "id": "099bd188-bd3a-41ac-801d-436d2910d21e",
+      "name": "Generate Incident ID and Timestamp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1744,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Bookings"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupValue": "={{ $json.booking_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "7a023cdd-d656-4203-a802-a633e5495925",
+      "name": "Query Bookings Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1520,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Incidents"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "incident_id": "={{ $('Generate Incident ID and Timestamp').item.json.incident_id }}",
+            "incident_type": "={{ $('Incident Webhook').item.json.incident_type }}",
+            "booking_id": "={{ $('Incident Webhook').item.json.booking_id }}",
+            "property_id": "={{ $('Incident Webhook').item.json.property_id }}",
+            "severity": "={{ $('Incident Webhook').item.json.severity }}",
+            "description": "={{ $('Incident Webhook').item.json.description }}",
+            "reported_by": "={{ $('Incident Webhook').item.json.reported_by }}",
+            "reporter_contact": "={{ $('Incident Webhook').item.json.reporter_contact }}",
+            "evidence_urls": "={{ $('Incident Webhook').item.json.evidence_urls }}",
+            "guest_name": "={{ $('Query Bookings Sheet').item.json.guest_name }}",
+            "guest_phone": "={{ $('Query Bookings Sheet').item.json.guest_phone }}",
+            "check_in_date": "={{ $('Query Bookings Sheet').item.json.check_in_date }}",
+            "check_out_date": "={{ $('Query Bookings Sheet').item.json.check_out_date }}",
+            "incident_date": "={{ $('Generate Incident ID and Timestamp').item.json.incident_date }}",
+            "status": "logged"
+          },
+          "matchingColumns": [
+            "incident_id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "cf23954e-d9b7-498e-8ce4-94fa21f6c7d4",
+      "name": "Append to Incidents Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1296,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Property_Configurations"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupValue": "={{ $('Incident Webhook').item.json.property_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "bcba966a-b9df-4e89-83f0-65b55f238966",
+      "name": "Query Property Configurations",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1072,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Incident Webhook').item.json.severity }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2d82c5c-221c-48ff-9d5d-1f8d8f2ab424",
+      "name": "Check if High Severity",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -848,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Query Property Configurations').item.json.incident_response_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Query Property Configurations').item.json.incident_response_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ccd23de3-76f3-4221-a14c-8115f3743aeb",
+      "name": "Route by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -624,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Query Property Configurations').item.json.incident_response_contact }}",
+        "text": "=\ud83d\udea8 HIGH SEVERITY INCIDENT\n\nType: {{ $('Incident Webhook').item.json.incident_type }}\nProperty: {{ $('Query Property Configurations').item.json.property_name }}\nGuest: {{ $('Query Bookings Sheet').item.json.guest_name }}\n\nDescription: {{ $('Incident Webhook').item.json.description }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "I'll Handle This",
+                    "additionalFields": {
+                      "callback_data": "handle_incident"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Add to Guest Blacklist",
+                    "additionalFields": {
+                      "callback_data": "blacklist_guest"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Mark as Resolved",
+                    "additionalFields": {
+                      "callback_data": "mark_resolved"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "26e5ad30-d716-437e-8540-2e01f63962a8",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        1520
+      ],
+      "webhookId": "49afb7d0-b47e-4c4b-b320-3beefea0231d"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Query Property Configurations').item.json.incident_response_contact }}",
+        "textBody": "=\ud83d\udea8 HIGH SEVERITY INCIDENT\n\nType: {{ $('Incident Webhook').item.json.incident_type }}\nProperty: {{ $('Query Property Configurations').item.json.property_name }}\nGuest: {{ $('Query Bookings Sheet').item.json.guest_name }}\n\nDescription: {{ $('Incident Webhook').item.json.description }}",
+        "additionalFields": {}
+      },
+      "id": "051a3c67-9a14-4d13-882b-f26ea219bc6a",
+      "name": "Send WhatsApp Alert",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        1760
+      ],
+      "webhookId": "dcb1ee18-eba3-49df-b0fd-f0be4579e617"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Incidents"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupValue": "={{ $('Query Bookings Sheet').item.json.guest_phone }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "id": "62de06af-2755-4649-8fe8-ac49a4fb1264",
+      "name": "Count Guest Incidents",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -176,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Count Guest Incidents').itemMatching(0).length }}",
+              "rightValue": "2",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1b4a77b0-70f1-49cc-85b6-2c3e6a1532bf",
+      "name": "Check if Repeat Offender",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Query Property Configurations').item.json.incident_response_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Query Property Configurations').item.json.incident_response_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "df09a088-5a71-4e1d-9d88-09fbf9b65505",
+      "name": "Route Warning by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Query Property Configurations').item.json.incident_response_contact }}",
+        "text": "=\u26a0\ufe0f REPEAT OFFENDER ALERT\n\nThis guest has {{ $('Count Guest Incidents').itemMatching(0).length }} previous incidents on record.\n\nGuest: {{ $('Query Bookings Sheet').item.json.guest_name }}\nPhone: {{ $('Query Bookings Sheet').item.json.guest_phone }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View Guest History",
+                    "additionalFields": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "0e22b47b-bd2a-4222-a929-868261068a64",
+      "name": "Send Telegram Warning",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        1440
+      ],
+      "webhookId": "d7f6d822-c973-4d20-b54d-db8f8e13e5fa"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Query Property Configurations').item.json.incident_response_contact }}",
+        "textBody": "=\u26a0\ufe0f REPEAT OFFENDER ALERT\n\nThis guest has {{ $('Count Guest Incidents').itemMatching(0).length }} previous incidents on record.\n\nGuest: {{ $('Query Bookings Sheet').item.json.guest_name }}\nPhone: {{ $('Query Bookings Sheet').item.json.guest_phone }}",
+        "additionalFields": {}
+      },
+      "id": "2f892e5c-396a-4c86-83eb-0571bc9c3a9f",
+      "name": "Send WhatsApp Warning",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        1632
+      ],
+      "webhookId": "40b689ba-6006-47f5-ae19-77112fd9de2f"
+    },
+    {
+      "parameters": {
+        "enableResponseOutput": true,
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"incident_id\": \"={{ $('Generate Incident ID and Timestamp').item.json.incident_id }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "d9e26d41-53a0-4b21-b87d-7949a5933c55",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        1712
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Incident Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate Incident ID and Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Incident ID and Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Query Bookings Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Bookings Sheet": {
+      "main": [
+        [
+          {
+            "node": "Append to Incidents Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Incidents Sheet": {
+      "main": [
+        [
+          {
+            "node": "Query Property Configurations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Property Configurations": {
+      "main": [
+        [
+          {
+            "node": "Check if High Severity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if High Severity": {
+      "main": [
+        [
+          {
+            "node": "Route by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Count Guest Incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Alert": {
+      "main": [
+        [
+          {
+            "node": "Count Guest Incidents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Guest Incidents": {
+      "main": [
+        [
+          {
+            "node": "Check if Repeat Offender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Repeat Offender": {
+      "main": [
+        [
+          {
+            "node": "Route Warning by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Warning by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Warning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Warning": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Warning": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1aca3647d1bd3d705ea9a2cf179f53f1dc08ce2a64f422c564c85aa22e45e3e2"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}
