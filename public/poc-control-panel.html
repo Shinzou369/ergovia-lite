@@ -136,6 +136,7 @@
             flex: 1;
             margin-left: 280px;
             padding: 24px;
+            max-width: 1200px;
         }
 
         .page {
@@ -157,97 +158,237 @@
             align-items: center;
         }
 
-        .top-bar-left h1 {
+        .top-bar h1 {
             font-size: 24px;
             font-weight: 700;
-            color: var(--text-dark);
         }
 
-        .top-bar-left p {
+        .top-bar p {
             color: var(--text-gray);
             font-size: 14px;
             margin-top: 4px;
         }
 
-        .sample-indicator {
-            background: linear-gradient(135deg, var(--warning), #dd6b20);
+        .sample-badge {
+            background: var(--warning);
             color: white;
             padding: 8px 16px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: var(--bg-white);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            transition: all 0.2s;
-        }
-
-        .stat-card:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
-        }
-
-        .stat-label {
-            color: var(--text-gray);
             font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 8px;
+            font-weight: 600;
         }
 
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-dark);
-        }
-
-        .stat-value.success { color: var(--success); }
-        .stat-value.warning { color: var(--warning); }
-        .stat-value.info { color: var(--info); }
-
-        .section-card {
+        .progress-section {
             background: var(--bg-white);
+            padding: 20px 24px;
             border-radius: 12px;
-            box-shadow: var(--shadow);
             margin-bottom: 24px;
-            overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
-        .section-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
+        .progress-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-text {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .progress-percentage {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .sections-nav {
+            background: var(--bg-white);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .sections-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .section-tab {
+            padding: 16px 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .section-tab:hover {
+            border-color: var(--primary);
+            background: #f8f9ff;
+        }
+
+        .section-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .section-tab.completed {
+            border-color: var(--success);
+            background: #e6f9f0;
+        }
+
+        .section-tab.completed .section-tab-number {
+            background: var(--success);
+        }
+
+        .section-tab-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .section-tab.active .section-tab-number {
+            background: white;
+            color: var(--primary);
+        }
+
+        .form-section {
+            background: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
         }
 
         .section-header h2 {
-            font-size: 18px;
+            font-size: 22px;
             font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 6px;
         }
 
-        .section-content {
-            padding: 24px;
+        .section-header p {
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .required-mark {
+            color: var(--danger);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-input:disabled {
+            background: var(--bg-light);
+            cursor: not-allowed;
+        }
+
+        .form-input.sample-value {
+            background: #fffdf0;
+            border-color: var(--warning);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: var(--text-gray);
+            margin-top: 6px;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 14px 28px;
             border-radius: 8px;
+            font-size: 15px;
             font-weight: 600;
-            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
             border: none;
@@ -257,13 +398,23 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: var(--primary);
             color: white;
         }
 
         .btn-primary:hover {
+            background: var(--primary-dark);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
         }
 
         .btn-success {
@@ -280,324 +431,215 @@
             color: white;
         }
 
+        .btn-warning:hover {
+            background: #dd6b20;
+        }
+
         .btn-danger {
             background: var(--danger);
             color: white;
         }
 
-        .btn-secondary {
-            background: var(--bg-light);
-            color: var(--text-dark);
-            border: 1px solid var(--border);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .workflow-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px;
-        }
-
-        .workflow-card {
-            background: var(--bg-light);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+        .info-box {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
             padding: 16px;
-            transition: all 0.2s;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #0050b3;
         }
 
-        .workflow-card:hover {
-            border-color: var(--primary);
+        .warning-box {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #ad6800;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-white);
+            padding: 24px;
+            border-radius: 12px;
             box-shadow: var(--shadow);
         }
 
-        .workflow-card.deployed {
-            border-color: var(--success);
-            background: #f0fff4;
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-gray);
+            margin-bottom: 8px;
         }
 
-        .workflow-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .workflow-title {
-            font-weight: 600;
-            font-size: 14px;
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
             color: var(--text-dark);
         }
 
-        .workflow-id {
-            font-size: 11px;
-            color: var(--text-light);
-            font-family: monospace;
+        .stat-value.primary {
+            color: var(--primary);
+        }
+
+        .stat-value.success {
+            color: var(--success);
+        }
+
+        .stat-value.warning {
+            color: var(--warning);
+        }
+
+        .workflow-list {
+            background: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .workflow-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        .workflow-item:hover {
+            background: var(--bg-light);
+        }
+
+        .workflow-item:last-child {
+            border-bottom: none;
+        }
+
+        .workflow-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 16px;
+        }
+
+        .workflow-info {
+            flex: 1;
+        }
+
+        .workflow-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .workflow-desc {
+            font-size: 13px;
+            color: var(--text-gray);
         }
 
         .workflow-status {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
             font-weight: 600;
         }
 
         .workflow-status.pending {
-            background: #fef5e7;
+            background: #fff7e6;
             color: var(--warning);
         }
 
         .workflow-status.deployed {
-            background: #e6ffed;
+            background: #e6f9f0;
             color: var(--success);
-        }
-
-        .workflow-status.active {
-            background: #e6f7ff;
-            color: var(--info);
-        }
-
-        .workflow-description {
-            font-size: 13px;
-            color: var(--text-gray);
-            margin-bottom: 12px;
-            line-height: 1.5;
         }
 
         .workflow-actions {
-            display: flex;
-            gap: 8px;
+            margin-left: 12px;
         }
 
-        .workflow-actions .btn {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .placeholder-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .placeholder-table th,
-        .placeholder-table td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .placeholder-table th {
-            background: var(--bg-light);
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-gray);
-        }
-
-        .placeholder-key {
-            font-family: monospace;
-            font-size: 12px;
-            color: var(--primary);
-            background: #eef2ff;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .placeholder-value {
-            font-family: monospace;
-            font-size: 12px;
-            color: var(--success);
-        }
-
-        .placeholder-value.sample {
-            background: #fef5e7;
-            color: var(--warning);
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-
-        .deploy-progress {
-            background: var(--bg-light);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .progress-bar {
-            background: var(--border);
-            border-radius: 10px;
-            height: 12px;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-
-        .progress-fill {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
+        .deploy-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
             font-size: 13px;
-            color: var(--text-gray);
-        }
-
-        .log-container {
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 16px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 12px;
-            line-height: 1.8;
-        }
-
-        .log-entry {
-            color: #a0aec0;
-        }
-
-        .log-entry.success {
-            color: #48bb78;
-        }
-
-        .log-entry.error {
-            color: #f56565;
-        }
-
-        .log-entry.info {
-            color: #4299e1;
-        }
-
-        .log-entry.warning {
-            color: #ed8936;
-        }
-
-        .config-form {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
             font-weight: 600;
-            font-size: 13px;
-            margin-bottom: 6px;
-            color: var(--text-dark);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
+            cursor: pointer;
             transition: all 0.2s;
         }
 
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .sample-badge {
-            background: var(--warning);
+        .deploy-btn.deploy {
+            background: var(--primary);
             color: white;
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 6px;
-            font-weight: 700;
         }
 
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
+        .deploy-btn.deploy:hover {
+            background: var(--primary-dark);
+        }
+
+        .deploy-btn.view {
             background: var(--bg-light);
-            border-radius: 8px;
-            margin-bottom: 20px;
+            color: var(--text-dark);
         }
 
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
+        .activity-log {
+            background: #1a1f36;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            color: #e2e8f0;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 24px;
         }
 
-        .status-dot.connected {
-            background: var(--success);
+        .log-entry {
+            margin-bottom: 8px;
+            line-height: 1.5;
         }
 
-        .status-dot.disconnected {
-            background: var(--danger);
+        .log-time {
+            color: #718096;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .log-success {
+            color: #48bb78;
         }
 
-        .alert {
-            padding: 16px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .log-error {
+            color: #f56565;
         }
 
-        .alert-info {
-            background: #e6f7ff;
-            border: 1px solid #91d5ff;
-            color: #096dd9;
+        .log-info {
+            color: #4299e1;
         }
 
-        .alert-success {
-            background: #f6ffed;
-            border: 1px solid #b7eb8f;
-            color: #389e0d;
-        }
-
-        .alert-warning {
-            background: #fffbe6;
-            border: 1px solid #ffe58f;
-            color: #d48806;
-        }
-
-        .hidden {
-            display: none !important;
+        .log-warning {
+            color: #ed8936;
         }
 
         @media (max-width: 1024px) {
-            .sidebar {
-                width: 240px;
+            .sections-grid {
+                grid-template-columns: repeat(5, 1fr);
             }
-            .main-content {
-                margin-left: 240px;
-            }
-            .config-form {
+            .form-grid {
                 grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -608,12 +650,15 @@
             .main-content {
                 margin-left: 0;
             }
+            .sections-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <nav class="sidebar">
+        <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     Demo Veterinary Service
@@ -621,243 +666,286 @@
                 </div>
                 <div class="logo-subtitle">N8N Workflow Control Panel</div>
             </div>
-            <div class="nav-menu">
+            
+            <nav class="nav-menu">
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
-                    <div class="nav-item active" data-page="dashboard">
+                    <div class="nav-item active" onclick="showPage('dashboard')">
                         <span class="nav-icon">📊</span>
-                        Dashboard
+                        <span>Dashboard</span>
                     </div>
-                    <div class="nav-item" data-page="workflows">
+                    <div class="nav-item" onclick="showPage('setup')">
+                        <span class="nav-icon">📝</span>
+                        <span>Setup (10 Sections)</span>
+                    </div>
+                    <div class="nav-item" onclick="showPage('workflows')">
                         <span class="nav-icon">⚙️</span>
-                        Workflows
+                        <span>Workflows</span>
                     </div>
-                    <div class="nav-item" data-page="deploy">
+                    <div class="nav-item" onclick="showPage('deploy')">
                         <span class="nav-icon">🚀</span>
-                        Deploy All
+                        <span>Deploy All</span>
                     </div>
                 </div>
+                
                 <div class="nav-section">
                     <div class="nav-section-title">Configuration</div>
-                    <div class="nav-item" data-page="placeholders">
-                        <span class="nav-icon">📝</span>
-                        Sample Values
-                    </div>
-                    <div class="nav-item" data-page="settings">
+                    <div class="nav-item" onclick="showPage('settings')">
                         <span class="nav-icon">🔧</span>
-                        Settings
+                        <span>Settings</span>
                     </div>
                 </div>
+            </nav>
+
+            <div style="padding: 20px; border-top: 1px solid var(--border); margin-top: auto;">
+                <div style="font-size: 12px; color: var(--text-gray); text-align: center;">
+                    N8N Status: <span id="n8n-status" style="color: var(--text-gray);">Checking...</span>
+                </div>
             </div>
-        </nav>
+        </aside>
 
         <main class="main-content">
-            <div id="page-dashboard" class="page active">
+            <!-- PAGE: DASHBOARD -->
+            <div id="dashboard-page" class="page active">
                 <div class="top-bar">
-                    <div class="top-bar-left">
+                    <div>
                         <h1>POC Dashboard</h1>
                         <p>Demo Veterinary Service - Workflow Management</p>
                     </div>
-                    <div class="sample-indicator">
-                        <span>SAMPLE DATA</span>
-                    </div>
+                    <span class="sample-badge">SAMPLE DATA</span>
                 </div>
 
-                <div class="connection-status">
-                    <div class="status-dot" id="n8n-status"></div>
-                    <span id="n8n-status-text">Checking N8N connection...</span>
+                <div id="connection-status" class="info-box">
+                    Testing connection...
                 </div>
 
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label">Total Workflows</div>
-                        <div class="stat-value info" id="stat-total">24</div>
+                        <div class="stat-value primary">24</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Deployed</div>
-                        <div class="stat-value success" id="stat-deployed">0</div>
+                        <div class="stat-value success" id="deployed-count">0</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Active</div>
-                        <div class="stat-value success" id="stat-active">0</div>
+                        <div class="stat-label">Setup Progress</div>
+                        <div class="stat-value warning" id="setup-progress">0%</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-label">Pending</div>
-                        <div class="stat-value warning" id="stat-pending">24</div>
+                        <div class="stat-value" id="pending-count">24</div>
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="form-section">
                     <div class="section-header">
                         <h2>Quick Actions</h2>
+                        <p>Get started with your veterinary service automation</p>
                     </div>
-                    <div class="section-content">
-                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                            <button class="btn btn-primary" onclick="navigateTo('deploy')">
-                                🚀 Deploy All Workflows
-                            </button>
-                            <button class="btn btn-secondary" onclick="testN8NConnection()">
-                                🔄 Test N8N Connection
-                            </button>
-                            <button class="btn btn-secondary" onclick="navigateTo('workflows')">
-                                📋 View All Workflows
-                            </button>
-                            <button class="btn btn-warning" onclick="navigateTo('placeholders')">
-                                📝 View Sample Values
-                            </button>
-                        </div>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="showPage('setup')">
+                            📝 Complete Setup (10 Sections)
+                        </button>
+                        <button class="btn btn-secondary" onclick="testN8NConnection()">
+                            🔌 Test N8N Connection
+                        </button>
+                        <button class="btn btn-warning" onclick="showPage('workflows')">
+                            📋 View All Workflows
+                        </button>
+                        <button class="btn btn-success" onclick="showPage('deploy')">
+                            🚀 Deploy All Workflows
+                        </button>
                     </div>
                 </div>
 
-                <div class="section-card">
-                    <div class="section-header">
-                        <h2>Recent Activity</h2>
+                <div class="activity-log" id="activity-log">
+                    <div class="log-entry">
+                        <span class="log-time">[System]</span> <span class="log-info">POC Control Panel initialized</span>
                     </div>
-                    <div class="section-content">
-                        <div class="log-container" id="activity-log">
-                            <div class="log-entry info">[System] POC Control Panel initialized</div>
-                            <div class="log-entry">Ready to deploy 24 workflows to N8N</div>
-                            <div class="log-entry warning">Using SAMPLE placeholder values for Demo Veterinary Service</div>
-                        </div>
+                    <div class="log-entry">
+                        <span class="log-time">[System]</span> Ready to deploy 24 workflows to N8N
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-time">[System]</span> <span class="log-warning">Using SAMPLE placeholder values for Demo Veterinary Service</span>
                     </div>
                 </div>
             </div>
 
-            <div id="page-workflows" class="page">
+            <!-- PAGE: SETUP (10 Sections) -->
+            <div id="setup-page" class="page">
                 <div class="top-bar">
-                    <div class="top-bar-left">
-                        <h1>Workflow Templates</h1>
-                        <p>24 workflows ready for deployment</p>
+                    <div>
+                        <h1>Setup & Configuration</h1>
+                        <p>Complete all 10 sections to configure your veterinary service workflows</p>
                     </div>
-                    <button class="btn btn-primary" onclick="navigateTo('deploy')">
+                    <span class="sample-badge">PRE-FILLED WITH SAMPLE DATA</span>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-text">Setup Progress</span>
+                        <span class="progress-percentage" id="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="sections-nav">
+                    <div class="sections-grid">
+                        <div class="section-tab active" onclick="showSection(1)">
+                            <div class="section-tab-number">1</div>
+                            <div>Account</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(2)">
+                            <div class="section-tab-number">2</div>
+                            <div>Business Info</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(3)">
+                            <div class="section-tab-number">3</div>
+                            <div>API Keys</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(4)">
+                            <div class="section-tab-number">4</div>
+                            <div>Team</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(5)">
+                            <div class="section-tab-number">5</div>
+                            <div>Services</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(6)">
+                            <div class="section-tab-number">6</div>
+                            <div>AI Setup</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(7)">
+                            <div class="section-tab-number">7</div>
+                            <div>Templates</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(8)">
+                            <div class="section-tab-number">8</div>
+                            <div>Automation</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(9)">
+                            <div class="section-tab-number">9</div>
+                            <div>Emergency</div>
+                        </div>
+                        <div class="section-tab" onclick="showSection(10)">
+                            <div class="section-tab-number">10</div>
+                            <div>AI Notes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="form-sections">
+                    <!-- Sections will be rendered by JavaScript -->
+                </div>
+            </div>
+
+            <!-- PAGE: WORKFLOWS -->
+            <div id="workflows-page" class="page">
+                <div class="top-bar">
+                    <div>
+                        <h1>All 24 Workflows</h1>
+                        <p>View and deploy individual workflows</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="deployAllWorkflows()">
                         🚀 Deploy All
                     </button>
                 </div>
 
-                <div class="section-card">
-                    <div class="section-content">
-                        <div class="workflow-grid" id="workflow-list">
-                        </div>
-                    </div>
+                <div class="workflow-list" id="workflow-list">
+                    <!-- Workflows will be rendered by JavaScript -->
                 </div>
             </div>
 
-            <div id="page-deploy" class="page">
+            <!-- PAGE: DEPLOY -->
+            <div id="deploy-page" class="page">
                 <div class="top-bar">
-                    <div class="top-bar-left">
-                        <h1>Deploy Workflows</h1>
-                        <p>Deploy all 24 workflows to N8N with sample values</p>
-                    </div>
-                </div>
-
-                <div class="alert alert-warning">
-                    <span>⚠️</span>
                     <div>
-                        <strong>POC Mode:</strong> All workflows will be deployed with SAMPLE placeholder values for "Demo Veterinary Service". 
-                        Workflows will be tagged with "Demo_Veterinary_Service" for easy identification.
+                        <h1>Deploy All Workflows</h1>
+                        <p>Deploy all 24 workflows to your N8N instance</p>
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="warning-box">
+                    <strong>Important:</strong> This will deploy all 24 workflows with the current sample placeholder values. 
+                    All workflows will be tagged with "Demo_Veterinary_Service" for easy identification in N8N.
+                </div>
+
+                <div class="form-section">
                     <div class="section-header">
-                        <h2>Deployment Options</h2>
+                        <h2>Deployment Summary</h2>
+                        <p>Review settings before deploying</p>
                     </div>
-                    <div class="section-content">
+                    
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label>Business Name (Tag)</label>
-                            <input type="text" id="business-name" value="Demo_Veterinary_Service" readonly>
-                            <small style="color: var(--text-gray);">Workflows will be tagged with this name in N8N</small>
+                            <label class="form-label">Business Name</label>
+                            <input type="text" class="form-input" value="Demo Veterinary Service" readonly>
                         </div>
-                        
-                        <div style="display: flex; gap: 12px; margin-top: 20px;">
-                            <button class="btn btn-primary" id="btn-deploy" onclick="deployAllWorkflows()">
-                                🚀 Start Deployment
-                            </button>
-                            <button class="btn btn-secondary" id="btn-stop" onclick="stopDeployment()" disabled>
-                                ⏹️ Stop
-                            </button>
+                        <div class="form-group">
+                            <label class="form-label">N8N Tag</label>
+                            <input type="text" class="form-input" value="Demo_Veterinary_Service" readonly>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Total Workflows</label>
+                            <input type="text" class="form-input" value="24 workflows" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Placeholder Mode</label>
+                            <input type="text" class="form-input sample-value" value="SAMPLE VALUES (for testing)" readonly>
+                        </div>
+                    </div>
 
-                        <div class="deploy-progress hidden" id="deploy-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-                            </div>
-                            <div class="progress-text">
-                                <span id="progress-current">Workflow 0/24</span>
-                                <span id="progress-percent">0%</span>
-                            </div>
-                        </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showPage('setup')">
+                            ← Edit Configuration
+                        </button>
+                        <button class="btn btn-success" onclick="deployAllWorkflows()" id="deploy-all-btn">
+                            🚀 Deploy All 24 Workflows
+                        </button>
                     </div>
                 </div>
 
-                <div class="section-card">
-                    <div class="section-header">
-                        <h2>Deployment Log</h2>
-                    </div>
-                    <div class="section-content">
-                        <div class="log-container" id="deploy-log">
-                            <div class="log-entry info">[Ready] Waiting to start deployment...</div>
-                        </div>
+                <div class="activity-log" id="deploy-log">
+                    <div class="log-entry">
+                        <span class="log-time">[Ready]</span> <span class="log-info">Click "Deploy All" to start deployment...</span>
                     </div>
                 </div>
             </div>
 
-            <div id="page-placeholders" class="page">
+            <!-- PAGE: SETTINGS -->
+            <div id="settings-page" class="page">
                 <div class="top-bar">
-                    <div class="top-bar-left">
-                        <h1>Sample Placeholder Values</h1>
-                        <p>These SAMPLE values will replace workflow placeholders</p>
-                    </div>
-                </div>
-
-                <div class="alert alert-info">
-                    <span>ℹ️</span>
                     <div>
-                        All placeholder values below are <strong>SAMPLE DATA</strong> for the "Demo Veterinary Service" POC. 
-                        Values are clearly marked to indicate they are not real credentials.
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <div class="section-content" style="overflow-x: auto;">
-                        <table class="placeholder-table">
-                            <thead>
-                                <tr>
-                                    <th>Placeholder Key</th>
-                                    <th>Sample Value</th>
-                                    <th>Category</th>
-                                </tr>
-                            </thead>
-                            <tbody id="placeholder-table-body">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-settings" class="page">
-                <div class="top-bar">
-                    <div class="top-bar-left">
                         <h1>Settings</h1>
-                        <p>POC Configuration</p>
+                        <p>N8N Connection and System Settings</p>
                     </div>
                 </div>
 
-                <div class="section-card">
+                <div class="form-section">
                     <div class="section-header">
                         <h2>N8N Connection</h2>
+                        <p>Your N8N instance connection settings</p>
                     </div>
-                    <div class="section-content">
+
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label>N8N Instance URL</label>
-                            <input type="text" id="n8n-url" readonly>
+                            <label class="form-label">N8N API Status</label>
+                            <input type="text" class="form-input" id="n8n-api-status" value="Checking..." readonly>
                         </div>
                         <div class="form-group">
-                            <label>API Key Status</label>
-                            <input type="text" id="api-key-status" value="Configured (hidden)" readonly>
+                            <label class="form-label">API Key</label>
+                            <input type="text" class="form-input" value="••••••••••••••••" readonly>
+                            <div class="form-help">Stored securely as environment secret</div>
                         </div>
-                        <button class="btn btn-secondary" onclick="testN8NConnection()">
-                            🔄 Test Connection
+                    </div>
+
+                    <div class="section-actions">
+                        <div></div>
+                        <button class="btn btn-primary" onclick="testN8NConnection()">
+                            🔌 Test Connection
                         </button>
                     </div>
                 </div>
@@ -866,191 +954,956 @@
     </div>
 
     <script>
-        const SAMPLE_PLACEHOLDERS = {
-            "Google Sheets Document ID": "SAMPLE_SHEET_ID_1234567890",
-            "Availability Checker Webhook URL": "https://SAMPLE-demo-vet.n8n.cloud/webhook/availability-checker",
-            "Calendar Sync Reminder Webhook URL": "https://SAMPLE-demo-vet.n8n.cloud/webhook/calendar-sync",
-            "Cleaning Scheduler Webhook URL": "https://SAMPLE-demo-vet.n8n.cloud/webhook/cleaning-scheduler",
-            "Guest Journey Scheduler Webhook URL": "https://SAMPLE-demo-vet.n8n.cloud/webhook/guest-journey",
-            "Owner Telegram/Phone ID": "SAMPLE_OWNER_ID_123456789",
-            "Property Owner Name": "Dr. SAMPLE Smith (Demo Vet)",
-            "Telegram Bot Token": "SAMPLE_BOT_TOKEN_123456:ABCdefGHIjklMNOpqr",
-            "WhatsApp Phone Number ID": "SAMPLE_WA_PHONE_ID_1234567890",
-            "WhatsApp Access Token": "SAMPLE_WA_ACCESS_TOKEN_xyz123",
-            "Twilio Phone Number": "+1-555-DEMO-VET",
-            "OpenAI API Key": "SAMPLE_OPENAI_KEY_sk-xxxxxxxx",
-            "From Email Address": "demo-vet@sample-email.com",
-            "Property name": "Demo Veterinary Clinic",
-            "Manager Name": "Dr. SAMPLE Manager",
-            "Confirmation Template Name": "SAMPLE_confirmation_template",
-            "Emergency Alert Template Name": "SAMPLE_emergency_template",
-            "High Urgency Template Name": "SAMPLE_urgent_template",
-            "Medium/Low Notification Template Name": "SAMPLE_notification_template",
-            "Google Calendar ID": "SAMPLE_calendar@group.calendar.google.com",
-            "Eventbrite API Token": "SAMPLE_EVENTBRITE_TOKEN_xyz",
-            "OpenWeatherMap API Key": "SAMPLE_WEATHER_KEY_abc123"
+        // ============================================
+        // POC CONTROL PANEL - DEMO VETERINARY SERVICE
+        // Complete 10-Section Setup with Sample Values
+        // ============================================
+
+        // Global State
+        const appState = {
+            currentPage: 'dashboard',
+            currentSection: 1,
+            completedSections: [],
+            deployedWorkflows: [],
+            formData: {}
         };
 
-        const WORKFLOW_NAMES = [
-            "Workflow 0: Message Router (Master Routing Hub)",
-            "Workflow CP-1: Control Panel Hub (Telegram/WhatsApp)",
-            "Workflow CP-2: Configuration Manager",
-            "Workflow CP-3: Analytics Dashboard",
-            "Workflow CP-4: Team Management",
-            "Workflow 5: Inquiry Handler",
-            "Workflow 6: AI Conversation Engine",
-            "Workflow 7: Payment Handler",
-            "Workflow 8: Guest Pre-Arrival Journey",
-            "Workflow 9: Guest Post-Checkout Journey",
-            "Workflow 10: Cleaning Coordination",
-            "Workflow 11: Daily Check & Reports",
-            "Workflow 12: Nightly Maintenance",
-            "Workflow 13: Calendar Sync",
-            "Workflow 14: Cleaning Verification",
-            "Workflow 15: Inventory Management",
-            "Workflow 16: Review Monitoring",
-            "Workflow 17: Guest Screening",
-            "Workflow 18: Email Communications",
-            "Workflow 19: Emergency Response",
-            "Workflow 20: Dashboard Metrics",
-            "Workflow 21: Backup & Recovery",
-            "Workflow 22: Platform Integrations",
-            "Workflow 23: Advanced Automations"
+        // Pre-filled Sample Values for Demo Veterinary Service
+        const SAMPLE_VALUES = {
+            // Section 1: Account
+            customer_id: 'demo_veterinary_service_001',
+            owner_name: 'Dr. Sarah Johnson',
+            owner_email: 'sarah.johnson@demovetclinic.com',
+            owner_phone: '+1-555-VET-CARE',
+            owner_platform: 'whatsapp',
+            owner_telegram_id: 'SAMPLE_TELEGRAM_ID_123456789',
+
+            // Section 2: Business Info
+            business_name: 'Demo Veterinary Service',
+            business_address: '123 Pet Care Lane, Animal City, AC 12345',
+            business_hours: '8:00 AM - 6:00 PM',
+            business_phone: '+1-555-PET-HELP',
+            business_email: 'info@demovetclinic.com',
+            business_website: 'https://demovetclinic.com',
+
+            // Section 3: API Keys & Credentials
+            google_sheet_id: 'SAMPLE_GOOGLE_SHEET_ID_1234567890abcdef',
+            google_calendar_id: 'primary',
+            deals_sheet_id: 'SAMPLE_DEALS_SHEET_ID_1234567890',
+            bookings_sheet_id: 'SAMPLE_BOOKINGS_SHEET_ID_1234567890',
+            properties_sheet_id: 'SAMPLE_PROPERTIES_SHEET_ID_1234567890',
+            contacts_sheet_id: 'SAMPLE_CONTACTS_SHEET_ID_1234567890',
+            tasks_sheet_id: 'SAMPLE_TASKS_SHEET_ID_1234567890',
+            messages_sheet_id: 'SAMPLE_MESSAGES_SHEET_ID_1234567890',
+            cleaners_sheet_id: 'SAMPLE_CLEANERS_SHEET_ID_1234567890',
+            vendors_sheet_id: 'SAMPLE_VENDORS_SHEET_ID_1234567890',
+            inventory_sheet_id: 'SAMPLE_INVENTORY_SHEET_ID_1234567890',
+            suppliers_sheet_id: 'SAMPLE_SUPPLIERS_SHEET_ID_1234567890',
+            purchase_orders_sheet_id: 'SAMPLE_PURCHASE_ORDERS_SHEET_ID_1234567890',
+            property_configs_sheet_id: 'SAMPLE_PROPERTY_CONFIGS_SHEET_ID_1234567890',
+            system_config_sheet_id: 'SAMPLE_SYSTEM_CONFIG_SHEET_ID_1234567890',
+            scheduled_messages_sheet_id: 'SAMPLE_SCHEDULED_MESSAGES_SHEET_ID_1234567890',
+            maintenance_tickets_sheet_id: 'SAMPLE_MAINTENANCE_TICKETS_SHEET_ID_1234567890',
+            manual_tasks_sheet_id: 'SAMPLE_MANUAL_TASKS_SHEET_ID_1234567890',
+            pricing_history_sheet_id: 'SAMPLE_PRICING_HISTORY_SHEET_ID_1234567890',
+            pricing_recommendations_sheet_id: 'SAMPLE_PRICING_RECOMMENDATIONS_SHEET_ID_1234567890',
+            calendar_sync_log_sheet_id: 'SAMPLE_CALENDAR_SYNC_LOG_SHEET_ID_1234567890',
+            message_router_log_sheet_id: 'SAMPLE_MESSAGE_ROUTER_LOG_SHEET_ID_1234567890',
+            inquiries_sheet_id: 'SAMPLE_INQUIRIES_SHEET_ID_1234567890',
+            deal_conflicts_sheet_id: 'SAMPLE_DEAL_CONFLICTS_SHEET_ID_1234567890',
+            reviews_sheet_id: 'SAMPLE_REVIEWS_SHEET_ID_1234567890',
+            telegram_bot_token: 'SAMPLE_TELEGRAM_BOT_TOKEN_1234567890:ABCDEFGHIJKLMNOP',
+            whatsapp_phone_id: 'SAMPLE_WHATSAPP_PHONE_ID_123456789012345',
+            whatsapp_access_token: 'SAMPLE_WHATSAPP_ACCESS_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            twilio_phone_number: '+1-555-TWILIO-VET',
+            twilio_whatsapp_number: 'whatsapp:+1-555-TWILIO-VET',
+            openai_api_key: 'SAMPLE_OPENAI_API_KEY_sk-1234567890abcdef',
+            openweather_api_key: 'SAMPLE_OPENWEATHER_API_KEY_1234567890abcdef',
+            eventbrite_api_token: 'SAMPLE_EVENTBRITE_TOKEN_1234567890abcdef',
+            from_email_address: 'notifications@demovetclinic.com',
+
+            // Section 4: Team Contacts
+            manager_name: 'Dr. Michael Chen',
+            manager_phone: '+1-555-MGR-VET1',
+            manager_platform: 'telegram',
+            manager_chat_id: 'SAMPLE_MANAGER_TELEGRAM_ID_987654321',
+            cleaner_name: 'PetClean Pro Services',
+            cleaner_phone: '+1-555-CLN-PET1',
+            cleaner_platform: 'sms',
+            maintenance_name: 'VetTech Equipment Services',
+            maintenance_phone: '+1-555-MNT-VET1',
+            maintenance_platform: 'whatsapp',
+            booking_contact_phone: '+1-555-BOOK-VET',
+            booking_contact_chat_id: 'SAMPLE_BOOKING_CHAT_ID_123456789',
+            booking_contact_platform: 'whatsapp',
+
+            // Section 5: Services & Pricing
+            consultation_fee: '$75',
+            vaccination_fee: '$45',
+            grooming_fee: '$60',
+            surgery_base_fee: '$500',
+            emergency_fee: '$150',
+            booking_platforms: 'Website, Phone, WhatsApp',
+            property_details_url: 'https://demovetclinic.com/services',
+            task_dashboard_url: 'https://demovetclinic.com/staff/dashboard',
+
+            // Section 6: AI Personality
+            ai_personality: 'friendly',
+            response_speed: 'natural',
+            language: 'English',
+            auto_approve_bookings: false,
+            screening_level: 'standard',
+
+            // Section 7: WhatsApp Templates
+            confirmation_template: 'vet_booking_confirmation',
+            emergency_template: 'vet_emergency_alert',
+            high_urgency_template: 'vet_high_priority',
+            medium_low_template: 'vet_standard_notification',
+            urgent_task_template: 'vet_urgent_task_alert',
+            whatsapp_template_name: 'vet_appointment_reminder',
+
+            // Section 8: Automation Preferences
+            daily_checkin_time: '08:00',
+            nightly_maintenance_time: '22:00',
+            review_response_style: 'professional',
+            inventory_alert_threshold: '10',
+
+            // Section 9: Emergency Contacts
+            emergency_contact_name: 'Dr. Emergency On-Call',
+            emergency_contact_phone: '+1-555-EMRG-VET',
+            emergency_contact_platform: 'telegram',
+            local_police: '+1-555-911-LOCAL',
+            local_fire: '+1-555-FIRE-DEPT',
+            nearest_hospital: 'City Animal Emergency Hospital - +1-555-ANIM-ER',
+
+            // Section 10: LLM Special Instructions
+            // Webhook URLs (auto-generated after deployment)
+            availability_checker_webhook: 'https://n8n-demo-vet.example/webhook/availability-checker',
+            calendar_sync_webhook: 'https://n8n-demo-vet.example/webhook/calendar-sync',
+            cleaning_scheduler_webhook: 'https://n8n-demo-vet.example/webhook/cleaning-scheduler',
+            guest_journey_webhook: 'https://n8n-demo-vet.example/webhook/guest-journey',
+            inventory_predictor_webhook: 'https://n8n-demo-vet.example/webhook/inventory-predictor',
+            task_completed_webhook: 'https://n8n-demo-vet.example/webhook/task-completed',
+            property_status_webhook: 'https://n8n-demo-vet.example/webhook/property-status',
+            maintenance_ticket_webhook: 'https://n8n-demo-vet.example/webhook/maintenance-ticket',
+            send_guest_message_webhook: 'https://n8n-demo-vet.example/webhook/send-guest-message',
+
+            llm_notes: `DEMO VETERINARY SERVICE - AI ASSISTANT INSTRUCTIONS
+
+This is a sample veterinary clinic AI assistant. When deployed, replace these instructions with your actual business rules.
+
+APPOINTMENT HANDLING:
+- Always confirm pet type and reason for visit
+- Offer available time slots within 48 hours for urgent cases
+- Collect pet name, owner name, and contact details
+
+EMERGENCY PROTOCOL:
+- If keywords like "bleeding", "not breathing", "unconscious" are detected, immediately escalate
+- Provide basic first aid instructions while connecting to emergency staff
+
+SERVICES WE OFFER:
+- General wellness exams
+- Vaccinations and preventive care
+- Dental cleaning and surgery
+- Grooming and bathing
+- Emergency care (24/7)
+- Pet boarding
+
+BUSINESS HOURS:
+- Monday to Friday: 8 AM - 6 PM
+- Saturday: 9 AM - 4 PM
+- Sunday: Emergency only
+- Emergency line available 24/7
+
+TONE & STYLE:
+- Be warm and compassionate
+- Use pet names when known
+- Show genuine concern for animal welfare
+- Keep responses concise but helpful`
+        };
+
+        // Workflow Templates
+        const WORKFLOWS = [
+            { id: 0, name: 'Message Router (Master Routing Hub)', desc: 'Routes incoming messages to appropriate handlers' },
+            { id: 1, name: 'Availability Checker', desc: 'Checks appointment availability and schedules' },
+            { id: 2, name: 'Deal Notification System', desc: 'Sends notifications for new deals and updates' },
+            { id: 3, name: 'Calendar Sync Manager', desc: 'Syncs appointments across calendars' },
+            { id: 4, name: 'Task Manager & Notifications', desc: 'Manages tasks and sends team notifications' },
+            { id: 5, name: 'Guest Journey Automation', desc: 'Automates client journey touchpoints' },
+            { id: 6, name: 'Review Response System', desc: 'Handles review responses automatically' },
+            { id: 7, name: 'Daily Operations Scheduler', desc: 'Schedules daily operations and reminders' },
+            { id: 8, name: 'Booking Confirmation System', desc: 'Sends booking confirmations' },
+            { id: 9, name: 'Message Sender Hub', desc: 'Central hub for outgoing messages' },
+            { id: 10, name: 'Cleaning & Maintenance Scheduler', desc: 'Schedules cleaning and maintenance tasks' },
+            { id: 11, name: 'Inventory Management', desc: 'Tracks inventory levels' },
+            { id: 12, name: 'Supplier Order System', desc: 'Manages supplier orders' },
+            { id: 13, name: 'Pricing Optimizer', desc: 'Analyzes and optimizes pricing' },
+            { id: 14, name: 'Guest Communication Hub', desc: 'Manages client communications' },
+            { id: 15, name: 'Emergency Response System', desc: 'Handles emergency alerts and responses' },
+            { id: 16, name: 'Analytics Dashboard Updater', desc: 'Updates analytics data' },
+            { id: 17, name: 'Maintenance Ticket Creator', desc: 'Creates maintenance tickets' },
+            { id: 18, name: 'Simple Webhook Handler', desc: 'Handles simple webhook events' },
+            { id: 19, name: 'Property Status Updater', desc: 'Updates property/location status' },
+            { id: 20, name: 'Calendar Reminder System', desc: 'Sends calendar reminders' },
+            { id: 21, name: 'Report Generator', desc: 'Generates periodic reports' },
+            { id: 22, name: 'Integration Hub', desc: 'Connects external integrations' },
+            { id: 23, name: 'Backup & Archive System', desc: 'Archives data and creates backups' }
         ];
 
-        let deployedWorkflows = [];
-        let isDeploying = false;
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
 
-        function navigateTo(page) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        function initializeApp() {
+            loadFormData();
+            renderWorkflowList();
+            renderFormSection(1);
+            updateProgress();
+            testN8NConnection();
+        }
+
+        // Load saved form data or use sample values
+        function loadFormData() {
+            const saved = localStorage.getItem('pocFormData');
+            if (saved) {
+                appState.formData = JSON.parse(saved);
+            } else {
+                appState.formData = { ...SAMPLE_VALUES };
+            }
             
-            document.getElementById(`page-${page}`).classList.add('active');
-            document.querySelector(`[data-page="${page}"]`).classList.add('active');
-
-            if (page === 'workflows') renderWorkflowList();
-            if (page === 'placeholders') renderPlaceholderTable();
-        }
-
-        function renderWorkflowList() {
-            const container = document.getElementById('workflow-list');
-            container.innerHTML = WORKFLOW_NAMES.map((name, index) => {
-                const isDeployed = deployedWorkflows.includes(index);
-                return `
-                    <div class="workflow-card ${isDeployed ? 'deployed' : ''}">
-                        <div class="workflow-header">
-                            <div>
-                                <div class="workflow-title">${name}</div>
-                                <div class="workflow-id">Workflow_${String(index).padStart(2, '0')}.json</div>
-                            </div>
-                            <span class="workflow-status ${isDeployed ? 'deployed' : 'pending'}">
-                                ${isDeployed ? 'Deployed' : 'Pending'}
-                            </span>
-                        </div>
-                        <div class="workflow-description">
-                            Part of the Demo Veterinary Service automation suite.
-                        </div>
-                        <div class="workflow-actions">
-                            <button class="btn btn-secondary" onclick="deploySingleWorkflow(${index})" ${isDeploying ? 'disabled' : ''}>
-                                ${isDeployed ? '🔄 Redeploy' : '🚀 Deploy'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderPlaceholderTable() {
-            const tbody = document.getElementById('placeholder-table-body');
-            const categories = {
-                'Google Sheets': ['Google Sheets', 'Sheet'],
-                'Webhooks': ['Webhook', 'URL'],
-                'Messaging': ['Telegram', 'WhatsApp', 'Twilio', 'Phone'],
-                'API Keys': ['API', 'Token', 'Key'],
-                'Business Info': ['Name', 'Email', 'Property', 'Manager'],
-                'Templates': ['Template']
-            };
-
-            tbody.innerHTML = Object.entries(SAMPLE_PLACEHOLDERS).map(([key, value]) => {
-                let category = 'Other';
-                for (const [cat, keywords] of Object.entries(categories)) {
-                    if (keywords.some(kw => key.includes(kw))) {
-                        category = cat;
-                        break;
-                    }
-                }
-                return `
-                    <tr>
-                        <td><span class="placeholder-key">${key}</span></td>
-                        <td><span class="placeholder-value sample">${value}</span></td>
-                        <td>${category}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        async function testN8NConnection() {
-            const statusDot = document.getElementById('n8n-status');
-            const statusText = document.getElementById('n8n-status-text');
-            
-            statusText.textContent = 'Testing connection...';
-            statusDot.classList.remove('connected', 'disconnected');
-
-            try {
-                const response = await fetch('/api/poc/n8n/test');
-                const data = await response.json();
-                
-                if (data.success) {
-                    statusDot.classList.add('connected');
-                    statusText.textContent = `Connected to N8N (${data.workflowCount || 0} workflows)`;
-                    addLog('activity-log', 'success', `N8N connection successful - ${data.workflowCount || 0} workflows found`);
-                } else {
-                    throw new Error(data.error || 'Connection failed');
-                }
-            } catch (error) {
-                statusDot.classList.add('disconnected');
-                statusText.textContent = `Connection failed: ${error.message}`;
-                addLog('activity-log', 'error', `N8N connection failed: ${error.message}`);
+            // Load completed sections
+            const savedSections = localStorage.getItem('pocCompletedSections');
+            if (savedSections) {
+                appState.completedSections = JSON.parse(savedSections);
+                // Restore completed section visual state
+                appState.completedSections.forEach(sectionNum => {
+                    const tab = document.querySelectorAll('.section-tab')[sectionNum - 1];
+                    if (tab) tab.classList.add('completed');
+                });
+                updateProgress();
             }
         }
 
-        function addLog(containerId, type, message) {
-            const container = document.getElementById(containerId);
-            const timestamp = new Date().toLocaleTimeString();
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            entry.textContent = `[${timestamp}] ${message}`;
-            container.appendChild(entry);
-            container.scrollTop = container.scrollHeight;
+        // Save form data
+        function saveFormData() {
+            localStorage.setItem('pocFormData', JSON.stringify(appState.formData));
+            localStorage.setItem('pocCompletedSections', JSON.stringify(appState.completedSections));
+            addLog('Progress saved successfully', 'success');
         }
 
+        // Page Navigation
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(pageName + '-page').classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+            appState.currentPage = pageName;
+        }
+
+        // Section Navigation
+        function showSection(sectionNum) {
+            document.querySelectorAll('.section-tab').forEach((tab, i) => {
+                tab.classList.remove('active');
+                if (i + 1 === sectionNum) tab.classList.add('active');
+            });
+            renderFormSection(sectionNum);
+            appState.currentSection = sectionNum;
+        }
+
+        // Mark section as completed
+        function completeSection(sectionNum) {
+            if (!appState.completedSections.includes(sectionNum)) {
+                appState.completedSections.push(sectionNum);
+            }
+            document.querySelectorAll('.section-tab')[sectionNum - 1].classList.add('completed');
+            updateProgress();
+            saveFormData();
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const progress = Math.round((appState.completedSections.length / 10) * 100);
+            document.getElementById('progress-percentage').textContent = progress + '%';
+            document.getElementById('progress-fill').style.width = progress + '%';
+            document.getElementById('setup-progress').textContent = progress + '%';
+        }
+
+        // Update field value
+        function updateField(fieldName, value) {
+            appState.formData[fieldName] = value;
+        }
+
+        // Render Form Section
+        function renderFormSection(sectionNum) {
+            const container = document.getElementById('form-sections');
+            const sections = {
+                1: renderSection1_Account,
+                2: renderSection2_BusinessInfo,
+                3: renderSection3_APIKeys,
+                4: renderSection4_Team,
+                5: renderSection5_Services,
+                6: renderSection6_AI,
+                7: renderSection7_Templates,
+                8: renderSection8_Automation,
+                9: renderSection9_Emergency,
+                10: renderSection10_LLMNotes
+            };
+            container.innerHTML = sections[sectionNum]();
+        }
+
+        // Section 1: Account
+        function renderSection1_Account() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>1. Account Information</h2>
+                        <p>Basic owner and business account details (pre-filled with sample data)</p>
+                    </div>
+                    <div class="info-box">
+                        All fields are pre-filled with SAMPLE values for Demo Veterinary Service. These will be used as placeholders in your workflows.
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Customer ID</label>
+                            <input type="text" class="form-input" value="${d.customer_id}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Owner Name <span class="required-mark">*</span></label>
+                            <input type="text" class="form-input sample-value" id="owner_name" value="${d.owner_name}" onchange="updateField('owner_name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Owner Email <span class="required-mark">*</span></label>
+                            <input type="email" class="form-input sample-value" id="owner_email" value="${d.owner_email}" onchange="updateField('owner_email', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Owner Phone <span class="required-mark">*</span></label>
+                            <input type="tel" class="form-input sample-value" id="owner_phone" value="${d.owner_phone}" onchange="updateField('owner_phone', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Preferred Platform</label>
+                            <select class="form-select" id="owner_platform" onchange="updateField('owner_platform', this.value)">
+                                <option value="telegram" ${d.owner_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
+                                <option value="whatsapp" ${d.owner_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Owner Telegram/Chat ID</label>
+                            <input type="text" class="form-input sample-value" id="owner_telegram_id" value="${d.owner_telegram_id}" onchange="updateField('owner_telegram_id', this.value)">
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="saveFormData()">Save Progress</button>
+                        <button class="btn btn-primary" onclick="completeSection(1); showSection(2)">Next: Business Info →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 2: Business Info
+        function renderSection2_BusinessInfo() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>2. Business Information</h2>
+                        <p>Your veterinary clinic details</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Business Name <span class="required-mark">*</span></label>
+                            <input type="text" class="form-input sample-value" id="business_name" value="${d.business_name}" onchange="updateField('business_name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Business Phone</label>
+                            <input type="tel" class="form-input sample-value" id="business_phone" value="${d.business_phone}" onchange="updateField('business_phone', this.value)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Business Address</label>
+                            <input type="text" class="form-input sample-value" id="business_address" value="${d.business_address}" onchange="updateField('business_address', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Business Email</label>
+                            <input type="email" class="form-input sample-value" id="business_email" value="${d.business_email}" onchange="updateField('business_email', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Business Hours</label>
+                            <input type="text" class="form-input sample-value" id="business_hours" value="${d.business_hours}" onchange="updateField('business_hours', this.value)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Website URL</label>
+                            <input type="url" class="form-input sample-value" id="business_website" value="${d.business_website}" onchange="updateField('business_website', this.value)">
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(1)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(2); showSection(3)">Next: API Keys →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 3: API Keys & Credentials
+        function renderSection3_APIKeys() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>3. API Keys & Credentials</h2>
+                        <p>Google Sheets, Telegram, WhatsApp, and other service credentials</p>
+                    </div>
+                    <div class="warning-box">
+                        <strong>SAMPLE VALUES:</strong> All IDs below are sample placeholders. Replace with your actual API keys and Sheet IDs when deploying to production.
+                    </div>
+                    
+                    <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-dark);">Google Sheets IDs</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Main Google Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.google_sheet_id}" onchange="updateField('google_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Deals Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.deals_sheet_id}" onchange="updateField('deals_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Bookings Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.bookings_sheet_id}" onchange="updateField('bookings_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Properties Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.properties_sheet_id}" onchange="updateField('properties_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contacts Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.contacts_sheet_id}" onchange="updateField('contacts_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tasks Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.tasks_sheet_id}" onchange="updateField('tasks_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Messages Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.messages_sheet_id}" onchange="updateField('messages_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Inventory Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.inventory_sheet_id}" onchange="updateField('inventory_sheet_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Google Calendar ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.google_calendar_id}" onchange="updateField('google_calendar_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">System Config Sheet ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.system_config_sheet_id}" onchange="updateField('system_config_sheet_id', this.value)">
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-dark);">Communication APIs</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Telegram Bot Token</label>
+                            <input type="text" class="form-input sample-value" value="${d.telegram_bot_token}" onchange="updateField('telegram_bot_token', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">WhatsApp Phone ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.whatsapp_phone_id}" onchange="updateField('whatsapp_phone_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Twilio Phone Number</label>
+                            <input type="text" class="form-input sample-value" value="${d.twilio_phone_number}" onchange="updateField('twilio_phone_number', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">From Email Address</label>
+                            <input type="email" class="form-input sample-value" value="${d.from_email_address}" onchange="updateField('from_email_address', this.value)">
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-dark);">Other APIs</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">OpenAI API Key</label>
+                            <input type="text" class="form-input sample-value" value="${d.openai_api_key}" onchange="updateField('openai_api_key', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">OpenWeatherMap API Key (optional)</label>
+                            <input type="text" class="form-input sample-value" value="${d.openweather_api_key}" onchange="updateField('openweather_api_key', this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(2)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(3); showSection(4)">Next: Team →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 4: Team Contacts
+        function renderSection4_Team() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>4. Team Contacts</h2>
+                        <p>Configure your team members for notifications and task assignments</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Manager Name</label>
+                            <input type="text" class="form-input sample-value" value="${d.manager_name}" onchange="updateField('manager_name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Manager Phone/Chat ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.manager_phone}" onchange="updateField('manager_phone', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Manager Platform</label>
+                            <select class="form-select" onchange="updateField('manager_platform', this.value)">
+                                <option value="telegram" ${d.manager_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
+                                <option value="whatsapp" ${d.manager_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                                <option value="sms" ${d.manager_platform === 'sms' ? 'selected' : ''}>SMS</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Manager Telegram Chat ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.manager_chat_id}" onchange="updateField('manager_chat_id', this.value)">
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-dark);">Support Staff</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Cleaning Service Name</label>
+                            <input type="text" class="form-input sample-value" value="${d.cleaner_name}" onchange="updateField('cleaner_name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cleaning Service Phone</label>
+                            <input type="text" class="form-input sample-value" value="${d.cleaner_phone}" onchange="updateField('cleaner_phone', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Maintenance Contact</label>
+                            <input type="text" class="form-input sample-value" value="${d.maintenance_name}" onchange="updateField('maintenance_name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Maintenance Phone</label>
+                            <input type="text" class="form-input sample-value" value="${d.maintenance_phone}" onchange="updateField('maintenance_phone', this.value)">
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-dark);">Booking Contact</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Booking Contact Phone</label>
+                            <input type="text" class="form-input sample-value" value="${d.booking_contact_phone}" onchange="updateField('booking_contact_phone', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Booking Contact Chat ID</label>
+                            <input type="text" class="form-input sample-value" value="${d.booking_contact_chat_id}" onchange="updateField('booking_contact_chat_id', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Booking Contact Platform</label>
+                            <select class="form-select" onchange="updateField('booking_contact_platform', this.value)">
+                                <option value="telegram" ${d.booking_contact_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
+                                <option value="whatsapp" ${d.booking_contact_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(3)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(4); showSection(5)">Next: Services →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 5: Services & Pricing
+        function renderSection5_Services() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>5. Services & Pricing</h2>
+                        <p>Configure your veterinary services and pricing</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Consultation Fee</label>
+                            <input type="text" class="form-input sample-value" value="${d.consultation_fee}" onchange="updateField('consultation_fee', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vaccination Fee</label>
+                            <input type="text" class="form-input sample-value" value="${d.vaccination_fee}" onchange="updateField('vaccination_fee', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Grooming Fee</label>
+                            <input type="text" class="form-input sample-value" value="${d.grooming_fee}" onchange="updateField('grooming_fee', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Surgery Base Fee</label>
+                            <input type="text" class="form-input sample-value" value="${d.surgery_base_fee}" onchange="updateField('surgery_base_fee', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Fee</label>
+                            <input type="text" class="form-input sample-value" value="${d.emergency_fee}" onchange="updateField('emergency_fee', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Booking Platforms</label>
+                            <input type="text" class="form-input sample-value" value="${d.booking_platforms}" onchange="updateField('booking_platforms', this.value)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Services Page URL</label>
+                            <input type="url" class="form-input sample-value" value="${d.property_details_url}" onchange="updateField('property_details_url', this.value)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Staff Dashboard URL</label>
+                            <input type="url" class="form-input sample-value" value="${d.task_dashboard_url}" onchange="updateField('task_dashboard_url', this.value)">
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(4)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(5); showSection(6)">Next: AI Setup →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 6: AI Personality
+        function renderSection6_AI() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>6. AI Personality & Behavior</h2>
+                        <p>Configure how your AI assistant interacts with clients</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">AI Personality Style</label>
+                            <select class="form-select" onchange="updateField('ai_personality', this.value)">
+                                <option value="friendly" ${d.ai_personality === 'friendly' ? 'selected' : ''}>Friendly & Warm</option>
+                                <option value="professional" ${d.ai_personality === 'professional' ? 'selected' : ''}>Professional & Formal</option>
+                                <option value="casual" ${d.ai_personality === 'casual' ? 'selected' : ''}>Casual & Relaxed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Response Speed</label>
+                            <select class="form-select" onchange="updateField('response_speed', this.value)">
+                                <option value="instant" ${d.response_speed === 'instant' ? 'selected' : ''}>Instant</option>
+                                <option value="natural" ${d.response_speed === 'natural' ? 'selected' : ''}>Natural (1-2 sec delay)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Language</label>
+                            <select class="form-select" onchange="updateField('language', this.value)">
+                                <option value="English" ${d.language === 'English' ? 'selected' : ''}>English</option>
+                                <option value="Spanish" ${d.language === 'Spanish' ? 'selected' : ''}>Spanish</option>
+                                <option value="French" ${d.language === 'French' ? 'selected' : ''}>French</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Auto-Approve Bookings</label>
+                            <select class="form-select" onchange="updateField('auto_approve_bookings', this.value === 'true')">
+                                <option value="false" ${!d.auto_approve_bookings ? 'selected' : ''}>No - Manual Review</option>
+                                <option value="true" ${d.auto_approve_bookings ? 'selected' : ''}>Yes - Auto Approve</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Client Screening Level</label>
+                            <select class="form-select" onchange="updateField('screening_level', this.value)">
+                                <option value="minimal" ${d.screening_level === 'minimal' ? 'selected' : ''}>Minimal</option>
+                                <option value="standard" ${d.screening_level === 'standard' ? 'selected' : ''}>Standard</option>
+                                <option value="strict" ${d.screening_level === 'strict' ? 'selected' : ''}>Strict</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(5)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(6); showSection(7)">Next: Templates →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 7: WhatsApp Templates
+        function renderSection7_Templates() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>7. WhatsApp Message Templates</h2>
+                        <p>Configure your pre-approved WhatsApp template names</p>
+                    </div>
+                    <div class="info-box">
+                        These template names must match exactly with your WhatsApp Business API approved templates.
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Confirmation Template</label>
+                            <input type="text" class="form-input sample-value" value="${d.confirmation_template}" onchange="updateField('confirmation_template', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Alert Template</label>
+                            <input type="text" class="form-input sample-value" value="${d.emergency_template}" onchange="updateField('emergency_template', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">High Urgency Template</label>
+                            <input type="text" class="form-input sample-value" value="${d.high_urgency_template}" onchange="updateField('high_urgency_template', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Standard Notification Template</label>
+                            <input type="text" class="form-input sample-value" value="${d.medium_low_template}" onchange="updateField('medium_low_template', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Urgent Task Alert Template</label>
+                            <input type="text" class="form-input sample-value" value="${d.urgent_task_template}" onchange="updateField('urgent_task_template', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">General Message Template</label>
+                            <input type="text" class="form-input sample-value" value="${d.whatsapp_template_name}" onchange="updateField('whatsapp_template_name', this.value)">
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(6)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(7); showSection(8)">Next: Automation →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 8: Automation Preferences
+        function renderSection8_Automation() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>8. Automation Preferences</h2>
+                        <p>Configure automated scheduling and alerts</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Daily Check-in Time</label>
+                            <input type="time" class="form-input sample-value" value="${d.daily_checkin_time}" onchange="updateField('daily_checkin_time', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nightly Maintenance Time</label>
+                            <input type="time" class="form-input sample-value" value="${d.nightly_maintenance_time}" onchange="updateField('nightly_maintenance_time', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Review Response Style</label>
+                            <select class="form-select" onchange="updateField('review_response_style', this.value)">
+                                <option value="professional" ${d.review_response_style === 'professional' ? 'selected' : ''}>Professional</option>
+                                <option value="casual" ${d.review_response_style === 'casual' ? 'selected' : ''}>Casual</option>
+                                <option value="brief" ${d.review_response_style === 'brief' ? 'selected' : ''}>Brief</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Inventory Alert Threshold</label>
+                            <input type="number" class="form-input sample-value" value="${d.inventory_alert_threshold}" onchange="updateField('inventory_alert_threshold', this.value)">
+                            <div class="form-help">Alert when inventory drops below this number</div>
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(7)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(8); showSection(9)">Next: Emergency →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 9: Emergency Contacts
+        function renderSection9_Emergency() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>9. Emergency Contacts</h2>
+                        <p>Configure emergency contact information</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Name <span class="required-mark">*</span></label>
+                            <input type="text" class="form-input sample-value" value="${d.emergency_contact_name}" onchange="updateField('emergency_contact_name', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Phone <span class="required-mark">*</span></label>
+                            <input type="tel" class="form-input sample-value" value="${d.emergency_contact_phone}" onchange="updateField('emergency_contact_phone', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Platform</label>
+                            <select class="form-select" onchange="updateField('emergency_contact_platform', this.value)">
+                                <option value="telegram" ${d.emergency_contact_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
+                                <option value="whatsapp" ${d.emergency_contact_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                                <option value="sms" ${d.emergency_contact_platform === 'sms' ? 'selected' : ''}>SMS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 24px 0 16px; font-size: 16px; color: var(--text-dark);">Local Emergency Services</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Local Police</label>
+                            <input type="tel" class="form-input sample-value" value="${d.local_police}" onchange="updateField('local_police', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Local Fire Department</label>
+                            <input type="tel" class="form-input sample-value" value="${d.local_fire}" onchange="updateField('local_fire', this.value)">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Nearest Animal Hospital</label>
+                            <input type="text" class="form-input sample-value" value="${d.nearest_hospital}" onchange="updateField('nearest_hospital', this.value)">
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(8)">← Previous</button>
+                        <button class="btn btn-primary" onclick="completeSection(9); showSection(10)">Next: AI Notes →</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Section 10: LLM Special Instructions
+        function renderSection10_LLMNotes() {
+            const d = appState.formData;
+            return `
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>10. AI Special Instructions</h2>
+                        <p>Custom instructions for your AI assistant (up to 5000 characters)</p>
+                    </div>
+                    <div class="info-box">
+                        These instructions will guide your AI in all conversations. Include business rules, special handling instructions, and any specific information the AI should know.
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Special Instructions for AI</label>
+                        <textarea class="form-textarea sample-value" id="llm_notes" rows="20" maxlength="5000" onchange="updateField('llm_notes', this.value)">${d.llm_notes}</textarea>
+                        <div class="form-help" id="char-count">${d.llm_notes.length} / 5000 characters</div>
+                    </div>
+                    <div class="section-actions">
+                        <button class="btn btn-secondary" onclick="showSection(9)">← Previous</button>
+                        <button class="btn btn-success" onclick="completeSection(10); saveFormData(); showPage('deploy')">
+                            ✓ Complete Setup & Deploy
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Workflow List
+        function renderWorkflowList() {
+            const container = document.getElementById('workflow-list');
+            container.innerHTML = WORKFLOWS.map(wf => `
+                <div class="workflow-item">
+                    <div class="workflow-number">${wf.id}</div>
+                    <div class="workflow-info">
+                        <div class="workflow-name">Workflow ${wf.id}: ${wf.name}</div>
+                        <div class="workflow-desc">${wf.desc}</div>
+                    </div>
+                    <span class="workflow-status ${appState.deployedWorkflows.includes(wf.id) ? 'deployed' : 'pending'}">
+                        ${appState.deployedWorkflows.includes(wf.id) ? 'Deployed' : 'Pending'}
+                    </span>
+                    <div class="workflow-actions">
+                        <button class="deploy-btn deploy" onclick="deploySingleWorkflow(${wf.id})">
+                            Deploy
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Test N8N Connection
+        async function testN8NConnection() {
+            const statusEl = document.getElementById('connection-status');
+            const n8nStatusEl = document.getElementById('n8n-status');
+            const apiStatusEl = document.getElementById('n8n-api-status');
+            
+            statusEl.className = 'info-box';
+            statusEl.innerHTML = 'Testing connection to N8N...';
+            n8nStatusEl.style.color = 'var(--text-gray)';
+            n8nStatusEl.textContent = 'Checking...';
+            
+            try {
+                const response = await fetch('/api/poc/n8n/test');
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusEl.className = 'info-box';
+                    statusEl.style.background = '#e6f9f0';
+                    statusEl.style.borderColor = '#87d068';
+                    statusEl.innerHTML = `<strong>Connected!</strong> N8N instance is accessible. Found ${result.workflowCount || 0} existing workflows.`;
+                    n8nStatusEl.style.color = 'var(--success)';
+                    n8nStatusEl.textContent = 'Connected';
+                    if (apiStatusEl) apiStatusEl.value = 'Connected';
+                    addLog('N8N connection successful', 'success');
+                } else {
+                    throw new Error(result.error || 'Connection failed');
+                }
+            } catch (error) {
+                statusEl.className = 'warning-box';
+                statusEl.innerHTML = `<strong>Connection Error:</strong> ${error.message}`;
+                n8nStatusEl.style.color = 'var(--danger)';
+                n8nStatusEl.textContent = 'Disconnected';
+                if (apiStatusEl) apiStatusEl.value = 'Error: ' + error.message;
+                addLog('N8N connection failed: ' + error.message, 'error');
+            }
+        }
+
+        // Deploy Single Workflow
+        async function deploySingleWorkflow(workflowIndex) {
+            addLog(`Deploying Workflow ${workflowIndex}...`, 'info');
+            
+            try {
+                const response = await fetch('/api/poc/deploy-single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        workflowIndex: workflowIndex,
+                        businessName: 'Demo_Veterinary_Service',
+                        placeholders: buildPlaceholderMap()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    appState.deployedWorkflows.push(workflowIndex);
+                    renderWorkflowList();
+                    updateDeployStats();
+                    addLog(`Workflow ${workflowIndex} deployed successfully (ID: ${result.workflowId})`, 'success');
+                } else {
+                    addLog(`Failed to deploy Workflow ${workflowIndex}: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`Error deploying Workflow ${workflowIndex}: ${error.message}`, 'error');
+            }
+        }
+
+        // Deploy All Workflows
         async function deployAllWorkflows() {
-            if (isDeploying) return;
+            const deployBtn = document.getElementById('deploy-all-btn');
+            const deployLog = document.getElementById('deploy-log');
             
-            isDeploying = true;
-            const btnDeploy = document.getElementById('btn-deploy');
-            const btnStop = document.getElementById('btn-stop');
-            const progressDiv = document.getElementById('deploy-progress');
-            const progressFill = document.getElementById('progress-fill');
-            const progressCurrent = document.getElementById('progress-current');
-            const progressPercent = document.getElementById('progress-percent');
+            if (deployBtn) {
+                deployBtn.disabled = true;
+                deployBtn.textContent = 'Deploying...';
+            }
             
-            btnDeploy.disabled = true;
-            btnStop.disabled = false;
-            progressDiv.classList.remove('hidden');
+            if (deployLog) {
+                deployLog.innerHTML = '<div class="log-entry"><span class="log-time">[Starting]</span> <span class="log-info">Beginning deployment of all 24 workflows...</span></div>';
+            }
             
-            const businessName = document.getElementById('business-name').value;
-            
-            addLog('deploy-log', 'info', `Starting deployment of 24 workflows for "${businessName}"...`);
-            addLog('deploy-log', 'warning', 'Using SAMPLE placeholder values');
+            addLog('Starting deployment of all 24 workflows...', 'info');
             
             try {
                 const response = await fetch('/api/poc/deploy-all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        businessName,
-                        placeholders: SAMPLE_PLACEHOLDERS
+                        businessName: 'Demo_Veterinary_Service',
+                        placeholders: buildPlaceholderMap()
                     })
                 });
                 
@@ -1062,107 +1915,160 @@
                     if (done) break;
                     
                     const text = decoder.decode(value);
-                    const lines = text.split('\n').filter(l => l.trim());
+                    const lines = text.split('\n').filter(line => line.startsWith('data: '));
                     
                     for (const line of lines) {
                         try {
-                            const update = JSON.parse(line);
+                            const data = JSON.parse(line.replace('data: ', ''));
                             
-                            if (update.type === 'progress') {
-                                const percent = Math.round((update.current / update.total) * 100);
-                                progressFill.style.width = `${percent}%`;
-                                progressCurrent.textContent = `Workflow ${update.current}/${update.total}`;
-                                progressPercent.textContent = `${percent}%`;
-                                
-                                if (update.success) {
-                                    deployedWorkflows.push(update.workflowIndex);
-                                    addLog('deploy-log', 'success', `✓ Deployed: ${update.workflowName}`);
-                                } else {
-                                    addLog('deploy-log', 'error', `✗ Failed: ${update.workflowName} - ${update.error}`);
-                                }
-                            } else if (update.type === 'complete') {
-                                addLog('deploy-log', 'success', `Deployment complete! ${update.successful}/${update.total} workflows deployed`);
-                                updateStats();
-                            } else if (update.type === 'error') {
-                                addLog('deploy-log', 'error', `Deployment error: ${update.message}`);
+                            if (data.type === 'progress') {
+                                addLog(`[${data.current}/${data.total}] Deployed: ${data.workflowName}`, 'success', deployLog);
+                                appState.deployedWorkflows.push(data.current - 1);
+                            } else if (data.type === 'error') {
+                                addLog(`Error: ${data.error}`, 'error', deployLog);
+                            } else if (data.type === 'complete') {
+                                addLog(`Deployment complete! ${data.successCount}/${data.totalCount} workflows deployed.`, 'success', deployLog);
                             }
                         } catch (e) {
-                            console.log('Parse error:', e, line);
+                            // Ignore parse errors
                         }
                     }
                 }
+                
+                renderWorkflowList();
+                updateDeployStats();
+                
             } catch (error) {
-                addLog('deploy-log', 'error', `Deployment failed: ${error.message}`);
+                addLog(`Deployment error: ${error.message}`, 'error', deployLog);
             } finally {
-                isDeploying = false;
-                btnDeploy.disabled = false;
-                btnStop.disabled = true;
-            }
-        }
-
-        async function deploySingleWorkflow(index) {
-            if (isDeploying) return;
-            
-            const businessName = 'Demo_Veterinary_Service';
-            addLog('activity-log', 'info', `Deploying Workflow ${index}...`);
-            
-            try {
-                const response = await fetch('/api/poc/deploy-single', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        workflowIndex: index,
-                        businessName,
-                        placeholders: SAMPLE_PLACEHOLDERS
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    deployedWorkflows.push(index);
-                    addLog('activity-log', 'success', `✓ Deployed: ${WORKFLOW_NAMES[index]}`);
-                    renderWorkflowList();
-                    updateStats();
-                } else {
-                    addLog('activity-log', 'error', `✗ Failed: ${data.error}`);
+                if (deployBtn) {
+                    deployBtn.disabled = false;
+                    deployBtn.textContent = '🚀 Deploy All 24 Workflows';
                 }
-            } catch (error) {
-                addLog('activity-log', 'error', `Deployment error: ${error.message}`);
             }
         }
 
-        function stopDeployment() {
-            isDeploying = false;
-            addLog('deploy-log', 'warning', 'Deployment stopped by user');
+        // Build placeholder map from form data
+        function buildPlaceholderMap() {
+            const d = appState.formData;
+            return {
+                'Google Sheets Document ID': d.google_sheet_id,
+                'Google Sheet ID': d.google_sheet_id,
+                'Deals Google Sheet ID': d.deals_sheet_id,
+                'Google Sheet ID for Deals': d.deals_sheet_id,
+                'Google Sheets ID for Deals sheet': d.deals_sheet_id,
+                'Bookings Google Sheet ID': d.bookings_sheet_id,
+                'Bookings Sheet ID': d.bookings_sheet_id,
+                'Properties Google Sheet ID': d.properties_sheet_id,
+                'Properties Sheet ID': d.properties_sheet_id,
+                'Google Sheets Document ID for Properties sheet': d.properties_sheet_id,
+                'Contacts Google Sheet ID': d.contacts_sheet_id,
+                'Tasks Google Sheet ID': d.tasks_sheet_id,
+                'Messages Google Sheet ID': d.messages_sheet_id,
+                'Cleaners Sheet ID': d.cleaners_sheet_id,
+                'Vendors Google Sheet ID': d.vendors_sheet_id,
+                'Google Sheets Inventory Document ID': d.inventory_sheet_id,
+                'Google Sheets Suppliers Document ID': d.suppliers_sheet_id,
+                'Google Sheets Purchase Orders Document ID': d.purchase_orders_sheet_id,
+                'Property Configurations Google Sheet ID': d.property_configs_sheet_id,
+                'Property_Configurations Google Sheet ID': d.property_configs_sheet_id,
+                'Google Sheets Document ID for Property_Configurations sheet': d.property_configs_sheet_id,
+                'Google Sheets ID for Property_Configurations sheet': d.property_configs_sheet_id,
+                'Google Sheets Property Configurations Document ID': d.property_configs_sheet_id,
+                'Property Configurations Sheet ID': d.property_configs_sheet_id,
+                'Property_Configurations Sheet ID': d.property_configs_sheet_id,
+                'System Configuration Google Sheet ID': d.system_config_sheet_id,
+                'Scheduled Messages Google Sheet ID': d.scheduled_messages_sheet_id,
+                'Scheduled_Messages Google Sheet ID': d.scheduled_messages_sheet_id,
+                'Maintenance_Tickets Google Sheet ID': d.maintenance_tickets_sheet_id,
+                'Manual_Tasks Google Sheet ID': d.manual_tasks_sheet_id,
+                'Pricing_History Google Sheet ID': d.pricing_history_sheet_id,
+                'Pricing_Recommendations Google Sheet ID': d.pricing_recommendations_sheet_id,
+                'Calendar Sync Log Google Sheet ID': d.calendar_sync_log_sheet_id,
+                'Message_Router_Log Google Sheet ID': d.message_router_log_sheet_id,
+                'Inquiries_Google_Sheet_ID': d.inquiries_sheet_id,
+                'Google Sheets ID for Deal_Conflicts sheet': d.deal_conflicts_sheet_id,
+                'Google Sheets ID for Reviews and Property_Configurations': d.reviews_sheet_id,
+                'Google Calendar ID': d.google_calendar_id,
+                'Property Google Calendar ID': d.google_calendar_id,
+                'Owner Telegram/Phone ID': d.owner_telegram_id,
+                'Property Owner ID': d.owner_telegram_id,
+                'Property Owner Name': d.owner_name,
+                'Manager Name': d.manager_name,
+                'Manager Contact (phone/chat ID)': d.manager_phone,
+                'Manager Platform (sms/whatsapp/telegram)': d.manager_platform,
+                'Booking Contact Phone Number': d.booking_contact_phone,
+                'Booking Contact Chat ID (for Telegram)': d.booking_contact_chat_id,
+                'Booking contact chat ID or phone number': d.booking_contact_chat_id,
+                'Booking Contact Platform (telegram or whatsapp)': d.booking_contact_platform,
+                'Booking contact platform (telegram or whatsapp)': d.booking_contact_platform,
+                'telegram or whatsapp': d.owner_platform,
+                'Twilio Phone Number': d.twilio_phone_number,
+                'Twilio From Phone Number': d.twilio_phone_number,
+                'Twilio_From_Phone_Number': d.twilio_phone_number,
+                'Twilio SMS Number': d.twilio_phone_number,
+                'Twilio_WhatsApp_From_Number': d.twilio_whatsapp_number,
+                'WhatsApp Phone Number ID': d.whatsapp_phone_id,
+                'Select your WhatsApp Business Phone Number': d.whatsapp_phone_id,
+                'OpenAI API Key': d.openai_api_key,
+                'OpenWeatherMap API Key': d.openweather_api_key,
+                'Eventbrite API Token': d.eventbrite_api_token,
+                'From Email Address': d.from_email_address,
+                'Your email address': d.from_email_address,
+                'Confirmation Template Name': d.confirmation_template,
+                'Emergency Alert Template Name': d.emergency_template,
+                'High Urgency Template Name': d.high_urgency_template,
+                'Medium/Low Notification Template Name': d.medium_low_template,
+                'WhatsApp template name for urgent task alerts': d.urgent_task_template,
+                'Select your WhatsApp message template': d.whatsapp_template_name,
+                'Property details URL': d.property_details_url,
+                'URL to task dashboard for contacts': d.task_dashboard_url,
+                'Sheet name (e.g., Bookings)': 'Bookings',
+                'Sheet name (e.g., Messages)': 'Messages',
+                'Sheet name (e.g., Properties)': 'Properties',
+                'Sheet name (e.g., Sheet1)': 'Sheet1',
+                'Bookings Sheet Name': 'Bookings',
+                'Properties Sheet Name': 'Properties',
+                'Property Configurations Sheet Name': 'Property_Configurations',
+                'Cleaners Sheet Name': 'Cleaners',
+                // Webhook URLs
+                'Availability Checker Webhook URL': d.availability_checker_webhook,
+                'Availability_Checker_Webhook_URL': d.availability_checker_webhook,
+                'Calendar Sync Reminder Webhook URL': d.calendar_sync_webhook,
+                'Cleaning Scheduler Webhook URL': d.cleaning_scheduler_webhook,
+                'Guest Journey Scheduler Webhook URL': d.guest_journey_webhook,
+                'Inventory Predictor Webhook URL': d.inventory_predictor_webhook,
+                'Task Completed Webhook URL': d.task_completed_webhook,
+                'Property Status Update Webhook URL': d.property_status_webhook,
+                'Maintenance Ticket Creator Webhook URL': d.maintenance_ticket_webhook,
+                'Send Guest Message Webhook URL': d.send_guest_message_webhook,
+                // Underscore variants
+                'Deals_Google_Sheet_ID': d.deals_sheet_id,
+                'Property_Configurations_Google_Sheet_ID': d.property_configs_sheet_id
+            };
         }
 
-        function updateStats() {
-            document.getElementById('stat-deployed').textContent = deployedWorkflows.length;
-            document.getElementById('stat-pending').textContent = 24 - deployedWorkflows.length;
+        // Update deployment stats
+        function updateDeployStats() {
+            const deployedCount = appState.deployedWorkflows.length;
+            document.getElementById('deployed-count').textContent = deployedCount;
+            document.getElementById('pending-count').textContent = 24 - deployedCount;
         }
 
-        async function loadSettings() {
-            try {
-                const response = await fetch('/api/poc/settings');
-                const data = await response.json();
-                document.getElementById('n8n-url').value = data.n8nUrl || 'Not configured';
-            } catch (e) {
-                console.error('Failed to load settings:', e);
-            }
+        // Add log entry
+        function addLog(message, type = 'info', container = null) {
+            const logContainer = container || document.getElementById('activity-log');
+            if (!logContainer) return;
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-${type}">${message}</span>`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
         }
-
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                navigateTo(item.dataset.page);
-            });
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            testN8NConnection();
-            loadSettings();
-            renderWorkflowList();
-        });
     </script>
 </body>
 </html>

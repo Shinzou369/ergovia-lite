@@ -6,11 +6,24 @@ Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketin
 
 ## POC Control Panel for N8N Workflow Deployment
 - **POC Control Panel Page**: New `/poc-control-panel.html` page for Demo Veterinary Service
+- **10-Section Setup Wizard**: Complete configuration wizard with sections for:
+  1. Account Information (owner details, contact platform)
+  2. Business Information (name, address, hours, contact details)
+  3. API Keys & Credentials (Google Sheets IDs, Telegram, WhatsApp, Twilio, OpenAI)
+  4. Team Contacts (manager, cleaning, maintenance, booking contacts)
+  5. Services & Pricing (fees, platforms, URLs)
+  6. AI Personality (style, speed, language, auto-approve settings)
+  7. WhatsApp Templates (confirmation, emergency, notification templates)
+  8. Automation Preferences (daily check-in, maintenance times, thresholds)
+  9. Emergency Contacts (emergency staff, local services, hospitals)
+  10. AI Special Instructions (5000-character LLM instructions)
+- **Pre-filled Sample Values**: All fields pre-filled with Demo Veterinary Service sample data
+- **90+ Placeholder Mapping**: All workflow placeholders mapped to form fields
 - **24 Workflow Templates**: Extracted and configured 24 n8n workflow templates
 - **Workflow Deployment API**: New endpoints `/api/poc/deploy-single` and `/api/poc/deploy-all` for deploying workflows
 - **N8N Tagging System**: Workflows are tagged with business name (e.g., "Demo_Veterinary_Service") for organization
-- **Sample Placeholder Values**: All placeholders use clearly marked SAMPLE values (e.g., `SAMPLE_SHEET_ID_1234567890`)
 - **Streaming Deployment**: Deploy-all endpoint supports streaming progress updates
+- **Progress Tracking**: Section completion tracking with progress bar
 - **Connection Testing**: Test N8N connection via `/api/poc/n8n/test`
 
 # Recent Changes (October 2025)
