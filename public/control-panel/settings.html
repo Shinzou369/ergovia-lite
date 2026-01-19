@@ -197,6 +197,48 @@
                     </button>
                 </div>
             </form>
+
+            <div class="form-section" style="margin-top: 40px;">
+                <div class="section-header-form">
+                    <h2><i class="fas fa-cogs"></i> 5. Workflow Management</h2>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    After saving your settings, redeploy workflows to apply your configuration changes.
+                </p>
+                
+                <div id="workflowStatus" style="margin-bottom: 20px;">
+                    <div class="stat-card" style="display: inline-block; margin-right: 15px;">
+                        <div class="stat-number" id="deployedCount">0</div>
+                        <div class="stat-label">Deployed</div>
+                    </div>
+                    <div class="stat-card" style="display: inline-block;">
+                        <div class="stat-number" id="activeCount">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                </div>
+
+                <div id="workflowList" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+                    <p style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Loading workflows...</p>
+                </div>
+
+                <div id="redeployProgress" style="display: none; margin-bottom: 20px;">
+                    <div class="progress-bar" style="height: 8px;">
+                        <div class="progress-fill" id="redeployProgressFill" style="width: 0%;"></div>
+                    </div>
+                    <p id="redeployProgressText" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 5px;">Redeploying...</p>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <button type="button" class="btn-secondary" onclick="testN8nConnection()">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+                    <button type="button" class="btn-primary" onclick="redeployAllWorkflows()">
+                        <i class="fas fa-sync-alt"></i> Redeploy All
+                    </button>
+                </div>
+                
+                <div id="workflowAlert" class="alert" style="display: none; margin-top: 15px;"></div>
+            </div>
         </div>
     </div>
 
@@ -209,7 +251,7 @@
                 window.location.href = 'login.html';
                 return;
             }
-            await loadSettings();
+            await Promise.all([loadSettings(), loadWorkflows()]);
         }
 
         async function apiRequest(endpoint, method = 'GET', data = null) {
@@ -333,6 +375,95 @@
         document.querySelectorAll('input, select, textarea').forEach(el => {
             el.addEventListener('change', updateProgress);
         });
+
+        async function loadWorkflows() {
+            try {
+                const data = await apiRequest('/control-panel/workflows');
+                const workflows = data.workflows || [];
+                
+                document.getElementById('deployedCount').textContent = workflows.length;
+                document.getElementById('activeCount').textContent = workflows.filter(w => w.active).length;
+
+                const listEl = document.getElementById('workflowList');
+                if (workflows.length === 0) {
+                    listEl.innerHTML = '<p style="color: var(--text-secondary);">No workflows deployed yet. Save your settings first, then click "Redeploy All".</p>';
+                    return;
+                }
+
+                listEl.innerHTML = workflows.map(w => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);">
+                        <div>
+                            <strong style="color: var(--text-primary);">${w.name}</strong>
+                            <small style="color: var(--text-secondary); display: block;">ID: ${w.id}</small>
+                        </div>
+                        <button class="btn-${w.active ? 'success' : 'secondary'}" style="padding: 5px 10px; font-size: 0.85rem;" onclick="toggleWorkflow('${w.id}', ${!w.active})">
+                            <i class="fas fa-${w.active ? 'pause' : 'play'}"></i> ${w.active ? 'Active' : 'Paused'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('workflowList').innerHTML = '<p style="color: var(--accent-red);">Failed to load workflows</p>';
+            }
+        }
+
+        async function toggleWorkflow(workflowId, active) {
+            try {
+                await apiRequest(`/control-panel/workflows/${workflowId}/toggle`, 'POST', { active });
+                await loadWorkflows();
+            } catch (error) {
+                showWorkflowAlert('error', 'Failed to toggle workflow: ' + error.message);
+            }
+        }
+
+        async function testN8nConnection() {
+            try {
+                showWorkflowAlert('info', '<i class="fas fa-spinner fa-spin"></i> Testing connection...');
+                const data = await apiRequest('/control-panel/workflows/test-connection');
+                showWorkflowAlert('success', `<i class="fas fa-check"></i> Connected! Found ${data.workflowCount} workflows in n8n.`);
+            } catch (error) {
+                showWorkflowAlert('error', '<i class="fas fa-times"></i> Connection failed: ' + error.message);
+            }
+        }
+
+        async function redeployAllWorkflows() {
+            if (!confirm('This will redeploy all workflows with your current settings. Continue?')) return;
+
+            const progressEl = document.getElementById('redeployProgress');
+            const progressFill = document.getElementById('redeployProgressFill');
+            const progressText = document.getElementById('redeployProgressText');
+            
+            progressEl.style.display = 'block';
+            progressFill.style.width = '10%';
+            progressText.textContent = 'Starting redeployment...';
+
+            try {
+                progressFill.style.width = '30%';
+                progressText.textContent = 'Redeploying workflows...';
+
+                const data = await apiRequest('/control-panel/workflows/redeploy', 'POST', {});
+                
+                progressFill.style.width = '100%';
+                progressText.textContent = `Completed: ${data.successful}/${data.successful + data.failed} successful`;
+                
+                showWorkflowAlert('success', `<i class="fas fa-check"></i> Redeployed ${data.successful} workflows successfully!`);
+                await loadWorkflows();
+                
+                setTimeout(() => { progressEl.style.display = 'none'; }, 3000);
+            } catch (error) {
+                progressEl.style.display = 'none';
+                showWorkflowAlert('error', '<i class="fas fa-times"></i> Redeployment failed: ' + error.message);
+            }
+        }
+
+        function showWorkflowAlert(type, message) {
+            const alertEl = document.getElementById('workflowAlert');
+            alertEl.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'error' : 'info'}`;
+            alertEl.innerHTML = message;
+            alertEl.style.display = 'flex';
+            if (type === 'success') {
+                setTimeout(() => { alertEl.style.display = 'none'; }, 5000);
+            }
+        }
 
         init();
     </script>

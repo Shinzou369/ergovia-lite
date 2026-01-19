@@ -436,14 +436,14 @@ router.post('/workflows/deploy',
       const server = serverResult.rows[0];
 
       const config = {
-        businessName: client.business_name,
+        businessName: settings.business?.name || client.business_name,
         propertyName: settings.business?.propertyName || client.business_name,
-        ownerEmail: client.owner_email,
-        ownerPhone: client.owner_phone || settings.contact?.phone || '',
-        ownerTelegram: client.telegram_chat_id || settings.contact?.telegram || '',
-        openaiApiKey: settings.api_keys?.openai || process.env.OPENAI_API_KEY || '',
-        telegramBotToken: settings.api_keys?.telegram || '',
-        whatsappApiKey: settings.api_keys?.whatsapp || '',
+        ownerEmail: settings.owner?.email || client.owner_email,
+        ownerPhone: settings.owner?.phone || client.owner_phone || '',
+        ownerTelegram: settings.credentials?.telegramChatId || client.telegram_chat_id || '',
+        openaiApiKey: settings.credentials?.openaiApiKey || process.env.OPENAI_API_KEY || '',
+        telegramBotToken: settings.credentials?.telegramBotToken || '',
+        whatsappApiKey: settings.credentials?.whatsappApiKey || '',
         dbHost: server?.server_ip || 'localhost',
         dbPort: '5432',
         dbName: server?.db_name || `client_${clientId}`,
@@ -519,17 +519,21 @@ router.post('/workflows/deploy-single',
       const server = serverResult.rows[0];
 
       const config = {
-        businessName: client.business_name,
+        businessName: settings.business?.name || client.business_name,
         propertyName: settings.business?.propertyName || client.business_name,
-        ownerEmail: client.owner_email,
-        ownerPhone: client.owner_phone || '',
-        openaiApiKey: settings.api_keys?.openai || process.env.OPENAI_API_KEY || '',
+        ownerEmail: settings.owner?.email || client.owner_email,
+        ownerPhone: settings.owner?.phone || client.owner_phone || '',
+        ownerTelegram: settings.credentials?.telegramChatId || client.telegram_chat_id || '',
+        openaiApiKey: settings.credentials?.openaiApiKey || process.env.OPENAI_API_KEY || '',
+        telegramBotToken: settings.credentials?.telegramBotToken || '',
+        whatsappApiKey: settings.credentials?.whatsappApiKey || '',
         subdomain: client.subdomain,
         dbHost: server?.server_ip || 'localhost',
         dbPort: '5432',
         dbName: server?.db_name || `client_${clientId}`,
         dbUser: server?.db_user || clientId,
-        dbPassword: server?.db_password || ''
+        dbPassword: server?.db_password || '',
+        domain: server?.domain || `${client.subdomain}.prismity.ai`
       };
 
       const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
@@ -594,6 +598,172 @@ router.get('/workflows/available',
     } catch (error) {
       logger.error('Failed to list available workflows', { error: error.message });
       res.status(500).json({ error: 'Failed to list workflows' });
+    }
+  }
+);
+
+router.post('/workflows/redeploy',
+  authenticateClient,
+  sanitizeInput,
+  rateLimiter({ maxRequests: 10, windowMs: 60 * 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+      const { workflowNumbers } = req.body;
+
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      if (!n8nUrl || !n8nApiKey) {
+        return res.status(500).json({ success: false, error: 'n8n not configured' });
+      }
+
+      const [clientResult, settingsResult, deployedResult] = await Promise.all([
+        db.query('SELECT * FROM clients WHERE client_id = $1', [clientId]),
+        db.query('SELECT section, data FROM client_settings WHERE client_id = $1', [clientId]),
+        db.query('SELECT * FROM deployed_workflows WHERE client_id = $1', [clientId])
+      ]);
+
+      const client = clientResult.rows[0];
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+
+      const settings = {};
+      settingsResult.rows.forEach(row => {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      });
+
+      const serverResult = await db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]);
+      const server = serverResult.rows[0];
+
+      const config = {
+        businessName: settings.business?.name || client.business_name,
+        propertyName: settings.business?.propertyName || client.business_name,
+        ownerEmail: settings.owner?.email || client.owner_email,
+        ownerPhone: settings.owner?.phone || client.owner_phone || '',
+        ownerTelegram: settings.credentials?.telegramChatId || client.telegram_chat_id || '',
+        openaiApiKey: settings.credentials?.openaiApiKey || process.env.OPENAI_API_KEY || '',
+        telegramBotToken: settings.credentials?.telegramBotToken || '',
+        dbHost: server?.server_ip || 'localhost',
+        dbPort: '5432',
+        dbName: server?.db_name || `client_${clientId}`,
+        dbUser: server?.db_user || clientId,
+        dbPassword: server?.db_password || '',
+        subdomain: client.subdomain,
+        domain: server?.domain || `${client.subdomain}.prismity.ai`
+      };
+
+      const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+      const deployer = new WorkflowDeployer(n8nClient);
+      const workflowFiles = await deployer.listAvailableWorkflows();
+
+      const workflowsToRedeploy = workflowNumbers || 
+        deployedResult.rows.map(r => r.workflow_number);
+
+      const results = [];
+
+      for (const workflowNum of workflowsToRedeploy) {
+        const existingWorkflow = deployedResult.rows.find(r => r.workflow_number === workflowNum);
+        
+        if (existingWorkflow?.n8n_workflow_id) {
+          try {
+            await n8nClient.deleteWorkflow(existingWorkflow.n8n_workflow_id);
+            logger.info('Deleted old workflow', { workflowId: existingWorkflow.n8n_workflow_id });
+          } catch (deleteError) {
+            logger.warn('Could not delete old workflow', { error: deleteError.message });
+          }
+        }
+
+        if (workflowNum < 1 || workflowNum > workflowFiles.length) {
+          results.push({ number: workflowNum, success: false, error: 'Invalid workflow number' });
+          continue;
+        }
+
+        try {
+          const filename = workflowFiles[workflowNum - 1];
+          const result = await deployer.deployWorkflow(filename, config, { 
+            activate: existingWorkflow?.is_active ?? true,
+            tag: config.businessName.replace(/\s+/g, '_') 
+          });
+
+          await db.query(`
+            INSERT INTO deployed_workflows (client_id, workflow_number, workflow_name, n8n_workflow_id, is_active)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (client_id, workflow_number)
+            DO UPDATE SET workflow_name = $3, n8n_workflow_id = $4, is_active = $5, updated_at = NOW()
+          `, [clientId, workflowNum, result.name, result.id, result.active]);
+
+          results.push({ number: workflowNum, success: true, name: result.name, id: result.id });
+        } catch (deployError) {
+          results.push({ number: workflowNum, success: false, error: deployError.message });
+        }
+      }
+
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+
+      res.json({
+        success: true,
+        message: `Redeployed ${successful} of ${results.length} workflows`,
+        successful,
+        failed,
+        results
+      });
+
+    } catch (error) {
+      logger.error('Failed to redeploy workflows', { error: error.message });
+      res.status(500).json({ error: 'Failed to redeploy workflows: ' + error.message });
+    }
+  }
+);
+
+router.post('/workflows/:workflowId/toggle',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+      const { workflowId } = req.params;
+      const { active } = req.body;
+
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      if (!n8nUrl || !n8nApiKey) {
+        return res.status(500).json({ success: false, error: 'n8n not configured' });
+      }
+
+      const existingResult = await db.query(
+        'SELECT * FROM deployed_workflows WHERE client_id = $1 AND n8n_workflow_id = $2',
+        [clientId, workflowId]
+      );
+
+      if (existingResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Workflow not found' });
+      }
+
+      const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+
+      if (active) {
+        await n8nClient.activateWorkflow(workflowId);
+      } else {
+        await n8nClient.deactivateWorkflow(workflowId);
+      }
+
+      await db.query(
+        'UPDATE deployed_workflows SET is_active = $1, updated_at = NOW() WHERE client_id = $2 AND n8n_workflow_id = $3',
+        [active, clientId, workflowId]
+      );
+
+      res.json({
+        success: true,
+        message: `Workflow ${active ? 'activated' : 'deactivated'}`,
+        active
+      });
+
+    } catch (error) {
+      logger.error('Failed to toggle workflow', { error: error.message });
+      res.status(500).json({ error: 'Failed to toggle workflow: ' + error.message });
     }
   }
 );
