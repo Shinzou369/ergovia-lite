@@ -7,6 +7,7 @@ const FileStore = require('session-file-store')(session);
 // Using local authentication only
 const fs = require('fs');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
@@ -689,8 +690,8 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
-// Cookie parser and Stytch removed - using local auth only
 app.use(validateInput);
 
 // OpenAI Proxy API (for client keys)

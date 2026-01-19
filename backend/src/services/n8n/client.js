@@ -3,7 +3,11 @@ const logger = require('../../utils/logger');
 
 class N8NClient {
   constructor(baseUrl, apiKey = null, credentials = null) {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    let normalizedUrl = baseUrl.replace(/\/$/, '');
+    if (normalizedUrl && !normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+    this.baseUrl = normalizedUrl;
     this.apiKey = apiKey;
     this.credentials = credentials;
     

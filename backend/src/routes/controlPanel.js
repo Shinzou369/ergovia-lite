@@ -5,6 +5,8 @@ const { authenticateClient } = require('../middleware/auth');
 const { validateRequired, sanitizeInput } = require('../middleware/validation');
 const { rateLimiter } = require('../middleware/rateLimit');
 const logger = require('../utils/logger');
+const N8NClient = require('../services/n8n/client');
+const WorkflowDeployer = require('../services/n8n/deployer');
 
 router.post('/settings',
   authenticateClient,
@@ -334,6 +336,264 @@ router.get('/bookings',
     } catch (error) {
       logger.error('Failed to get bookings', { error: error.message });
       res.status(500).json({ error: 'Failed to get bookings' });
+    }
+  }
+);
+
+router.get('/workflows/test-connection',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      if (!n8nUrl || !n8nApiKey) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'n8n not configured. Please set N8N_BASE_URL and N8N_API_KEY.' 
+        });
+      }
+
+      const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+      const workflows = await n8nClient.getWorkflows();
+
+      res.json({
+        success: true,
+        message: 'Connection successful',
+        workflowCount: Array.isArray(workflows) ? workflows.length : 0
+      });
+
+    } catch (error) {
+      logger.error('n8n connection test failed', { error: error.message });
+      res.status(500).json({ success: false, error: 'Failed to connect to n8n: ' + error.message });
+    }
+  }
+);
+
+router.get('/workflows',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+
+      const result = await db.query(`
+        SELECT * FROM deployed_workflows WHERE client_id = $1 ORDER BY workflow_number
+      `, [clientId]);
+
+      res.json({
+        success: true,
+        workflows: result.rows.map(row => ({
+          id: row.n8n_workflow_id,
+          number: row.workflow_number,
+          name: row.workflow_name,
+          active: row.is_active,
+          lastExecution: row.last_execution,
+          executionCount: row.execution_count
+        }))
+      });
+
+    } catch (error) {
+      logger.error('Failed to get workflows', { error: error.message });
+      res.status(500).json({ error: 'Failed to get workflows' });
+    }
+  }
+);
+
+router.post('/workflows/deploy',
+  authenticateClient,
+  rateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+      const { activate = true } = req.body;
+
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      if (!n8nUrl || !n8nApiKey) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'n8n not configured. Please set N8N_BASE_URL and N8N_API_KEY.' 
+        });
+      }
+
+      const [clientResult, settingsResult] = await Promise.all([
+        db.query('SELECT * FROM clients WHERE client_id = $1', [clientId]),
+        db.query('SELECT section, data FROM client_settings WHERE client_id = $1', [clientId])
+      ]);
+
+      const client = clientResult.rows[0];
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+
+      const settings = {};
+      settingsResult.rows.forEach(row => {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      });
+
+      const serverResult = await db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]);
+      const server = serverResult.rows[0];
+
+      const config = {
+        businessName: client.business_name,
+        propertyName: settings.business?.propertyName || client.business_name,
+        ownerEmail: client.owner_email,
+        ownerPhone: client.owner_phone || settings.contact?.phone || '',
+        ownerTelegram: client.telegram_chat_id || settings.contact?.telegram || '',
+        openaiApiKey: settings.api_keys?.openai || process.env.OPENAI_API_KEY || '',
+        telegramBotToken: settings.api_keys?.telegram || '',
+        whatsappApiKey: settings.api_keys?.whatsapp || '',
+        dbHost: server?.server_ip || 'localhost',
+        dbPort: '5432',
+        dbName: server?.db_name || `client_${clientId}`,
+        dbUser: server?.db_user || clientId,
+        dbPassword: server?.db_password || '',
+        subdomain: client.subdomain,
+        domain: server?.domain || `${client.subdomain}.prismity.ai`
+      };
+
+      const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+      const deployer = new WorkflowDeployer(n8nClient);
+
+      const result = await deployer.deployAllWorkflows(config);
+
+      for (const workflow of result.workflows) {
+        if (workflow.success) {
+          await db.query(`
+            INSERT INTO deployed_workflows (client_id, workflow_number, workflow_name, n8n_workflow_id, is_active)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (client_id, workflow_number)
+            DO UPDATE SET workflow_name = $3, n8n_workflow_id = $4, is_active = $5, updated_at = NOW()
+          `, [clientId, result.workflows.indexOf(workflow) + 1, workflow.name, workflow.id, workflow.active]);
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `Deployed ${result.successful} of ${result.total} workflows`,
+        total: result.total,
+        successful: result.successful,
+        failed: result.failed,
+        workflows: result.workflows
+      });
+
+    } catch (error) {
+      logger.error('Failed to deploy workflows', { error: error.message });
+      res.status(500).json({ error: 'Failed to deploy workflows: ' + error.message });
+    }
+  }
+);
+
+router.post('/workflows/deploy-single',
+  authenticateClient,
+  sanitizeInput,
+  validateRequired(['workflowNumber']),
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+      const { workflowNumber, activate = true } = req.body;
+
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      if (!n8nUrl || !n8nApiKey) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'n8n not configured.' 
+        });
+      }
+
+      const [clientResult, settingsResult] = await Promise.all([
+        db.query('SELECT * FROM clients WHERE client_id = $1', [clientId]),
+        db.query('SELECT section, data FROM client_settings WHERE client_id = $1', [clientId])
+      ]);
+
+      const client = clientResult.rows[0];
+      const settings = {};
+      settingsResult.rows.forEach(row => {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      });
+
+      const serverResult = await db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]);
+      const server = serverResult.rows[0];
+
+      const config = {
+        businessName: client.business_name,
+        propertyName: settings.business?.propertyName || client.business_name,
+        ownerEmail: client.owner_email,
+        ownerPhone: client.owner_phone || '',
+        openaiApiKey: settings.api_keys?.openai || process.env.OPENAI_API_KEY || '',
+        subdomain: client.subdomain,
+        dbHost: server?.server_ip || 'localhost',
+        dbPort: '5432',
+        dbName: server?.db_name || `client_${clientId}`,
+        dbUser: server?.db_user || clientId,
+        dbPassword: server?.db_password || ''
+      };
+
+      const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+      const deployer = new WorkflowDeployer(n8nClient);
+
+      const workflowFiles = await deployer.listAvailableWorkflows();
+      
+      if (workflowNumber < 1 || workflowNumber > workflowFiles.length) {
+        return res.status(400).json({ error: `Invalid workflow number. Must be 1-${workflowFiles.length}` });
+      }
+
+      const filename = workflowFiles[workflowNumber - 1];
+      const result = await deployer.deployWorkflow(filename, config, { 
+        activate, 
+        tag: config.businessName.replace(/\s+/g, '_') 
+      });
+
+      await db.query(`
+        INSERT INTO deployed_workflows (client_id, workflow_number, workflow_name, n8n_workflow_id, is_active)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (client_id, workflow_number)
+        DO UPDATE SET workflow_name = $3, n8n_workflow_id = $4, is_active = $5, updated_at = NOW()
+      `, [clientId, workflowNumber, result.name, result.id, result.active]);
+
+      res.json({
+        success: true,
+        message: `Deployed workflow: ${result.name}`,
+        workflow: result
+      });
+
+    } catch (error) {
+      logger.error('Failed to deploy single workflow', { error: error.message });
+      res.status(500).json({ error: 'Failed to deploy workflow: ' + error.message });
+    }
+  }
+);
+
+router.get('/workflows/available',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      if (!n8nUrl || !n8nApiKey) {
+        return res.status(500).json({ success: false, error: 'n8n not configured' });
+      }
+
+      const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+      const deployer = new WorkflowDeployer(n8nClient);
+      const workflowFiles = await deployer.listAvailableWorkflows();
+
+      res.json({
+        success: true,
+        workflows: workflowFiles.map((filename, index) => ({
+          number: index + 1,
+          filename,
+          name: filename.replace('.json', '').replace(/_/g, ' ')
+        }))
+      });
+
+    } catch (error) {
+      logger.error('Failed to list available workflows', { error: error.message });
+      res.status(500).json({ error: 'Failed to list workflows' });
     }
   }
 );
