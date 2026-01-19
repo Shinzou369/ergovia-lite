@@ -150,6 +150,47 @@ class N8NClient {
       throw error;
     }
   }
+
+  async createTag(name) {
+    try {
+      const existingTags = await this.getTags();
+      const existing = existingTags.find(t => t.name === name);
+      if (existing) {
+        return existing;
+      }
+      
+      const response = await this.client.post('/api/v1/tags', { name });
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to create tag', { name, error: error.message });
+      throw error;
+    }
+  }
+
+  async getTags() {
+    try {
+      const response = await this.client.get('/api/v1/tags');
+      return response.data.data || response.data || [];
+    } catch (error) {
+      logger.error('Failed to get tags', { error: error.message });
+      return [];
+    }
+  }
+
+  async updateWorkflowTags(workflowId, tags) {
+    try {
+      const workflow = await this.getWorkflow(workflowId);
+      workflow.tags = tags.map(t => ({ id: t.id }));
+      
+      const response = await this.client.patch(`/api/v1/workflows/${workflowId}`, {
+        tags: workflow.tags
+      });
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to update workflow tags', { workflowId, error: error.message });
+      throw error;
+    }
+  }
 }
 
 module.exports = N8NClient;

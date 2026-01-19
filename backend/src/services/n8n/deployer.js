@@ -22,6 +22,23 @@ class WorkflowDeployer {
       .sort();
   }
 
+  cleanWorkflowForN8N(workflow) {
+    const cleanNodes = (workflow.nodes || []).map(node => {
+      const cleanNode = { ...node };
+      delete cleanNode.id;
+      delete cleanNode.webhookId;
+      return cleanNode;
+    });
+    
+    return {
+      name: workflow.name,
+      nodes: cleanNodes,
+      connections: workflow.connections || {},
+      settings: workflow.settings || {},
+      staticData: workflow.staticData || null
+    };
+  }
+
   replacePlaceholders(workflow, config) {
     let workflowStr = JSON.stringify(workflow);
     
@@ -56,16 +73,21 @@ class WorkflowDeployer {
     logger.info('Deploying workflow', { filename });
 
     const template = await this.loadWorkflowTemplate(filename);
-    const workflow = this.replacePlaceholders(template, config);
-
-    if (tag) {
-      workflow.tags = workflow.tags || [];
-      if (!workflow.tags.includes(tag)) {
-        workflow.tags.push(tag);
-      }
-    }
+    let workflow = this.replacePlaceholders(template, config);
+    workflow = this.cleanWorkflowForN8N(workflow);
 
     const createdWorkflow = await this.n8n.createWorkflow(workflow);
+
+    if (tag) {
+      try {
+        const tagObj = await this.n8n.createTag(tag);
+        if (tagObj && tagObj.id) {
+          await this.n8n.updateWorkflowTags(createdWorkflow.id, [tagObj]);
+        }
+      } catch (tagError) {
+        logger.warn('Could not apply tag to workflow', { workflowId: createdWorkflow.id, error: tagError.message });
+      }
+    }
 
     if (activate) {
       await this.n8n.activateWorkflow(createdWorkflow.id);
