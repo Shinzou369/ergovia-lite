@@ -1,0 +1,1256 @@
+{
+  "name": "Workflow 13: Calendar Sync & Availability [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "google-forms-maintenance",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "6a2b48a5-3e54-4130-b4fe-e14423661115",
+      "name": "Google Forms Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5392,
+        464
+      ],
+      "webhookId": "3e73cd18-db56-478d-aef7-8986832a32cc"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "maintenance-data",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "d1c1f94d-0e6d-4996-8a51-22802839e4d4",
+      "name": "Maintenance Data Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5392,
+        656
+      ],
+      "webhookId": "293cf0a7-da85-4344-b784-108bdd477aba"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "com.twilio.messaging.inbound-message.received"
+        ]
+      },
+      "id": "dfccc7aa-61cc-43cd-b9b6-29083ff463ab",
+      "name": "Twilio SMS Trigger",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [
+        -5392,
+        848
+      ],
+      "webhookId": "f10b01d0-f6b0-4227-b1a1-3e7b89b28751"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "9a0527fe-ff43-431b-8652-ed95782edf3f",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -5392,
+        1040
+      ],
+      "webhookId": "ec0a5454-da17-471d-8bb6-c8f61c9b16bc"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "fa75cbdd-5cdb-4bdd-aaea-627a515cf833",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -5392,
+        1232
+      ],
+      "webhookId": "33d567ee-c96e-4c95-b537-93c49f69a458"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "id": "134261f2-8e93-4524-9803-d9b9ee4587ec",
+      "name": "Merge All Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -5168,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize data from different sources\nconst items = $input.all();\nconst normalizedItems = [];\n\nfor (const item of items) {\n  const data = item.json;\n  let normalized = {\n    property_name: '',\n    issue_description: '',\n    reported_by: '',\n    channel_type: '',\n    photos: []\n  };\n\n  // Detect source and normalize accordingly\n  \n  // Google Forms\n  if (data.body && data.body['Property Name']) {\n    normalized.property_name = data.body['Property Name'] || '';\n    normalized.issue_description = data.body['Issue Description'] || data.body['Describe the issue'] || '';\n    normalized.reported_by = data.body['Your Name'] || data.body['Email'] || '';\n    normalized.channel_type = 'google_forms';\n    normalized.photos = data.body['Photos'] || [];\n  }\n  \n  // Maintenance Data Webhook (JSON)\n  else if (data.body && data.body.property_name) {\n    normalized.property_name = data.body.property_name || '';\n    normalized.issue_description = data.body.issue_description || data.body.description || '';\n    normalized.reported_by = data.body.reported_by || data.body.reporter || '';\n    normalized.channel_type = 'webhook';\n    normalized.photos = data.body.photos || [];\n  }\n  \n  // Twilio SMS\n  else if (data.From && data.Body) {\n    const messageBody = data.Body.toLowerCase();\n    if (messageBody.includes('maintenance')) {\n      normalized.property_name = data.property || '';\n      normalized.issue_description = data.Body || '';\n      normalized.reported_by = data.From || '';\n      normalized.channel_type = 'sms';\n      normalized.photos = data.MediaUrl0 ? [data.MediaUrl0] : [];\n    }\n  }\n  \n  // WhatsApp\n  else if (data.from && data.message) {\n    const messageBody = (data.message.text || '').toLowerCase();\n    if (messageBody.includes('maintenance')) {\n      normalized.property_name = data.property || '';\n      normalized.issue_description = data.message.text || '';\n      normalized.reported_by = data.from || '';\n      normalized.channel_type = 'whatsapp';\n      normalized.photos = data.message.media ? [data.message.media] : [];\n    }\n  }\n  \n  // Telegram\n  else if (data.message && data.message.text) {\n    const messageBody = data.message.text.toLowerCase();\n    if (messageBody.includes('maintenance')) {\n      normalized.property_name = data.property || '';\n      normalized.issue_description = data.message.text || '';\n      normalized.reported_by = data.message.from.username || data.message.from.first_name || '';\n      normalized.channel_type = 'telegram';\n      normalized.photos = data.message.photo ? data.message.photo.map(p => p.file_id) : [];\n    }\n  }\n  \n  // Only add if we have at least an issue description\n  if (normalized.issue_description) {\n    normalizedItems.push({ json: normalized });\n  }\n}\n\nreturn normalizedItems;"
+      },
+      "id": "ca729bc9-e367-4265-a8d7-659a40c86f9d",
+      "name": "Normalize Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4944,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a maintenance issue analyzer. Analyze the maintenance issue and return a JSON object with the following fields: category (plumbing, electrical, appliance, hvac, structural, cosmetic, pest, outdoor, security), urgency (emergency, high, medium, low), vendor_type (handyman, plumber, electrician, hvac_tech, appliance_repair, contractor, pest_control, locksmith), guest_impact (yes or no), and reasoning (brief explanation of your analysis).\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.issue_description }}\"\n    }\n  ],\n  \"response_format\": {\n    \"type\": \"json_object\"\n  }\n}",
+        "options": {}
+      },
+      "id": "3568b6b3-27f9-47c2-b877-aa93a814c63c",
+      "name": "OpenAI Issue Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4720,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the OpenAI response and extract the AI analysis\nconst openAIResponse = $input.first().json;\nconst aiContent = openAIResponse.choices[0].message.content;\n\n// Extract JSON from the AI response (it may be wrapped in markdown code blocks)\nlet aiAnalysis;\ntry {\n  // Try to find JSON in markdown code blocks\n  const jsonMatch = aiContent.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (jsonMatch) {\n    aiAnalysis = JSON.parse(jsonMatch[1].trim());\n  } else {\n    // Try to parse the entire content as JSON\n    aiAnalysis = JSON.parse(aiContent);\n  }\n} catch (error) {\n  // If parsing fails, try to extract JSON object directly\n  const jsonObjectMatch = aiContent.match(/\\{[\\s\\S]*\\}/);\n  if (jsonObjectMatch) {\n    aiAnalysis = JSON.parse(jsonObjectMatch[0]);\n  } else {\n    throw new Error('Failed to parse AI response: ' + error.message);\n  }\n}\n\n// Get the original normalized data from the Normalize Data node\nconst normalizedData = $('Normalize Data').first().json;\n\n// Merge the AI analysis with the original normalized data\nconst mergedData = {\n  ...normalizedData,\n  category: aiAnalysis.category,\n  urgency: aiAnalysis.urgency,\n  vendor_type: aiAnalysis.vendor_type,\n  guest_impact: aiAnalysis.guest_impact,\n  reasoning: aiAnalysis.reasoning\n};\n\nreturn [mergedData];"
+      },
+      "id": "088bc0eb-dd1e-4a16-8486-181174bed4d8",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4496,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "maintenance_tickets",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ $now.toMillis() + \"-\" + Math.random().toString(36).substring(2, 9) }}",
+            "property_name": "={{ $json.property_name }}",
+            "issue_description": "={{ $json.issue_description }}",
+            "reported_by": "={{ $json.reported_by }}",
+            "channel_type": "={{ $json.channel_type }}",
+            "photos": "={{ $json.photos }}",
+            "category": "={{ $json.category }}",
+            "urgency": "={{ $json.urgency }}",
+            "vendor_type": "={{ $json.vendor_type }}",
+            "guest_impact": "={{ $json.guest_impact || false }}",
+            "reasoning": "={{ $json.reasoning }}",
+            "status": "pending"
+          }
+        },
+        "options": {}
+      },
+      "id": "fe0309e3-002b-482e-8db8-6a88731c25a0",
+      "name": "Create Maintenance Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4272,
+        848
+      ],
+      "notes": "PostgreSQL: Creates new maintenance ticket. Status: pending."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_name = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_name] } }}"
+        },
+        "options": {}
+      },
+      "id": "307fba9b-fea8-4f44-888c-91ea633f65cd",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4048,
+        848
+      ],
+      "notes": "PostgreSQL: Gets property details for maintenance context."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM vendors \nWHERE category = $1\n  AND status = 'active'\n  AND current_jobs < max_concurrent_jobs\nORDER BY average_rating DESC, current_jobs ASC\nLIMIT 5",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.vendor_type] } }}"
+        },
+        "options": {}
+      },
+      "id": "8aaf8f99-385d-4d07-991b-0caa9a857ad8",
+      "name": "Query Vendors",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3824,
+        848
+      ],
+      "notes": "PostgreSQL: Finds available vendors for category, ordered by rating and workload."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get property configuration and vendors data\nconst propertyConfig = $input.first().json;\nconst vendors = $('Query Vendors').all();\n\n// Get parsed AI data to determine vendor type and urgency\nconst parsedData = $('Parse AI Response').first().json;\nconst vendorType = parsedData.vendor_type || parsedData.category;\nconst urgency = parsedData.urgency;\n\n// Check if property configuration has a designated vendor for this vendor_type\nconst designatedVendorField = `${vendorType}_vendor_contact`;\nconst designatedVendor = propertyConfig[designatedVendorField];\n\nlet selectedVendor;\n\nif (designatedVendor) {\n  // Use designated vendor from property configuration\n  const designatedVendorData = vendors.find(v => \n    v.json.contact_phone === designatedVendor || \n    v.json.contact_name === designatedVendor ||\n    v.json.vendor_name === designatedVendor\n  );\n  \n  if (designatedVendorData) {\n    selectedVendor = {\n      ...designatedVendorData.json,\n      score: 100,\n      selection_reason: 'Designated vendor for property'\n    };\n  }\n}\n\nif (!selectedVendor) {\n  // Score all vendors\n  const scoredVendors = vendors.map(vendor => {\n    const v = vendor.json;\n    const rating = parseFloat(v.rating) || 0;\n    const costLevel = (v.cost_level || '').toLowerCase();\n    const currentJobs = parseInt(v.current_jobs) || 0;\n    \n    // Calculate score: rating * 10 + (urgency != 'emergency' && cost_level == 'low' ? 5 : 0) - (current_jobs * 3)\n    let score = rating * 10;\n    \n    if (urgency !== 'emergency' && costLevel === 'low') {\n      score += 5;\n    }\n    \n    score -= (currentJobs * 3);\n    \n    return {\n      ...v,\n      score: score,\n      selection_reason: 'Highest score based on rating, cost, and availability'\n    };\n  });\n  \n  // Sort by score descending and select top vendor\n  scoredVendors.sort((a, b) => b.score - a.score);\n  selectedVendor = scoredVendors[0];\n}\n\nreturn [{ json: selectedVendor }];"
+      },
+      "id": "89b80d20-7c52-4bdd-8ec9-b8d36eddb85f",
+      "name": "Score and Select Vendor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets \nSET assigned_vendor = $2,\n    vendor_contact = $3,\n    vendor_id = $4,\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id, $json.selected_vendor.name, $json.selected_vendor.phone || $json.selected_vendor.contact, $json.selected_vendor.vendor_id || $json.selected_vendor.id] } }}"
+        },
+        "options": {}
+      },
+      "id": "29140ac6-c9ff-4678-b602-ec7b42fdf713",
+      "name": "Update Ticket with Vendor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3376,
+        848
+      ],
+      "notes": "PostgreSQL: Assigns vendor to ticket."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "emergency",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Emergency"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "high",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "High"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "medium",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "low",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Medium/Low"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1c5f273-035c-47b4-b842-e03c1c5f836b",
+      "name": "Route by Urgency",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "text": "=\ud83d\udea8 EMERGENCY MAINTENANCE ALERT \ud83d\udea8\n\n\ud83d\udccb Ticket #{{ $('Create Maintenance Ticket').first().json.ticket_id }}\n\ud83c\udfe0 Property: {{ $('Get Property Configuration').first().json.property_name }}\n\ud83d\udccd Location: {{ $('Parse AI Response').first().json.location }}\n\n\u26a0\ufe0f Issue: {{ $('Parse AI Response').first().json.issue_category }} - {{ $('Parse AI Response').first().json.issue_description }}\n\ud83d\udd34 Urgency: {{ $('Parse AI Response').first().json.urgency_level }}\n\n\ud83d\udc77 Vendor Assigned: {{ $('Score and Select Vendor').first().json.vendor_name }}\n\ud83d\udcde Vendor Phone: {{ $('Score and Select Vendor').first().json.vendor_phone }}\n\u23f1\ufe0f Estimated Arrival: {{ $('Score and Select Vendor').first().json.estimated_arrival }}\n\nVendor has been automatically dispatched and notified.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\u2705 Vendor Dispatched",
+                    "additionalFields": {
+                      "callback_data": "vendor_dispatched"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\ud83d\udcde Call Vendor Now",
+                    "additionalFields": {
+                      "url": "={{ 'tel:' + $('Score and Select Vendor').first().json.vendor_phone }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\ud83d\udd04 Need Different Vendor",
+                    "additionalFields": {
+                      "callback_data": "change_vendor"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7da5b1ef-1377-406f-86c7-841ebe72003e",
+      "name": "Emergency Alert to Contact (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "4e74031e-a016-438f-9f38-52505c8f5450"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "template": "<__PLACEHOLDER_VALUE__Emergency Alert Template Name__>",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.ticket_id }}"
+                  },
+                  {
+                    "text": "={{ $json.issue_description }}"
+                  },
+                  {
+                    "text": "={{ $json.vendor_name }}"
+                  },
+                  {
+                    "text": "={{ $json.vendor_contact }}"
+                  },
+                  {
+                    "text": "={{ $json.estimated_arrival }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "e6981e38-9042-4dbd-892b-59fefe3716a7",
+      "name": "Emergency Alert to Contact (WhatsApp)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "05cf7430-66db-4cdc-9fcd-adf15ede8df5"
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio Phone Number__>",
+        "to": "={{ $json.selected_vendor.contact }}",
+        "message": "=\ud83d\udea8 EMERGENCY WORK ORDER \ud83d\udea8\n\nProperty: {{ $json.property_name }}\nAddress: {{ $json.property_address }}\n\nISSUE: {{ $json.issue_description }}\nCategory: {{ $json.category }}\nUrgency: {{ $json.urgency_level }}\n\nIMMEDIATE ACTION REQUIRED\n\nTicket #: {{ $json.ticket_id }}\n\nProperty Contact: {{ $json.contact_name }}\nPhone: {{ $json.contact_phone }}\n\nPlease respond ASAP to confirm receipt and ETA.",
+        "options": {}
+      },
+      "id": "7de1301d-be5b-4d3f-aab6-9bd6b49abc20",
+      "name": "Emergency Work Order to Vendor",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "text": "=\u26a0\ufe0f HIGH URGENCY MAINTENANCE ISSUE\n\n\ud83c\udfe0 Property: {{ $('Parse AI Response').first().json.property }}\n\ud83d\udccd Location: {{ $('Parse AI Response').first().json.location }}\n\ud83d\udd27 Issue: {{ $('Parse AI Response').first().json.issue_description }}\n\n\ud83d\udc77 Assigned Vendor: {{ $('Score and Select Vendor').first().json.vendor_name }}\n\ud83d\udcde Contact: {{ $('Score and Select Vendor').first().json.vendor_phone }}\n\u23f1\ufe0f Expected Response: 24 hours\n\n\ud83c\udfab Ticket ID: {{ $('Create Maintenance Ticket').first().json.ticket_id }}\n\nPlease review and approve dispatch or select a different vendor.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\u2705 Approve Dispatch",
+                    "additionalFields": {
+                      "callback_data": "approve_dispatch"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\ud83d\udd04 Choose Different Vendor",
+                    "additionalFields": {
+                      "callback_data": "choose_vendor"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "8da9f161-874b-425c-8480-471250595350",
+      "name": "High Urgency to Contact (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        752
+      ],
+      "webhookId": "201c852a-b97f-4287-8cb2-c6e67339af8a"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "template": "<__PLACEHOLDER_VALUE__High Urgency Template Name__>|en",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.ticket_id }}"
+                  },
+                  {
+                    "text": "={{ $json.issue_description }}"
+                  },
+                  {
+                    "text": "={{ $json.vendor_name }}"
+                  },
+                  {
+                    "text": "={{ $json.response_time }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "6711e237-4217-4547-ac33-a31080711d25",
+      "name": "High Urgency to Contact (WhatsApp)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        944
+      ],
+      "webhookId": "124a2890-0b4c-4961-a5d5-2254615bdc3d"
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio Phone Number__>",
+        "to": "={{ $json.selected_vendor.contact }}",
+        "message": "=WORK ORDER - Medium/Low Priority\n\nProperty: {{ $json.property_name }}\nAddress: {{ $json.property_address }}\n\nIssue: {{ $json.issue_description }}\nCategory: {{ $json.issue_category }}\nUrgency: {{ $json.urgency_level }}\n\nTicket ID: {{ $json.ticket_id }}\n\nPlease respond to confirm availability.\n\nContact: {{ $json.contact_name }}\nPhone: {{ $json.contact_phone }}",
+        "options": {}
+      },
+      "id": "fdc6f109-d72d-4b29-b2cc-2f2092d46ac1",
+      "name": "Medium/Low Work Order to Vendor",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "text": "=\ud83d\udd27 Maintenance Report\n\nA maintenance issue has been reported and a vendor has been assigned.\n\n\ud83d\udccb Ticket: {{ $('Create Maintenance Ticket').first().json.ticket_id }}\n\ud83c\udfe2 Property: {{ $('Get Property Configuration').first().json.property_name }}\n\ud83d\udc77 Vendor: {{ $('Score and Select Vendor').first().json.vendor_name }}\n\u23f0 Priority: {{ $('Parse AI Response').first().json.urgency }}\n\nThe vendor has been notified and will address the issue.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View Details",
+                    "additionalFields": {
+                      "url": "={{ $('Create Maintenance Ticket').first().json.ticket_url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a06e82da-41e7-425c-8db9-796fa65b9596",
+      "name": "Medium/Low Notification to Contact (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        1328
+      ],
+      "webhookId": "c528993a-f521-47ff-8d6b-f620e337566f"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "template": "<__PLACEHOLDER_VALUE__Medium/Low Notification Template Name__>",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.ticket_id }}"
+                  },
+                  {
+                    "text": "={{ $json.vendor_name }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "61f1f282-ae8e-451e-95fe-8837128ff283",
+      "name": "Medium/Low Notification to Contact (WhatsApp)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        1520
+      ],
+      "webhookId": "9d2f9df7-f5ea-42f2-acfd-47500dbe9c84"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.guest_impact }}",
+                    "rightValue": "yes",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Yes"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.guest_impact }}",
+                    "rightValue": "no",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "No"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "19f63fd0-579d-43cc-ab1f-feb99797aa2e",
+      "name": "Check Guest Impact",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2704,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Send Guest Message Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}"
+            },
+            {
+              "name": "property_name",
+              "value": "={{ $json.property_name }}"
+            },
+            {
+              "name": "message",
+              "value": "We're aware of the maintenance issue and our team is handling it. We'll keep you updated on the progress."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "99ea5968-444c-4c60-8747-4e60ab2d0377",
+      "name": "Send Guest Message Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2480,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets \nSET status = 'dispatched',\n    dispatch_time = $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "fafc347c-6f41-4585-bff5-e312b372b458",
+      "name": "Update Ticket Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2256,
+        848
+      ],
+      "notes": "PostgreSQL: Updates ticket status: pending \u2192 dispatched."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE vendors \nSET current_jobs = current_jobs + 1,\n    total_jobs = total_jobs + 1,\n    updated_at = CURRENT_TIMESTAMP\nWHERE vendor_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.selected_vendor.vendor_id || $json.selected_vendor.id] } }}"
+        },
+        "options": {}
+      },
+      "id": "f58227c4-8c85-42f1-a6ad-15b0db06d41a",
+      "name": "Increment Vendor Jobs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2032,
+        848
+      ],
+      "notes": "PostgreSQL: Increments vendor job counters when ticket assigned."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "emergency",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "high",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Emergency or High"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "medium",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.urgency }}",
+                    "rightValue": "low",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Medium or Low"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "41c0e812-db71-43ed-bf86-f9922b1b85f5",
+      "name": "Check Emergency or High",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1808,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "text": "=\u2705 Maintenance Request Confirmed\n\nTicket #{{ $('Create Maintenance Ticket').first().json.ticket_id }}\n\nVendor Assigned:\n{{ $('Score and Select Vendor').first().json.vendor_name }}\nContact: {{ $('Score and Select Vendor').first().json.vendor_phone }}\n\nThe vendor has been notified and will respond shortly.",
+        "additionalFields": {}
+      },
+      "id": "ef5a910b-fa88-400a-8273-bdb123b07026",
+      "name": "Confirmation to Contact (Telegram)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1584,
+        752
+      ],
+      "webhookId": "2c8071db-9ea1-4cd7-a8ec-2dbfcbf3fba3"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $('Get Property Configuration').first().json.maintenance_contact }}",
+        "template": "<__PLACEHOLDER_VALUE__Confirmation Template Name__>",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.ticket_id }}"
+                  },
+                  {
+                    "text": "={{ $json.vendor_name }}"
+                  },
+                  {
+                    "text": "={{ $json.vendor_contact }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "0bf348d6-951b-42a6-be14-f929e829477b",
+      "name": "Confirmation to Contact (WhatsApp)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1584,
+        944
+      ],
+      "webhookId": "2ff08eb9-699e-4260-95af-6dfd1735a4bd"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Forms Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Maintenance Data Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Twilio SMS Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Merge All Sources": {
+      "main": [
+        [
+          {
+            "node": "Normalize Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Data": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Issue Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Issue Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Create Maintenance Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Maintenance Ticket": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Query Vendors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Vendors": {
+      "main": [
+        [
+          {
+            "node": "Score and Select Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score and Select Vendor": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket with Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket with Vendor": {
+      "main": [
+        [
+          {
+            "node": "Route by Urgency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Urgency": {
+      "main": [
+        [
+          {
+            "node": "Emergency Alert to Contact (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Emergency Alert to Contact (WhatsApp)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Emergency Work Order to Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "High Urgency to Contact (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "High Urgency to Contact (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Medium/Low Work Order to Vendor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Medium/Low Notification to Contact (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Medium/Low Notification to Contact (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency Alert to Contact (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency Alert to Contact (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency Work Order to Vendor": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Urgency to Contact (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Urgency to Contact (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medium/Low Work Order to Vendor": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medium/Low Notification to Contact (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medium/Low Notification to Contact (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Impact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Guest Impact": {
+      "main": [
+        [
+          {
+            "node": "Send Guest Message Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Ticket Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Guest Message Webhook": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket Status": {
+      "main": [
+        [
+          {
+            "node": "Increment Vendor Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Vendor Jobs": {
+      "main": [
+        [
+          {
+            "node": "Check Emergency or High",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Emergency or High": {
+      "main": [
+        [
+          {
+            "node": "Confirmation to Contact (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Confirmation to Contact (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 6,
+    "consistency_note": "Maintenance ticket management. Uses maintenance_tickets and vendors tables."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

@@ -1,0 +1,617 @@
+{
+  "name": "Workflow 11: Daily Morning Check (9 AM) [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "17d077a3-128e-490c-b293-2aedc13cb427",
+      "name": "Daily 9 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -4496,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate today's date and 90 days in the future\nconst today = new Date();\nconst futureDate = new Date();\nfutureDate.setDate(today.getDate() + 90);\n\n// Return both dates as ISO strings\nreturn [\n  {\n    json: {\n      startDate: today.toISOString(),\n      endDate: futureDate.toISOString()\n    }\n  }\n];"
+      },
+      "id": "aaf688d7-953f-44b3-8c2b-7686ae70209e",
+      "name": "Calculate Date Range (Today to 90 Days)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4272,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_status = 'active'\n  AND calendar_sync_enabled = true\nORDER BY property_name ASC",
+        "options": {}
+      },
+      "id": "c2dd234f-0011-478f-8daf-e8381071f7d2",
+      "name": "Get All Properties",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4048,
+        400
+      ],
+      "notes": "PostgreSQL: Gets all active properties with calendar sync enabled."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "7bd09532-a30a-4b7c-b41b-5b0066ed8cd4",
+      "name": "Loop Over Properties",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -3824,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\n  AND property_status = 'active'\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "2ea41597-2542-4368-838f-b74f95f865d1",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3600,
+        272
+      ],
+      "notes": "PostgreSQL: Gets property configuration for calendar sync."
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Get Property Configuration').item.json.calendarId }}"
+        },
+        "timeMin": "={{ $('Calculate Date Range (Today to 90 Days)').item.json.startDate }}",
+        "timeMax": "={{ $('Calculate Date Range (Today to 90 Days)').item.json.endDate }}",
+        "options": {}
+      },
+      "id": "c8fe18cf-693e-418e-917a-3ea906f178b9",
+      "name": "Get Calendar Events (90 Days)",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -3376,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data\nconst items = $input.all();\n\n// Extract property info and calendar sync contact from the first item\nconst propertyInfo = items[0].json.propertyInfo || {};\nconst calendarSyncContact = items[0].json.calendarSyncContact || {};\n\n// Extract all events from input items\nconst events = items.map(item => item.json);\n\n// Array to store detected conflicts\nconst conflicts = [];\n\n// Compare all event pairs to detect conflicts\nfor (let i = 0; i < events.length; i++) {\n  for (let j = i + 1; j < events.length; j++) {\n    const event1 = events[i];\n    const event2 = events[j];\n    \n    // Parse dates for comparison\n    const event1Start = new Date(event1.start?.dateTime || event1.start?.date);\n    const event1End = new Date(event1.end?.dateTime || event1.end?.date);\n    const event2Start = new Date(event2.start?.dateTime || event2.start?.date);\n    const event2End = new Date(event2.end?.dateTime || event2.end?.date);\n    \n    // Check if events overlap: event1.start < event2.end AND event1.end > event2.start\n    if (event1Start < event2End && event1End > event2Start) {\n      conflicts.push({\n        conflict: true,\n        event1: {\n          id: event1.id,\n          summary: event1.summary,\n          start: event1.start,\n          end: event1.end,\n          description: event1.description\n        },\n        event2: {\n          id: event2.id,\n          summary: event2.summary,\n          start: event2.start,\n          end: event2.end,\n          description: event2.description\n        },\n        propertyInfo: propertyInfo,\n        calendarSyncContact: calendarSyncContact,\n        detectedAt: new Date().toISOString()\n      });\n    }\n  }\n}\n\n// Return conflicts if found, otherwise return a single item indicating no conflicts\nif (conflicts.length > 0) {\n  return conflicts.map(conflict => ({ json: conflict }));\n} else {\n  return [{ json: { \n    conflict: false, \n    propertyInfo: propertyInfo,\n    calendarSyncContact: calendarSyncContact,\n    message: 'No conflicts detected' \n  }}];\n}"
+      },
+      "id": "f388493a-2f61-4486-8fd4-2341b21bdbe9",
+      "name": "Detect Calendar Conflicts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3152,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Accumulate properties by calendar_sync_contact and format messages\nconst items = $input.all();\nconst contactGroups = {};\n\n// Group properties by contact\nfor (const item of items) {\n  const contact = item.json.calendar_sync_contact;\n  const propertyName = item.json.property_name;\n  const airbnbLink = item.json.airbnb_link || '';\n  const vrboLink = item.json.vrbo_link || '';\n  const bookingLink = item.json.booking_link || '';\n  const calendarLink = item.json.google_calendar_link || '';\n  const conflicts = item.json.conflicts || [];\n  const hasConflicts = conflicts.length > 0;\n  \n  if (!contactGroups[contact]) {\n    contactGroups[contact] = {\n      properties: [],\n      hasAnyConflicts: false\n    };\n  }\n  \n  contactGroups[contact].properties.push({\n    name: propertyName,\n    airbnbLink,\n    vrboLink,\n    bookingLink,\n    calendarLink,\n    conflicts,\n    hasConflicts\n  });\n  \n  if (hasConflicts) {\n    contactGroups[contact].hasAnyConflicts = true;\n  }\n}\n\n// Format messages for each contact\nconst outputItems = [];\n\nfor (const [contact, data] of Object.entries(contactGroups)) {\n  let message = `\ud83c\udfe0 *Daily Calendar Sync Reminder*\n\n`;\n  message += `Hello! Here's your daily reminder to sync calendars for your properties:\n\n`;\n  \n  // Add properties\n  for (let i = 0; i < data.properties.length; i++) {\n    const prop = data.properties[i];\n    message += `*${i + 1}. ${prop.name}*\n`;\n    \n    // Add platform links\n    if (prop.airbnbLink) message += `   \ud83d\udccd Airbnb: ${prop.airbnbLink}\n`;\n    if (prop.vrboLink) message += `   \ud83d\udccd Vrbo: ${prop.vrboLink}\n`;\n    if (prop.bookingLink) message += `   \ud83d\udccd Booking.com: ${prop.bookingLink}\n`;\n    if (prop.calendarLink) message += `   \ud83d\udcc5 Google Calendar: ${prop.calendarLink}\n`;\n    \n    // Add conflict warnings if any\n    if (prop.hasConflicts) {\n      message += `\n   \u26a0\ufe0f *URGENT: CONFLICTS DETECTED!*\n`;\n      for (const conflict of prop.conflicts) {\n        message += `   \ud83d\udd34 ${conflict.date}: ${conflict.platform1} vs ${conflict.platform2}\n`;\n      }\n    }\n    \n    message += `\n`;\n  }\n  \n  // Add instructions\n  message += `*Instructions:*\n`;\n  message += `1. Review each platform's calendar\n`;\n  message += `2. Block any new bookings on all other platforms\n`;\n  message += `3. Ensure all calendars are synchronized\n`;\n  \n  if (data.hasAnyConflicts) {\n    message += `\n\u26a0\ufe0f *URGENT: Please resolve the conflicts highlighted above immediately to avoid double bookings!*\n`;\n  }\n  \n  message += `\nClick the button below once you've completed the sync.`;\n  \n  outputItems.push({\n    json: {\n      contact: contact,\n      message: message,\n      propertyCount: data.properties.length,\n      hasConflicts: data.hasAnyConflicts,\n      properties: data.properties\n    }\n  });\n}\n\nreturn outputItems;"
+      },
+      "id": "d8d02983-2bec-4b22-b08b-e0758d67f4b9",
+      "name": "Accumulate Properties and Format Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "calendar_sync_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sync_id": "={{ $now.toISO() + \"-\" + Math.random().toString(36).substring(2, 9) }}",
+            "sync_date": "={{ $now.toFormat(\"yyyy-MM-dd\") }}",
+            "property_id": "={{ $json.property_id }}",
+            "conflicts_count": "={{ $(\"Accumulate Properties and Format Messages\").item.json.conflicts_count || 0 }}",
+            "manual_sync_completed": false,
+            "status": "pending"
+          }
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "id": "d29a6a9a-e4a2-46f4-9328-9f3b61001e15",
+      "name": "Create Calendar Sync Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3376,
+        464
+      ],
+      "notes": "PostgreSQL: Creates sync log entry for daily calendar sync operation."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.preferred_platform }}",
+              "rightValue": "Telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "01e27037-8dd7-4d06-a136-92421397df0c",
+      "name": "Check Preferred Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3152,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Accumulate Properties and Format Messages').item.json.contactData.chatId }}",
+        "text": "={{ $('Accumulate Properties and Format Messages').item.json.formattedMessage }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "I've Synced All Calendars",
+                    "additionalFields": {
+                      "callback_data": "synced"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Snooze for 2 Hours",
+                    "additionalFields": {
+                      "callback_data": "snooze"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View My Bookings",
+                    "additionalFields": {
+                      "callback_data": "view"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Help with Sync Process",
+                    "additionalFields": {
+                      "callback_data": "help"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "b94d9447-4ebe-4d65-930b-cfb4e27f49db",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "32e386c9-5999-496d-8afe-35789e5bdfd1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Accumulate Properties and Format Messages').item.json.contactPhone }}",
+        "textBody": "={{ $('Accumulate Properties and Format Messages').item.json.formattedMessage }}",
+        "additionalFields": {}
+      },
+      "id": "8015abe3-663e-4454-ac66-fc70b6534679",
+      "name": "Send WhatsApp Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "9efd293f-56f2-43f3-9b2f-40c6a69786f3"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 24,
+        "options": {}
+      },
+      "id": "96b2a5af-9a47-47a8-bd81-cf064d005e58",
+      "name": "Wait for Button Response",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        304
+      ],
+      "webhookId": "f3276fac-4eba-4f9c-8d13-0b530b11d14f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Wait for Button Response').item.json.callback_data || $('Wait for Button Response').item.json.button_id }}",
+              "rightValue": "synced",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "748e2e8d-a50f-4a53-b340-bf2d4d9006e6",
+      "name": "Check Button Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2480,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE calendar_sync_log \nSET manual_sync_completed = true,\n    completed_at = $2,\n    completed_by = $3,\n    status = 'completed',\n    updated_at = CURRENT_TIMESTAMP\nWHERE sync_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.sync_id, $now.toISO(), $json.contact_name || \"owner\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "ee47718d-3087-4dfb-8276-2d54ac462580",
+      "name": "Update Calendar Sync Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2256,
+        304
+      ],
+      "notes": "PostgreSQL: Marks sync as manually completed by owner."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE property_configurations \nSET last_calendar_sync = $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE property_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "683dddf6-9031-4693-a9b5-0032335f43d5",
+      "name": "Update Properties Last Sync Date",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2032,
+        560
+      ],
+      "notes": "PostgreSQL: Updates property last sync timestamp."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contactData.telegramChatId }}",
+        "text": "=\u2705 Thank you! All properties have been successfully synced to your calendar.\n\n{{ $json.propertiesSynced }} properties are now up to date.",
+        "additionalFields": {}
+      },
+      "id": "0cccb332-300f-4231-a58d-c26c8c09031e",
+      "name": "Send Telegram Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        560
+      ],
+      "webhookId": "6f509e8e-4458-45dc-8171-1617cdb4a2ce"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.contactPhone }}",
+        "textBody": "=\u2705 Thank you! All properties have been successfully synced to your calendar.\n\n{{ $json.propertiesSynced }}\n\nYou're all set! \ud83c\udf89",
+        "additionalFields": {}
+      },
+      "id": "00f55355-2163-4bc0-a1a6-cbc3512f4238",
+      "name": "Send WhatsApp Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        752
+      ],
+      "webhookId": "1d04d99a-0cbf-4667-85f7-bc4f6e9f6052"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 9 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Calculate Date Range (Today to 90 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Date Range (Today to 90 Days)": {
+      "main": [
+        [
+          {
+            "node": "Get All Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Properties": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Properties": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Accumulate Properties and Format Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Calendar Events (90 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Calendar Events (90 Days)": {
+      "main": [
+        [
+          {
+            "node": "Detect Calendar Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Calendar Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accumulate Properties and Format Messages": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Sync Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Sync Log": {
+      "main": [
+        [
+          {
+            "node": "Check Preferred Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Preferred Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Telegram Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Wait for Button Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Wait for Button Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Button Response": {
+      "main": [
+        [
+          {
+            "node": "Check Button Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Button Action": {
+      "main": [
+        [
+          {
+            "node": "Update Calendar Sync Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Calendar Sync Log": {
+      "main": [
+        [
+          {
+            "node": "Update Properties Last Sync Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Properties Last Sync Date": {
+      "main": [
+        [
+          {
+            "node": "Check Preferred Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 5,
+    "consistency_note": "Daily calendar sync at 9 AM. Uses property_configurations and calendar_sync_log."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

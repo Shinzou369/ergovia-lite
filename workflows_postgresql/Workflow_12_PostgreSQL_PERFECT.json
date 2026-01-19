@@ -1,0 +1,775 @@
+{
+  "name": "Workflow 12: Nightly Automation (2 AM) [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "a6f26021-ae4d-47ec-b5bf-4c0598c21469",
+      "name": "Daily 2 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -3824,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "eventbriteApiToken",
+              "value": "<__PLACEHOLDER_VALUE__Eventbrite API Token__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "openWeatherMapApiKey",
+              "value": "<__PLACEHOLDER_VALUE__OpenWeatherMap API Key__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "openAiApiKey",
+              "value": "<__PLACEHOLDER_VALUE__OpenAI API Key__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e1bb4427-8824-4082-a2d6-d6186a79a763",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3600,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_status = 'active'\nORDER BY property_name ASC",
+        "options": {}
+      },
+      "id": "52abfcd6-2b8e-41f8-b4d9-acf313ba3e36",
+      "name": "Get Active Properties",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3376,
+        464
+      ],
+      "notes": "PostgreSQL: Gets all active properties for pricing analysis."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4f82c65d-9f51-4eaf-9f87-a366b6b92e10",
+      "name": "Loop Over Properties",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -3152,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "4f9a04d7-3011-41d6-817d-5152956fde95",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2928,
+        176
+      ],
+      "notes": "PostgreSQL: Gets property configuration for pricing context."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM pricing_history \nWHERE property_id = $1\n  AND date >= $2\nORDER BY date DESC\nLIMIT 90",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id, $now.minus({ days: 90 }).toFormat(\"yyyy-MM-dd\")] } }}"
+        },
+        "options": {}
+      },
+      "id": "f409e27a-1851-49fc-9dfe-6cf84a06e0f6",
+      "name": "Get Pricing History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2704,
+        176
+      ],
+      "notes": "PostgreSQL: Gets 90 days of pricing history for trend analysis."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate historical averages from pricing history data\nconst items = $input.all();\n\n// Get property details from the first item (passed from previous nodes)\nconst propertyDetails = items[0].json;\n\n// Initialize counters\nlet totalPrice = 0;\nlet totalOccupancy = 0;\nlet count = 0;\n\n// Sum all prices and occupancy rates\nfor (const item of items) {\n  if (item.json.price !== undefined && item.json.price !== null) {\n    totalPrice += parseFloat(item.json.price);\n  }\n  if (item.json.occupancy !== undefined && item.json.occupancy !== null) {\n    totalOccupancy += parseFloat(item.json.occupancy);\n  }\n  count++;\n}\n\n// Calculate averages\nconst averagePrice = count > 0 ? totalPrice / count : 0;\nconst averageOccupancy = count > 0 ? totalOccupancy / count : 0;\n\n// Return result with property details and calculated averages\nreturn [{\n  json: {\n    ...propertyDetails,\n    averagePrice: averagePrice,\n    averageOccupancy: averageOccupancy,\n    historicalDataPoints: count\n  }\n}];"
+      },
+      "id": "ce4bd987-7b5e-4e7a-8aac-27b121c88e28",
+      "name": "Calculate Historical Averages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2480,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.eventbriteapi.com/v3/events/search/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "location.address",
+              "value": "={{ $json.city + ', ' + $json.state }}"
+            },
+            {
+              "name": "start_date.range_start",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "start_date.range_end",
+              "value": "={{ $now.plus({ days: 30 }).toISO() }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Workflow Configuration').first().json.eventbriteApiToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a63fc4b2-3f40-47b6-91c5-92d9b018b552",
+      "name": "Get Eventbrite Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2256,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lat",
+              "value": "={{ $json.latitude }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.longitude }}"
+            },
+            {
+              "name": "appid",
+              "value": "={{ $('Workflow Configuration').first().json.openWeatherMapApiKey }}"
+            },
+            {
+              "name": "cnt",
+              "value": "30"
+            },
+            {
+              "name": "units",
+              "value": "imperial"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d05a302a-fb6e-4063-858d-7b21658f8d88",
+      "name": "Get Weather Forecast",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2032,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compile all context data for AI pricing recommendations\n\n// Get data from previous nodes\nconst propertyConfig = $('Get Property Configuration').first().json;\nconst historicalData = $('Calculate Historical Averages').first().json;\nconst eventbriteResponse = $('Get Eventbrite Events').first().json;\nconst weatherResponse = $('Get Weather Forecast').first().json;\n\n// Compile property details\nconst propertyDetails = {\n  name: propertyConfig.property_name || '',\n  current_price: propertyConfig.current_price || 0,\n  min_price: propertyConfig.min_price || 0,\n  max_price: propertyConfig.max_price || 0,\n  city: propertyConfig.city || '',\n  state: propertyConfig.state || '',\n  property_id: propertyConfig.property_id || ''\n};\n\n// Extract historical averages\nconst historicalAverages = {\n  averagePrice: historicalData.averagePrice || 0,\n  averageOccupancy: historicalData.averageOccupancy || 0\n};\n\n// Extract events from Eventbrite response\nconst events = eventbriteResponse.events || [];\n\n// Extract weather forecast\nconst weatherForecast = weatherResponse.list || [];\n\n// Get pricing decision contact\nconst pricing_decision_contact = propertyConfig.pricing_decision_contact || '';\n\n// Compile everything into a single context object\nconst compiledContext = {\n  property: propertyDetails,\n  historical: historicalAverages,\n  events: events,\n  weather: weatherForecast,\n  pricing_decision_contact: pricing_decision_contact,\n  timestamp: new Date().toISOString()\n};\n\n// Return as single item\nreturn [{ json: compiledContext }];"
+      },
+      "id": "cc1956c4-6572-4788-80ff-86af23995e7c",
+      "name": "Compile Context for AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('Workflow Configuration').first().json.openAiApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an expert revenue manager for vacation rental properties. Analyze property data and recommend optimal nightly rates for the next 30 days. Consider: weekends command 20-30% premiums, major events can justify 50-100% increases, poor weather may require discounts, and occupancy trends indicate if prices are too high or low.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json) }}\n    }\n  ],\n  \"response_format\": {\n    \"type\": \"json_object\"\n  }\n}",
+        "options": {}
+      },
+      "id": "3041212d-bb6f-40f4-aefd-d58bf7a64a40",
+      "name": "OpenAI Pricing Recommendations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1584,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse OpenAI response and filter recommendations\nconst items = $input.all();\nconst filteredRecommendations = [];\n\nfor (const item of items) {\n  try {\n    // Extract the OpenAI response\n    const response = item.json;\n    \n    // Parse the content from OpenAI response\n    let content;\n    if (response.choices && response.choices[0] && response.choices[0].message) {\n      content = response.choices[0].message.content;\n    } else if (typeof response === 'string') {\n      content = response;\n    } else {\n      console.log('Unexpected response format:', response);\n      continue;\n    }\n    \n    // Parse JSON from content if it's a string\n    let recommendations;\n    if (typeof content === 'string') {\n      // Try to extract JSON from markdown code blocks if present\n      const jsonMatch = content.match(/```json\\s*([\\s\\S]*?)\\s*```/) || content.match(/```\\s*([\\s\\S]*?)\\s*```/);\n      if (jsonMatch) {\n        recommendations = JSON.parse(jsonMatch[1]);\n      } else {\n        recommendations = JSON.parse(content);\n      }\n    } else {\n      recommendations = content;\n    }\n    \n    // Ensure recommendations is an array\n    if (!Array.isArray(recommendations)) {\n      if (recommendations.recommendations) {\n        recommendations = recommendations.recommendations;\n      } else {\n        console.log('Recommendations is not an array:', recommendations);\n        continue;\n      }\n    }\n    \n    // Get property_id and contact from the original item\n    const property_id = item.json.property_id || item.json.propertyId;\n    const pricing_decision_contact = item.json.pricing_decision_contact || item.json.contact;\n    const current_price = parseFloat(item.json.current_price || item.json.currentPrice || 0);\n    \n    // Filter and process each recommendation\n    for (const rec of recommendations) {\n      const recommended_price = parseFloat(rec.recommended_price || rec.recommendedPrice || 0);\n      \n      // Calculate percentage change\n      let percentage_change = 0;\n      if (current_price > 0) {\n        percentage_change = ((recommended_price - current_price) / current_price) * 100;\n      }\n      \n      // Filter: only keep if absolute percentage change is 15% or more\n      if (Math.abs(percentage_change) >= 15) {\n        filteredRecommendations.push({\n          property_id: property_id,\n          pricing_decision_contact: pricing_decision_contact,\n          current_price: current_price,\n          recommended_price: recommended_price,\n          percentage_change: Math.round(percentage_change * 100) / 100, // Round to 2 decimals\n          date: rec.date,\n          reasoning: rec.reasoning || rec.reason || '',\n          confidence: rec.confidence || 'medium'\n        });\n      }\n    }\n  } catch (error) {\n    console.error('Error processing item:', error.message);\n    console.error('Item data:', item.json);\n  }\n}\n\n// Return filtered recommendations\nreturn filteredRecommendations.map(rec => ({ json: rec }));"
+      },
+      "id": "0993829b-9a5b-4b3f-950d-15a09d23cdd8",
+      "name": "Parse and Filter Recommendations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "pricing_recommendations",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recommendation_id": "={{ \"REC-\" + $now.toFormat(\"yyyyMMdd\") + \"-\" + $json.property_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "property_name": "={{ $json.property_name }}",
+            "date": "={{ $json.date || $now.toFormat(\"yyyy-MM-dd\") }}",
+            "current_price": "={{ $json.current_price }}",
+            "recommended_price": "={{ $json.recommended_price }}",
+            "percentage_change": "={{ $json.percentage_change }}",
+            "reasoning": "={{ $json.reasoning }}",
+            "confidence": "={{ $json.confidence }}",
+            "priority": "={{ $json.priority }}",
+            "pricing_decision_contact": "={{ $json.pricing_decision_contact }}",
+            "status": "pending"
+          },
+          "matchingColumns": [
+            "property_id",
+            "date"
+          ]
+        },
+        "options": {}
+      },
+      "id": "646fdd6e-72c8-4cf2-a0c6-7362ab8e1641",
+      "name": "Store Recommendations",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1136,
+        448
+      ],
+      "notes": "PostgreSQL: Stores AI pricing recommendation. Upserts based on property_id + date."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Group all recommendations by pricing_decision_contact\nconst contactGroups = {};\n\n// Process all input items\nfor (const item of $input.all()) {\n  const contact = item.json.pricing_decision_contact;\n  \n  if (!contact) continue;\n  \n  if (!contactGroups[contact]) {\n    contactGroups[contact] = {\n      contact: contact,\n      properties: [],\n      recommendations: [],\n      totalEstimatedRevenue: 0\n    };\n  }\n  \n  // Add property with its recommendations\n  const propertyData = {\n    propertyId: item.json.property_id,\n    propertyName: item.json.property_name,\n    currentPrice: item.json.current_price,\n    recommendedPrice: item.json.recommended_price,\n    percentageChange: item.json.percentage_change,\n    estimatedRevenue: item.json.estimated_additional_revenue || 0,\n    priority: item.json.priority || 'medium',\n    reasoning: item.json.reasoning,\n    dateRange: item.json.date_range\n  };\n  \n  contactGroups[contact].properties.push(propertyData);\n  contactGroups[contact].recommendations.push(propertyData);\n  contactGroups[contact].totalEstimatedRevenue += propertyData.estimatedRevenue;\n}\n\n// Process each contact group\nconst results = [];\n\nfor (const contact in contactGroups) {\n  const group = contactGroups[contact];\n  \n  // Sort recommendations by priority and percentage change\n  const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };\n  \n  group.recommendations.sort((a, b) => {\n    const priorityDiff = (priorityOrder[b.priority] || 2) - (priorityOrder[a.priority] || 2);\n    if (priorityDiff !== 0) return priorityDiff;\n    return Math.abs(b.percentageChange) - Math.abs(a.percentageChange);\n  });\n  \n  // Get top 5 recommendations\n  const top5Recommendations = group.recommendations.slice(0, 5);\n  \n  results.push({\n    json: {\n      contact: group.contact,\n      totalProperties: group.properties.length,\n      totalRecommendations: group.recommendations.length,\n      totalEstimatedRevenue: group.totalEstimatedRevenue,\n      properties: group.properties,\n      top5Recommendations: top5Recommendations,\n      allRecommendations: group.recommendations\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "43d7f6be-b6ba-4415-883e-96fc254fc270",
+      "name": "Group by Contact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2928,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "=<b>\ud83c\udfe0 Daily Pricing Recommendations</b>\n\n\ud83d\udcca <b>Summary:</b>\nYou have {{ $json.recommendations.length }} pricing opportunities today that could increase your revenue.\n\n\ud83d\udcb0 <b>Estimated Additional Revenue:</b> ${{ $json.total_estimated_revenue }}\n\n<b>\ud83d\udd1d Top 5 Recommendations:</b>\n\n{{ $json.recommendations.slice(0, 5).map((rec, i) => `${i + 1}. <b>${rec.property_name}</b>\n   \ud83d\udcc5 Date: ${rec.date}\n   \ud83d\udcb5 Current: $${rec.current_price} \u2192 Recommended: $${rec.recommended_price}\n   \ud83d\udcc8 Reasoning: ${rec.reasoning}\n   \ud83d\udcb0 Est. Revenue Impact: +$${rec.estimated_impact}\n`).join('\n') }}\n\n<b>\u26a0\ufe0f Action Required:</b>\nPlease manually update these prices on:\n\u2022 Airbnb\n\u2022 Vrbo\n\u2022 Booking.com\n\nUse the buttons below to track your actions.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\u2705 Mark as Applied",
+                    "additionalFields": {
+                      "callback_data": "apply_all"
+                    }
+                  },
+                  {
+                    "text": "\u23ed\ufe0f Skip This One",
+                    "additionalFields": {
+                      "callback_data": "skip_all"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "\ud83d\udcca View Full Report",
+                    "additionalFields": {
+                      "callback_data": "view_full_report"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "82207e9b-91b6-4deb-b940-5f5f1c669e3f",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2704,
+        368
+      ],
+      "webhookId": "394932c0-aa0c-461a-80fe-4cd4f64d0f39"
+    },
+    {
+      "parameters": {
+        "phoneNumberId": "<__PLACEHOLDER_VALUE__Select your WhatsApp Business Phone Number__>",
+        "recipientPhoneNumber": "={{ $json.whatsapp_phone }}",
+        "template": "<__PLACEHOLDER_VALUE__Select your WhatsApp message template__>",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.summary }}"
+                  },
+                  {
+                    "text": "={{ $json.top_recommendations }}"
+                  },
+                  {
+                    "text": "={{ $json.estimated_revenue }}"
+                  },
+                  {
+                    "text": "Please review these recommendations and manually update your pricing on your booking platforms."
+                  }
+                ]
+              }
+            },
+            {
+              "type": "button",
+              "buttonParameters": {
+                "parameter": {}
+              }
+            },
+            {
+              "type": "button",
+              "index": 1,
+              "buttonParameters": {
+                "parameter": {}
+              }
+            },
+            {
+              "type": "button",
+              "index": 2,
+              "buttonParameters": {
+                "parameter": {}
+              }
+            }
+          ]
+        }
+      },
+      "id": "eede1dc2-1cf3-457a-a6e1-7e45eb8edfd8",
+      "name": "Send WhatsApp Notification",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        560
+      ],
+      "webhookId": "69b53c36-f495-455e-a4df-ca47cea4f9a3"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "642fda3a-10c6-431e-b18a-75252fa5c0a9",
+      "name": "Telegram Callback Handler",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3824,
+        784
+      ],
+      "webhookId": "3463aab0-0af8-4449-9744-56dcb40e99e0"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "8f9152d9-4b3d-4c4f-bfda-f07c92c151b2",
+      "name": "WhatsApp Callback Handler",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3824,
+        976
+      ],
+      "webhookId": "f5faa704-78b3-4065-addc-4d53919c46fe"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse callback data from Telegram or WhatsApp\nconst item = $input.item.json;\n\n// Determine the source (Telegram or WhatsApp)\nlet action, recommendation_id, contact_id, contact_type;\n\nif (item.callback_query) {\n  // Telegram callback\n  const callbackData = item.callback_query.data;\n  const parts = callbackData.split('_');\n  \n  action = parts[0]; // mark_applied, skip, or view_report\n  recommendation_id = parts[1];\n  contact_id = item.callback_query.from.id.toString();\n  contact_type = 'telegram';\n  \n} else if (item.message || item.interactive) {\n  // WhatsApp callback\n  let callbackData;\n  \n  if (item.interactive && item.interactive.button_reply) {\n    callbackData = item.interactive.button_reply.id;\n  } else if (item.message && item.message.text) {\n    callbackData = item.message.text;\n  }\n  \n  const parts = callbackData.split('_');\n  action = parts[0];\n  recommendation_id = parts[1];\n  contact_id = item.from;\n  contact_type = 'whatsapp';\n}\n\n// Return structured data\nreturn {\n  action: action,\n  recommendation_id: recommendation_id,\n  contact_id: contact_id,\n  contact_type: contact_type,\n  timestamp: new Date().toISOString(),\n  raw_callback: item\n};"
+      },
+      "id": "9844fd5b-0c20-42cb-a1b5-4612a7d2ee40",
+      "name": "Process Callback Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pricing_recommendations \nSET status = $2,\n    applied_by = $3,\n    applied_at = $4,\n    updated_at = CURRENT_TIMESTAMP\nWHERE recommendation_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.recommendation_id, $json.action === \"mark_applied\" ? \"applied\" : \"skipped\", $json.contact_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "04e35955-694e-4cf6-8de4-51365431bb20",
+      "name": "Update Recommendation Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3376,
+        880
+      ],
+      "notes": "PostgreSQL: Updates recommendation status based on owner decision (applied/skipped)."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "=<b>\u2705 Confirmation</b>\n\n<b>Action:</b> {{ $json.action }}\n<b>Property:</b> {{ $json.property_name }}\n<b>Date:</b> {{ $json.date }}\n<b>Price Change:</b> {{ $json.price_change }}\n\n<b>\ud83d\udcb0 Estimated Additional Revenue:</b> {{ $json.total_estimated_revenue }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "2d07919c-d110-43c5-804c-f6c714f672e0",
+      "name": "Send Telegram Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3152,
+        784
+      ],
+      "webhookId": "972dcfc0-07e4-41ee-bb9b-836cce6a27ec"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.whatsapp_phone }}",
+        "textBody": "=\u2705 Action Confirmed!\n\n\ud83d\udccb Action: {{ $json.action }}\n\ud83c\udfe0 Property: {{ $json.property_name }}\n\ud83d\udcc5 Date: {{ $json.date }}\n\ud83d\udcb0 Price Change: {{ $json.price_change }}\n\n\ud83d\udcca Running Total Estimated Additional Revenue: {{ $json.estimated_revenue }}\n\nThank you for using our AI-Powered Dynamic Pricing system!",
+        "additionalFields": {}
+      },
+      "id": "15bed0c5-88da-4ec9-b19d-88114df647c0",
+      "name": "Send WhatsApp Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -3152,
+        976
+      ],
+      "webhookId": "172692a0-8b74-44fe-b419-4a2be901558d"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 2 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Active Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Properties": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Properties": {
+      "main": [
+        [
+          {
+            "node": "Group by Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Pricing History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pricing History": {
+      "main": [
+        [
+          {
+            "node": "Calculate Historical Averages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Historical Averages": {
+      "main": [
+        [
+          {
+            "node": "Get Eventbrite Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Eventbrite Events": {
+      "main": [
+        [
+          {
+            "node": "Get Weather Forecast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weather Forecast": {
+      "main": [
+        [
+          {
+            "node": "Compile Context for AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Context for AI": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Pricing Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Pricing Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Parse and Filter Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Filter Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Store Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group by Contact": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Callback Handler": {
+      "main": [
+        [
+          {
+            "node": "Process Callback Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Callback Handler": {
+      "main": [
+        [
+          {
+            "node": "Process Callback Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Callback Action": {
+      "main": [
+        [
+          {
+            "node": "Update Recommendation Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Recommendation Status": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Confirmation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 5,
+    "consistency_note": "Nightly dynamic pricing at 2 AM. Uses pricing_history and pricing_recommendations tables."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

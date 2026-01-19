@@ -1,0 +1,670 @@
+{
+  "name": "Workflow 7: Payment Confirmation Handler [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "350cdc27-01ec-4263-b01f-ed227ad634a0",
+      "name": "Telegram Payment Confirmation",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "d4a4697d-c679-43f9-bc78-b6f7e1dfb136"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "e0efd5c0-99b2-4956-8743-0f5f3612abc4",
+      "name": "WhatsApp Payment Confirmation",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "0498147b-41f3-4949-a678-498c6038ac9b"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment-confirmation",
+        "options": {}
+      },
+      "id": "dd67de3d-f2b5-417e-8758-154ff371f57d",
+      "name": "Control Panel Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2928,
+        560
+      ],
+      "webhookId": "9b36e9a4-e3a1-4e26-b2b8-a25a2f25e6e5"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "3ac93440-30d3-40e4-bf0b-c716bafbdf71",
+      "name": "Merge Confirmation Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2704,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse booking confirmation from multiple sources\\n// Handles Telegram, WhatsApp, and webhook inputs\\n\\nconst item = $input.item.json;\\nlet booking_id = null;\\nlet contact_id = null;\\nlet platform = null;\\nlet action = null;\\n\\n// Check if this is from Telegram\\nif (item.message && item.message.chat && item.message.chat.type) {\\n  platform = 'telegram';\\n  \\n  // Extract contact_id from Telegram user\\n  contact_id = item.message.from?.id?.toString() || null;\\n  \\n  // Parse message text for PAID or CONFIRM pattern\\n  const messageText = item.message.text || '';\\n  const paidMatch = messageText.match(/PAID\\\\s+([A-Za-z0-9_-]+)/i);\\n  const confirmMatch = messageText.match(/CONFIRM\\\\s+([A-Za-z0-9_-]+)/i);\\n  \\n  if (paidMatch) {\\n    booking_id = paidMatch[1];\\n    action = 'paid';\\n  } else if (confirmMatch) {\\n    booking_id = confirmMatch[1];\\n    action = 'confirm';\\n  }\\n}\\n// Check if this is from WhatsApp\\nelse if (item.from || item.phone || (item.message && item.message.from && typeof item.message.from === 'string')) {\\n  platform = 'whatsapp';\\n  \\n  // Extract contact_id from WhatsApp (phone number)\\n  contact_id = item.message?.from || item.from || item.phone || null;\\n  \\n  // Parse message text for PAID or CONFIRM pattern\\n  const messageText = item.message?.text || item.text || item.body || '';\\n  const paidMatch = messageText.match(/PAID\\\\s+([A-Za-z0-9_-]+)/i);\\n  const confirmMatch = messageText.match(/CONFIRM\\\\s+([A-Za-z0-9_-]+)/i);\\n  \\n  if (paidMatch) {\\n    booking_id = paidMatch[1];\\n    action = 'paid';\\n  } else if (confirmMatch) {\\n    booking_id = confirmMatch[1];\\n    action = 'confirm';\\n  }\\n}\\n// Check if this is from webhook\\nelse if (item.body || item.booking_id || item.bookingId) {\\n  platform = 'webhook';\\n  \\n  // Extract from webhook payload\\n  const body = item.body || item;\\n  booking_id = body.booking_id || body.bookingId || item.booking_id || item.bookingId || null;\\n  contact_id = body.contact_id || body.contactId || item.contact_id || item.contactId || null;\\n  action = body.action || item.action || 'confirm';\\n}\\n\\n// Return parsed data\\nreturn {\\n  booking_id: booking_id,\\n  contact_id: contact_id,\\n  platform: platform,\\n  action: action,\\n  original_data: item\\n};"
+      },
+      "id": "2016297f-f625-4504-b633-a0f806622203",
+      "name": "Parse Booking ID and Contact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2480,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM bookings \nWHERE booking_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.booking_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "957add15-fb83-4540-ba2b-4a3376bc9cac",
+      "name": "Lookup Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2256,
+        368
+      ],
+      "notes": "PostgreSQL: Looks up existing booking by booking_id."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Lookup Booking\").item.json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "dbb16097-3bb5-4b79-aa57-9f34ab4a31b7",
+      "name": "Lookup Property",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2032,
+        368
+      ],
+      "notes": "PostgreSQL: Gets property details. Uses property_configurations table (matches other workflows)."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Lookup Property\").item.json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "581b14df-ea0b-4332-b9d2-58936a7127bb",
+      "name": "Lookup Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1808,
+        368
+      ],
+      "notes": "PostgreSQL: Gets full property configuration for notifications."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Lookup Booking').item.json.booking_id }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $('Lookup Booking').item.json.status }}",
+              "rightValue": "pending_payment_confirmation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $('Parse Booking ID and Contact').item.json.contact_id }}",
+              "rightValue": "={{ $('Lookup Property Configuration').item.json.payment_confirmation_contact }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "437c7f7c-f13e-415e-bdbf-a8647cb494ed",
+      "name": "Validate Booking and Permission",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1584,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Booking ID and Contact').item.json.contact_id }}",
+        "text": "Booking not found or you don't have permission to confirm this payment.",
+        "additionalFields": {}
+      },
+      "id": "5fa5bf67-78d5-4ade-a601-7be5e83d8eee",
+      "name": "Send Error to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1360,
+        176
+      ],
+      "webhookId": "dcc89941-6501-44dc-98af-77e538dbd2f2"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Parse Booking ID and Contact').item.json.contact_id }}",
+        "textBody": "Booking not found or you don't have permission to confirm this payment.",
+        "additionalFields": {}
+      },
+      "id": "e99764f8-de7f-4b70-9254-a67cd8e04785",
+      "name": "Send Error to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1360,
+        368
+      ],
+      "webhookId": "d79a8b74-56cf-4b30-8c1f-ae59ac1e64bc"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE bookings \nSET payment_status = 'confirmed',\n    booking_status = 'confirmed',\n    payment_confirmed_at = $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Lookup Booking\").item.json.booking_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "b9bca816-ad01-463d-b629-8f47bc602c5f",
+      "name": "Update Booking Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1360,
+        560
+      ],
+      "notes": "PostgreSQL: Updates booking to confirmed status. This is what WF00 checks for active bookings."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Guest Journey Scheduler Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "booking_id",
+              "value": "={{ $('Lookup Booking').item.json.booking_id }}"
+            },
+            {
+              "name": "channel_type",
+              "value": "={{ $('Lookup Booking').item.json.channel_type }}"
+            },
+            {
+              "name": "property_name",
+              "value": "={{ $('Lookup Property').item.json.property_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "17512602-f6a8-4400-a85a-53d325356721",
+      "name": "Trigger Guest Journey Scheduler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1136,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Calendar Sync Reminder Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "booking_id",
+              "value": "={{ $('Lookup Booking').item.json.booking_id }}"
+            },
+            {
+              "name": "property_id",
+              "value": "={{ $('Lookup Booking').item.json.property_id }}"
+            },
+            {
+              "name": "check_in",
+              "value": "={{ $('Lookup Booking').item.json.check_in }}"
+            },
+            {
+              "name": "check_out",
+              "value": "={{ $('Lookup Booking').item.json.check_out }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "71737b05-3872-4d4d-92da-6cf15cd85e4f",
+      "name": "Trigger Calendar Sync Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -912,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Cleaning Scheduler Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "booking_id",
+              "value": "={{ $('Lookup Booking').item.json.booking_id }}"
+            },
+            {
+              "name": "checkout_date",
+              "value": "={{ $('Lookup Booking').item.json.check_out }}"
+            },
+            {
+              "name": "property_id",
+              "value": "={{ $('Lookup Booking').item.json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "73b8fde2-7e3b-4e89-b40a-83546bb2fe02",
+      "name": "Trigger Cleaning Scheduler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -688,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Inventory Predictor Webhook URL__>",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "booking_id",
+              "value": "={{ $('Lookup Booking').item.json.booking_id }}"
+            },
+            {
+              "name": "number_of_guests",
+              "value": "={{ $('Lookup Booking').item.json.number_of_guests }}"
+            },
+            {
+              "name": "length_of_stay",
+              "value": "={{ $('Lookup Booking').item.json.length_of_stay }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4ffcb4c5-22e9-4911-8dfc-d5ac76ffeeed",
+      "name": "Trigger Inventory Predictor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -464,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Booking ID and Contact').item.json.contact_id }}",
+        "text": "=\u2705 Payment confirmed for {{ $('Lookup Booking').item.json.guest_name }} at {{ $('Lookup Property').item.json.property_name }}. Welcome sequence started. Don't forget to block {{ $('Lookup Booking').item.json.check_in }} to {{ $('Lookup Booking').item.json.check_out }} on Airbnb, Vrbo, and Booking.com!",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "I've Blocked All Platforms",
+                    "additionalFields": {}
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View Booking Details",
+                    "additionalFields": {}
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Contact Guest",
+                    "additionalFields": {}
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "0b0ebcf0-3e23-4d25-9cdc-2ca6fcbb1dbc",
+      "name": "Send Confirmation to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        464
+      ],
+      "webhookId": "568ce329-482b-4a31-a645-53c6f1223797"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Parse Booking ID and Contact').item.json.contact_id }}",
+        "textBody": "=\u2705 Payment confirmed for {{ $('Lookup Booking').item.json.guest_name }} at {{ $('Lookup Property').item.json.property_name }}. Welcome sequence started. Don't forget to block {{ $('Lookup Booking').item.json.check_in }} to {{ $('Lookup Booking').item.json.check_out }} on Airbnb, Vrbo, and Booking.com!\\n\\nReply with:\\n1\ufe0f\u20e3 BLOCKED - I've blocked all platforms\\n2\ufe0f\u20e3 DETAILS - View booking details\\n3\ufe0f\u20e3 CONTACT - Contact guest",
+        "additionalFields": {}
+      },
+      "id": "0ecac303-de47-46c2-ba8a-ab9c7a356b27",
+      "name": "Send Confirmation to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        656
+      ],
+      "webhookId": "d779e457-30d7-4b5c-9b62-efda20565205"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET status = 'confirmed',\n    booking_id = $2,\n    payment_confirmed_at = $3,\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = (\n    SELECT deal_id FROM deals \n    WHERE booking_id = $1 \n       OR (client_phone = $4 AND status = 'pending_payment_confirmation')\n    ORDER BY created_at DESC \n    LIMIT 1\n)",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Lookup Booking\").item.json.booking_id, $(\"Lookup Booking\").item.json.booking_id, $now.toISO(), $(\"Lookup Booking\").item.json.guest_phone] } }}"
+        },
+        "options": {}
+      },
+      "id": "eaa10420-a91e-46fd-9c5a-c89cbbbebce8",
+      "name": "Update Deal Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -16,
+        560
+      ],
+      "notes": "PostgreSQL: Closes the deal by setting status to confirmed. Links deal to booking. Finds deal by booking_id or by matching phone + pending_payment status."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Payment Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Merge Confirmation Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Payment Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Merge Confirmation Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Control Panel Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge Confirmation Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Confirmation Sources": {
+      "main": [
+        [
+          {
+            "node": "Parse Booking ID and Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Booking ID and Contact": {
+      "main": [
+        [
+          {
+            "node": "Lookup Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Booking": {
+      "main": [
+        [
+          {
+            "node": "Lookup Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Property": {
+      "main": [
+        [
+          {
+            "node": "Lookup Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Validate Booking and Permission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Booking and Permission": {
+      "main": [
+        [
+          {
+            "node": "Update Booking Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error to Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Error to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Booking Status": {
+      "main": [
+        [
+          {
+            "node": "Trigger Guest Journey Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Guest Journey Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Trigger Calendar Sync Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Calendar Sync Reminder": {
+      "main": [
+        [
+          {
+            "node": "Trigger Cleaning Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Cleaning Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Trigger Inventory Predictor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Inventory Predictor": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation to Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Confirmation to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Update Deal Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation to WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Update Deal Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 5,
+    "consistency_note": "Completes deal\u2192booking transition. Sets booking_status=confirmed (matches WF00)."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

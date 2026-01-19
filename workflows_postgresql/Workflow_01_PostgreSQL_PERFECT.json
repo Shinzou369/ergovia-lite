@@ -1,0 +1,1224 @@
+{
+  "name": "Workflow CP-1: Control Panel Hub (Telegram/WhatsApp) - Enhanced [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "fd541acc-13a1-474e-a17e-5c94c95863cd",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1584,
+        -16
+      ],
+      "webhookId": "2f18b20a-d0bb-45f0-8ec6-44cca3d974a8"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "0c02c493-f93a-4b60-97dc-41acbc28c628",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1584,
+        192
+      ],
+      "webhookId": "50be6f4a-69ad-4841-81ad-c30e91ce6e26"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "control-panel-hub",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "4958aad0-92aa-4b99-926a-48c61020bdfa",
+      "name": "Control Panel Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1584,
+        400
+      ],
+      "webhookId": "control-panel-webhook-unique-id"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "id": "72675e6f-2f91-43a9-b063-bbd692519bdb",
+      "name": "Merge Platform Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1360,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "availabilityWebhookUrl",
+              "value": "<__PLACEHOLDER_VALUE__Availability Checker Webhook URL__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "googleSheetsDocumentId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets Document ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "ownerId",
+              "value": "<__PLACEHOLDER_VALUE__Owner Telegram/Phone ID__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1f788189-d792-40e9-bde6-c6492b13560c",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1136,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Command Parser with validation and error handling\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Extract message text from different platforms\n  let messageText = '';\n  let senderId = '';\n  let senderPhone = '';\n  let channelType = '';\n  let chatId = '';\n  \n  // TELEGRAM DETECTION\n  if (data.message && data.message.from) {\n    channelType = 'telegram';\n    messageText = data.message.text || '';\n    senderId = data.message.from.id ? data.message.from.id.toString() : '';\n    chatId = data.message.chat.id ? data.message.chat.id.toString() : '';\n    senderPhone = data.message.from.phone_number || null;\n  }\n  // WHATSAPP DETECTION\n  else if (data.from && data.text && data.text.body) {\n    channelType = 'whatsapp';\n    messageText = data.text.body;\n    senderPhone = data.from;\n    senderId = senderPhone;\n  }\n  // FALLBACK: WhatsApp alternative structure\n  else if (data.message && data.message.from && !data.message.chat) {\n    channelType = 'whatsapp';\n    messageText = data.message.text || '';\n    senderPhone = data.message.from;\n    senderId = senderPhone;\n  }\n  // WEBHOOK FROM MESSAGE ROUTER\n  else if (data.sender_id && data.message) {\n    channelType = data.channel || 'telegram';\n    messageText = data.message;\n    senderId = data.sender_id;\n    chatId = data.sender_id;\n    senderPhone = null;\n  }\n  \n  // Parse command\n  const text = messageText.trim();\n  const command = text.toLowerCase();\n  \n  // Handle /availability command with parameters\n  if (command.startsWith('/availability ')) {\n    const parts = command.split(/\\s+/);\n    \n    if (parts.length !== 4) {\n      results.push({\n        json: {\n          error: true,\n          error_type: 'invalid_format',\n          message: '\u274c *Invalid Format*\\n\\nCorrect usage:\\n`/availability PropertyName YYYY-MM-DD YYYY-MM-DD`\\n\\nExample:\\n`/availability Villa2024 2025-03-15 2025-03-20`',\n          channel_type: channelType,\n          sender_id: senderId,\n          sender_phone: senderPhone,\n          chat_id: chatId\n        }\n      });\n      continue;\n    }\n    \n    // Validate date format\n    const propertyName = parts[1];\n    const checkIn = parts[2];\n    const checkOut = parts[3];\n    const dateRegex = /^\\d{4}-\\d{2}-\\d{2}$/;\n    \n    if (!dateRegex.test(checkIn) || !dateRegex.test(checkOut)) {\n      results.push({\n        json: {\n          error: true,\n          error_type: 'invalid_date',\n          message: '\u274c *Invalid Date Format*\\n\\nDates must be in YYYY-MM-DD format\\n\\nExample:\\n`/availability Villa2024 2025-03-15 2025-03-20`',\n          channel_type: channelType,\n          sender_id: senderId,\n          sender_phone: senderPhone,\n          chat_id: chatId\n        }\n      });\n      continue;\n    }\n    \n    // Validate check-out is after check-in\n    if (new Date(checkOut) <= new Date(checkIn)) {\n      results.push({\n        json: {\n          error: true,\n          error_type: 'invalid_date_range',\n          message: '\u274c *Invalid Date Range*\\n\\nCheck-out date must be after check-in date',\n          channel_type: channelType,\n          sender_id: senderId,\n          sender_phone: senderPhone,\n          chat_id: chatId\n        }\n      });\n      continue;\n    }\n    \n    results.push({\n      json: {\n        command: 'availability',\n        property_name: propertyName,\n        check_in: checkIn,\n        check_out: checkOut,\n        channel_type: channelType,\n        sender_id: senderId,\n        sender_phone: senderPhone,\n        chat_id: chatId,\n        original_message: messageText\n      }\n    });\n    continue;\n  }\n  \n  // Handle standard commands\n  const validCommands = ['dashboard', 'deals', 'tasks', 'bookings', 'help'];\n  const cleanCommand = command.replace('/', '').trim();\n  \n  if (!command.startsWith('/') || !validCommands.includes(cleanCommand)) {\n    results.push({\n      json: {\n        error: true,\n        error_type: 'unknown_command',\n        message: '\u2753 *Unknown Command*\\n\\nAvailable commands:\\n\u2022 /dashboard\\n\u2022 /deals\\n\u2022 /tasks\\n\u2022 /bookings\\n\u2022 /availability\\n\u2022 /help\\n\\nType /help for more details.',\n        channel_type: channelType,\n        sender_id: senderId,\n        sender_phone: senderPhone,\n        chat_id: chatId\n      }\n    });\n    continue;\n  }\n  \n  results.push({\n    json: {\n      command: cleanCommand,\n      channel_type: channelType,\n      sender_id: senderId,\n      sender_phone: senderPhone,\n      chat_id: chatId,\n      original_message: messageText\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "4704bb74-8608-4949-919b-0517e75492ca",
+      "name": "Command Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "53f993c6-bb6f-4e72-baea-c6b7c9abaa02",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "dashboard",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dashboard"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "deals",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "deals"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "tasks",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tasks"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "bookings",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "bookings"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "availability",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "availability"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "help",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "help"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "43040695-29f9-4941-b82c-66616a719a78",
+      "name": "Route by Command",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM control_panel_tasks \nWHERE status = 'pending' \nORDER BY created_at DESC \nLIMIT 50",
+        "options": {}
+      },
+      "id": "a56dbebb-a2dc-4e08-b8cf-e300641be665",
+      "name": "Query Control Panel Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -240,
+        -16
+      ],
+      "notes": "PostgreSQL: Retrieves pending control panel commands, newest first"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM deals \nWHERE status IN ('negotiation', 'pending_conflict')\nORDER BY created_at DESC \nLIMIT 20",
+        "options": {}
+      },
+      "id": "d340010b-296b-4b2a-b40f-56292f1fe592",
+      "name": "Query Deals for Dashboard",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -16,
+        -16
+      ],
+      "notes": "PostgreSQL: Gets active deals for dashboard display"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM bookings \nWHERE booking_status = 'confirmed'\n  AND check_out_date >= CURRENT_DATE\nORDER BY check_in_date ASC \nLIMIT 20",
+        "options": {}
+      },
+      "id": "bf0b1b60-db1e-4ba7-ac90-f82445eae804",
+      "name": "Query Bookings for Dashboard",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        208,
+        -16
+      ],
+      "notes": "PostgreSQL: Gets confirmed bookings that haven't checked out yet"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Professional Dashboard Message Formatter\nconst commandData = $('Route by Command').first().json;\nconst tasks = $('Query Control Panel Tasks').all();\nconst deals = $('Query Deals for Dashboard').all();\nconst bookings = $('Query Bookings for Dashboard').all();\n\n// Count active bookings (currently staying)\nconst now = new Date();\nconst activeBookings = bookings.filter(b => {\n  const checkIn = new Date(b.json.check_in_date);\n  const checkOut = new Date(b.json.check_out_date);\n  return now >= checkIn && now <= checkOut;\n}).length;\n\n// Count upcoming bookings (next 7 days)\nconst nextWeek = new Date();\nnextWeek.setDate(nextWeek.getDate() + 7);\nconst upcomingBookings = bookings.filter(b => {\n  const checkIn = new Date(b.json.check_in_date);\n  return checkIn > now && checkIn <= nextWeek;\n}).length;\n\n// Create professional dashboard message\nconst message = `\ud83c\udfe0 *YOUR PROPERTY DASHBOARD*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n\ud83d\udcca *Quick Stats:*\n\ud83d\udd34 ${deals.length} Deal${deals.length !== 1 ? 's' : ''} Need Decision\n\u26a0\ufe0f ${tasks.length} Task${tasks.length !== 1 ? 's' : ''} Pending\n\ud83d\udcc5 ${activeBookings} Active Booking${activeBookings !== 1 ? 's' : ''}\n\ud83d\udcc6 ${upcomingBookings} Check-in${upcomingBookings !== 1 ? 's' : ''} This Week\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\ud83d\udc47 *Tap a button below to manage:*`;\n\n// Create inline keyboard\nconst keyboard = {\n  inline_keyboard: [\n    [{text: '\ud83e\udd1d View Deals', callback_data: 'view_deals'}],\n    [{text: '\u2705 View Tasks', callback_data: 'view_tasks'}],\n    [{text: '\ud83d\udcc5 View Bookings', callback_data: 'view_bookings'}],\n    [\n      {text: '\ud83d\udd04 Refresh', callback_data: 'refresh_dashboard'},\n      {text: '\u2753 Help', callback_data: 'show_help'}\n    ]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    channel_type: commandData.channel_type,\n    sender_id: commandData.sender_id,\n    sender_phone: commandData.sender_phone,\n    chat_id: commandData.chat_id,\n    parse_mode: 'Markdown'\n  }\n}];"
+      },
+      "id": "62acf349-ee3c-47ae-b8c9-61bd27b8cfbe",
+      "name": "Format Dashboard Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT deal_id, client_name, property_name, status, created_at \nFROM deals \nWHERE status IN ('negotiation', 'pending_conflict')\nORDER BY created_at DESC",
+        "options": {}
+      },
+      "id": "9b942d8a-dda0-46bb-a66c-cd59656a36d7",
+      "name": "Query Deals List",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -240,
+        160
+      ],
+      "notes": "PostgreSQL: Lists all active deals with key fields only"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4a6417a-2ef3-49cd-86f6-ca8f918b34c6",
+      "name": "Check if Deals Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Deals List with professional layout\nconst commandData = $('Route by Command').first().json;\nconst deals = $input.all();\n\nif (deals.length === 0) {\n  const message = `\u2705 *NO ACTIVE DEALS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nYou're all caught up! No deals need your attention right now.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;\n  \n  const keyboard = {\n    inline_keyboard: [\n      [{text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}]\n    ]\n  };\n  \n  return [{\n    json: {\n      message: message,\n      keyboard: keyboard,\n      channel_type: commandData.channel_type,\n      sender_id: commandData.sender_id,\n      sender_phone: commandData.sender_phone,\n      chat_id: commandData.chat_id,\n      parse_mode: 'Markdown'\n    }\n  }];\n}\n\n// Format deals list\nlet message = `\ud83e\udd1d *ACTIVE DEALS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n`;\n\nconst keyboard = { inline_keyboard: [] };\n\ndeals.forEach((deal, index) => {\n  const d = deal.json;\n  const dealNum = index + 1;\n  \n  message += `*${dealNum}. ${d.property_name || 'Unknown Property'}*\n`;\n  message += `   \ud83d\udc64 ${d.client_name || 'Unknown'}\n`;\n  message += `   \ud83d\udcc5 ${d.check_in_date} - ${d.check_out_date}\n`;\n  message += `   \ud83d\udcb0 $${d.total_value || '0'}\n`;\n  message += `   \ud83d\udcca Status: ${d.status || 'pending'}\n`;\n  message += `\n`;\n  \n  // Add buttons for each deal\n  keyboard.inline_keyboard.push([\n    {text: `\ud83d\udccb View Deal #${dealNum}`, callback_data: `view_deal_${d.deal_id}`},\n    {text: `\u2713 Decide #${dealNum}`, callback_data: `decide_deal_${d.deal_id}`}\n  ]);\n});\n\nmessage += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nTotal: ${deals.length} deal${deals.length !== 1 ? 's' : ''} need${deals.length === 1 ? 's' : ''} your attention`;\n\n// Add back button\nkeyboard.inline_keyboard.push([\n  {text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}\n]);\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    channel_type: commandData.channel_type,\n    sender_id: commandData.sender_id,\n    sender_phone: commandData.sender_phone,\n    chat_id: commandData.chat_id,\n    parse_mode: 'Markdown'\n  }\n}];"
+      },
+      "id": "bfbb7476-da6c-4d7b-84dd-b841e363b66e",
+      "name": "Format Deals List Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM manual_tasks \nWHERE status = 'pending'\nORDER BY priority ASC, due_date ASC \nLIMIT 30",
+        "options": {}
+      },
+      "id": "3100e624-ecc1-4d7a-9bef-d4f971714d44",
+      "name": "Query Manual Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -240,
+        320
+      ],
+      "notes": "PostgreSQL: Gets pending manual tasks, ordered by priority and due date"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8f13e570-b89d-4d18-a351-75474a08a844",
+      "name": "Check if Tasks Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Tasks List with priority handling\nconst commandData = $('Route by Command').first().json;\nconst tasks = $input.all();\n\nif (tasks.length === 0) {\n  const message = `\u2705 *NO PENDING TASKS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nGreat job! You're all caught up with your tasks.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;\n  \n  const keyboard = {\n    inline_keyboard: [\n      [{text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}]\n    ]\n  };\n  \n  return [{\n    json: {\n      message: message,\n      keyboard: keyboard,\n      channel_type: commandData.channel_type,\n      sender_id: commandData.sender_id,\n      sender_phone: commandData.sender_phone,\n      chat_id: commandData.chat_id,\n      parse_mode: 'Markdown'\n    }\n  }];\n}\n\n// Sort tasks by priority and due date\nconst sortedTasks = tasks.sort((a, b) => {\n  const priorityOrder = {high: 1, medium: 2, low: 3};\n  const aPriority = priorityOrder[a.json.priority?.toLowerCase()] || 4;\n  const bPriority = priorityOrder[b.json.priority?.toLowerCase()] || 4;\n  \n  if (aPriority !== bPriority) return aPriority - bPriority;\n  \n  const aDate = new Date(a.json.due_date || '9999-12-31');\n  const bDate = new Date(b.json.due_date || '9999-12-31');\n  return aDate - bDate;\n});\n\n// Format message\nlet message = `\u2705 *PENDING TASKS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n`;\n\nconst keyboard = { inline_keyboard: [] };\n\nsortedTasks.forEach((task, index) => {\n  const t = task.json;\n  const taskNum = index + 1;\n  const priorityEmoji = {\n    high: '\ud83d\udd34',\n    medium: '\ud83d\udfe1',\n    low: '\ud83d\udfe2'\n  }[t.priority?.toLowerCase()] || '\u26aa';\n  \n  message += `${priorityEmoji} *${taskNum}. ${t.task_name || 'Unnamed Task'}*\n`;\n  message += `   \ud83d\udccb ${t.task_description || 'No description'}\n`;\n  message += `   \ud83d\udcc5 Due: ${t.due_date || 'No deadline'}\n`;\n  message += `   \ud83c\udff7\ufe0f Priority: ${t.priority || 'normal'}\n`;\n  message += `\n`;\n  \n  // Add action buttons\n  keyboard.inline_keyboard.push([\n    {text: `\u2713 Complete #${taskNum}`, callback_data: `complete_task_${t.task_id}`}\n  ]);\n  \n  keyboard.inline_keyboard.push([\n    {text: `\u23f0 Snooze #${taskNum}`, callback_data: `snooze_task_${t.task_id}`},\n    {text: `\ud83d\udcc4 Details #${taskNum}`, callback_data: `view_task_${t.task_id}`}\n  ]);\n});\n\nmessage += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nTotal: ${sortedTasks.length} task${sortedTasks.length !== 1 ? 's' : ''} pending`;\n\n// Add back button\nkeyboard.inline_keyboard.push([\n  {text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}\n]);\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    channel_type: commandData.channel_type,\n    sender_id: commandData.sender_id,\n    sender_phone: commandData.sender_phone,\n    chat_id: commandData.chat_id,\n    parse_mode: 'Markdown'\n  }\n}];"
+      },
+      "id": "e6f17cd8-75f7-48fd-acd0-edc58a35b0a8",
+      "name": "Format Tasks List Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM bookings \nWHERE booking_status = 'confirmed'\n  AND check_in_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'\nORDER BY check_in_date ASC",
+        "options": {}
+      },
+      "id": "47aa0be9-fb93-4b59-81d7-02b0188f6562",
+      "name": "Query Upcoming Bookings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -240,
+        480
+      ],
+      "notes": "PostgreSQL: Gets bookings checking in within next 7 days"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "37563d5e-9c58-46c0-9b96-57ef7d471ed9",
+      "name": "Check if Bookings Empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Bookings Calendar with date filtering\nconst commandData = $('Route by Command').first().json;\nconst bookings = $input.all();\n\nif (bookings.length === 0) {\n  const message = `\ud83d\udcc5 *NO UPCOMING BOOKINGS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nNo confirmed bookings in the next 30 days.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;\n  \n  const keyboard = {\n    inline_keyboard: [\n      [{text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}]\n    ]\n  };\n  \n  return [{\n    json: {\n      message: message,\n      keyboard: keyboard,\n      channel_type: commandData.channel_type,\n      sender_id: commandData.sender_id,\n      sender_phone: commandData.sender_phone,\n      chat_id: commandData.chat_id,\n      parse_mode: 'Markdown'\n    }\n  }];\n}\n\n// Filter and sort bookings (next 30 days)\nconst now = new Date();\nconst next30Days = new Date();\nnext30Days.setDate(next30Days.getDate() + 30);\n\nconst relevantBookings = bookings\n  .filter(b => {\n    const checkIn = new Date(b.json.check_in_date);\n    return checkIn >= now && checkIn <= next30Days;\n  })\n  .sort((a, b) => {\n    return new Date(a.json.check_in_date) - new Date(b.json.check_in_date);\n  });\n\n// Format message\nlet message = `\ud83d\udcc5 *UPCOMING BOOKINGS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nNext 30 Days\n\n`;\n\nconst keyboard = { inline_keyboard: [] };\n\nrelevantBookings.forEach((booking, index) => {\n  const b = booking.json;\n  const bookingNum = index + 1;\n  \n  // Calculate days until check-in\n  const checkIn = new Date(b.check_in_date);\n  const daysUntil = Math.ceil((checkIn - now) / (1000 * 60 * 60 * 24));\n  const urgencyEmoji = daysUntil <= 3 ? '\ud83d\udd34' : daysUntil <= 7 ? '\ud83d\udfe1' : '\ud83d\udfe2';\n  \n  message += `${urgencyEmoji} *${bookingNum}. ${b.property_name || 'Property'}*\n`;\n  message += `   \ud83d\udc64 Guest: ${b.guest_name || 'Unknown'}\n`;\n  message += `   \ud83d\udcc6 Check-in: ${b.check_in_date} (${daysUntil}d)\n`;\n  message += `   \ud83d\udcc6 Check-out: ${b.check_out_date}\n`;\n  message += `   \ud83d\udcb0 Amount: $${b.total_amount || '0'}\n`;\n  message += `\n`;\n  \n  // Add action buttons\n  keyboard.inline_keyboard.push([\n    {text: `\ud83d\udccb Details #${bookingNum}`, callback_data: `view_booking_${b.booking_id}`},\n    {text: `\ud83d\udcac Contact #${bookingNum}`, callback_data: `contact_guest_${b.booking_id}`}\n  ]);\n});\n\nmessage += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nTotal: ${relevantBookings.length} booking${relevantBookings.length !== 1 ? 's' : ''} in next 30 days`;\n\n// Add back button\nkeyboard.inline_keyboard.push([\n  {text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}\n]);\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    channel_type: commandData.channel_type,\n    sender_id: commandData.sender_id,\n    sender_phone: commandData.sender_phone,\n    chat_id: commandData.chat_id,\n    parse_mode: 'Markdown'\n  }\n}];"
+      },
+      "id": "b4b0eecc-2f28-4bfb-b49d-d91df635dc85",
+      "name": "Format Bookings Calendar Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Workflow Configuration').first().json.availabilityWebhookUrl }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "property_name",
+              "value": "={{ $json.property_name }}"
+            },
+            {
+              "name": "check_in",
+              "value": "={{ $json.check_in }}"
+            },
+            {
+              "name": "check_out",
+              "value": "={{ $json.check_out }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b1ba030e-372f-4d30-a2fc-7d980704f99c",
+      "name": "Check Availability via Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -240,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Availability Results with detailed info\nconst commandData = $('Route by Command').first().json;\nconst webhookResponse = $input.first().json;\n\nlet message = '';\nlet keyboard = { inline_keyboard: [] };\n\nif (webhookResponse.available === true) {\n  const nights = Math.ceil(\n    (new Date(webhookResponse.check_out) - new Date(webhookResponse.check_in)) / \n    (1000 * 60 * 60 * 24)\n  );\n  \n  message = `\u2705 *PROPERTY AVAILABLE*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n`;\n  message += `\ud83c\udfe1 Property: ${commandData.property_name}\n`;\n  message += `\ud83d\udcc5 Check-in: ${commandData.check_in}\n`;\n  message += `\ud83d\udcc5 Check-out: ${commandData.check_out}\n`;\n  message += `\ud83c\udf19 Nights: ${nights}\n`;\n  \n  if (webhookResponse.price) {\n    message += `\ud83d\udcb0 Price: $${webhookResponse.price}\n`;\n  }\n  \n  message += `\n\u2705 *The property is available for these dates!*`;\n  \n  keyboard.inline_keyboard.push([\n    {text: '\u2713 Create Booking', callback_data: `create_booking_${commandData.property_name}`}\n  ]);\n} else if (webhookResponse.available === false) {\n  message = `\u274c *PROPERTY NOT AVAILABLE*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n`;\n  message += `\ud83c\udfe1 Property: ${commandData.property_name}\n`;\n  message += `\ud83d\udcc5 Check-in: ${commandData.check_in}\n`;\n  message += `\ud83d\udcc5 Check-out: ${commandData.check_out}\n`;\n  message += `\n\u274c *Sorry, not available for these dates.*`;\n  \n  if (webhookResponse.reason) {\n    message += `\n\n\ud83d\udcdd Reason: ${webhookResponse.reason}`;\n  }\n  \n  if (webhookResponse.conflicting_bookings) {\n    message += `\n\n\u26a0\ufe0f Conflicting bookings found.`;\n  }\n} else {\n  message = `\u26a0\ufe0f *ERROR CHECKING AVAILABILITY*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n`;\n  \n  if (webhookResponse.error) {\n    message += `Error: ${webhookResponse.error}\n`;\n  } else {\n    message += `Unable to check availability. Please try again.\n`;\n  }\n}\n\nmessage += `\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;\n\n// Add back button\nkeyboard.inline_keyboard.push([\n  {text: '\ud83c\udfe1 Back to Dashboard', callback_data: 'dashboard'}\n]);\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    channel_type: commandData.channel_type,\n    sender_id: commandData.sender_id,\n    sender_phone: commandData.sender_phone,\n    chat_id: commandData.chat_id,\n    parse_mode: 'Markdown'\n  }\n}];"
+      },
+      "id": "7ec9256c-7087-40ef-9692-1a70d085db6d",
+      "name": "Format Availability Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Professional Help Message with all commands\nconst commandData = $('Route by Command').first().json;\n\nconst helpMessage = `\ud83e\udd16 *PROPERTY OWNER CONTROL PANEL*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n*Available Commands:*\n\n\ud83d\udcca */dashboard*\nView your control panel with key metrics and pending items\n\n\ud83d\udcbc */deals*\nList all active deals requiring your decision\n\n\u2705 */tasks*\nShow all pending manual tasks that need attention\n\n\ud83d\udcc5 */bookings*\nDisplay upcoming bookings for the next 30 days\n\n\ud83d\udd0d */availability*\nCheck property availability for specific dates\n*Usage:* \\`/availability PropertyName YYYY-MM-DD YYYY-MM-DD\\`\n*Example:* \\`/availability Villa2024 2025-03-15 2025-03-20\\`\n\n\u2753 */help*\nShow this help message\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\ud83d\udca1 *Quick Tips:*\n\u2022 Use inline buttons for easy navigation\n\u2022 All commands start with /\n\u2022 Commands are case-insensitive\n\n\ud83d\udcde Need assistance? Contact support.`;\n\nconst keyboard = {\n  inline_keyboard: [\n    [{text: '\ud83c\udfe1 Go to Dashboard', callback_data: 'dashboard'}]\n  ]\n};\n\nreturn [{\n  json: {\n    message: helpMessage,\n    keyboard: keyboard,\n    channel_type: commandData.channel_type,\n    sender_id: commandData.sender_id,\n    sender_phone: commandData.sender_phone,\n    chat_id: commandData.chat_id,\n    parse_mode: 'Markdown'\n  }\n}];"
+      },
+      "id": "9bcf7084-1e65-40e4-9b5a-736e82d79995",
+      "name": "Format Help Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 7,
+        "options": {}
+      },
+      "id": "7df800b3-4c25-4b57-bdd3-9827b48f073d",
+      "name": "Merge All Command Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b398b330-b89a-4842-b8b6-6a8dc51230a5",
+      "name": "Platform Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "1b374a04-c429-47aa-a3cc-15418c88bdfb",
+      "name": "Send Telegram Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        320
+      ],
+      "webhookId": "3aa4f61f-9a91-4250-91c4-cd1c86061141"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert Telegram inline keyboard to WhatsApp buttons format\nconst data = $input.first().json;\n\n// WhatsApp supports maximum 3 buttons per message\n// Take first 3 buttons from inline keyboard\nconst buttons = [];\n\nif (data.keyboard && data.keyboard.inline_keyboard) {\n  data.keyboard.inline_keyboard.slice(0, 3).forEach(row => {\n    if (row[0]) {\n      buttons.push({\n        type: 'reply',\n        reply: {\n          id: row[0].callback_data,\n          title: row[0].text.substring(0, 20) // WhatsApp max 20 chars\n        }\n      });\n    }\n  });\n}\n\nreturn [{\n  json: {\n    to: data.sender_phone,\n    body: data.message,\n    buttons: buttons\n  }\n}];"
+      },
+      "id": "d4195c02-7910-4c7b-b817-847cdde54b2c",
+      "name": "Format for WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.to }}",
+        "additionalFields": {}
+      },
+      "id": "d27ceb3c-c92f-4128-947e-f4fe3a1d231d",
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        480
+      ],
+      "webhookId": "5004afca-02c9-410e-9c5f-f60ed38829da"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a09c1c66-13f0-4f0b-b45a-ba763adcdc97",
+      "name": "Error Platform Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "498cd9bd-d50a-4502-9ea6-96320a4d3116",
+      "name": "Send Telegram Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -208
+      ],
+      "webhookId": "d995372d-374c-4cf4-87dc-280615954d01"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.sender_phone }}",
+        "additionalFields": {}
+      },
+      "id": "ad7da879-719a-417b-88a7-4c87a87a8f30",
+      "name": "Send WhatsApp Error",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -48
+      ],
+      "webhookId": "dcd4fb37-69c3-46e9-9ee7-8f91cea23fa5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge Platform Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge Platform Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Control Panel Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge Platform Triggers",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Platform Triggers": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Command Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command Parser": {
+      "main": [
+        [
+          {
+            "node": "Check for Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Errors": {
+      "main": [
+        [
+          {
+            "node": "Error Platform Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route by Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Platform Router": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Command": {
+      "main": [
+        [
+          {
+            "node": "Query Control Panel Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Deals List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Manual Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Upcoming Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Availability via Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Help Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Control Panel Tasks": {
+      "main": [
+        [
+          {
+            "node": "Query Deals for Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Deals for Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Query Bookings for Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Bookings for Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Format Dashboard Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Dashboard Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Command Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Deals List": {
+      "main": [
+        [
+          {
+            "node": "Check if Deals Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Deals Empty": {
+      "main": [
+        [
+          {
+            "node": "Format Deals List Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Deals List Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Deals List Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Command Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Query Manual Tasks": {
+      "main": [
+        [
+          {
+            "node": "Check if Tasks Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Tasks Empty": {
+      "main": [
+        [
+          {
+            "node": "Format Tasks List Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Tasks List Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Tasks List Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Command Responses",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Query Upcoming Bookings": {
+      "main": [
+        [
+          {
+            "node": "Check if Bookings Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Bookings Empty": {
+      "main": [
+        [
+          {
+            "node": "Format Bookings Calendar Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Bookings Calendar Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Bookings Calendar Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Command Responses",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Check Availability via Webhook": {
+      "main": [
+        [
+          {
+            "node": "Format Availability Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Availability Results": {
+      "main": [
+        [
+          {
+            "node": "Merge All Command Responses",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Format Help Message": {
+      "main": [
+        [
+          {
+            "node": "Merge All Command Responses",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Merge All Command Responses": {
+      "main": [
+        [
+          {
+            "node": "Platform Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Platform Router": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format for WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c1d98695-09a1-47da-8f65-0f1062c1a0cd",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 6
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

@@ -1,0 +1,799 @@
+{
+  "name": "Workflow 9: Scheduled Message Sender (Every 30 Minutes) [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "061a1c96-1387-4f5d-bed2-745cd1c913b9",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -5392,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "booking_contact_platform",
+              "value": "<__PLACEHOLDER_VALUE__Booking contact platform (telegram or whatsapp)__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "booking_contact_id",
+              "value": "<__PLACEHOLDER_VALUE__Booking contact chat ID or phone number__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "30012a48-47ab-4c9d-8232-3ff94c5a6ee6",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5168,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "current_timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e45d7491-a5d0-4e97-b5bc-afb4ff058e5f",
+      "name": "Get Current Timestamp",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4944,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM scheduled_messages \nWHERE status = 'pending'\n  AND scheduled_time <= CURRENT_TIMESTAMP\nORDER BY scheduled_time ASC\nLIMIT 50",
+        "options": {}
+      },
+      "id": "efe4754c-e8df-4dec-9ceb-342750f6a042",
+      "name": "Query Scheduled Messages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4720,
+        560
+      ],
+      "notes": "PostgreSQL: Gets pending messages that are due to be sent (scheduled_time <= now). Processes up to 50 messages per run."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e6edc06d-ffb9-44cd-b1d4-13fd51cacf1a",
+      "name": "Check If Messages Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -4496,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log that no messages were found\\nconsole.log('Scheduled check completed - no messages due');\\n\\n// Return the input items\\nreturn $input.all();"
+      },
+      "id": "842e652f-cf55-425d-890f-2ee8f10dcd4e",
+      "name": "Log No Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4272,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "02a166ee-ed26-4727-9b75-7a84b7ae1762",
+      "name": "Loop Over Messages",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -4272,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message_id",
+              "value": "={{ $json.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "booking_id",
+              "value": "={{ $json.booking_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "guest_phone",
+              "value": "={{ $json.guest_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "message_type",
+              "value": "={{ $json.message_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "message_template",
+              "value": "={{ $json.message_template }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "d656081d-ece3-41bb-8e08-be6b58783207",
+      "name": "Extract Message Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4048,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM bookings \nWHERE booking_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Extract Message Fields\").item.json.booking_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "28326e6b-826b-4670-af1d-b0225da1730b",
+      "name": "Query Bookings Sheet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3824,
+        368
+      ],
+      "notes": "PostgreSQL: Gets full booking details for message personalization."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Query Bookings Sheet\").item.json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "06748d82-b82b-43b4-886d-beb6b862e17c",
+      "name": "Query Properties Sheet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3600,
+        368
+      ],
+      "notes": "PostgreSQL: Gets property details for message content (WiFi, address, etc)."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get the message template from the current item\\nconst messageTemplate = $input.item.json.message_template;\\n\\n// Get booking data (from Query Bookings Sheet node)\\nconst bookingData = $('Query Bookings Sheet').item.json;\\n\\n// Get property data (from Query Properties Sheet node)\\nconst propertyData = $('Query Properties Sheet').item.json;\\n\\n// Replace all template variables with actual values\\nlet finalMessage = messageTemplate;\\n\\n// Replace booking-related variables\\nfinalMessage = finalMessage.replace(/\\\\[Guest Name\\\\]/g, bookingData.guest_name || '');\\nfinalMessage = finalMessage.replace(/\\\\[Check-in Date\\\\]/g, bookingData.checkin_date || '');\\nfinalMessage = finalMessage.replace(/\\\\[Check-out Date\\\\]/g, bookingData.checkout_date || '');\\nfinalMessage = finalMessage.replace(/\\\\[Check-in Time\\\\]/g, bookingData.checkin_time || '');\\nfinalMessage = finalMessage.replace(/\\\\[Check-out Time\\\\]/g, bookingData.checkout_time || '');\\n\\n// Replace property-related variables\\nfinalMessage = finalMessage.replace(/\\\\[Property Name\\\\]/g, propertyData.property_name || '');\\nfinalMessage = finalMessage.replace(/\\\\[Property Address\\\\]/g, propertyData.property_address || '');\\nfinalMessage = finalMessage.replace(/\\\\[Door Code\\\\]/g, propertyData.door_code || '');\\nfinalMessage = finalMessage.replace(/\\\\[Wifi Network\\\\]/g, propertyData.wifi_network || '');\\nfinalMessage = finalMessage.replace(/\\\\[Wifi Password\\\\]/g, propertyData.wifi_password || '');\\nfinalMessage = finalMessage.replace(/\\\\[Lockbox Location\\\\]/g, propertyData.lockbox_location || '');\\nfinalMessage = finalMessage.replace(/\\\\[Parking Instructions\\\\]/g, propertyData.parking_instructions || '');\\n\\n// Return the personalized message along with other data\\nreturn {\\n  ...($input.item.json),\\n  final_message: finalMessage\\n};"
+      },
+      "id": "b5f68907-7e59-4cf7-a87b-cfe548ccaa42",
+      "name": "Replace Template Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3376,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SMS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4f948fe5-39ce-4f06-8fc2-2490819d974d",
+      "name": "Route By Channel Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio Phone Number__>",
+        "to": "={{ $json.guest_phone }}",
+        "message": "={{ $json.final_message }}",
+        "options": {}
+      },
+      "id": "5307fa60-4f2a-4e00-b822-c002e9c70a53",
+      "name": "Send SMS via Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.guest_phone }}",
+        "textBody": "={{ $json.final_message }}",
+        "additionalFields": {}
+      },
+      "id": "bbd33b22-d247-4298-8a00-ea240e4fe196",
+      "name": "Send WhatsApp Message",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "33ab09af-a163-4b2f-be20-e15aef6cfea1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.guest_phone }}",
+        "text": "={{ $json.final_message }}",
+        "additionalFields": {}
+      },
+      "id": "31b75f60-0d5f-46f2-a8ee-f2f7150e21ac",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        656
+      ],
+      "webhookId": "9727dec7-49f0-48fa-8324-fc4173192be8"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE scheduled_messages \nSET status = 'sent',\n    sent_at = $2,\n    channel = $3,\n    updated_at = CURRENT_TIMESTAMP\nWHERE message_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Extract Message Fields\").item.json.message_id, $now.toISO(), $json.channel_type || \"telegram\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "8aea5172-bf49-4956-b92e-f283dc9a54b5",
+      "name": "Update Scheduled Messages Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2704,
+        368
+      ],
+      "notes": "PostgreSQL: Marks message as sent. Status: pending \u2192 sent (matches WF08)."
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "messages",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ \"MSG-\" + $now.toFormat(\"yyyyMMddHHmmss\") + \"-\" + Math.random().toString(36).substr(2, 9) }}",
+            "booking_id": "={{ $json.booking_id }}",
+            "guest_phone": "={{ $json.guest_phone }}",
+            "message_type": "={{ $json.message_type }}",
+            "content": "={{ $json.final_message }}",
+            "channel": "={{ $json.channel_type }}",
+            "status": "sent",
+            "sent_time": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "id": "38b2bc07-66d2-4dea-b8c2-9fb272c595a8",
+      "name": "Store Message Copy",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2480,
+        736
+      ],
+      "notes": "PostgreSQL: Archives sent message to messages table for history/audit."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all processed messages from the loop\\nconst processedMessages = $input.all();\\n\\n// Get configuration from Workflow Configuration node\\nconst config = $('Workflow Configuration').first().json;\\nconst contactPlatform = config.booking_contact_platform || 'Unknown';\\nconst contactId = config.booking_contact_id || 'Unknown';\\n\\n// Initialize counters\\nlet totalMessages = processedMessages.length;\\nlet smsCount = 0;\\nlet whatsappCount = 0;\\nlet telegramCount = 0;\\n\\n// Count messages by channel\\nfor (const message of processedMessages) {\\n  const channel = message.json.channel_type || message.json.channel;\\n  \\n  if (channel === 'SMS') {\\n    smsCount++;\\n  } else if (channel === 'WhatsApp') {\\n    whatsappCount++;\\n  } else if (channel === 'Telegram') {\\n    telegramCount++;\\n  }\\n}\\n\\n// Build channel breakdown string\\nlet channelBreakdown = [];\\nif (smsCount > 0) channelBreakdown.push(`${smsCount} SMS`);\\nif (whatsappCount > 0) channelBreakdown.push(`${whatsappCount} WhatsApp`);\\nif (telegramCount > 0) channelBreakdown.push(`${telegramCount} Telegram`);\\n\\nconst channelSummary = channelBreakdown.join(', ');\\n\\n// Create summary message\\nconst summaryMessage = `\u2713 Scheduled message batch complete - ${totalMessages} messages delivered successfully via ${channelSummary}`;\\n\\n// Return summary data\\nreturn {\\n  json: {\\n    total_messages: totalMessages,\\n    sms_count: smsCount,\\n    whatsapp_count: whatsappCount,\\n    telegram_count: telegramCount,\\n    summary_message: summaryMessage,\\n    booking_contact_platform: contactPlatform,\\n    booking_contact_id: contactId,\\n    timestamp: new Date().toISOString()\\n  }\\n};"
+      },
+      "id": "1a1b8759-4582-40cb-8559-206db119efc4",
+      "name": "Prepare Summary Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4048,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.booking_contact_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.booking_contact_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "be7c1c2c-9a19-4870-99cd-e0f32d1e6521",
+      "name": "Route Summary By Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3824,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.booking_contact_id }}",
+        "text": "={{ $json.summary_message }}",
+        "additionalFields": {}
+      },
+      "id": "eda1dfe9-cb90-4e41-83a8-ce1e93600a2e",
+      "name": "Send Summary via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3600,
+        560
+      ],
+      "webhookId": "8e9f289b-e37c-489d-9714-e2fd7a8c8ada"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.booking_contact_id }}",
+        "textBody": "={{ $json.summary_message }}",
+        "additionalFields": {}
+      },
+      "id": "8d761ad4-d01a-4a16-b32c-93830847423e",
+      "name": "Send Summary via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -3600,
+        752
+      ],
+      "webhookId": "2c1c14a9-7b09-4694-88fe-cd562741426f"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Current Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Query Scheduled Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Scheduled Messages": {
+      "main": [
+        [
+          {
+            "node": "Check If Messages Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Messages Found": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log No Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Messages": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Summary Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Fields": {
+      "main": [
+        [
+          {
+            "node": "Query Bookings Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Bookings Sheet": {
+      "main": [
+        [
+          {
+            "node": "Query Properties Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Properties Sheet": {
+      "main": [
+        [
+          {
+            "node": "Replace Template Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Template Variables": {
+      "main": [
+        [
+          {
+            "node": "Route By Channel Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route By Channel Type": {
+      "main": [
+        [
+          {
+            "node": "Send SMS via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS via Twilio": {
+      "main": [
+        [
+          {
+            "node": "Update Scheduled Messages Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Update Scheduled Messages Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Update Scheduled Messages Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Scheduled Messages Status": {
+      "main": [
+        [
+          {
+            "node": "Store Message Copy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Message Copy": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Summary Data": {
+      "main": [
+        [
+          {
+            "node": "Route Summary By Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Summary By Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Summary via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Summary via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 5,
+    "consistency_note": "Sends messages created by WF08. Status coordination: pending \u2192 sent."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

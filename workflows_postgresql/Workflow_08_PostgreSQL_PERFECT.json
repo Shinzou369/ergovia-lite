@@ -1,0 +1,717 @@
+{
+  "name": "Workflow 8: Guest Journey Scheduler [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guest-journey",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "c8f9109f-b850-459d-968a-14665b717ad5",
+      "name": "Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4720,
+        560
+      ],
+      "webhookId": "929b4c39-6396-40ba-97dd-b3b4b9d9eca9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "bookings_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Bookings Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "properties_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Properties Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "scheduled_messages_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Scheduled Messages Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "booking_contact_phone",
+              "value": "<__PLACEHOLDER_VALUE__Booking Contact Phone Number__>",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "booking_contact_platform",
+              "value": "<__PLACEHOLDER_VALUE__Booking Contact Platform (telegram or whatsapp)__>",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "booking_contact_chat_id",
+              "value": "<__PLACEHOLDER_VALUE__Booking Contact Chat ID (for Telegram)__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "7b9da4be-952e-452b-845e-b4cb3ebf760a",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4496,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM bookings \nWHERE booking_id = $1\n  AND booking_status = 'confirmed'\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.query.booking_id || $json.booking_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "49093394-aeec-48af-8411-55f0dfa5684d",
+      "name": "Get Booking Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4272,
+        560
+      ],
+      "notes": "PostgreSQL: Gets booking data for confirmed bookings only."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.payment_confirmed }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4c879c1-40d0-400d-9077-58e9c011d8fa",
+      "name": "Check Payment Confirmed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -4048,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "9d22d288-eca5-404b-89d1-a987e3507763",
+      "name": "Get Property Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3824,
+        272
+      ],
+      "notes": "PostgreSQL: Gets property details for message personalization."
+    },
+    {
+      "parameters": {
+        "jsCode": "const bookingData = $input.first().json;\\nconst checkIn = new Date(bookingData.check_in_date);\\nconst checkOut = new Date(bookingData.check_out_date);\\n\\n// Helper function to set time\\nfunction setTime(date, hours, minutes = 0) {\\n  const newDate = new Date(date);\\n  newDate.setHours(hours, minutes, 0, 0);\\n  return newDate.toISOString();\\n}\\n\\n// Helper function to add/subtract days\\nfunction addDays(date, days) {\\n  const newDate = new Date(date);\\n  newDate.setDate(newDate.getDate() + days);\\n  return newDate;\\n}\\n\\nconst schedules = {\\n  welcome_payment_confirmed: new Date().toISOString(),\\n  pre_arrival: setTime(addDays(checkIn, -3), 10),\\n  checkin_instructions: setTime(addDays(checkIn, -1), 10),\\n  checkin_day_reminder: setTime(checkIn, 9),\\n  midstay_checkin: setTime(addDays(checkIn, 1), 11),\\n  checkout_reminder: setTime(addDays(checkOut, -1), 18),\\n  checkout_day_instructions: setTime(checkOut, 8),\\n  post_stay_thanks: setTime(addDays(checkOut, 1), 15),\\n  review_request: setTime(addDays(checkOut, 2), 10)\\n};\\n\\nreturn [{\\n  json: {\\n    ...bookingData,\\n    schedules\\n  }\\n}];"
+      },
+      "id": "810a787b-31d3-40f4-aad2-6598ae2bb287",
+      "name": "Calculate Message Schedule Dates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "welcome_message",
+              "value": "=Hi {{ $json.guest_name }}, thank you for your payment! We're so excited to host you at {{ $json.property_name }} from {{ $json.check_in_date }} to {{ $json.check_out_date }}. You'll receive detailed check-in instructions 3 days before your arrival. In the meantime, feel free to reach out if you have any questions!",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "73e0480e-28af-47e7-99c3-c3f91afaaabe",
+      "name": "Prepare Welcome Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3376,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.channel_type }}",
+              "rightValue": "sms",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5fdb3cd2-531b-4ea4-a1e8-10759a86b306",
+      "name": "Route by Channel Type",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3152,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio From Phone Number__>",
+        "to": "={{ $json.guest_phone }}",
+        "message": "={{ $json.welcome_message }}",
+        "options": {}
+      },
+      "id": "4732ae42-ea7f-4437-9f51-3fd27972c9be",
+      "name": "Send Welcome via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.guest_phone }}",
+        "textBody": "={{ $json.welcome_message }}",
+        "additionalFields": {}
+      },
+      "id": "fe90ae95-172a-4421-baa5-ef5494e267db",
+      "name": "Send Welcome via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "89a82aa5-033f-43a3-a07d-e3f27a7fe06f"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.guest_phone }}",
+        "text": "={{ $json.welcome_message }}",
+        "additionalFields": {}
+      },
+      "id": "92890c46-8671-415c-8b79-defe63ffc092",
+      "name": "Send Welcome via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        656
+      ],
+      "webhookId": "d26bc683-b507-449e-9fba-4f64479b8abe"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "options": {}
+      },
+      "id": "69405100-dd31-4f56-90b6-bf52dfd1b5bf",
+      "name": "Prepare Scheduled Messages",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2704,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "scheduled_messages",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "id": "04cb324a-b9ac-4283-b488-4b184688721e",
+      "name": "Write Scheduled Messages",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2480,
+        368
+      ],
+      "notes": "PostgreSQL: Creates scheduled messages for guest journey. autoMapInputData maps all fields from previous node. Messages will be sent by WF09."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "confirmation_message",
+              "value": "=\u2713 Guest journey started for {{ $json.guest_name }} at {{ $json.property_name }}. 9 automated messages scheduled from {{ $json.check_in_date }} to {{ DateTime.fromISO($json.schedules.review_request).toFormat('yyyy-MM-dd') }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "90af3961-0262-4ca2-9f6f-24e0e04b7b80",
+      "name": "Prepare Confirmation Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2256,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Workflow Configuration').first().json.booking_contact_platform }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6130f0d9-0af1-4d15-8a75-223a1b7e4504",
+      "name": "Route Confirmation by Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2032,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Workflow Configuration').first().json.booking_contact_chat_id }}",
+        "text": "={{ $json.confirmation_message }}",
+        "additionalFields": {}
+      },
+      "id": "8d6f2e9b-fd7f-43c9-9a0a-51c975033d80",
+      "name": "Send Confirmation via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1808,
+        368
+      ],
+      "webhookId": "d7153298-b319-44ae-a291-00edf3aab390"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Workflow Configuration').first().json.booking_contact_phone }}",
+        "textBody": "={{ $json.confirmation_message }}",
+        "additionalFields": {}
+      },
+      "id": "f4f08d0d-050d-4f97-9bbc-669e7d54dd60",
+      "name": "Send Confirmation via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1808,
+        560
+      ],
+      "webhookId": "5258b56f-9dfb-45b3-8b69-12038d59b6cd"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "error_message",
+              "value": "=Cannot start guest journey - payment not yet confirmed for {{ $json.guest_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "68bee94c-9b2f-4700-8276-9c583c359783",
+      "name": "Prepare Error Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3824,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Workflow Configuration').first().json.booking_contact_platform }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "85f9a6d6-e707-4c3d-853b-df2e319d0ce7",
+      "name": "Route Error by Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3600,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Workflow Configuration').first().json.booking_contact_chat_id }}",
+        "text": "={{ $json.error_message }}",
+        "additionalFields": {}
+      },
+      "id": "c9a5e20d-65a4-4980-bf51-adb78acc602b",
+      "name": "Send Error via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3376,
+        464
+      ],
+      "webhookId": "08929dfa-5f56-4504-8571-53a1a8ed5a95"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Workflow Configuration').first().json.booking_contact_phone }}",
+        "textBody": "={{ $json.error_message }}",
+        "additionalFields": {}
+      },
+      "id": "b53acb53-e3bd-4014-b305-a6d776733ba0",
+      "name": "Send Error via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -3376,
+        656
+      ],
+      "webhookId": "aa844e6e-fdb5-479d-86c9-1deef60d99c6"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Check Payment Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Payment Confirmed": {
+      "main": [
+        [
+          {
+            "node": "Get Property Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Message Schedule Dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Message Schedule Dates": {
+      "main": [
+        [
+          {
+            "node": "Prepare Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Welcome Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Channel Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Channel Type": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Welcome via WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Welcome via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome via SMS": {
+      "main": [
+        [
+          {
+            "node": "Prepare Scheduled Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Prepare Scheduled Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Prepare Scheduled Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Scheduled Messages": {
+      "main": [
+        [
+          {
+            "node": "Write Scheduled Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Scheduled Messages": {
+      "main": [
+        [
+          {
+            "node": "Prepare Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Confirmation Message": {
+      "main": [
+        [
+          {
+            "node": "Route Confirmation by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Confirmation by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirmation via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Error Message": {
+      "main": [
+        [
+          {
+            "node": "Route Error by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Error by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Error via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 3,
+    "consistency_note": "Creates scheduled_messages for WF09 to send. Reads confirmed bookings from WF07."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

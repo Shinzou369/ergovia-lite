@@ -1,0 +1,2000 @@
+{
+  "name": "workflow 6 1B-NEW AI Conversation Manager [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "guest-conversation",
+        "options": {}
+      },
+      "id": "80196d29-0d15-4061-8e30-bd2878bea872",
+      "name": "Incoming Guest Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -5568,
+        304
+      ],
+      "webhookId": "1a0fff07-9f97-43e5-8015-a709d5e3c794"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "workflow_id",
+              "name": "workflow_id",
+              "value": "1B-AI-Conversation-Manager",
+              "type": "string"
+            },
+            {
+              "id": "deal_id",
+              "name": "deal_id",
+              "value": "={{ $json.body.deal_id || $json.query.deal_id }}",
+              "type": "string"
+            },
+            {
+              "id": "latest_client_message",
+              "name": "latest_client_message",
+              "value": "={{ $json.body.message || $json.Body || $json.query.message }}",
+              "type": "string"
+            },
+            {
+              "id": "client_phone",
+              "name": "client_phone",
+              "value": "={{ $json.body.from || $json.From || $json.query.from }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2c8241f5-d4b0-4e64-a903-199109bc1178",
+      "name": "Extract Incoming Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5344,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM deals \nWHERE deal_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id || $(\"Extract Incoming Data\").item.json.deal_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "bce98d17-bacc-473f-8650-d1cb6eada03e",
+      "name": "Lookup Deal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -5136,
+        304
+      ],
+      "notes": "PostgreSQL: Looks up deal by deal_id for AI conversation context."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_name = $1\n  AND property_status = 'active'\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_name] } }}"
+        },
+        "options": {}
+      },
+      "id": "3dfbf9e2-cb23-4a81-b519-2a845d005ffb",
+      "name": "Lookup Property",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4912,
+        304
+      ],
+      "notes": "PostgreSQL: Looks up property details for AI responses."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "e8aa2c2b-f81a-48da-bd83-f0aac943b253",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4688,
+        304
+      ],
+      "notes": "PostgreSQL: Gets full property configuration for AI conversation."
+    },
+    {
+      "parameters": {
+        "jsCode": "const deal = $('Lookup Deal').first().json;\nconst property = $('Lookup Property').first().json;\nconst config = $('Get Property Configuration').first().json;\nconst incomingData = $('Extract Incoming Data').first().json;\n\n// Calculate nights if not already set\nlet nights = deal.nights;\nif (!nights && deal.check_in && deal.check_out) {\n  const checkIn = new Date(deal.check_in);\n  const checkOut = new Date(deal.check_out);\n  nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n}\n\nconst systemPrompt = `You are a professional property manager for ${property.property_name}.\n\n**BOOKING DETAILS:**\nGuest: ${deal.client_name}\nDates: ${deal.check_in} to ${deal.check_out}\nNights: ${nights || 'calculating...'}\nRate: $${property.per_day_rate}/night\nBase Rates: $${property.per_day_rate}/day, $${property.per_week_rate}/week, $${property.per_month_rate}/month\n\n**PROPERTY INFORMATION:**\n${property.description}\n\n**AMENITIES:**\n${property.amenities}\n\n**WIFI CREDENTIALS:**\nNetwork: \"${property.wifi_network}\"\nPassword: ${property.wifi_password}\n\n**CHECK-IN/OUT:**\nCheck-in Time: ${property.check_in_time}\nCheck-out Time: ${property.check_out_time}\n\n**HOUSE RULES:**\n${property.house_rules}\n\n**YOUR ROLE & RESPONSIBILITIES:**\n1. Be warm, helpful, and professional at all times\n2. Answer questions about:\n   - Property features and amenities\n   - Local area and attractions\n   - Check-in/check-out procedures\n   - House rules and policies\n   - WiFi and utilities\n3. Provide accurate information based on the property details above\n4. Keep responses concise (under 150 words) and friendly\n\n**CRITICAL ESCALATION RULES:**\nYou MUST detect and escalate the following situations by responding with these EXACT control phrases:\n\n\ud83d\udd34 PRICING/NEGOTIATION - If guest mentions:\n   - Price negotiation, discounts, or lower rates\n   - \"Can you do better on price?\"\n   - \"Is there any flexibility?\"\n   - \"That's too expensive\"\n   - Any request to change the quoted price\n   \u2192 Response: \"ESCALATE_TO_CONTACT_PRICING\" (followed by a brief acknowledgment)\n\n\ud83d\udd34 BOOKING CONFIRMATION - If guest says:\n   - \"I want to book\"\n   - \"Let's proceed with the reservation\"\n   - \"I'd like to confirm\"\n   - \"How do I pay?\"\n   - Any clear intent to complete the booking\n   \u2192 Response: \"ESCALATE_TO_CONTACT_BOOKING\" (followed by confirmation message)\n\n\ud83d\udd34 PARTY/EVENT - If guest mentions:\n   - Party, celebration, event, or gathering\n   - \"We're planning a birthday party\"\n   - \"Having friends over\"\n   - Large group activities\n   - More guests than originally stated\n   \u2192 Response: \"ESCALATE_TO_CONTACT_PARTY\" (followed by a polite note)\n\n**CONVERSATION HISTORY:**\n${deal.conversation_history || 'This is the first message from the guest.'}\n\n**LATEST GUEST MESSAGE:**\n\"${incomingData.latest_client_message}\"\n\nRespond naturally and professionally. Include the escalation control phrase ONLY if one of the escalation conditions is met.`;\n\nreturn [{\n  json: {\n    model: 'gpt-4o-mini',\n    temperature: 0.7,\n    max_tokens: 500,\n    messages: [\n      {\n        role: 'system',\n        content: systemPrompt\n      },\n      {\n        role: 'user',\n        content: incomingData.latest_client_message\n      }\n    ],\n    deal: deal,\n    property: property,\n    config: config,\n    incoming: incomingData\n  }\n}];"
+      },
+      "id": "32cae5be-cb6e-419b-9efd-0ea35752f161",
+      "name": "Build System Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4464,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "={{ $json.model }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ $json.temperature }}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "={{ $json.max_tokens }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ JSON.stringify($json.messages) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8dc62fee-b078-4670-9e73-238b28f4ccc9",
+      "name": "Call OpenAI GPT-4o-mini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4256,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const openaiResponse = $input.first().json;\nconst promptData = $('Build System Prompt').first().json;\n\nconst aiResponse = openaiResponse.choices[0].message.content;\nconst deal = promptData.deal;\nconst config = promptData.config;\nconst incoming = promptData.incoming;\n\n// Initialize routing decision\nlet action = 'continue_conversation';\nlet designatedContact = null;\nlet contactMethod = null;\nlet escalationType = null;\n\n// Detect escalation signals\nif (aiResponse.includes('ESCALATE_TO_CONTACT_PRICING')) {\n  action = 'send_to_pricing_contact';\n  escalationType = 'pricing';\n  designatedContact = config.pricing_decision_contact;\n  contactMethod = config.pricing_decision_contact_method;\n} else if (aiResponse.includes('ESCALATE_TO_CONTACT_BOOKING')) {\n  action = 'send_to_booking_contact';\n  escalationType = 'booking';\n  designatedContact = config.booking_approval_contact;\n  contactMethod = config.booking_approval_contact_method;\n} else if (aiResponse.includes('ESCALATE_TO_CONTACT_PARTY')) {\n  action = 'send_to_party_contact';\n  escalationType = 'party';\n  designatedContact = config.party_inquiry_contact;\n  contactMethod = config.party_inquiry_contact_method;\n}\n\n// Clean the AI response by removing control phrases\nconst cleanedResponse = aiResponse\n  .replace(/ESCALATE_TO_CONTACT_PRICING/g, '')\n  .replace(/ESCALATE_TO_CONTACT_BOOKING/g, '')\n  .replace(/ESCALATE_TO_CONTACT_PARTY/g, '')\n  .trim();\n\nreturn [{\n  json: {\n    action: action,\n    escalation_type: escalationType,\n    ai_response: cleanedResponse,\n    deal_id: deal.deal_id,\n    client_name: deal.client_name,\n    property_name: deal.property_name,\n    check_in: deal.check_in,\n    check_out: deal.check_out,\n    nights: deal.nights,\n    guests: deal.guests,\n    daily_rate: deal.daily_rate,\n    total_value: deal.total_value,\n    conversation_history: deal.conversation_history || '',\n    latest_client_message: incoming.latest_client_message,\n    client_phone: deal.client_phone,\n    channel_type: deal.channel_type,\n    designated_contact: designatedContact,\n    contact_method: contactMethod,\n    property_config: config\n  }\n}];"
+      },
+      "id": "a99382b7-1d0c-429f-9d33-ea7486f8edab",
+      "name": "Detect Control Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4032,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "condition_continue",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "continue_conversation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "continue_conversation"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "condition_pricing",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "send_to_pricing_contact",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "send_to_pricing_contact"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "condition_booking",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "send_to_booking_contact",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "send_to_booking_contact"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "condition_party",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "send_to_party_contact",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "send_to_party_contact"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "41e135c8-55db-45d6-aa63-58116d7dc02e",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3808,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// Build conversation history entry\nconst currentHistory = data.conversation_history || '';\nconst timestamp = new Date().toISOString();\nconst newEntry = `\\n[${timestamp}]\\nGuest: ${data.latest_client_message}\\nManager: ${data.ai_response}`;\n\n// Keep last 2000 characters to prevent overflow\nconst updatedHistory = (currentHistory + newEntry).slice(-2000);\n\nreturn [{\n  json: {\n    deal_id: data.deal_id,\n    conversation_history: updatedHistory,\n    last_message_timestamp: timestamp,\n    ...data\n  }\n}];"
+      },
+      "id": "407db96d-5777-43fe-b444-06d08824bf20",
+      "name": "Prepare History Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3584,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET conversation_history = $2::jsonb,\n    last_interaction = $3,\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id, $json.conversation_history, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "5a51d831-c90d-44e5-bd7f-b10e419de9be",
+      "name": "Update Conversation History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3376,
+        304
+      ],
+      "notes": "PostgreSQL: Updates conversation history as JSONB for AI context."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "channel_sms",
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "channel_whatsapp",
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "channel_telegram",
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "769acc0a-db7b-4bfe-b8a9-e6b32446ebae",
+      "name": "Route by Guest Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.client_phone }}",
+        "message": "={{ $json.ai_response }}",
+        "options": {}
+      },
+      "id": "f39f7bca-b680-4f3a-b157-fed350f2d8e8",
+      "name": "Send SMS via Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.client_phone }}",
+        "message": "={{ $json.ai_response }}",
+        "options": {}
+      },
+      "id": "e2279556-ca57-45ba-9bbd-c2f10a4ac2b3",
+      "name": "Send WhatsApp via Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.client_phone }}",
+        "text": "={{ $json.ai_response }}",
+        "additionalFields": {}
+      },
+      "id": "147a8a3e-34f2-45a5-adeb-9e418ea4b0a8",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        416
+      ],
+      "webhookId": "71c44a6e-ef8b-4b5e-95da-49145cb86088"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET status = 'needs_pricing_decision',\n    escalation_timestamp = $2,\n    escalation_reason = 'AI needs pricing guidance',\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "2c9915b9-3816-42d1-873c-1b729e31e702",
+      "name": "Update Status - Pricing",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3584,
+        624
+      ],
+      "notes": "PostgreSQL: Escalates to owner for pricing decision. Status: needs_pricing_decision"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst config = data.property_config;\n\n// Format pricing decision message\nconst message = `\ud83d\udcb0 *PRICING NEGOTIATION REQUIRED*\\n\\n` +\n  `\ud83d\udc64 Guest: ${data.client_name}\\n` +\n  `\ud83c\udfe0 Property: ${data.property_name}\\n` +\n  `\ud83d\udcc5 Dates: ${data.check_in} \u2192 ${data.check_out}\\n` +\n  `\ud83c\udf19 Nights: ${data.nights}\\n` +\n  `\ud83d\udc65 Guests: ${data.guests}\\n\\n` +\n  `\ud83d\udcb5 Current rate: $${data.daily_rate}/night\\n` +\n  `\ud83d\udcb0 Total quoted: $${data.total_value}\\n\\n` +\n  `\ud83d\udcdd *Guest's request:*\\n` +\n  `\"${data.latest_client_message}\"\\n\\n` +\n  `\ud83d\udcac *Recent conversation:*\\n` +\n  `${data.conversation_history?.slice(-500) || 'First message'}\\n\\n` +\n  `\u26a1 *What would you like to do?*`;\n\n// Telegram inline keyboard\nconst keyboard = {\n  inline_keyboard: [\n    [{text: '\u2705 Accept Their Offer', callback_data: `accept_${data.deal_id}`}],\n    [{text: '\ud83d\udcac Make Counter Offer', callback_data: `counter_${data.deal_id}`}],\n    [{text: '\u274c Decline Politely', callback_data: `decline_${data.deal_id}`}]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    contact_phone: data.designated_contact,\n    contact_method: data.contact_method,\n    deal_id: data.deal_id,\n    client_phone: data.client_phone,\n    channel_type: data.channel_type,\n    ...data\n  }\n}];"
+      },
+      "id": "e0edfad1-7873-4b96-9d3f-1f7273fe6b1c",
+      "name": "Prepare Pricing Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3376,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "58ac50f0-4b78-4ac3-aad2-8f626cc482be",
+      "name": "Route Pricing Contact",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.contact_phone }}",
+        "message": "={{ $json.message }}\\n\\nReply: ACCEPT, COUNTER, or DECLINE + deal: {{ $json.deal_id }}",
+        "options": {}
+      },
+      "id": "b1fdab60-f840-47c7-8515-adadfdee385e",
+      "name": "Pricing SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.contact_phone }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "4745a06c-4840-4aa8-9cbb-94912b627daf",
+      "name": "Pricing WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_phone }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "0735574c-3d44-440d-ae16-6ae7bc07a0df",
+      "name": "Pricing Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        784
+      ],
+      "webhookId": "f8e45085-084c-4ffa-bebf-77ddc7fb1692"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "9c0a014f-fbef-4f6e-b537-544f81b253ce",
+      "name": "Wait Pricing Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        656
+      ],
+      "webhookId": "56cbaff6-151b-41de-8157-5c4f717ac81b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\n// Parse the decision from contact\nlet decision = '';\nlet dealId = '';\n\nif (response.callback_query) {\n  // Telegram callback\n  decision = response.callback_query.data.split('_')[0];\n  dealId = response.callback_query.data.split('_')[1];\n} else if (response.Body) {\n  // SMS response\n  const body = response.Body.toUpperCase();\n  if (body.includes('ACCEPT')) decision = 'accept';\n  else if (body.includes('COUNTER')) decision = 'counter';\n  else if (body.includes('DECLINE')) decision = 'decline';\n  \n  // Extract deal ID from message\n  const match = body.match(/DEAL:\\s*([A-Z0-9-]+)/i);\n  dealId = match ? match[1] : response.deal_id;\n}\n\n// Generate guest response based on decision\nlet messageToGuest = '';\nlet updateStatus = '';\n\nif (decision === 'accept') {\n  messageToGuest = `Great news! \ud83c\udf89\\n\\nYour pricing request has been approved. We're happy to work with you on this.\\n\\nWe'll send payment instructions shortly to complete your booking!`;\n  updateStatus = 'pricing_approved';\n} else if (decision === 'counter') {\n  messageToGuest = `Thank you for your interest! We'd like to make you a counter offer.\\n\\nOur property manager will reach out shortly with a proposal that works for both of us.`;\n  updateStatus = 'pricing_counter_pending';\n} else if (decision === 'decline') {\n  messageToGuest = `Thank you for your interest in our property.\\n\\nUnfortunately, we're unable to adjust the pricing for these dates. However, we'd be happy to help you find alternative dates or discuss other properties that might fit your budget.\\n\\nPlease let us know if you'd like to explore other options!`;\n  updateStatus = 'pricing_declined';\n}\n\nreturn [{\n  json: {\n    decision: decision,\n    deal_id: dealId,\n    message_to_guest: messageToGuest,\n    update_status: updateStatus,\n    channel_type: response.channel_type || 'sms',\n    client_phone: response.client_phone\n  }\n}];"
+      },
+      "id": "04d87fb3-d9ad-4aa1-918b-e8cf0c49e7c3",
+      "name": "Process Pricing Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5bafc2f6-f2dd-43db-981d-8fdaea1b29d9",
+      "name": "Route Pricing to Guest",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2272,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.client_phone }}",
+        "message": "={{ $json.message_to_guest }}",
+        "options": {}
+      },
+      "id": "554f6fd7-8e91-4335-9e65-de4b0c570fea",
+      "name": "Pricing Response SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2048,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.client_phone }}",
+        "message": "={{ $json.message_to_guest }}",
+        "options": {}
+      },
+      "id": "e9a6dfee-0f65-419c-8726-f098d1c4ceb6",
+      "name": "Pricing Response WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2048,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.client_phone }}",
+        "text": "={{ $json.message_to_guest }}",
+        "additionalFields": {}
+      },
+      "id": "7680d662-ed7f-4e61-8c0b-59762abf6ec0",
+      "name": "Pricing Response Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2048,
+        816
+      ],
+      "webhookId": "f38fc0d6-2582-4829-8c5b-a1214885133b"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET status = 'pending_payment_confirmation',\n    escalation_timestamp = $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "3623519f-07c2-40d1-b196-2e3ad18c2cb2",
+      "name": "Update Status - Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3584,
+        1040
+      ],
+      "notes": "PostgreSQL: Moves deal to payment stage. Status: pending_payment_confirmation (matches WF00)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst message = `\ud83c\udf89 *GUEST WANTS TO BOOK!*\\n\\n` +\n  `\ud83d\udc64 Guest: ${data.client_name}\\n` +\n  `\ud83c\udfe0 Property: ${data.property_name}\\n` +\n  `\ud83d\udcc5 Dates: ${data.check_in} \u2192 ${data.check_out}\\n` +\n  `\ud83c\udf19 Nights: ${data.nights}\\n` +\n  `\ud83d\udc65 Guests: ${data.guests}\\n` +\n  `\ud83d\udcb0 Total: $${data.total_value}\\n\\n` +\n  `\ud83d\udcac *Guest said:*\\n` +\n  `\"${data.latest_client_message}\"\\n\\n` +\n  `\u2705 *Ready to send payment instructions?*`;\n\nconst keyboard = {\n  inline_keyboard: [\n    [{text: '\ud83d\udcb3 Send Payment Instructions', callback_data: `payment_${data.deal_id}`}],\n    [{text: '\u2753 Request More Info First', callback_data: `moreinfo_${data.deal_id}`}]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    contact_phone: data.designated_contact,\n    contact_method: data.contact_method,\n    ...data\n  }\n}];"
+      },
+      "id": "bfa2c576-0fba-4feb-a090-23fdecf6a499",
+      "name": "Prepare Booking Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3376,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "25af660b-683a-4a24-85ed-cf6098fde619",
+      "name": "Route Booking Contact",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.contact_phone }}",
+        "message": "={{ $json.message }}\\n\\nReply: PAYMENT or MOREINFO + deal: {{ $json.deal_id }}",
+        "options": {}
+      },
+      "id": "1c9c9de5-f384-4789-b0e4-b65c6b32296e",
+      "name": "Booking SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.contact_phone }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "8683bab8-1785-47d1-8514-4adeb12e0b43",
+      "name": "Booking WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_phone }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "a3d85774-9c65-4b81-844d-795cabd407b6",
+      "name": "Booking Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        1200
+      ],
+      "webhookId": "b2a0de53-aaad-4f45-96b3-9b16de49bcb1"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "ea8c8675-61ee-4757-99e4-51ba484e0405",
+      "name": "Wait Payment Instructions",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        1088
+      ],
+      "webhookId": "9a0aae61-eea9-4498-8917-e80d00d88ff2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nlet action = '';\nlet dealId = '';\n\nif (response.callback_query) {\n  action = response.callback_query.data.split('_')[0];\n  dealId = response.callback_query.data.split('_')[1];\n} else if (response.Body) {\n  const body = response.Body.toUpperCase();\n  if (body.includes('PAYMENT')) action = 'payment';\n  else if (body.includes('MOREINFO')) action = 'moreinfo';\n  \n  const match = body.match(/DEAL:\\s*([A-Z0-9-]+)/i);\n  dealId = match ? match[1] : response.deal_id;\n}\n\nlet messageToGuest = '';\n\nif (action === 'payment') {\n  messageToGuest = `Fantastic! \ud83c\udf89 Your booking is confirmed!\\n\\n` +\n    `\ud83d\udcb3 *PAYMENT INSTRUCTIONS:*\\n\\n` +\n    `Please send payment via:\\n` +\n    `\u2022 Zelle: payments@property.com\\n` +\n    `\u2022 Venmo: @PropertyManager\\n` +\n    `\u2022 Bank Transfer: [Account details]\\n\\n` +\n    `Amount due: $${response.total_value}\\n\\n` +\n    `Once we receive your payment, we'll send you:\\n` +\n    `\u2705 Official booking confirmation\\n` +\n    `\u2705 Check-in instructions\\n` +\n    `\u2705 Property access codes\\n\\n` +\n    `Reply with payment confirmation when sent!`;\n} else if (action === 'moreinfo') {\n  messageToGuest = `Thank you for your interest! \ud83d\ude0a\\n\\n` +\n    `We'd love to learn more about your stay to ensure everything is perfect.\\n\\n` +\n    `Could you share:\\n` +\n    `\u2022 Purpose of your visit?\\n` +\n    `\u2022 Any special requests?\\n` +\n    `\u2022 Estimated arrival time?\\n\\n` +\n    `Our property manager will be in touch shortly!`;\n}\n\nreturn [{\n  json: {\n    action: action,\n    deal_id: dealId,\n    message_to_guest: messageToGuest,\n    channel_type: response.channel_type || 'sms',\n    client_phone: response.client_phone\n  }\n}];"
+      },
+      "id": "39f5d87c-bc1b-433d-bb92-f2f291de25a7",
+      "name": "Process Booking Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "101cc410-e748-4aff-a35b-16236903c118",
+      "name": "Route Payment to Guest",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2272,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.client_phone }}",
+        "message": "={{ $json.message_to_guest }}",
+        "options": {}
+      },
+      "id": "1916152d-6a2f-4745-8e10-9f5f49a6ed3d",
+      "name": "Payment Instructions SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2048,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.client_phone }}",
+        "message": "={{ $json.message_to_guest }}",
+        "options": {}
+      },
+      "id": "f88df9ec-1f4e-4e2a-a5f3-07572cf11acf",
+      "name": "Payment Instructions WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2048,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.client_phone }}",
+        "text": "={{ $json.message_to_guest }}",
+        "additionalFields": {}
+      },
+      "id": "1caa63a4-aa2f-4be9-8f0d-2ea34e950ce2",
+      "name": "Payment Instructions Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2048,
+        1248
+      ],
+      "webhookId": "77cb1110-42e2-4209-8fe9-d2f991ad502d"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET status = 'needs_party_decision',\n    escalation_timestamp = $2,\n    escalation_reason = 'Party/event inquiry requires owner approval',\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "2368f286-73d1-44e4-82a5-c3c63e5e2cb7",
+      "name": "Update Status - Party",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3584,
+        1456
+      ],
+      "notes": "PostgreSQL: Escalates party bookings to owner. Status: needs_party_decision"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst config = data.property_config;\nconst partyPolicy = config.party_policy || 'case_by_case';\n\nlet message = `\ud83c\udf89 *PARTY/EVENT INQUIRY ALERT*\\n\\n`;\nmessage += `\u26a0\ufe0f Guest has mentioned a party or event\\n\\n`;\nmessage += `\ud83d\udc64 Guest: ${data.client_name}\\n`;\nmessage += `\ud83c\udfe0 Property: ${data.property_name}\\n`;\nmessage += `\ud83d\udcc5 Dates: ${data.check_in} \u2192 ${data.check_out}\\n`;\nmessage += `\ud83c\udf19 Nights: ${data.nights}\\n`;\nmessage += `\ud83d\udc65 Declared guests: ${data.guests}\\n\\n`;\nmessage += `\ud83d\udcac *Guest mentioned:*\\n`;\nmessage += `\"${data.latest_client_message}\"\\n\\n`;\nmessage += `\ud83d\udccb *Recent conversation:*\\n`;\nmessage += `${data.conversation_history?.slice(-400) || 'First message'}\\n\\n`;\n\nif (partyPolicy === 'recommend_decline') {\n  message += `\ud83d\udeab *YOUR POLICY: RECOMMEND DECLINE*\\n\\n`;\n  message += `Your configuration suggests declining party inquiries, but the final decision is yours.\\n\\n`;\n} else {\n  message += `\ud83d\udcdd *YOUR POLICY: Case-by-Case Review*\\n\\n`;\n  message += `Please review this inquiry and decide how to proceed.\\n\\n`;\n}\n\nmessage += `*What would you like to do?*`;\n\nconst keyboard = {\n  inline_keyboard: [\n    [{text: '\u2705 Approve (Accept Risk)', callback_data: `approve_party_${data.deal_id}`}],\n    [{text: '\u274c Decline This Inquiry', callback_data: `decline_party_${data.deal_id}`}],\n    [{text: '\u2753 Ask Guest More Questions', callback_data: `info_party_${data.deal_id}`}]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    contact_phone: data.designated_contact,\n    contact_method: data.contact_method,\n    party_policy: partyPolicy,\n    ...data\n  }\n}];"
+      },
+      "id": "5c79c889-2556-4daa-aae9-6a9183d3f512",
+      "name": "Prepare Party Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3376,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "57d6ee3e-5561-4903-93f5-e38877030445",
+      "name": "Route Party Contact",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.contact_phone }}",
+        "message": "={{ $json.message }}\\n\\nReply: APPROVE, DECLINE, or INFO + deal: {{ $json.deal_id }}",
+        "options": {}
+      },
+      "id": "f0cbfa82-4733-4648-9dfd-fcba95a0665a",
+      "name": "Party SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.contact_phone }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "90645eb2-fb27-44c7-babb-8b5106731457",
+      "name": "Party WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2928,
+        1504
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_phone }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "412f502f-34a3-4623-afb5-ba831cffa44c",
+      "name": "Party Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        1616
+      ],
+      "webhookId": "79798ec0-b35e-4d94-abb9-d7d729f77034"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "812db534-4fc8-47d8-b957-9bdc46d9bddf",
+      "name": "Wait Party Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        1504
+      ],
+      "webhookId": "9f210a36-7380-44d7-9dee-cb14ba163bd6"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nlet decision = '';\nlet dealId = '';\n\nif (response.callback_query) {\n  const data = response.callback_query.data;\n  if (data.includes('approve_party_')) {\n    decision = 'approve';\n    dealId = data.replace('approve_party_', '');\n  } else if (data.includes('decline_party_')) {\n    decision = 'decline';\n    dealId = data.replace('decline_party_', '');\n  } else if (data.includes('info_party_')) {\n    decision = 'info';\n    dealId = data.replace('info_party_', '');\n  }\n} else if (response.Body) {\n  const body = response.Body.toUpperCase();\n  if (body.includes('APPROVE')) decision = 'approve';\n  else if (body.includes('DECLINE')) decision = 'decline';\n  else if (body.includes('INFO')) decision = 'info';\n  \n  const match = body.match(/DEAL:\\s*([A-Z0-9-]+)/i);\n  dealId = match ? match[1] : response.deal_id;\n}\n\nlet messageToGuest = '';\nlet updateStatus = '';\n\nif (decision === 'approve') {\n  messageToGuest = `Great news! \ud83c\udf89\\n\\n` +\n    `We've reviewed your inquiry and we'd be happy to host you!\\n\\n` +\n    `A few important reminders:\\n` +\n    `\u2022 Please respect our property and neighbors\\n` +\n    `\u2022 Noise ordinance is strictly enforced\\n` +\n    `\u2022 Maximum occupancy must be observed\\n\\n` +\n    `We look forward to hosting you! Let us know if you'd like to proceed with booking.`;\n  updateStatus = 'party_approved';\n} else if (decision === 'decline') {\n  messageToGuest = `Thank you for your interest in our property.\\n\\n` +\n    `After careful consideration, we don't believe this property would be the best fit for your event.\\n\\n` +\n    `We'd be happy to help you find an alternative property that better suits your needs. Please let us know if you'd like recommendations!`;\n  updateStatus = 'party_declined';\n} else if (decision === 'info') {\n  messageToGuest = `Thanks for your interest! \ud83d\ude0a\\n\\n` +\n    `To ensure we can accommodate your event properly, could you please provide some additional details?\\n\\n` +\n    `\u2022 What type of event/celebration?\\n` +\n    `\u2022 Approximately how many people?\\n` +\n    `\u2022 What time will activities start/end?\\n` +\n    `\u2022 Any special requirements?\\n\\n` +\n    `This helps us ensure everything goes smoothly for your stay!`;\n  updateStatus = 'party_info_requested';\n}\n\nreturn [{\n  json: {\n    decision: decision,\n    deal_id: dealId,\n    message_to_guest: messageToGuest,\n    update_status: updateStatus,\n    channel_type: response.channel_type || 'sms',\n    client_phone: response.client_phone\n  }\n}];"
+      },
+      "id": "2317791d-d307-4090-b07c-3b1ef77af607",
+      "name": "Process Party Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2496,
+        1504
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4e99426a-dfc7-4549-a9a5-d7917665a23c",
+      "name": "Route Party to Guest",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2272,
+        1504
+      ]
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "={{ $json.client_phone }}",
+        "message": "={{ $json.message_to_guest }}",
+        "options": {}
+      },
+      "id": "525ef3a3-5781-4f24-9712-7351d5519b8a",
+      "name": "Party Response SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2048,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:{{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.client_phone }}",
+        "message": "={{ $json.message_to_guest }}",
+        "options": {}
+      },
+      "id": "c2ea31b8-7636-4686-92d5-d56ef8d12fc5",
+      "name": "Party Response WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2048,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.client_phone }}",
+        "text": "={{ $json.message_to_guest }}",
+        "additionalFields": {}
+      },
+      "id": "a3795221-48b9-4976-9a1a-ec3588c79cdf",
+      "name": "Party Response Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2048,
+        1664
+      ],
+      "webhookId": "c3b7418f-397e-43d8-8c42-8b93fadbefac"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Incoming Guest Message": {
+      "main": [
+        [
+          {
+            "node": "Extract Incoming Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Incoming Data": {
+      "main": [
+        [
+          {
+            "node": "Lookup Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Deal": {
+      "main": [
+        [
+          {
+            "node": "Lookup Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Property": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Build System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI GPT-4o-mini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI GPT-4o-mini": {
+      "main": [
+        [
+          {
+            "node": "Detect Control Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Control Signals": {
+      "main": [
+        [
+          {
+            "node": "Route by Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Action": {
+      "main": [
+        [
+          {
+            "node": "Prepare History Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status - Pricing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status - Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status - Party",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare History Update": {
+      "main": [
+        [
+          {
+            "node": "Update Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Conversation History": {
+      "main": [
+        [
+          {
+            "node": "Route by Guest Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Guest Channel": {
+      "main": [
+        [
+          {
+            "node": "Send SMS via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Pricing": {
+      "main": [
+        [
+          {
+            "node": "Prepare Pricing Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Pricing Message": {
+      "main": [
+        [
+          {
+            "node": "Route Pricing Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Pricing Contact": {
+      "main": [
+        [
+          {
+            "node": "Pricing SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pricing WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pricing Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pricing SMS": {
+      "main": [
+        [
+          {
+            "node": "Wait Pricing Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pricing WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait Pricing Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pricing Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait Pricing Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Pricing Decision": {
+      "main": [
+        [
+          {
+            "node": "Process Pricing Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Pricing Decision": {
+      "main": [
+        [
+          {
+            "node": "Route Pricing to Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Pricing to Guest": {
+      "main": [
+        [
+          {
+            "node": "Pricing Response SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pricing Response WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pricing Response Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Booking": {
+      "main": [
+        [
+          {
+            "node": "Prepare Booking Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Booking Message": {
+      "main": [
+        [
+          {
+            "node": "Route Booking Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Booking Contact": {
+      "main": [
+        [
+          {
+            "node": "Booking SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Booking WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Booking Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking SMS": {
+      "main": [
+        [
+          {
+            "node": "Wait Payment Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait Payment Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait Payment Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Payment Instructions": {
+      "main": [
+        [
+          {
+            "node": "Process Booking Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Booking Action": {
+      "main": [
+        [
+          {
+            "node": "Route Payment to Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Payment to Guest": {
+      "main": [
+        [
+          {
+            "node": "Payment Instructions SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Payment Instructions WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Payment Instructions Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Party": {
+      "main": [
+        [
+          {
+            "node": "Prepare Party Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Party Message": {
+      "main": [
+        [
+          {
+            "node": "Route Party Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Party Contact": {
+      "main": [
+        [
+          {
+            "node": "Party SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Party WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Party Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Party SMS": {
+      "main": [
+        [
+          {
+            "node": "Wait Party Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Party WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait Party Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Party Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait Party Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Party Decision": {
+      "main": [
+        [
+          {
+            "node": "Process Party Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Party Decision": {
+      "main": [
+        [
+          {
+            "node": "Route Party to Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Party to Guest": {
+      "main": [
+        [
+          {
+            "node": "Party Response SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Party Response WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Party Response Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 7,
+    "consistency_note": "Introduces new statuses: needs_pricing_decision, needs_party_decision. pending_payment_confirmation matches WF00."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

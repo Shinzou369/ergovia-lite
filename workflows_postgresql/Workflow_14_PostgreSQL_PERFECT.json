@@ -1,0 +1,1393 @@
+{
+  "name": "Workflow 14: Cleaning Scheduler [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vendor-update",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "9b71f102-641f-4bfc-b613-d38339bca374",
+      "name": "Vendor Form Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4944,
+        368
+      ],
+      "webhookId": "b6c54707-a7f3-4785-9a97-13ed01ad83be"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "com.twilio.messaging.inbound-message.received"
+        ]
+      },
+      "id": "1a2d7e3e-64ea-4c4f-85bd-5dc6e26feeae",
+      "name": "Twilio SMS Trigger",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4944,
+        560
+      ],
+      "webhookId": "2a453b50-73d1-474a-af07-f38ac7e8db6b"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "84e280d9-e897-426e-a919-a50aba7314c7",
+      "name": "Telegram Message Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -4944,
+        752
+      ],
+      "webhookId": "b0e447d8-755b-401e-809e-bade237963c5"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "3ad36c97-aa0f-4d2d-9cb3-4a6c111cde44",
+      "name": "WhatsApp Message Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4944,
+        944
+      ],
+      "webhookId": "e8e486eb-ca28-4b93-b954-db20780378ae"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "id": "1716a6e8-c270-4f3d-b851-79f749af4888",
+      "name": "Merge All Update Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -4720,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse vendor updates from different sources\nconst item = $input.item.json;\n\n// Initialize result object\nlet result = {\n  ticket_id: null,\n  status: null,\n  photos: [],\n  labor_hours: null,\n  notes: null,\n  source: null\n};\n\n// Determine source type\nif (item.body && typeof item.body === 'object') {\n  // Webhook form data\n  result.source = 'webhook';\n  result.ticket_id = item.body.ticket_id || null;\n  result.status = item.body.status || null;\n  result.photos = item.body.photos || [];\n  result.labor_hours = item.body.labor_hours || null;\n  result.notes = item.body.notes || null;\n} else {\n  // SMS/WhatsApp/Telegram message\n  let messageText = '';\n  \n  // Determine message source and extract text\n  if (item.message && item.message.text) {\n    // Telegram\n    result.source = 'telegram';\n    messageText = item.message.text;\n  } else if (item.Body) {\n    // Twilio SMS\n    result.source = 'sms';\n    messageText = item.Body;\n  } else if (item.text) {\n    // WhatsApp\n    result.source = 'whatsapp';\n    messageText = item.text;\n  }\n  \n  // Extract ticket number using regex\n  const ticketPattern = /#(\\d+)|ticket\\s*(\\d+)/i;\n  const ticketMatch = messageText.match(ticketPattern);\n  if (ticketMatch) {\n    result.ticket_id = ticketMatch[1] || ticketMatch[2];\n  }\n  \n  // Determine status from keywords\n  const lowerText = messageText.toLowerCase();\n  if (lowerText.includes('arrived')) {\n    result.status = 'arrived';\n  } else if (lowerText.includes('started') || lowerText.includes('in progress') || lowerText.includes('in_progress')) {\n    result.status = 'in_progress';\n  } else if (lowerText.includes('done') || lowerText.includes('completed')) {\n    result.status = 'completed';\n  }\n  \n  // Store the full message as notes\n  result.notes = messageText;\n}\n\nreturn result;"
+      },
+      "id": "09f1c95f-1f43-4d45-8bab-4d61936b056b",
+      "name": "Parse Update Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4496,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM maintenance_tickets \nWHERE ticket_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "e7f8f43c-ba02-4980-abba-954218411ecb",
+      "name": "Lookup Maintenance Ticket",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4272,
+        656
+      ],
+      "notes": "PostgreSQL: Looks up maintenance ticket for vendor update."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Lookup Maintenance Ticket\").item.json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "5f5ff5a7-fc97-42c7-9420-2979e662f3a3",
+      "name": "Lookup Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4048,
+        656
+      ],
+      "notes": "PostgreSQL: Gets property config for owner notifications."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "arrived",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Arrived"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "in_progress",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "In Progress"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "in_progress",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "started",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "In Progress"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.status }}",
+                    "rightValue": "done",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Completed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8144dcea-e879-4320-bdf6-87d56bf04a31",
+      "name": "Route by Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3824,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets \nSET status = 'in_progress',\n    dispatch_time = COALESCE(dispatch_time, $2),\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "9c622e8b-539c-47f7-b35c-0aeaf980ff97",
+      "name": "Update Ticket - Arrived",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3600,
+        1040
+      ],
+      "notes": "PostgreSQL: Vendor arrived. Status: dispatched \u2192 in_progress."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets \nSET status = 'in_progress',\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "c7804e63-0281-4f39-ae20-0a03b32b28d6",
+      "name": "Update Ticket - In Progress",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3600,
+        272
+      ],
+      "notes": "PostgreSQL: Vendor started work. Confirms in_progress status."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets \nSET completion_time = $2,\n    photos = $3::jsonb,\n    estimated_cost = $4,\n    status = 'completed',\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Parse Update Data\").item.json.ticket_id, $now.toISO(), $(\"Parse Update Data\").item.json.photos || \"[]\", $(\"Parse Update Data\").item.json.labor_hours ? $(\"Parse Update Data\").item.json.labor_hours * 50 : null] } }}"
+        },
+        "options": {}
+      },
+      "id": "4886eb01-147d-458f-a0d0-4aea351e8601",
+      "name": "Update Ticket - Completed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3600,
+        656
+      ],
+      "notes": "PostgreSQL: Vendor completed work. Status: in_progress \u2192 completed. Stores photos and cost."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message_text",
+              "value": "=Vendor has arrived at {{ $('Lookup Maintenance Ticket').item.json.property_name }} for maintenance ticket #{{ $('Parse Update Data').item.json.ticket_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "chat_id",
+              "value": "={{ $('Lookup Property Configuration').item.json.maintenance_contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "preferred_platform",
+              "value": "={{ $('Lookup Property Configuration').item.json.preferred_platform }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "af55a4f8-2783-449f-8bd4-9eab79b47e71",
+      "name": "Prepare Arrived Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3376,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message_text",
+              "value": "=Work has started at {{ $('Lookup Maintenance Ticket').item.json.property_name }} for maintenance ticket #{{ $('Parse Update Data').item.json.ticket_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "chat_id",
+              "value": "={{ $('Lookup Property Configuration').item.json.maintenance_contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "preferred_platform",
+              "value": "={{ $('Lookup Property Configuration').item.json.preferred_platform }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "321da55e-e51f-4696-ad5f-4532b35b410d",
+      "name": "Prepare In Progress Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3376,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message_text",
+              "value": "=\u2705 Maintenance Issue Fixed!\n\n\ud83c\udfe0 Property: {{ $('Lookup Property Configuration').item.json.property_name }}\n\ud83d\udd27 Issue: {{ $('Lookup Maintenance Ticket').item.json.issue_description }}\n\n\ud83d\udc77 Vendor: {{ $('Lookup Maintenance Ticket').item.json.vendor_name }}\n\u2b50 Rating: {{ $('Lookup Maintenance Ticket').item.json.vendor_rating }}/5\n\u23f1\ufe0f Labor Hours: {{ $('Update Ticket - Completed').item.json.labor_hours }}\n\n{{ $('Update Ticket - Completed').item.json.photo_links ? '\ud83d\udcf8 Photos: ' + $('Update Ticket - Completed').item.json.photo_links : 'No photos provided' }}\n\nPlease review and confirm completion.",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "chat_id",
+              "value": "={{ $('Lookup Property Configuration').item.json.maintenance_contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "preferred_platform",
+              "value": "={{ $('Lookup Property Configuration').item.json.preferred_platform }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "inline_keyboard",
+              "value": "={{ JSON.stringify([[{\"text\": \"\u2705 Mark as Complete\", \"callback_data\": \"complete_\" + $('Lookup Maintenance Ticket').item.json.ticket_id}], [{\"text\": \"\ud83d\udd04 Request Follow-Up\", \"callback_data\": \"followup_\" + $('Lookup Maintenance Ticket').item.json.ticket_id}], [{\"text\": \"\ud83d\udccb View Ticket Details\", \"callback_data\": \"details_\" + $('Lookup Maintenance Ticket').item.json.ticket_id}]]) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "5c8123c9-ca8c-401b-bc2c-485d97dbea35",
+      "name": "Prepare Completion Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3376,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9db57a94-9df7-4c6e-821f-cb4f21708d61",
+      "name": "Route by Contact Platform - Arrived",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "61111551-45ef-4bc3-b193-46d123ab0dff",
+      "name": "Route by Contact Platform - In Progress",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c7b27d97-45f9-4d4f-9767-62b36d8156f2",
+      "name": "Route by Contact Platform - Completed",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message_text }}",
+        "additionalFields": {}
+      },
+      "id": "6a006710-f12e-4c69-a8db-75adf76c2364",
+      "name": "Send Telegram - Arrived",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        1136
+      ],
+      "webhookId": "3ecfeb9d-7ce4-453a-9b99-559b5a90b52e"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.chat_id }}",
+        "textBody": "={{ $json.message_text }}",
+        "additionalFields": {}
+      },
+      "id": "bf1e55e7-e99b-4c93-aee8-5f50575c57e4",
+      "name": "Send WhatsApp - Arrived",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        944
+      ],
+      "webhookId": "5c2f4a72-2518-47d9-b55c-590f5967492c"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message_text }}",
+        "additionalFields": {}
+      },
+      "id": "05822b71-2257-4763-bf13-47a93fc8bd01",
+      "name": "Send Telegram - In Progress",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "2c1791c4-3db4-478b-8001-bb1125c7edc5"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.chat_id }}",
+        "textBody": "={{ $json.message_text }}",
+        "additionalFields": {}
+      },
+      "id": "e21756c2-3791-46e6-b0bb-4b72d89b8ddc",
+      "name": "Send WhatsApp - In Progress",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "8b8739b5-cb90-4841-8c23-0da84bffdc32"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message_text }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {}
+      },
+      "id": "e08b1a96-b55c-4877-b12c-3baaa1ef52cf",
+      "name": "Send Telegram - Completion",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        560
+      ],
+      "webhookId": "8c3f882e-c936-4398-9057-fef0dd2ec467"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.chat_id }}",
+        "textBody": "={{ $json.message_text }}",
+        "additionalFields": {}
+      },
+      "id": "246d93b3-3a08-4267-8f45-4c90583ac974",
+      "name": "Send WhatsApp - Completion",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        752
+      ],
+      "webhookId": "8d1a792a-924f-4a38-9d1e-1007a391042b"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "7662c2b5-33a6-426a-83a1-a96b32dd5ea0",
+      "name": "Telegram Callback Handler",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -4944,
+        1360
+      ],
+      "webhookId": "38f0e385-bf90-4957-babb-87b0a3fb2597"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "c8aaf4c8-75ba-438d-9754-e6712e1d3aac",
+      "name": "WhatsApp Callback Handler",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4944,
+        1552
+      ],
+      "webhookId": "e1233ceb-04a3-4b32-97df-bf504fcc1e4c"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "01e34002-e899-4161-bda1-900957520caa",
+      "name": "Merge Callback Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -4720,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse callback data from Telegram or WhatsApp button presses\nconst inputData = $input.item.json;\n\nlet action = '';\nlet ticket_id = '';\nlet contact_name = '';\nlet platform = '';\n\n// Check if this is a Telegram callback\nif (inputData.callback_query) {\n  platform = 'telegram';\n  const callbackData = inputData.callback_query.data || '';\n  \n  // Parse callback data format: action:ticket_id\n  const parts = callbackData.split(':');\n  action = parts[0] || '';\n  ticket_id = parts[1] || '';\n  \n  // Get contact name from callback query\n  const user = inputData.callback_query.from || {};\n  contact_name = user.first_name || user.username || 'Unknown';\n  if (user.last_name) {\n    contact_name += ' ' + user.last_name;\n  }\n}\n// Check if this is a WhatsApp callback\nelse if (inputData.entry && inputData.entry[0]?.changes) {\n  platform = 'whatsapp';\n  const changes = inputData.entry[0].changes[0] || {};\n  const value = changes.value || {};\n  const messages = value.messages || [];\n  \n  if (messages.length > 0) {\n    const message = messages[0];\n    \n    // Check for interactive button response\n    if (message.interactive && message.interactive.button_reply) {\n      const buttonReply = message.interactive.button_reply.id || '';\n      \n      // Parse button reply format: action:ticket_id\n      const parts = buttonReply.split(':');\n      action = parts[0] || '';\n      ticket_id = parts[1] || '';\n    }\n    \n    // Get contact name\n    const contacts = value.contacts || [];\n    if (contacts.length > 0) {\n      contact_name = contacts[0].profile?.name || contacts[0].wa_id || 'Unknown';\n    }\n  }\n}\n\n// Return standardized object\nreturn {\n  action: action,\n  ticket_id: ticket_id,\n  contact_name: contact_name,\n  platform: platform\n};"
+      },
+      "id": "b084256c-5315-4525-9f78-43a6b900faa6",
+      "name": "Parse Callback Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4496,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "mark_complete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Mark Complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "request_followup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Request Follow-Up"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "view_details",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "View Details"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "83a68b6f-123a-4fdd-9a38-65896147df36",
+      "name": "Route by Callback Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -4272,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets \nSET status = 'completed',\n    completion_time = COALESCE(completion_time, $2),\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "8dd9d700-026a-4082-99e0-3040d62ec3cc",
+      "name": "Mark Ticket Complete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4048,
+        1456
+      ],
+      "notes": "PostgreSQL: Owner confirms completion. Final status: completed."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE vendors \nSET current_jobs = GREATEST(current_jobs - 1, 0),\n    completed_jobs = completed_jobs + 1,\n    updated_at = CURRENT_TIMESTAMP\nWHERE vendor_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.vendor_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "a2b68269-2547-4cb7-9199-979c5f182a86",
+      "name": "Decrement Vendor Job Count",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3824,
+        1456
+      ],
+      "notes": "PostgreSQL: Decrements vendor workload when job completed. Matches WF13 increment."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "message_text",
+              "value": "=Maintenance complete at {{ $('Mark Ticket Complete').item.json.property_name }}. Property status updated.",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "chat_id",
+              "value": "={{ $('Parse Callback Action').item.json.chat_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "preferred_platform",
+              "value": "={{ $('Parse Callback Action').item.json.preferred_platform }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "inline_keyboard",
+              "value": "[[{\"text\": \"View All Active Maintenance\", \"callback_data\": \"view_active_maintenance\"}]]",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9ea84ff3-7622-4e64-b342-36ee22153c89",
+      "name": "Prepare Final Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3600,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e9db5017-c977-4541-ad3d-e15024d3dc12",
+      "name": "Route by Contact Platform - Final",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3376,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message_text }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {}
+      },
+      "id": "f1f9d191-2521-49f6-bcd6-a980978cd79f",
+      "name": "Send Telegram - Final Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3152,
+        1552
+      ],
+      "webhookId": "33569bff-91e3-4aa1-9337-93cc89f642c9"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.chat_id }}",
+        "textBody": "={{ $json.message_text }}",
+        "additionalFields": {}
+      },
+      "id": "e7af530d-0bea-4e67-930e-8b09d73dcecd",
+      "name": "Send WhatsApp - Final Summary",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -3152,
+        1360
+      ],
+      "webhookId": "e7dcab22-4a8f-462b-86a2-d6d50a2b9b57"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Vendor Form Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge All Update Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio SMS Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Update Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Telegram Message Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Update Sources",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "WhatsApp Message Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Update Sources",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge All Update Sources": {
+      "main": [
+        [
+          {
+            "node": "Parse Update Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Update Data": {
+      "main": [
+        [
+          {
+            "node": "Lookup Maintenance Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Maintenance Ticket": {
+      "main": [
+        [
+          {
+            "node": "Lookup Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Route by Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Status": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket - Arrived",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Ticket - In Progress",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Ticket - Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket - Arrived": {
+      "main": [
+        [
+          {
+            "node": "Prepare Arrived Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket - In Progress": {
+      "main": [
+        [
+          {
+            "node": "Prepare In Progress Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket - Completed": {
+      "main": [
+        [
+          {
+            "node": "Prepare Completion Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Arrived Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Platform - Arrived",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare In Progress Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Platform - In Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Completion Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Platform - Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Platform - Arrived": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram - Arrived",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp - Arrived",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Platform - In Progress": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram - In Progress",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp - In Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Platform - Completed": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram - Completion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp - Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Callback Handler": {
+      "main": [
+        [
+          {
+            "node": "Merge Callback Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Callback Handler": {
+      "main": [
+        [
+          {
+            "node": "Merge Callback Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Callback Sources": {
+      "main": [
+        [
+          {
+            "node": "Parse Callback Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Callback Action": {
+      "main": [
+        [
+          {
+            "node": "Route by Callback Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Callback Action": {
+      "main": [
+        [
+          {
+            "node": "Mark Ticket Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Ticket Complete": {
+      "main": [
+        [
+          {
+            "node": "Decrement Vendor Job Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decrement Vendor Job Count": {
+      "main": [
+        [
+          {
+            "node": "Prepare Final Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Final Summary": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Platform - Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Platform - Final": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram - Final Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp - Final Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 7,
+    "consistency_note": "Vendor status updates. Status flow: dispatched \u2192 in_progress \u2192 completed. Coordinates with WF13."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

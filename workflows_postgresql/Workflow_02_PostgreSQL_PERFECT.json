@@ -1,0 +1,1162 @@
+{
+  "name": "Workflow CP-2: Conflict Priority Manager - Enhanced [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "conflict-resolution",
+        "options": {}
+      },
+      "id": "3b40edf4-e057-4a5a-b00a-24f3d38e7d95",
+      "name": "Conflict Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4496,
+        64
+      ],
+      "webhookId": "747d5852-e7cb-4364-842d-a045156c03db"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "dealsSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets ID for Deals sheet__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "propertyConfigSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets ID for Property_Configurations sheet__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "conflictsSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheets ID for Deal_Conflicts sheet__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "0773cca2-390c-4a21-b393-18012f4264cf",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4272,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM deals \nWHERE deal_id = ANY($1::text[])\nORDER BY created_at ASC",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.body.conflicting_deal_ids] } }}"
+        },
+        "options": {}
+      },
+      "id": "3b4b1f57-084b-45f0-8547-2abaddc93e53",
+      "name": "Get Conflicting Deals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4048,
+        64
+      ],
+      "notes": "PostgreSQL: Gets all conflicting deals. Uses ANY with array parameter for multiple deal_ids."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Workflow Configuration\").first().json.body.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "1d2d2a83-acbd-41fe-9cf8-b4541c8b339c",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3824,
+        64
+      ],
+      "notes": "PostgreSQL: Retrieves property configuration for conflict resolution."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Priority Score Calculator with Party Risk Check\nconst deals = $('Get Conflicting Deals').all();\nconst propertyConfig = $('Get Property Configuration').first().json;\n\nconst scored = deals.map(deal => {\n  const d = deal.json;\n  \n  // Calculate nights and daily rate\n  const checkIn = new Date(d.check_in_date);\n  const checkOut = new Date(d.check_out_date);\n  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n  const totalValue = parseFloat(d.total_value) || 0;\n  const dailyRate = nights > 0 ? totalValue / nights : 0;\n  \n  // Calculate lead time\n  const now = new Date();\n  const leadTime = Math.ceil((checkIn - now) / (1000 * 60 * 60 * 24));\n  \n  // Initialize priority score\n  let score = 0;\n  \n  // PRICING FACTORS\n  score += dailyRate / 10;  // Higher daily rate = higher priority\n  score += totalValue / 100; // Higher total value = higher priority\n  \n  // LENGTH OF STAY BONUSES\n  if (nights >= 7) score += 10;   // Weekly stay bonus\n  if (nights >= 14) score += 20;  // Bi-weekly stay bonus\n  if (nights >= 28) score += 30;  // Monthly stay bonus\n  \n  // LEAD TIME FACTORS\n  if (leadTime < 3) score -= 15;    // Last-minute bookings penalized\n  if (leadTime >= 7) score += 3;    // Week advance bonus\n  if (leadTime >= 14) score += 5;   // Two weeks advance bonus\n  if (leadTime >= 30) score += 8;   // Month advance bonus\n  \n  // PARTY RISK ASSESSMENT\n  let partyWarning = '';\n  let partyRiskLevel = 'none';\n  \n  // Check party risk from deal data\n  const partyRisk = (d.party_risk || '').toLowerCase();\n  const guestCount = parseInt(d.guest_count) || 0;\n  const maxGuests = parseInt(propertyConfig.max_guests) || 999;\n  const purpose = (d.booking_purpose || '').toLowerCase();\n  const partyPolicy = (propertyConfig.party_policy || '').toLowerCase();\n  \n  // HIGH PARTY RISK DETECTION\n  if (partyRisk === 'high' || \n      purpose.includes('party') || \n      purpose.includes('event') || \n      purpose.includes('celebration') ||\n      guestCount > maxGuests) {\n    \n    partyRiskLevel = 'high';\n    score -= 20; // Significant penalty\n    \n    if (partyPolicy === 'recommend_decline' || partyPolicy === 'decline') {\n      partyWarning = '\u26a0\ufe0f HIGH PARTY RISK - RECOMMEND DECLINE';\n      score -= 30; // Additional penalty for decline policy\n    } else {\n      partyWarning = '\u26a0\ufe0f HIGH PARTY RISK - USE CAUTION';\n    }\n  }\n  // MEDIUM PARTY RISK DETECTION\n  else if (partyRisk === 'medium' || \n           guestCount >= (maxGuests * 0.8) ||\n           purpose.includes('group') ||\n           purpose.includes('birthday')) {\n    \n    partyRiskLevel = 'medium';\n    score -= 10; // Moderate penalty\n    partyWarning = '\u26a0\ufe0f MEDIUM PARTY RISK - VERIFY GUEST';\n  }\n  \n  // GUEST HISTORY BONUS (if available)\n  if (d.previous_bookings) {\n    const prevBookings = parseInt(d.previous_bookings) || 0;\n    if (prevBookings > 0) score += prevBookings * 5; // Returning guest bonus\n  }\n  \n  // SPECIAL CIRCUMSTANCES\n  if (d.is_corporate === true || d.is_corporate === 'true') {\n    score += 15; // Corporate bookings prioritized\n  }\n  \n  if (d.has_damage_insurance === true || d.has_damage_insurance === 'true') {\n    score += 5; // Insurance bonus\n  }\n  \n  return {\n    ...d,\n    nights: nights,\n    daily_rate: Math.round(dailyRate * 100) / 100,\n    lead_time: leadTime,\n    priority_score: Math.round(score * 10) / 10,\n    party_warning: partyWarning,\n    party_risk_level: partyRiskLevel,\n    property_config: propertyConfig\n  };\n});\n\n// Sort by priority score (highest to lowest)\nscored.sort((a, b) => b.priority_score - a.priority_score);\n\nreturn scored.map(s => ({json: s}));"
+      },
+      "id": "022f857c-7369-4319-9eb9-2c170f8b3858",
+      "name": "Priority Score Calculator with Party Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "deal_conflicts",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conflict_id": "={{ $now.toFormat(\"yyyyMMddHHmmss\") + \"_\" + $json.property_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "property_name": "={{ $json.property_name }}",
+            "conflicting_deal_ids": "={{ $json.deal_id }}",
+            "status": "pending_decision",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "id": "523c2da3-5f53-4176-a29b-9fb379eb236f",
+      "name": "Log Conflict to Sheet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3376,
+        64
+      ],
+      "notes": "PostgreSQL: Logs conflict to deal_conflicts table. Uses INSERT with conflict handling."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Side-by-Side Deal Comparison for Contact\nconst deals = $input.all();\nconst property = deals[0].json.property_name;\nconst propertyConfig = deals[0].json.property_config;\n\n// Get designated contact\nconst contactId = propertyConfig.pricing_decision_contact || propertyConfig.booking_approval_contact;\nconst contactMethod = (propertyConfig.pricing_decision_contact_method || propertyConfig.booking_approval_contact_method || 'telegram').toLowerCase();\n\n// Build message header\nlet message = `\u26a0\ufe0f *BOOKING CONFLICT: ${property}*\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n`;\nmessage += `Multiple guests want the same dates.\\n\\n`;\n\n// Add party policy reminder if applicable\nconst hasHighRisk = deals.some(d => d.json.party_risk_level === 'high');\nconst hasMediumRisk = deals.some(d => d.json.party_risk_level === 'medium');\n\nif (hasHighRisk && propertyConfig.party_policy === 'recommend_decline') {\n  message += `\u26a0\ufe0f *PARTY POLICY:* Recommend Decline\\n`;\n  message += `Your property policy is set to decline party bookings.\\n\\n`;\n} else if (hasHighRisk || hasMediumRisk) {\n  message += `\u26a0\ufe0f *NOTICE:* Party risk detected in one or more deals\\n\\n`;\n}\n\nmessage += `Choose the best option:\\n\\n`;\n\n// Format each deal option\ndeals.forEach((deal, i) => {\n  const d = deal.json;\n  \n  message += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n`;\n  message += `*OPTION ${i + 1}*`;\n  \n  if (i === 0) {\n    message += ` \u2b50 *RECOMMENDED*`;\n  }\n  \n  message += `\\n`;\n  \n  // Add party warning if present\n  if (d.party_warning) {\n    message += `${d.party_warning}\\n`;\n  }\n  \n  message += `\\n`;\n  message += `\ud83d\udc64 Guest: ${d.client_name || 'Unknown'}\\n`;\n  message += `\ud83d\udcc5 ${d.check_in_date} \u2192 ${d.check_out_date}\\n`;\n  message += `\ud83c\udf19 ${d.nights} nights @ $${d.daily_rate}/night\\n`;\n  message += `\ud83d\udcb0 Total Value: $${d.total_value}\\n`;\n  message += `\u23f0 Booked ${d.lead_time} days in advance\\n`;\n  message += `\ud83c\udfaf Priority Score: ${d.priority_score}\\n`;\n  \n  // Additional info\n  if (d.guest_count) {\n    message += `\ud83d\udc65 Guests: ${d.guest_count}\\n`;\n  }\n  \n  if (d.booking_purpose) {\n    message += `\ud83d\udcdd Purpose: ${d.booking_purpose}\\n`;\n  }\n  \n  if (d.special_requests) {\n    message += `\ud83d\udccb Requests: ${d.special_requests}\\n`;\n  }\n  \n  if (d.previous_bookings && parseInt(d.previous_bookings) > 0) {\n    message += `\u2b50 Returning Guest (${d.previous_bookings} previous stays)\\n`;\n  }\n  \n  message += `\\n`;\n});\n\nmessage += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n`;\nmessage += `\u23f1\ufe0f Please decide within 48 hours`;\n\n// Create inline keyboard\nconst keyboard = {\n  inline_keyboard: [\n    ...deals.map((d, i) => [{\n      text: `\u2713 Choose Option ${i + 1}`,\n      callback_data: `choose_${d.json.deal_id}`\n    }]),\n    [{\n      text: '\u274c Decline All',\n      callback_data: 'decline_all'\n    }],\n    [{\n      text: '\u2139\ufe0f Request More Info',\n      callback_data: 'more_info'\n    }]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    deals: deals.map(d => d.json),\n    contact_id: contactId,\n    contact_method: contactMethod,\n    property_id: deals[0].json.property_id,\n    property_name: property\n  }\n}];"
+      },
+      "id": "332115a3-9989-4d74-90ec-c204a3afdccc",
+      "name": "Contact Message Formatter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3152,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "default_telegram"
+        }
+      },
+      "id": "c0c930e0-cc9c-4b5f-be66-06c0d82525df",
+      "name": "Route by Contact Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2928,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_id }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "f17972af-ec3e-4549-a8fb-8909f88b8b32",
+      "name": "Send to Contact via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2704,
+        -128
+      ],
+      "webhookId": "2d5fcbac-d383-442d-b5db-6ea104062779"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert keyboard to WhatsApp format (max 3 buttons)\nconst data = $input.first().json;\n\nconst buttons = data.keyboard.inline_keyboard\n  .slice(0, 3)\n  .map(row => ({\n    type: 'reply',\n    reply: {\n      id: row[0].callback_data,\n      title: row[0].text.substring(0, 20)\n    }\n  }));\n\nreturn [{\n  json: {\n    to: data.contact_id,\n    body: data.message,\n    buttons: buttons,\n    deals: data.deals\n  }\n}];"
+      },
+      "id": "a7807a74-6f6b-42a8-992d-0c0cbf6404ef",
+      "name": "Format for WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2704,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.to }}",
+        "additionalFields": {}
+      },
+      "id": "b0a938d9-3ca0-4651-b2a3-25de8210b1b9",
+      "name": "Send to Contact via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2480,
+        64
+      ],
+      "webhookId": "685420bf-63d7-4163-88bb-8bc452572c6a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format simplified SMS message\nconst data = $input.first().json;\n\nconst smsMessage = data.message + \n  '\\n\\nReply with option number (1, 2, 3) or DECLINE';\n\nreturn [{\n  json: {\n    to: data.contact_id,\n    body: smsMessage,\n    deals: data.deals\n  }\n}];"
+      },
+      "id": "dd0fc833-66e1-45ef-ab75-c2b8cc29dfe5",
+      "name": "Format for SMS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2704,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio SMS Number__>",
+        "to": "={{ $json.to }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "59afe573-b063-4ca1-8594-f099bb0dfc28",
+      "name": "Send to Contact via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2480,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 4,
+        "options": {}
+      },
+      "id": "d9790350-d046-46df-b4bd-77667e4d967b",
+      "name": "Merge Contact Sends",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -2256,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 48,
+        "options": {}
+      },
+      "id": "63bd66fc-bd02-476c-a6f8-fc58eb5d92da",
+      "name": "Wait for Contact Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2032,
+        64
+      ],
+      "webhookId": "3e501365-7008-4351-a60a-48ff508466cf"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Contact Decision from callback or SMS\nconst items = $input.all();\nconst responseData = items[0].json;\n\n// Extract callback data and deals\nlet callbackData = '';\nlet deals = [];\n\n// Parse from Telegram callback\nif (responseData.callback_query) {\n  callbackData = responseData.callback_query.data;\n  deals = responseData.deals || [];\n}\n// Parse from WhatsApp\nelse if (responseData.message && responseData.message.text) {\n  callbackData = responseData.message.text;\n  deals = responseData.deals || [];\n}\n// Parse from SMS (Twilio)\nelse if (responseData.Body) {\n  callbackData = responseData.Body.trim();\n  deals = responseData.deals || [];\n}\n// Parse from direct data\nelse if (responseData.data) {\n  callbackData = responseData.data;\n  deals = responseData.deals || [];\n}\n\n// If deals not in response, get from previous node\nif (deals.length === 0) {\n  const contactMsg = $('Contact Message Formatter').first().json;\n  deals = contactMsg.deals || [];\n}\n\nlet chosenDealId = null;\nlet action = 'unknown';\nlet chosenDealIndex = -1;\n\n// Parse decision\nif (callbackData.startsWith('choose_')) {\n  chosenDealId = callbackData.replace('choose_', '');\n  action = 'approve';\n  chosenDealIndex = deals.findIndex(d => d.deal_id === chosenDealId);\n} \nelse if (callbackData === 'decline_all') {\n  action = 'decline_all';\n} \nelse if (callbackData === 'more_info') {\n  action = 'request_more_info';\n}\n// SMS numeric response\nelse if (callbackData.match(/^[1-9]$/)) {\n  chosenDealIndex = parseInt(callbackData) - 1;\n  if (deals[chosenDealIndex]) {\n    chosenDealId = deals[chosenDealIndex].deal_id;\n    action = 'approve';\n  }\n}\n// SMS text response\nelse if (callbackData.toLowerCase().includes('decline')) {\n  action = 'decline_all';\n}\n\nconst chosenDeal = deals.find(d => d.deal_id === chosenDealId);\nconst rejectedDeals = deals.filter(d => d.deal_id !== chosenDealId);\n\nreturn [{\n  json: {\n    chosen_deal_id: chosenDealId,\n    chosen_deal: chosenDeal,\n    rejected_deals: rejectedDeals,\n    action: action,\n    all_deals: deals,\n    decision_timestamp: new Date().toISO()\n  }\n}];"
+      },
+      "id": "2cc20488-c8d3-439f-9659-e7f4c4194ff5",
+      "name": "Process Contact Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "749abb99-74e5-4b21-929d-049179ba4fd9",
+      "name": "Check if Approved",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1584,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET status = 'approved',\n    priority = 'high',\n    approved_date = $2,\n    approved_by = $3,\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.chosen_deal_id, $now.toISO(), $json.contact_id || \"owner\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "e5ec080d-fdc4-4375-b507-124e3ea3c162",
+      "name": "Update Approved Deal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1360,
+        -48
+      ],
+      "notes": "PostgreSQL: Updates the approved deal status with owner decision."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bd50e368-eade-45af-9f14-64e989088ad2",
+      "name": "Loop Over Rejected Deals",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1136,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deals \nSET status = 'rejected_conflict',\n    rejection_reason = 'Property booked by another guest',\n    rejected_date = $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE deal_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "5b260c01-dd4d-4327-8269-badb5fce30bf",
+      "name": "Update Each Rejected Deal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -912,
+        -48
+      ],
+      "notes": "PostgreSQL: Marks rejected deals as lost due to conflict."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Send Decline Messages to Losing Guests\nconst deal = $json;\nconst channelType = (deal.channel_type || 'sms').toLowerCase();\n\nconst message = `Dear ${deal.client_name || 'Guest'},\n\nThank you for your interest in ${deal.property_name}.\n\nUnfortunately, the property has been booked by another guest for ${deal.check_in_date} to ${deal.check_out_date}.\n\nWe'd love to help you find alternative dates or check our other properties. Please let us know if you'd like assistance.\n\nBest regards,\nProperty Management Team`;\n\nreturn [{\n  json: {\n    platform: channelType,\n    to: deal.client_phone || deal.client_email,\n    chat_id: deal.telegram_chat_id,\n    message: message,\n    client_name: deal.client_name\n  }\n}];"
+      },
+      "id": "49fe1209-01cf-4320-8973-0f61b2f95abc",
+      "name": "Format Rejection Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "default_sms"
+        }
+      },
+      "id": "eab5ba4f-b480-4743-8780-763eeebe3361",
+      "name": "Route Rejection by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "ff04fa6a-04d7-43b1-b523-6ae3a2631349",
+      "name": "Send Rejection via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -208
+      ],
+      "webhookId": "d27694c2-aeb2-41e1-b800-094e16d3f0cf"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.to }}",
+        "additionalFields": {}
+      },
+      "id": "ee734667-a965-439f-89a4-bb9cb296b27f",
+      "name": "Send Rejection via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -48
+      ],
+      "webhookId": "f6f3b3ea-f7e9-4fe2-ae14-c0140bd32209"
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio SMS Number__>",
+        "to": "={{ $json.to }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "c36d5de6-e750-48cf-8acc-a9d3ffe6fe99",
+      "name": "Send Rejection via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Email to Winning Guest\nconst winningDeal = $('Process Contact Decision').first().json.chosen_deal;\n\nif (!winningDeal) {\n  return [];\n}\n\nconst subject = `Great News - Your Booking at ${winningDeal.property_name} is Approved!`;\n\nconst message = `Dear ${winningDeal.client_name},\n\nCongratulations! Your booking request has been approved.\n\nProperty: ${winningDeal.property_name}\nCheck-in: ${winningDeal.check_in_date}\nCheck-out: ${winningDeal.check_out_date}\nNights: ${winningDeal.nights}\nTotal: $${winningDeal.total_value}\n\nWe'll send payment instructions shortly. We're excited to host you!\n\nBest regards,\nProperty Management Team`;\n\nreturn [{\n  json: {\n    to: winningDeal.client_email,\n    subject: subject,\n    body: message\n  }\n}];"
+      },
+      "id": "540f44df-ca47-401a-909e-1c0c01d3862c",
+      "name": "Format Winner Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "<__PLACEHOLDER_VALUE__From Email Address__>",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "options": {}
+      },
+      "id": "9ba61ed7-cadc-4d28-b2c0-94f42bdd8d77",
+      "name": "Send Email to Winner",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -912,
+        192
+      ],
+      "webhookId": "b87aad8b-541b-4660-9571-3b8fa56f895a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Confirmation to Contact\nconst decisionData = $('Process Contact Decision').first().json;\nconst winningDeal = decisionData.chosen_deal;\nconst contactData = $('Contact Message Formatter').first().json;\n\nif (!winningDeal) {\n  return [{\n    json: {\n      message: 'Error: No deal selected',\n      contact_method: contactData.contact_method,\n      contact_id: contactData.contact_id\n    }\n  }];\n}\n\nconst message = `\u2705 *DECISION RECORDED*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nApproved: ${winningDeal.client_name}\nProperty: ${winningDeal.property_name}\nDates: ${winningDeal.check_in_date} \u2192 ${winningDeal.check_out_date}\nValue: $${winningDeal.total_value}\n\n\u2705 Winner notified\n\u274c Other guests declined\n\ud83d\udce7 Confirmation email sent\n\n\u26a0\ufe0f *REMINDER:* Block these dates on:\n\u2022 Airbnb\n\u2022 Vrbo\n\u2022 Booking.com\n\u2022 Other listing platforms`;\n\nconst keyboard = {\n  inline_keyboard: [\n    [{text: '\ud83d\udcb3 Send Payment Instructions', callback_data: `payment_${winningDeal.deal_id}`}],\n    [{text: '\ud83d\udccb View Deal', callback_data: `view_${winningDeal.deal_id}`}],\n    [{text: '\ud83c\udfe1 Dashboard', callback_data: 'dashboard'}]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    contact_method: contactData.contact_method,\n    contact_id: contactData.contact_id\n  }\n}];"
+      },
+      "id": "7287339c-143f-4ae1-9cef-a150791d3e05",
+      "name": "Format Confirmation to Contact",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "default_telegram"
+        }
+      },
+      "id": "a188ec5f-b1ed-4a32-8d80-696d7e508543",
+      "name": "Route Confirmation by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_id }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "ba745746-5f84-4511-9a4f-fe4168ef04cf",
+      "name": "Send Confirmation via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        272
+      ],
+      "webhookId": "806b040f-8a0d-4e43-a71a-d5db84c582b4"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.contact_id }}",
+        "additionalFields": {}
+      },
+      "id": "1a8fa8c8-9b28-4205-89ff-e7a8238bf69b",
+      "name": "Send Confirmation via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        432
+      ],
+      "webhookId": "7d25d27d-fb82-4a4c-9e7e-e1b882fba4e2"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE deal_conflicts \nSET status = 'resolved',\n    chosen_deal_id = $2,\n    resolved_at = $3,\n    updated_at = CURRENT_TIMESTAMP\nWHERE property_id = $1 \n  AND status = 'pending_decision' ",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Contact Message Formatter\").first().json.property_id, $json.chosen_deal_id, $now.toISO()] } }}"
+        },
+        "options": {}
+      },
+      "id": "1a3f0239-7341-414a-979e-41148540f7c3",
+      "name": "Update Conflict to Resolved",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -16,
+        192
+      ],
+      "notes": "PostgreSQL: Marks conflict as resolved with chosen deal."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Conflict Webhook": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Conflicting Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Conflicting Deals": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Priority Score Calculator with Party Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Priority Score Calculator with Party Risk": {
+      "main": [
+        [
+          {
+            "node": "Log Conflict to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Conflict to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Contact Message Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Message Formatter": {
+      "main": [
+        [
+          {
+            "node": "Route by Contact Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Contact Method": {
+      "main": [
+        [
+          {
+            "node": "Send to Contact via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format for WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format for SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send to Contact via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Contact via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Merge Contact Sends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send to Contact via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Contact via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Merge Contact Sends",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Format for SMS": {
+      "main": [
+        [
+          {
+            "node": "Send to Contact via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Contact via SMS": {
+      "main": [
+        [
+          {
+            "node": "Merge Contact Sends",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Contact Sends": {
+      "main": [
+        [
+          {
+            "node": "Wait for Contact Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Contact Decision": {
+      "main": [
+        [
+          {
+            "node": "Process Contact Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Contact Decision": {
+      "main": [
+        [
+          {
+            "node": "Check if Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Approved": {
+      "main": [
+        [
+          {
+            "node": "Update Approved Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Approved Deal": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Rejected Deals",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Winner Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Confirmation to Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Rejected Deals": {
+      "main": [
+        [
+          {
+            "node": "Update Each Rejected Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Each Rejected Deal": {
+      "main": [
+        [
+          {
+            "node": "Format Rejection Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Rejection Message": {
+      "main": [
+        [
+          {
+            "node": "Route Rejection by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Rejection by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Rejection via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Rejection via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Rejected Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Rejection via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Rejected Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Rejection via SMS": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Rejected Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Winner Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Winner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Confirmation to Contact": {
+      "main": [
+        [
+          {
+            "node": "Route Confirmation by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Confirmation by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirmation via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirmation via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Update Conflict to Resolved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Update Conflict to Resolved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c1d98695-09a1-47da-8f65-0f1062c1a0cd",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 6
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

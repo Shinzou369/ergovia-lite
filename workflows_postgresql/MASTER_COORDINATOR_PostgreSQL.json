@@ -1,0 +1,252 @@
+{
+  "name": "🎯 MASTER ONBOARDING COORDINATOR (PostgreSQL Edition)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "master-onboarding",
+        "responseMode": "responseNode",
+        "options": {
+          "responseData": "noData"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "📥 Webhook - Customer Signup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 500],
+      "webhookId": "master-onboarding"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate and structure customer data\n// PostgreSQL Edition - No Google OAuth required\nconst data = $input.first().json;\n\n// Required fields (NO Google credentials needed!)\nconst required = [\n  'customer_id', 'owner_name', 'owner_email', 'owner_phone',\n  'telegram_credential_name', 'whatsapp_credential_name',\n  'openai_api_key'\n];\n\nconst missing = required.filter(f => !data[f]);\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\n// Generate unique subdomain from customer name\nconst subdomain = data.customer_id.toLowerCase().replace(/[^a-z0-9]/g, '-');\n\nreturn [{\n  json: {\n    customer_id: data.customer_id,\n    subdomain: subdomain,\n    domain: `${subdomain}.prismity.ai`,\n    \n    owner: {\n      name: data.owner_name,\n      email: data.owner_email,\n      phone: data.owner_phone\n    },\n    \n    credential_names: {\n      telegram: data.telegram_credential_name,\n      whatsapp: data.whatsapp_credential_name\n    },\n    \n    openai_api_key: data.openai_api_key,\n    \n    properties: data.properties || [],\n    \n    hetzner: {\n      server_type: data.server_type || 'cx21',\n      location: data.location || 'nbg1',\n      image: 'ubuntu-22.04'\n    },\n    \n    deployment: {\n      started_at: new Date().toISOString(),\n      current_phase: 0,\n      phases: []\n    }\n  }\n}];"
+      },
+      "id": "validate-structure",
+      "name": "✅ Phase 0: Validate & Structure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeWorkflow",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ SUB1_SERVER_PROVISIONER_ID }}"
+        },
+        "options": {}
+      },
+      "id": "phase1-provision",
+      "name": "🖥️ Phase 1: Provision Server",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [680, 500],
+      "notes": "Calls: SUB1 - Server Provisioner (Hetzner)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('✅ Phase 0: Validate & Structure').first().json;\nconst phase1Result = $input.first().json;\n\ndata.deployment.phases.push({\n  phase: 1,\n  name: 'Server Provisioning',\n  status: phase1Result.status,\n  duration: phase1Result.duration,\n  completed_at: new Date().toISOString()\n});\n\ndata.deployment.current_phase = 2;\ndata.server = phase1Result.server;\n\nreturn [{json: data}];"
+      },
+      "id": "track-phase1",
+      "name": "Track Phase 1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeWorkflow",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ SUB2_SERVER_SETUP_ID }}"
+        },
+        "options": {}
+      },
+      "id": "phase2-setup",
+      "name": "⚙️ Phase 2: Setup Server + PostgreSQL + Authelia",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1120, 500],
+      "notes": "Calls: SUB2 - Server Setup (Docker + n8n + PostgreSQL + Authelia)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Track Phase 1').first().json;\nconst phase2Result = $input.first().json;\n\ndata.deployment.phases.push({\n  phase: 2,\n  name: 'Server Setup + PostgreSQL + Authelia',\n  status: phase2Result.status,\n  duration: phase2Result.duration,\n  completed_at: new Date().toISOString()\n});\n\ndata.deployment.current_phase = 3;\ndata.server.n8n_ready = phase2Result.n8n_ready;\ndata.server.n8n_url = phase2Result.n8n_url;\ndata.server.n8n_admin = phase2Result.n8n_credentials;\ndata.server.n8n_api_key = phase2Result.n8n_api_key;\ndata.server.authelia_url = phase2Result.authelia_url;\n\nreturn [{json: data}];"
+      },
+      "id": "track-phase2",
+      "name": "Track Phase 2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeWorkflow",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ SUB3_DATABASE_PROVISIONER_ID }}"
+        },
+        "options": {}
+      },
+      "id": "phase3-database",
+      "name": "🗄️ Phase 3: Database Setup",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [1560, 500],
+      "notes": "Calls: SUB3 - Database Provisioner (PostgreSQL + NocoDB)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Track Phase 2').first().json;\nconst phase3Result = $input.first().json;\n\ndata.deployment.phases.push({\n  phase: 3,\n  name: 'Database Setup',\n  status: phase3Result.status,\n  duration: phase3Result.duration,\n  completed_at: new Date().toISOString()\n});\n\ndata.deployment.current_phase = 4;\ndata.database = phase3Result.database;\ndata.nocodb_url = phase3Result.nocodb.url;\n\nreturn [{json: data}];"
+      },
+      "id": "track-phase3",
+      "name": "Track Phase 3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeWorkflow",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ SUB4_WORKFLOW_CONFIGURATOR_ID }}"
+        },
+        "options": {}
+      },
+      "id": "phase4-configure",
+      "name": "🔧 Phase 4: Configure Workflows",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [2000, 500],
+      "notes": "Calls: SUB4 - Workflow Configurator (Creates credentials + configures 24 workflows)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Track Phase 3').first().json;\nconst phase4Result = $input.first().json;\n\ndata.deployment.phases.push({\n  phase: 4,\n  name: 'Workflow Configuration',\n  status: phase4Result.status,\n  duration: phase4Result.duration,\n  completed_at: new Date().toISOString()\n});\n\ndata.deployment.current_phase = 5;\ndata.workflows_configured = phase4Result.workflows_configured;\n\nreturn [{json: data}];"
+      },
+      "id": "track-phase4",
+      "name": "Track Phase 4",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeWorkflow",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ SUB5_WORKFLOW_DEPLOYER_ID }}"
+        },
+        "options": {}
+      },
+      "id": "phase5-deploy",
+      "name": "🚀 Phase 5: Deploy Workflows",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [240, 700],
+      "notes": "Calls: SUB5 - Workflow Deployer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Track Phase 4').first().json;\nconst phase5Result = $input.first().json;\n\ndata.deployment.phases.push({\n  phase: 5,\n  name: 'Workflow Deployment',\n  status: phase5Result.status,\n  duration: phase5Result.duration,\n  completed_at: new Date().toISOString()\n});\n\ndata.deployment.current_phase = 6;\ndata.workflows_deployed = phase5Result.workflows_deployed;\n\nreturn [{json: data}];"
+      },
+      "id": "track-phase5",
+      "name": "Track Phase 5",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 700]
+    },
+    {
+      "parameters": {
+        "operation": "executeWorkflow",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "{{ SUB7_CUSTOMER_NOTIFIER_ID }}"
+        },
+        "options": {}
+      },
+      "id": "phase6-notify",
+      "name": "📧 Phase 6: Notify Customer",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [680, 700],
+      "notes": "Calls: SUB7 - Customer Notifier"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Track Phase 5').first().json;\nconst phase6Result = $input.first().json;\n\ndata.deployment.phases.push({\n  phase: 6,\n  name: 'Customer Notification',\n  status: phase6Result.status,\n  duration: phase6Result.duration,\n  completed_at: new Date().toISOString()\n});\n\nconst totalDuration = Math.round(\n  (new Date() - new Date(data.deployment.started_at)) / 1000\n);\n\nreturn [{\n  json: {\n    success: true,\n    customer_id: data.customer_id,\n    \n    access: {\n      control_panel: `https://${data.domain}/control-panel`,\n      nocodb: data.nocodb_url,\n      authelia_protected: true\n    },\n    \n    database: {\n      type: 'PostgreSQL',\n      tables_created: 21,\n      nocodb_interface: true\n    },\n    \n    workflows: {\n      configured: data.workflows_configured || 24,\n      deployed: data.workflows_deployed || 24,\n      active: true\n    },\n    \n    deployment: {\n      total_duration_seconds: totalDuration,\n      phases_completed: data.deployment.phases.length,\n      completed_at: new Date().toISOString()\n    },\n    \n    message: 'Customer deployment completed successfully. No Google OAuth required!'\n  }\n}];"
+      },
+      "id": "final-response",
+      "name": "✅ Final Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 700]
+    },
+    {
+      "parameters": {},
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 700]
+    }
+  ],
+  "connections": {
+    "📥 Webhook - Customer Signup": {
+      "main": [[{"node": "✅ Phase 0: Validate & Structure", "type": "main", "index": 0}]]
+    },
+    "✅ Phase 0: Validate & Structure": {
+      "main": [[{"node": "🖥️ Phase 1: Provision Server", "type": "main", "index": 0}]]
+    },
+    "🖥️ Phase 1: Provision Server": {
+      "main": [[{"node": "Track Phase 1", "type": "main", "index": 0}]]
+    },
+    "Track Phase 1": {
+      "main": [[{"node": "⚙️ Phase 2: Setup Server + PostgreSQL + Authelia", "type": "main", "index": 0}]]
+    },
+    "⚙️ Phase 2: Setup Server + PostgreSQL + Authelia": {
+      "main": [[{"node": "Track Phase 2", "type": "main", "index": 0}]]
+    },
+    "Track Phase 2": {
+      "main": [[{"node": "🗄️ Phase 3: Database Setup", "type": "main", "index": 0}]]
+    },
+    "🗄️ Phase 3: Database Setup": {
+      "main": [[{"node": "Track Phase 3", "type": "main", "index": 0}]]
+    },
+    "Track Phase 3": {
+      "main": [[{"node": "🔧 Phase 4: Configure Workflows", "type": "main", "index": 0}]]
+    },
+    "🔧 Phase 4: Configure Workflows": {
+      "main": [[{"node": "Track Phase 4", "type": "main", "index": 0}]]
+    },
+    "Track Phase 4": {
+      "main": [[{"node": "🚀 Phase 5: Deploy Workflows", "type": "main", "index": 0}]]
+    },
+    "🚀 Phase 5: Deploy Workflows": {
+      "main": [[{"node": "Track Phase 5", "type": "main", "index": 0}]]
+    },
+    "Track Phase 5": {
+      "main": [[{"node": "📧 Phase 6: Notify Customer", "type": "main", "index": 0}]]
+    },
+    "📧 Phase 6: Notify Customer": {
+      "main": [[{"node": "✅ Final Response", "type": "main", "index": 0}]]
+    },
+    "✅ Final Response": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "prismity-master"
+  }
+}

@@ -1,0 +1,628 @@
+{
+  "name": "Workflow 20: Owner Dashboard [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-creation",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "d00ba110-e72b-477d-917e-9e98dfc260e4",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2464,
+        736
+      ],
+      "webhookId": "ec9a4614-bed4-4c13-968f-b6a205e53b10"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "property_configurations_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Property_Configurations Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "system_config_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__System Configuration Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "manual_tasks_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Manual_Tasks Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "contacts_sheet_id",
+              "value": "<__PLACEHOLDER_VALUE__Contacts Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "task_dashboard_url",
+              "value": "<__PLACEHOLDER_VALUE__URL to task dashboard for contacts__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b7589872-8213-419b-b783-96a7d79367f4",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2240,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate task ID using timestamp\nconst taskId = `TASK-${Date.now()}`;\n\n// Get current timestamp\nconst createdDate = new Date().toISOString();\n\n// Get all webhook data from the first item\nconst webhookData = $input.first().json;\n\n// Return new item with generated fields and all webhook data\nreturn [\n  {\n    json: {\n      task_id: taskId,\n      status: 'pending',\n      created_date: createdDate,\n      ...webhookData\n    }\n  }\n];"
+      },
+      "id": "baf297a5-adcd-4329-a98c-56929acde239",
+      "name": "Generate Task ID and Defaults",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2016,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Generate Task ID and Defaults').item.json.property_name }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f9bc376a-6bdf-4819-b24f-758b6ac1ba7a",
+      "name": "Check if Property Specific",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1792,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_name = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Webhook Trigger\").first().json.body.property_name] } }}"
+        },
+        "options": {}
+      },
+      "id": "39ababf6-6c2b-46f6-ac70-bfaffc3cf389",
+      "name": "Query Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1568,
+        640
+      ],
+      "notes": "PostgreSQL: Gets property configuration for dashboard."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_status = 'active'\nORDER BY property_name",
+        "options": {}
+      },
+      "id": "dcc9fd5e-cc24-4016-9405-f28e7d75aea7",
+      "name": "Query System Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1568,
+        832
+      ],
+      "notes": "PostgreSQL: Gets all active properties for system overview. Returns list of properties."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract contact_id from property configuration based on assigned_to role\nconst taskData = $input.first().json;\nconst configData = $('Query Property Configuration').first().json;\n\n// Get the assigned_to role from the task data\nconst assignedToRole = taskData.assigned_to;\n\n// Extract the contact_id from the configuration\nlet contactId = null;\n\nif (assignedToRole && configData[assignedToRole]) {\n  contactId = configData[assignedToRole];\n}\n\n// Return the contact_id along with the original task data\nreturn {\n  json: {\n    ...taskData,\n    contact_id: contactId\n  }\n};"
+      },
+      "id": "5fe946f8-02cc-4a40-ae90-18cb89c255fc",
+      "name": "Extract Contact ID from Property Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1344,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract contact_id from system configuration based on assigned_to role\nconst taskData = $input.first().json;\nconst systemConfig = $('Query System Configuration').all();\n\n// Get the assigned_to role from the task data\nconst assignedToRole = taskData.assigned_to;\n\n// Find the matching contact in system configuration\nlet contactId = null;\n\nfor (const config of systemConfig) {\n  if (config.json.role === assignedToRole) {\n    contactId = config.json.contact_id;\n    break;\n  }\n}\n\n// Return the contact_id along with the original task data\nreturn [{\n  json: {\n    ...taskData,\n    contact_id: contactId\n  }\n}];"
+      },
+      "id": "9900f84d-32c8-44c1-8d6c-bee6f77b662a",
+      "name": "Extract Contact ID from System Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1344,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "contact_id",
+              "value": "={{ $json.contact_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "411f8c70-48ce-402a-8490-82647fe53d43",
+      "name": "Merge Contact ID with Task Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1120,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "manual_tasks",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "8ea2bf08-e819-45ea-b70a-ea91471bce3e",
+      "name": "Append Task to Manual_Tasks Sheet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -896,
+        736
+      ],
+      "notes": "PostgreSQL: Creates manual task from dashboard. Processed by WF04. autoMapInputData preserves all fields."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Append Task to Manual_Tasks Sheet').item.json.priority }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ new Date($('Append Task to Manual_Tasks Sheet').item.json.due_date).getTime() }}",
+              "rightValue": "={{ new Date().getTime() + (4 * 60 * 60 * 1000) }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "a34a7e53-208e-443f-9d97-08da3942dacc",
+      "name": "Check if Urgent Task",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    owner_contact,\n    owner_email,\n    owner_phone,\n    telegram_id,\n    notification_preferences\nFROM property_configurations \nWHERE owner_contact = $1\n  OR property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Merge Contact ID with Task Data\").first().json.contact_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "b101c972-add7-4bc1-843a-15b1b409af17",
+      "name": "Get Contact Preferences",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -448,
+        656
+      ],
+      "notes": "PostgreSQL: Gets owner contact preferences from property_configurations."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "Telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_platform }}",
+                    "rightValue": "WhatsApp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ac15f30-8d91-4aa5-83a6-67fee0aa91db",
+      "name": "Route by Preferred Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "=\ud83d\udea8 *URGENT TASK ALERT*\n\n*Description:* {{ $json.task_description }}\n*Due Date:* {{ $json.due_date }}\n*Priority:* {{ $json.priority }}\n\nPlease address this task as soon as possible.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View All My Tasks",
+                    "additionalFields": {
+                      "url": "={{ $('Workflow Configuration').first().json.task_dashboard_url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "2da6301f-63f0-48b8-9531-f4d8de03f7f5",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        560
+      ],
+      "webhookId": "4fdff416-1c47-4e5c-b4de-52eba09ad0d5"
+    },
+    {
+      "parameters": {
+        "recipientPhoneNumber": "={{ $json.whatsapp_phone }}",
+        "template": "<__PLACEHOLDER_VALUE__WhatsApp template name for urgent task alerts__>",
+        "components": {
+          "component": [
+            {
+              "bodyParameters": {
+                "parameter": [
+                  {
+                    "text": "={{ $json.task_description }}"
+                  },
+                  {
+                    "text": "={{ $json.due_date }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "266438eb-7881-423a-96d3-fd82fa1ac4c7",
+      "name": "Send WhatsApp Alert",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        752
+      ],
+      "webhookId": "6351f0b4-0ea9-454b-882f-4d4b3ca14d52"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"task_id\": \"{{ $('Generate Task ID and Defaults').item.json.task_id }}\"\n}",
+        "options": {}
+      },
+      "id": "bd10f1f9-0725-4af5-ac43-946d83cdfd3d",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        752
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Generate Task ID and Defaults",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Task ID and Defaults": {
+      "main": [
+        [
+          {
+            "node": "Check if Property Specific",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Property Specific": {
+      "main": [
+        [
+          {
+            "node": "Query Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query System Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Contact ID from Property Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query System Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Contact ID from System Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Contact ID from Property Config": {
+      "main": [
+        [
+          {
+            "node": "Merge Contact ID with Task Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Contact ID from System Config": {
+      "main": [
+        [
+          {
+            "node": "Merge Contact ID with Task Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Contact ID with Task Data": {
+      "main": [
+        [
+          {
+            "node": "Append Task to Manual_Tasks Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Task to Manual_Tasks Sheet": {
+      "main": [
+        [
+          {
+            "node": "Check if Urgent Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Urgent Task": {
+      "main": [
+        [
+          {
+            "node": "Get Contact Preferences",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Contact Preferences": {
+      "main": [
+        [
+          {
+            "node": "Route by Preferred Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Preferred Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Alert": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 4,
+    "consistency_note": "Owner dashboard and task creation. Uses property_configurations, creates manual_tasks."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

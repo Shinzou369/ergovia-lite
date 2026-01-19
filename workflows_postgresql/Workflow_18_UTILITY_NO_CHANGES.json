@@ -1,0 +1,140 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-service",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "14ef0bce-2de2-4628-8cd0-9a0212aa29d4",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        224
+      ],
+      "webhookId": "9fcc04da-3953-4f9f-8a35-e2ea4cf0953d"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all()[0].json;\n\n// Validate required fields\nif (!inputData.to || !inputData.subject) {\n  return [[], [{ json: { success: false, error: 'Missing required fields: to and subject are required' } }]];\n}\n\n// Note: channel_type parameter accepted but ignored (email only)\n// This service is for automated emails only, not guest communications\n\nreturn [[{ json: inputData }], []];"
+      },
+      "id": "dcd6f7ca-d4ed-4c67-95ad-cb6fee3e3a60",
+      "name": "Validate Required Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message || '' }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "={{ $json.attachments || '' }}"
+              }
+            ]
+          },
+          "ccList": "={{ $json.cc || '' }}"
+        }
+      },
+      "id": "952754ba-cd06-4427-8dfa-3ea4c7fabf9b",
+      "name": "Send Email via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        224
+      ],
+      "webhookId": "bdc9015b-217d-4f97-91aa-dd44d29f873d"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"channel\": \"email\",\n  \"sent_at\": \"={{ $now.toISO() }}\",\n  \"recipient\": \"={{ $('Webhook Trigger').item.json.to }}\"\n}",
+        "options": {}
+      },
+      "id": "3a9c9b7a-d6e1-4087-b6b0-6caf5b073ff5",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "6ea01e32-5252-4888-9858-b2a06e1fcb82",
+      "name": "Return Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Required Fields": {
+      "main": [
+        [
+          {
+            "node": "Send Email via Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email via Gmail": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "c9d96e2ea08a9bb00cf18227c8191d7fd48e2508fec2082b163835511edaf7a2",
+    "templateVersion": "8.0"
+  },
+  "name": "Workflow 18: Email Service (Utility)"
+}

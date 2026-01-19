@@ -1,0 +1,1318 @@
+{
+  "name": "CP-4 Enhanced Manual Task Queue Manager [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "93961353-9e08-4391-8f9d-c6abd3a66b61",
+      "name": "Hourly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -3808,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "3622e79f-fd66-4807-95e7-d99cbf99bd14",
+      "name": "Telegram /tasks Command",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3808,
+        1392
+      ],
+      "webhookId": "a7f899b5-031c-4105-bda4-39d6600a6ef3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "options": {}
+      },
+      "id": "3cc1fc9a-97de-4ab4-8718-d719b9bfaca8",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -3584,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "sheetName",
+              "value": "Manual_Tasks",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "ownerName",
+              "value": "<__PLACEHOLDER_VALUE__Property Owner Name__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "ownerId",
+              "value": "<__PLACEHOLDER_VALUE__Property Owner ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "ownerPlatform",
+              "value": "<__PLACEHOLDER_VALUE__telegram or whatsapp__>",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "taskCompletedWebhookUrl",
+              "value": "<__PLACEHOLDER_VALUE__Task Completed Webhook URL__>",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "managerName",
+              "value": "<__PLACEHOLDER_VALUE__Manager Name__>",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "managerPlatform",
+              "value": "<__PLACEHOLDER_VALUE__Manager Platform (sms/whatsapp/telegram)__>",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "managerContact",
+              "value": "<__PLACEHOLDER_VALUE__Manager Contact (phone/chat ID)__>",
+              "type": "string"
+            },
+            {
+              "id": "id-9",
+              "name": "googleSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-10",
+              "name": "whatsappPhoneId",
+              "value": "<__PLACEHOLDER_VALUE__WhatsApp Phone Number ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-11",
+              "name": "twilioPhoneNumber",
+              "value": "<__PLACEHOLDER_VALUE__Twilio Phone Number__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "3f9dd727-c07b-47bd-9711-2edce3388eae",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3360,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM manual_tasks \nWHERE status = 'pending'\nORDER BY priority ASC, due_date ASC\nLIMIT 100",
+        "options": {}
+      },
+      "id": "7ade14c5-627b-4e7b-a8bd-6173b84c82a3",
+      "name": "Query Pending Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3136,
+        1296
+      ],
+      "notes": "PostgreSQL: Gets pending tasks ordered by priority. Matches WF01 dashboard query."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Task Categorization with Priority Logic\nconst tasks = $input.all();\nconst now = new Date();\nnow.setHours(0, 0, 0, 0);\n\nconst categorized = {\n  critical: [],\n  overdue: [],\n  today: [],\n  upcoming: []\n};\n\nconst byType = {};\nconst byProperty = {};\n\n// Critical task types that require immediate attention\nconst criticalTypes = ['calendar_sync', 'platform_block', 'guest_emergency', 'payment_issue'];\n\ntasks.forEach(item => {\n  const task = item.json;\n  const dueDate = task.due_date ? new Date(task.due_date) : null;\n  \n  if (dueDate) {\n    dueDate.setHours(0, 0, 0, 0);\n  }\n  \n  const taskType = task.task_type || 'other';\n  const priority = task.priority || 'medium';\n  const propertyName = task.property_name || 'Unknown Property';\n  \n  // Enhanced task object with computed fields\n  const enhancedTask = {\n    ...task,\n    daysOverdue: dueDate && dueDate < now ? Math.floor((now - dueDate) / (1000 * 60 * 60 * 24)) : 0,\n    priorityScore: priority === 'high' ? 3 : priority === 'medium' ? 2 : 1,\n    isCritical: criticalTypes.includes(taskType) || priority === 'high'\n  };\n  \n  // Categorize by urgency\n  if (criticalTypes.includes(taskType) || priority === 'high') {\n    categorized.critical.push(enhancedTask);\n  } else if (dueDate && dueDate < now) {\n    categorized.overdue.push(enhancedTask);\n  } else if (dueDate && dueDate.getTime() === now.getTime()) {\n    categorized.today.push(enhancedTask);\n  } else {\n    categorized.upcoming.push(enhancedTask);\n  }\n  \n  // Group by type\n  if (!byType[taskType]) {\n    byType[taskType] = [];\n  }\n  byType[taskType].push(enhancedTask);\n  \n  // Group by property\n  if (!byProperty[propertyName]) {\n    byProperty[propertyName] = [];\n  }\n  byProperty[propertyName].push(enhancedTask);\n});\n\n// Sort each category by priority and due date\nconst sortTasks = (a, b) => {\n  if (a.priorityScore !== b.priorityScore) {\n    return b.priorityScore - a.priorityScore;\n  }\n  const dateA = a.due_date ? new Date(a.due_date) : new Date('9999-12-31');\n  const dateB = b.due_date ? new Date(b.due_date) : new Date('9999-12-31');\n  return dateA - dateB;\n};\n\ncategorized.critical.sort(sortTasks);\ncategorized.overdue.sort(sortTasks);\ncategorized.today.sort(sortTasks);\ncategorized.upcoming.sort(sortTasks);\n\n// Calculate summary statistics\nconst summary = {\n  total: tasks.length,\n  critical: categorized.critical.length,\n  overdue: categorized.overdue.length,\n  today: categorized.today.length,\n  upcoming: categorized.upcoming.length,\n  byType: Object.entries(byType).map(([type, items]) => ({\n    type,\n    count: items.length\n  })),\n  byProperty: Object.entries(byProperty).map(([property, items]) => ({\n    property,\n    count: items.length\n  }))\n};\n\nreturn [{\n  json: {\n    categorized,\n    byType,\n    byProperty,\n    summary,\n    processed_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "46d1020f-d516-4f94-befe-0681d6e9f22e",
+      "name": "Enhanced Task Categorization",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2912,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Contact Message Formatter with Dynamic Keyboard\nconst data = $input.first().json;\nconst tasks = data.categorized;\nconst summary = data.summary;\nconst config = $('Workflow Configuration').first().json;\n\n// Build message header\nlet message = `\u2705 *YOUR TASK QUEUE*\\n`;\nmessage += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n`;\n\n// Add summary stats\nmessage += `\ud83d\udcca *Summary:* ${summary.total} total tasks\\n\\n`;\n\n// Critical tasks section\nif (tasks.critical.length > 0) {\n  message += `\ud83d\udd34 *CRITICAL (${tasks.critical.length}):*\\n`;\n  tasks.critical.forEach((t, idx) => {\n    const icon = t.task_type === 'calendar_sync' ? '\ud83d\udcc5' : \n                 t.task_type === 'platform_block' ? '\ud83d\udeab' : \n                 t.task_type === 'guest_emergency' ? '\ud83c\udd98' : '\u26a0\ufe0f';\n    message += `${icon} ${t.description}`;\n    if (t.property_name) message += ` - *${t.property_name}*`;\n    message += `\\n`;\n  });\n  message += `\\n`;\n}\n\n// Overdue tasks section\nif (tasks.overdue.length > 0) {\n  message += `\u23f0 *OVERDUE (${tasks.overdue.length}):*\\n`;\n  tasks.overdue.forEach(t => {\n    const dueDate = new Date(t.due_date);\n    const daysLate = t.daysOverdue || 0;\n    message += `\u2022 ${t.description}`;\n    if (t.property_name) message += ` - ${t.property_name}`;\n    message += ` (${daysLate}d late)\\n`;\n  });\n  message += `\\n`;\n}\n\n// Today's tasks section\nif (tasks.today.length > 0) {\n  message += `\ud83d\udcc5 *TODAY (${tasks.today.length}):*\\n`;\n  tasks.today.forEach(t => {\n    message += `\u2022 ${t.description}`;\n    if (t.property_name) message += ` - ${t.property_name}`;\n    message += `\\n`;\n  });\n  message += `\\n`;\n}\n\n// Upcoming tasks summary\nif (tasks.upcoming.length > 0) {\n  message += `\ud83d\udccb *Upcoming:* ${tasks.upcoming.length} tasks\\n\\n`;\n}\n\nmessage += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n`;\nmessage += `Use buttons below to manage tasks`;\n\n// Create inline keyboard for top 10 actionable tasks\nconst allTasks = [\n  ...tasks.critical,\n  ...tasks.overdue,\n  ...tasks.today\n].slice(0, 10);\n\nconst keyboard = {\n  inline_keyboard: []\n};\n\n// Add task action buttons (2 per row)\nallTasks.forEach((t, idx) => {\n  const taskLabel = t.description.substring(0, 25) + (t.description.length > 25 ? '...' : '');\n  const taskNum = idx + 1;\n  \n  keyboard.inline_keyboard.push(\n    [\n      {\n        text: `\u2713 Complete #${taskNum}`,\n        callback_data: `complete_${t.task_id}`\n      },\n      {\n        text: `\u23f0 Snooze #${taskNum}`,\n        callback_data: `snooze_${t.task_id}`\n      }\n    ],\n    [\n      {\n        text: `\ud83d\udc64 Delegate #${taskNum}`,\n        callback_data: `delegate_${t.task_id}`\n      },\n      {\n        text: `\u2139\ufe0f Details #${taskNum}`,\n        callback_data: `details_${t.task_id}`\n      }\n    ]\n  );\n});\n\n// Add utility buttons at the bottom\nkeyboard.inline_keyboard.push(\n  [\n    {text: '\ud83d\udd04 Refresh', callback_data: 'refresh_tasks'},\n    {text: '\ud83d\udcca Analytics', callback_data: 'view_analytics'}\n  ],\n  [\n    {text: '\ud83c\udfe1 Dashboard', callback_data: 'dashboard'},\n    {text: '\u2795 New Task', callback_data: 'create_task'}\n  ]\n);\n\nreturn [{\n  json: {\n    messageText: message,\n    replyMarkup: keyboard,\n    taskCount: summary.total,\n    topTasks: allTasks,\n    allCategories: tasks\n  }\n}];"
+      },
+      "id": "d7340281-6f1b-4dd9-bea1-239ff4862183",
+      "name": "Format Contact Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2688,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Workflow Configuration').first().json.ownerPlatform }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "87ec8452-aaae-4a2c-b017-51d0728acbd6",
+      "name": "Check Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2464,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Workflow Configuration').first().json.ownerId }}",
+        "text": "={{ $json.messageText }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e282ee34-5302-42dd-af46-47f9d38e6c9d",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2240,
+        1200
+      ],
+      "webhookId": "e60554c5-f3a0-4e3d-88ab-4b5e1efe8e5b"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Workflow Configuration').first().json.whatsappPhoneId }}",
+        "recipientPhoneNumber": "={{ $('Workflow Configuration').first().json.ownerId }}",
+        "additionalFields": {}
+      },
+      "id": "ddf68192-31a2-4c72-8917-dec36e5deb64",
+      "name": "Send to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2240,
+        1392
+      ],
+      "webhookId": "b60f8492-e7bc-428d-b8fc-e7b00bb94d2c"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "options": {}
+      },
+      "id": "db7a3a94-42e8-47cb-a851-7c61b67dcfb1",
+      "name": "Wait for Button Click",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2016,
+        1296
+      ],
+      "webhookId": "4685c450-5209-44c2-92fc-db414b9536fb"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Action Parser with Validation\nconst input = $input.first().json;\n\n// Extract callback data from different possible sources\nconst callbackData = input.callback_query?.data || \n                     input.callback_data || \n                     input.data || \n                     '';\n\n// Parse action and task_id\nconst parts = callbackData.split('_');\nconst action = parts[0] || '';\nconst task_id = parts.slice(1).join('_') || '';\n\n// Extract user/contact information\nconst contact_id = input.callback_query?.from?.id || \n                   input.from?.id || \n                   $('Workflow Configuration').first().json.ownerId;\n\nconst contact_name = input.callback_query?.from?.first_name || \n                     input.from?.first_name || \n                     $('Workflow Configuration').first().json.ownerName;\n\n// Determine updates based on action\nlet updates = {};\nlet responseMessage = '';\nlet shouldNotifyManager = false;\n\nswitch(action) {\n  case 'complete':\n    updates = {\n      status: 'completed',\n      completed_date: new Date().toISOString(),\n      completed_by: contact_name\n    };\n    responseMessage = `\u2705 Task marked as complete!`;\n    shouldNotifyManager = false;\n    break;\n    \n  case 'snooze':\n    const newDue = new Date();\n    newDue.setHours(newDue.getHours() + 2);\n    updates = {\n      due_date: newDue.toISOString(),\n      status: 'snoozed',\n      snoozed_at: new Date().toISOString(),\n      snoozed_by: contact_name\n    };\n    responseMessage = `\u23f0 Task snoozed for 2 hours`;\n    shouldNotifyManager = false;\n    break;\n    \n  case 'delegate':\n    updates = {\n      status: 'delegated',\n      assigned_to: $('Workflow Configuration').first().json.managerName,\n      delegated_at: new Date().toISOString(),\n      delegated_by: contact_name\n    };\n    responseMessage = `\ud83d\udc64 Task delegated to manager`;\n    shouldNotifyManager = true;\n    break;\n    \n  case 'details':\n    // Fetch full task details\n    responseMessage = `\u2139\ufe0f Fetching task details...`;\n    break;\n    \n  case 'refresh_tasks':\n    responseMessage = `\ud83d\udd04 Refreshing task list...`;\n    break;\n    \n  case 'view_analytics':\n    responseMessage = `\ud83d\udcca Loading analytics...`;\n    break;\n    \n  case 'dashboard':\n    responseMessage = `\ud83c\udfe1 Opening dashboard...`;\n    break;\n    \n  case 'create_task':\n    responseMessage = `\u2795 Create new task...`;\n    break;\n    \n  default:\n    responseMessage = `\u2753 Unknown action: ${action}`;\n}\n\nreturn [{\n  json: {\n    task_id,\n    action,\n    updates,\n    contact_id,\n    contact_name,\n    channel_type: $('Workflow Configuration').first().json.ownerPlatform,\n    responseMessage,\n    shouldNotifyManager,\n    timestamp: new Date().toISOString(),\n    original_callback: callbackData\n  }\n}];"
+      },
+      "id": "187f8e7a-826f-4ad7-8e4b-8494ea0ae8f8",
+      "name": "Enhanced Action Parser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1792,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "complete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "snooze",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Snooze"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "delegate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Delegate"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "details",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Details"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "refresh_tasks",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Refresh"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a37f5896-a13e-4b7e-9e24-a379b20db3fd",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1568,
+        1264
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE manual_tasks \nSET status = $2,\n    completed_at = $3,\n    assigned_to = $4,\n    updated_at = CURRENT_TIMESTAMP\nWHERE task_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.task_id, $json.updates.status || \"completed\", $json.updates.completed_date || $now.toISO(), $json.updates.completed_by || \"system\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "5ae389b9-258d-4fb4-9c0e-3b5b01bdc176",
+      "name": "Mark Task Complete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1344,
+        896
+      ],
+      "notes": "PostgreSQL: Marks task as completed. Status changes to \"completed\" (consistent with WF01)."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE manual_tasks \nSET status = $2,\n    due_date = $3,\n    notes = COALESCE(notes || E'\n', '') || 'Snoozed at ' || $4 || ' by ' || $5,\n    updated_at = CURRENT_TIMESTAMP\nWHERE task_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.task_id, $json.updates.status || \"pending\", $json.updates.due_date, $json.updates.snoozed_at || $now.toISO(), $json.updates.snoozed_by || \"system\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "d6d6027a-ecda-4347-8c40-4ffc9ae67104",
+      "name": "Snooze Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1344,
+        1088
+      ],
+      "notes": "PostgreSQL: Snoozes task to new due date. Appends snooze info to notes field."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE manual_tasks \nSET status = $2,\n    assigned_to = $3,\n    notes = COALESCE(notes || E'\n', '') || 'Delegated at ' || $4 || ' by ' || $5 || ' to ' || $3,\n    updated_at = CURRENT_TIMESTAMP\nWHERE task_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.task_id, $json.updates.status || \"pending\", $json.updates.assigned_to, $json.updates.delegated_at || $now.toISO(), $json.updates.delegated_by || \"system\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "17a206af-f948-4467-b8a0-a52d60502649",
+      "name": "Delegate Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1344,
+        1280
+      ],
+      "notes": "PostgreSQL: Delegates task to another user. Appends delegation info to notes."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM manual_tasks \nWHERE task_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.task_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "974e4760-5be5-4efb-a88b-a3cb86c60b74",
+      "name": "Fetch Task Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1344,
+        1472
+      ],
+      "notes": "PostgreSQL: Fetches single task details by task_id."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format detailed task information\nconst task = $input.first().json;\n\nconst detailMessage = `\n\ud83d\udccb *TASK DETAILS*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n\ud83c\udd94 *ID:* ${task.task_id}\n\ud83d\udcdd *Description:* ${task.description}\n\ud83c\udfe0 *Property:* ${task.property_name || 'N/A'}\n\ud83d\udcc5 *Due Date:* ${task.due_date ? new Date(task.due_date).toLocaleString() : 'Not set'}\n\u26a1 *Priority:* ${task.priority || 'Medium'}\n\ud83d\udcca *Status:* ${task.status}\n\ud83c\udff7\ufe0f *Type:* ${task.task_type || 'General'}\n\n${task.notes ? `\ud83d\udccc *Notes:*\\n${task.notes}\\n\\n` : ''}\n${task.assigned_to ? `\ud83d\udc64 *Assigned To:* ${task.assigned_to}\\n` : ''}\n${task.created_date ? `\ud83d\udcc5 *Created:* ${new Date(task.created_date).toLocaleString()}\\n` : ''}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n`;\n\nreturn [{\n  json: {\n    detailMessage,\n    task_id: task.task_id,\n    contact_id: $('Enhanced Action Parser').first().json.contact_id,\n    channel_type: $('Enhanced Action Parser').first().json.channel_type\n  }\n}];"
+      },
+      "id": "3582f975-8a9a-4b39-9ddb-1729e4644de0",
+      "name": "Format Task Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.task_type }}",
+              "rightValue": "calendar_sync",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $json.task_type }}",
+              "rightValue": "platform_block",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $json.task_type }}",
+              "rightValue": "guest_emergency",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "id-4",
+              "leftValue": "={{ $json.updates.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "50b23f06-34b8-4f98-85e2-2fd17eefa673",
+      "name": "Check if Critical Task Completed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1120,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Workflow Configuration').first().json.taskCompletedWebhookUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"task_id\": \"{{ $json.task_id }}\",\n  \"task_type\": \"{{ $json.task_type }}\",\n  \"property_id\": \"{{ $json.property_id }}\",\n  \"completed_by\": \"{{ $json.contact_name }}\",\n  \"completed_date\": \"{{ $json.updates.completed_date }}\",\n  \"timestamp\": \"{{ $json.timestamp }}\"\n}",
+        "options": {}
+      },
+      "id": "36a8a57b-75ae-41af-8b4f-436e51cc9fc3",
+      "name": "Notify Critical Task Completed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -896,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.shouldNotifyManager }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1c753d04-d576-4b0f-8ef5-b1eaace020bf",
+      "name": "Check if Should Notify Manager",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1120,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM manual_tasks \nWHERE task_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.task_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "bc6f0863-4a04-4cf3-9edc-76683f7ba065",
+      "name": "Fetch Delegated Task Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -896,
+        1280
+      ],
+      "notes": "PostgreSQL: Fetches delegated task details by task_id."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Workflow Configuration').first().json.managerPlatform }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Workflow Configuration').first().json.managerPlatform }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Workflow Configuration').first().json.managerPlatform }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "SMS"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "78210e74-1836-4933-b854-738b22ecbad3",
+      "name": "Route Manager Notification",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -672,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Workflow Configuration').first().json.managerContact }}",
+        "text": "=\ud83d\udd14 *NEW TASK DELEGATED*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n\ud83d\udcdd *Task:* {{ $json.description }}\n\ud83c\udfe0 *Property:* {{ $json.property_name }}\n\ud83d\udcc5 *Due:* {{ $json.due_date ? new Date($json.due_date).toLocaleString() : 'Not set' }}\n\u26a1 *Priority:* {{ $json.priority }}\n\ud83d\udc64 *Delegated by:* {{ $('Enhanced Action Parser').first().json.contact_name }}\n\n{{ $json.notes ? `\ud83d\udccc Notes: ${$json.notes}` : '' }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "dc37cdc8-758e-4e2b-9a6c-ff6eda4e3f1a",
+      "name": "Notify Manager via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        1104
+      ],
+      "webhookId": "05986bb1-70c9-4f40-8caf-e0c3f1e83bf1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Workflow Configuration').first().json.whatsappPhoneId }}",
+        "recipientPhoneNumber": "={{ $('Workflow Configuration').first().json.managerContact }}",
+        "additionalFields": {}
+      },
+      "id": "96977425-173f-4eb9-9241-5fee20298fa1",
+      "name": "Notify Manager via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -448,
+        1296
+      ],
+      "webhookId": "82a9650b-c070-4dcc-8656-53dd5dcb0706"
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Workflow Configuration').first().json.twilioPhoneNumber }}",
+        "to": "={{ $('Workflow Configuration').first().json.managerContact }}",
+        "message": "=New task delegated: {{ $json.description }} for {{ $json.property_name }}. Due: {{ $json.due_date ? new Date($json.due_date).toLocaleDateString() : 'Not set' }}. Priority: {{ $json.priority }}",
+        "options": {}
+      },
+      "id": "619ef802-3b22-4a11-87be-0ebb548af3bc",
+      "name": "Notify Manager via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        1488
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Confirmation Message Builder\nconst data = $input.first().json;\nconst action = data.action;\nconst taskId = data.task_id;\nconst responseMsg = data.responseMessage;\n\nlet message = responseMsg;\nlet nextSteps = '';\n\nswitch(action) {\n  case 'complete':\n    nextSteps = 'Task has been marked complete and removed from your queue.';\n    break;\n  case 'snooze':\n    nextSteps = 'Task will reappear in your queue in 2 hours.';\n    break;\n  case 'delegate':\n    nextSteps = 'Manager has been notified and will handle this task.';\n    break;\n  default:\n    nextSteps = 'No further action required at this time.';\n}\n\nmessage += `\\n\\n\ud83d\udca1 *Next Steps:*\\n${nextSteps}`;\nmessage += `\\n\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;\nmessage += `\\nTask ID: ${taskId}`;\n\nreturn [{\n  json: {\n    confirmationMessage: message,\n    contact_id: data.contact_id,\n    channel_type: data.channel_type,\n    action: action,\n    task_id: taskId\n  }\n}];"
+      },
+      "id": "a3bdcbe0-9403-4e89-adfa-10666f0f5b99",
+      "name": "Build Confirmation Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.channel_type }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a845b2be-e2ba-4ac2-b1b4-bddae529902b",
+      "name": "Check Response Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_id }}",
+        "text": "={{ $json.confirmationMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "879286c9-f06f-4840-b2b6-96dd775ee01a",
+      "name": "Send Confirmation to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        944
+      ],
+      "webhookId": "471ea153-3792-4ae2-99ca-9216ef4a1cbf"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Workflow Configuration').first().json.whatsappPhoneId }}",
+        "recipientPhoneNumber": "={{ $json.contact_id }}",
+        "additionalFields": {}
+      },
+      "id": "85e6554a-18e4-4c1e-ab50-7b42a2b9ba9a",
+      "name": "Send Confirmation to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -448,
+        1104
+      ],
+      "webhookId": "1ecaf537-e277-43d2-9a9e-5e14a843ebae"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.channel_type }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "daa9ab0a-8149-410b-9ba0-3e3fd79830ed",
+      "name": "Check Details Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -896,
+        1472
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.contact_id }}",
+        "text": "={{ $json.detailMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "70f484ef-c4ac-425a-83e7-daf5a8b06ab1",
+      "name": "Send Details to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -672,
+        1392
+      ],
+      "webhookId": "5b3f275a-25d3-4b32-bb11-19b5337ec9e5"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Workflow Configuration').first().json.whatsappPhoneId }}",
+        "recipientPhoneNumber": "={{ $json.contact_id }}",
+        "additionalFields": {}
+      },
+      "id": "cbbeb5d9-313b-4a41-bd9e-c9ba5d650de8",
+      "name": "Send Details to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -672,
+        1536
+      ],
+      "webhookId": "c234e836-1fb9-4346-841b-2acf23eeee31"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Hourly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram /tasks Command": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Query Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pending Tasks": {
+      "main": [
+        [
+          {
+            "node": "Enhanced Task Categorization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enhanced Task Categorization": {
+      "main": [
+        [
+          {
+            "node": "Format Contact Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Contact Message": {
+      "main": [
+        [
+          {
+            "node": "Check Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Platform": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait for Button Click",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait for Button Click",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Button Click": {
+      "main": [
+        [
+          {
+            "node": "Enhanced Action Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enhanced Action Parser": {
+      "main": [
+        [
+          {
+            "node": "Route by Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Action": {
+      "main": [
+        [
+          {
+            "node": "Mark Task Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Snooze Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delegate Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Task Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Task Complete": {
+      "main": [
+        [
+          {
+            "node": "Check if Critical Task Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snooze Task": {
+      "main": [
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delegate Task": {
+      "main": [
+        [
+          {
+            "node": "Check if Should Notify Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Task Details": {
+      "main": [
+        [
+          {
+            "node": "Format Task Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Task Details": {
+      "main": [
+        [
+          {
+            "node": "Check Details Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Critical Task Completed": {
+      "main": [
+        [
+          {
+            "node": "Notify Critical Task Completed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Critical Task Completed": {
+      "main": [
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Should Notify Manager": {
+      "main": [
+        [
+          {
+            "node": "Fetch Delegated Task Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Delegated Task Info": {
+      "main": [
+        [
+          {
+            "node": "Route Manager Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Manager Notification": {
+      "main": [
+        [
+          {
+            "node": "Notify Manager via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Manager via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Manager via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Manager via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Manager via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Manager via SMS": {
+      "main": [
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Confirmation Message": {
+      "main": [
+        [
+          {
+            "node": "Check Response Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Response Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirmation to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Details Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Details to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Details to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c1d98695-09a1-47da-8f65-0f1062c1a0cd",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 6,
+    "consistency_note": "Status values match WF01: pending, in_progress, completed, cancelled"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

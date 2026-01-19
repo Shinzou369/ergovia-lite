@@ -1,0 +1,357 @@
+{
+  "name": "Workflow 21: Backup & Recovery [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "property-status-update",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "00dfde01-917c-4fdd-a209-fb08ca924e0a",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -848,
+        1616
+      ],
+      "webhookId": "2f29641f-b98d-4617-952f-6219cd5f6b1f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "property_id",
+              "value": "={{ $json.body.property_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "status",
+              "value": "={{ $json.body.status }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "notify_contact",
+              "value": "={{ $json.body.notify_contact || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "id-4",
+              "name": "cleaned_date",
+              "value": "={{ $json.body.cleaned_date }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "maintenance_date",
+              "value": "={{ $json.body.maintenance_date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a9abddc8-1c82-44d3-873b-9ed3d7ed3eb4",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -624,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE property_configurations \nSET property_status = $2,\n    last_cleaned_date = COALESCE($3::date, last_cleaned_date),\n    last_maintenance_date = COALESCE($4::date, last_maintenance_date),\n    updated_at = CURRENT_TIMESTAMP\nWHERE property_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id, $json.status, $json.cleaned_date || null, $json.maintenance_date || null] } }}"
+        },
+        "options": {}
+      },
+      "id": "41a04e5b-dd5e-4e24-a3b2-6bfbf71b667f",
+      "name": "Update Property Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -400,
+        1616
+      ],
+      "notes": "PostgreSQL: Updates property status and last service dates. Uses COALESCE to only update if provided."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.notify_contact }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5d0a5f12-778c-4561-ab0b-39c7b1863bd6",
+      "name": "Check If Notify Contact",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -176,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    property_id,\n    property_name,\n    owner_contact AS primary_property_contact,\n    notification_channel AS preferred_platform\nFROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "4c3fef7d-1f02-4f97-bb58-4f8d1ab01a18",
+      "name": "Get Property Contact Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        48,
+        1536
+      ],
+      "notes": "PostgreSQL: Gets property contact info for notifications."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.preferred_platform }}",
+              "rightValue": "Telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "26db14c4-e24b-4ea3-97d5-db3373376426",
+      "name": "Check Preferred Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        272,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.primary_property_contact }}",
+        "text": "=Property Status Update\n\nProperty: {{ $('Workflow Configuration').item.json.property_name || $('Workflow Configuration').item.json.property_id }}\nNew Status: {{ $('Workflow Configuration').item.json.status }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "View Property Details",
+                    "additionalFields": {
+                      "url": "<__PLACEHOLDER_VALUE__Property details URL__>"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "dc427df3-093b-4092-8204-6e860efa2b69",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        1440
+      ],
+      "webhookId": "4ec620de-4f4c-4a2b-bf5e-6ac8d821b1b0"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.primary_property_contact }}",
+        "textBody": "=Property Status Update\n\nProperty: {{ $('Workflow Configuration').item.json.property_name || $('Workflow Configuration').item.json.property_id }}\nNew Status: {{ $('Workflow Configuration').item.json.status }}\n\nView Property Details: <__PLACEHOLDER_VALUE__Property details URL__>",
+        "additionalFields": {}
+      },
+      "id": "57f8653c-8092-4c26-b899-603936a1c236",
+      "name": "Send WhatsApp Notification",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        1632
+      ],
+      "webhookId": "489fd739-1f54-466a-9e09-5399ecadd07c"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true\n}",
+        "options": {}
+      },
+      "id": "4c69c4b1-83a8-44d4-af0f-41c4b38c4bf0",
+      "name": "Return Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        1632
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Update Property Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Property Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Notify Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Notify Contact": {
+      "main": [
+        [
+          {
+            "node": "Get Property Contact Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Contact Info": {
+      "main": [
+        [
+          {
+            "node": "Check Preferred Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Preferred Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 2,
+    "consistency_note": "Property status update service. Called by WF10 (cleaning) and WF14 (maintenance)."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

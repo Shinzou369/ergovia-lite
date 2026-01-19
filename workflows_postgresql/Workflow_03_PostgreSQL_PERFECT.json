@@ -1,0 +1,727 @@
+{
+  "name": "Workflow CP-3: Real-Time Availability Checker - Enhanced [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "availability-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8c70a386-76f8-4e42-9f8a-525ade7be605",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -240,
+        -208
+      ],
+      "webhookId": "71bbe069-af1d-42d7-af16-6ed18c76879e"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "ba5e5774-40f3-4dd2-8e91-6e17272437b1",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -16
+      ],
+      "webhookId": "f93612f7-2326-46a3-9805-36b850c29208"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "c4cd8a4c-eec0-4ce3-8af5-7ec6ec316361",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        192
+      ],
+      "webhookId": "725155c7-75a5-4044-b326-1fa7ea37cdce"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "id": "54c25dbd-d2e7-44e9-bf10-032422650431",
+      "name": "Merge All Inputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -16,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "dealsSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheet ID for Deals__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "calendarId",
+              "value": "<__PLACEHOLDER_VALUE__Google Calendar ID__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "608a533d-f341-404c-9de3-4cead915fae9",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Input Parser & Validator\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  let source, property_name, check_in, check_out, channelType, contactId, chatId;\n  \n  // DETERMINE SOURCE AND EXTRACT DATA\n  if (data.body && data.body.property_name) {\n    // Webhook input\n    source = 'webhook';\n    property_name = data.body.property_name;\n    check_in = data.body.check_in;\n    check_out = data.body.check_out;\n    channelType = null;\n    contactId = null;\n  } \n  else {\n    // Command input (Telegram or WhatsApp)\n    source = 'command';\n    \n    // Extract message text\n    let text = '';\n    if (data.message && data.message.text) {\n      // Telegram\n      text = data.message.text;\n      channelType = 'telegram';\n      contactId = data.message.from.id ? data.message.from.id.toString() : null;\n      chatId = data.message.chat.id ? data.message.chat.id.toString() : null;\n    } \n    else if (data.text && data.text.body) {\n      // WhatsApp\n      text = data.text.body;\n      channelType = 'whatsapp';\n      contactId = data.from;\n    }\n    else if (data.Body) {\n      // SMS/Twilio\n      text = data.Body;\n      channelType = 'sms';\n      contactId = data.From;\n    }\n    \n    // Parse command format: /availability PropertyName YYYY-MM-DD YYYY-MM-DD\n    const parts = text.trim().split(/\\s+/);\n    \n    // Check if command has correct number of parts\n    if (parts.length !== 4 || !parts[0].startsWith('/availability')) {\n      results.push({\n        json: {\n          error: true,\n          error_type: 'invalid_format',\n          message: '\u274c *Invalid Format*\\n\\nCorrect usage:\\n`/availability PropertyName YYYY-MM-DD YYYY-MM-DD`\\n\\nExample:\\n`/availability Villa2024 2025-03-15 2025-03-20`',\n          channel_type: channelType,\n          contact_id: contactId,\n          chat_id: chatId\n        }\n      });\n      continue;\n    }\n    \n    property_name = parts[1];\n    check_in = parts[2];\n    check_out = parts[3];\n  }\n  \n  // VALIDATE DATES\n  const checkInDate = new Date(check_in);\n  const checkOutDate = new Date(check_out);\n  const now = new Date();\n  now.setHours(0, 0, 0, 0); // Reset to start of day for comparison\n  \n  // Check if dates are valid\n  if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {\n    results.push({\n      json: {\n        error: true,\n        error_type: 'invalid_date',\n        message: '\u274c *Invalid Date Format*\\n\\nDates must be in YYYY-MM-DD format\\n\\nExample:\\n`/availability Villa2024 2025-03-15 2025-03-20`',\n        channel_type: channelType,\n        contact_id: contactId,\n        chat_id: chatId\n      }\n    });\n    continue;\n  }\n  \n  // Check if check-in is in the past\n  if (checkInDate < now) {\n    results.push({\n      json: {\n        error: true,\n        error_type: 'past_date',\n        message: '\u274c *Check-in Date in Past*\\n\\nCheck-in date must be today or in the future\\n\\nPlease choose a future date.',\n        channel_type: channelType,\n        contact_id: contactId,\n        chat_id: chatId\n      }\n    });\n    continue;\n  }\n  \n  // Check if check-out is after check-in\n  if (checkOutDate <= checkInDate) {\n    results.push({\n      json: {\n        error: true,\n        error_type: 'invalid_date_range',\n        message: '\u274c *Invalid Date Range*\\n\\nCheck-out date must be after check-in date\\n\\nPlease correct your dates.',\n        channel_type: channelType,\n        contact_id: contactId,\n        chat_id: chatId\n      }\n    });\n    continue;\n  }\n  \n  // Calculate nights\n  const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));\n  \n  // Check for reasonable stay length (optional validation)\n  if (nights > 365) {\n    results.push({\n      json: {\n        error: true,\n        error_type: 'stay_too_long',\n        message: '\u274c *Stay Too Long*\\n\\nMaximum stay duration is 365 nights\\n\\nPlease choose a shorter date range.',\n        channel_type: channelType,\n        contact_id: contactId,\n        chat_id: chatId\n      }\n    });\n    continue;\n  }\n  \n  // Valid input - proceed to availability check\n  results.push({\n    json: {\n      source: source,\n      property_name: property_name,\n      check_in: check_in,\n      check_out: check_out,\n      check_in_date: checkInDate.toISOString(),\n      check_out_date: checkOutDate.toISOString(),\n      nights: nights,\n      channel_type: channelType,\n      contact_id: contactId,\n      chat_id: chatId,\n      error: false\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "843698b6-3b21-40e2-8ec7-895b8c70eb79",
+      "name": "Input Parser & Validator",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "36bf306a-ed14-4361-9b4f-f7fb6ffd4528",
+      "name": "Check for Validation Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.calendarId }}"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "91b53d39-cdd1-48a9-a215-6591dbb822bf",
+      "name": "Query Calendar Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        880,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    deal_id,\n    client_name,\n    client_phone,\n    check_in_date,\n    check_out_date,\n    guests,\n    status,\n    created_at\nFROM deals \nWHERE property_name = $1 \n  AND status IN ('pending', 'approved', 'negotiation', 'pending_conflict', \n                 'needs_owner_decision', 'pending_payment_confirmation')\n  AND (\n    -- Check for date overlap with requested dates\n    (check_in_date <= $3 AND check_out_date >= $2)\n  )\nORDER BY created_at ASC",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_name, $json.check_in_date, $json.check_out_date] } }}"
+        },
+        "options": {}
+      },
+      "id": "7cff93a4-ca3a-4dd5-8e66-8ceb4f2825cb",
+      "name": "Query Active Deals",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        880,
+        96
+      ],
+      "notes": "PostgreSQL: Checks for conflicting deals on same property and dates.\nCRITICAL: Uses same status values as Workflows 00, 02 for consistency:\n- pending, approved, negotiation (active deals)\n- pending_conflict, needs_owner_decision (needs resolution)\n- pending_payment_confirmation (waiting for payment)\nReturns deals that overlap with requested check-in/check-out dates."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced Conflict Detection with Date Overlap Logic\nconst requestData = $('Input Parser & Validator').first().json;\nconst calendarEvents = $('Query Calendar Events').all();\nconst deals = $('Query Active Deals').all();\n\nconst requestStart = new Date(requestData.check_in);\nconst requestEnd = new Date(requestData.check_out);\n\n// Helper function to check date overlap\nconst hasOverlap = (start1, end1, start2, end2) => {\n  // Overlap exists if: start1 < end2 AND end1 > start2\n  return start1 < end2 && end1 > start2;\n};\n\nconst conflicts = [];\n\n// CHECK CALENDAR EVENTS\ncalendarEvents.forEach(event => {\n  const e = event.json;\n  \n  // Skip if no start/end times\n  if (!e.start || !e.end) return;\n  \n  // Parse event dates\n  const eventStart = new Date(e.start.date || e.start.dateTime);\n  const eventEnd = new Date(e.end.date || e.end.dateTime);\n  \n  // Check for overlap\n  if (hasOverlap(requestStart, requestEnd, eventStart, eventEnd)) {\n    conflicts.push({\n      type: 'calendar',\n      source: 'calendar_block',\n      summary: e.summary || 'Blocked Date',\n      start_date: eventStart.toISOString().split('T')[0],\n      end_date: eventEnd.toISOString().split('T')[0],\n      description: e.description || null\n    });\n  }\n});\n\n// CHECK ACTIVE DEALS\ndeals.forEach(deal => {\n  const d = deal.json;\n  \n  // Skip if deal is for different property\n  if (d.property_name !== requestData.property_name) return;\n  \n  // Skip if deal is not in active status\n  const activeStatuses = ['pending', 'approved', 'negotiation'];\n  if (!activeStatuses.includes(d.status)) return;\n  \n  // Parse deal dates\n  const dealStart = new Date(d.check_in_date);\n  const dealEnd = new Date(d.check_out_date);\n  \n  // Validate dates\n  if (isNaN(dealStart.getTime()) || isNaN(dealEnd.getTime())) return;\n  \n  // Check for overlap\n  if (hasOverlap(requestStart, requestEnd, dealStart, dealEnd)) {\n    conflicts.push({\n      type: 'deal',\n      source: 'active_booking',\n      client_name: d.client_name || 'Guest',\n      deal_status: d.status,\n      start_date: d.check_in_date,\n      end_date: d.check_out_date,\n      deal_id: d.deal_id\n    });\n  }\n});\n\n// Determine availability\nconst isAvailable = conflicts.length === 0;\n\n// Calculate pricing if available (optional)\nlet estimatedPrice = null;\nif (isAvailable && requestData.nights) {\n  // This would typically come from property configuration\n  // For now, using placeholder logic\n  estimatedPrice = requestData.nights * 150; // $150/night placeholder\n}\n\nreturn [{\n  json: {\n    is_available: isAvailable,\n    property_name: requestData.property_name,\n    check_in: requestData.check_in,\n    check_out: requestData.check_out,\n    nights: requestData.nights,\n    conflicts: conflicts,\n    conflict_count: conflicts.length,\n    estimated_price: estimatedPrice,\n    source: requestData.source,\n    channel_type: requestData.channel_type,\n    contact_id: requestData.contact_id,\n    chat_id: requestData.chat_id,\n    checked_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "4c8ddf42-5b76-4281-ad70-b1e1ba708d8f",
+      "name": "Conflict Detection Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.source }}",
+                    "rightValue": "webhook",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "webhook"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.source }}",
+                    "rightValue": "command",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "command"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "30561145-827f-42c9-9f40-5dbf1f9dfe0f",
+      "name": "Route by Source",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1328,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  available: $json.is_available,\n  property_name: $json.property_name,\n  check_in: $json.check_in,\n  check_out: $json.check_out,\n  nights: $json.nights,\n  estimated_price: $json.estimated_price,\n  conflicts: $json.conflicts,\n  checked_at: $json.checked_at\n} }}",
+        "options": {}
+      },
+      "id": "2139dfd9-9ce5-4d59-8afb-9418eefa78c8",
+      "name": "HTTP Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1552,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Clear Availability Response\nconst data = $json;\n\nlet message, keyboard;\n\nif (data.is_available) {\n  // AVAILABLE RESPONSE\n  message = `\u2705 *AVAILABLE*\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n`;\n  message += `\ud83d\udccd Property: ${data.property_name}\\n`;\n  message += `\ud83d\udcc5 Check-in: ${data.check_in}\\n`;\n  message += `\ud83d\udcc5 Check-out: ${data.check_out}\\n`;\n  message += `\ud83c\udf19 Nights: ${data.nights}\\n`;\n  \n  if (data.estimated_price) {\n    message += `\ud83d\udcb0 Est. Price: $${data.estimated_price}\\n`;\n  }\n  \n  message += `\\n\ud83c\udf89 *This property is available!*\\n\\n`;\n  message += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;\n  \n  keyboard = {\n    inline_keyboard: [\n      [{text: '\u2713 Create Booking', callback_data: `book_${data.property_name}`}],\n      [{text: '\ud83d\udd0d Check Other Dates', callback_data: 'check_other'}],\n      [{text: '\ud83c\udfe0 View All Properties', callback_data: 'all_properties'}],\n      [{text: '\ud83c\udfe1 Dashboard', callback_data: 'dashboard'}]\n    ]\n  };\n} else {\n  // NOT AVAILABLE RESPONSE\n  message = `\u274c *NOT AVAILABLE*\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n`;\n  message += `\ud83d\udccd Property: ${data.property_name}\\n`;\n  message += `\ud83d\udcc5 Check-in: ${data.check_in}\\n`;\n  message += `\ud83d\udcc5 Check-out: ${data.check_out}\\n`;\n  message += `\ud83c\udf19 Nights: ${data.nights}\\n\\n`;\n  message += `*Conflicts Found (${data.conflict_count}):*\\n\\n`;\n  \n  data.conflicts.forEach((c, index) => {\n    message += `${index + 1}. `;\n    \n    if (c.type === 'calendar') {\n      message += `\ud83d\udcc5 *${c.summary}*\\n`;\n      message += `   Dates: ${c.start_date} \u2192 ${c.end_date}\\n`;\n    } else if (c.type === 'deal') {\n      message += `\ud83d\udc64 *${c.client_name}* (${c.deal_status})\\n`;\n      message += `   Dates: ${c.start_date} \u2192 ${c.end_date}\\n`;\n    }\n    \n    message += `\\n`;\n  });\n  \n  message += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n`;\n  message += `\ud83d\udca1 Try different dates or check other properties`;\n  \n  keyboard = {\n    inline_keyboard: [\n      [{text: '\ud83d\udd0d Check Other Dates', callback_data: 'check_other'}],\n      [{text: '\ud83c\udfe0 View Alternative Properties', callback_data: 'alternatives'}],\n      [{text: '\ud83c\udfe1 Dashboard', callback_data: 'dashboard'}]\n    ]\n  };\n}\n\nreturn [{\n  json: {\n    message: message,\n    keyboard: keyboard,\n    channel_type: data.channel_type,\n    contact_id: data.contact_id,\n    chat_id: data.chat_id\n  }\n}];"
+      },
+      "id": "2d09b749-60d9-49cd-9a83-0058ebabe8a2",
+      "name": "Format Message Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "default_telegram"
+        }
+      },
+      "id": "79cac167-7526-40f2-a657-cb5d5c3675dd",
+      "name": "Route by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "33d08c43-27ad-4ccd-ba1b-b92dbf9a0238",
+      "name": "Send Telegram Response",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2000,
+        16
+      ],
+      "webhookId": "b8ce8da2-e6ed-43c2-b1d4-13154c0cd489"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format for WhatsApp (max 3 buttons)\nconst data = $input.first().json;\n\nconst buttons = data.keyboard.inline_keyboard\n  .slice(0, 3)\n  .map(row => ({\n    type: 'reply',\n    reply: {\n      id: row[0].callback_data,\n      title: row[0].text.substring(0, 20)\n    }\n  }));\n\nreturn [{\n  json: {\n    to: data.contact_id,\n    body: data.message,\n    buttons: buttons\n  }\n}];"
+      },
+      "id": "74a0ecaf-9dbb-4360-9917-8be5762dc128",
+      "name": "Format for WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.to }}",
+        "additionalFields": {}
+      },
+      "id": "f71554b5-e921-4acc-b592-00c9b1406b5d",
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        2224,
+        176
+      ],
+      "webhookId": "b7ac1d2a-53b8-4c8c-b918-9a78ed5bdf75"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_type }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "default_telegram"
+        }
+      },
+      "id": "6506d372-e150-44dd-b3bc-df4ea39ee0a4",
+      "name": "Error Route by Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "d4dfff96-0ca2-49fb-8f70-72ea049dfae7",
+      "name": "Send Telegram Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        144
+      ],
+      "webhookId": "50d60dac-8c22-4d58-a35c-8ec02f350595"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.contact_id }}",
+        "additionalFields": {}
+      },
+      "id": "b4d32bc3-646f-46d9-8708-454afb584174",
+      "name": "Send WhatsApp Error",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        304
+      ],
+      "webhookId": "5fb3d56f-a8c7-4a9c-bb3e-05f49c2a7d44"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Inputs",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge All Inputs": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Input Parser & Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Parser & Validator": {
+      "main": [
+        [
+          {
+            "node": "Check for Validation Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Validation Errors": {
+      "main": [
+        [
+          {
+            "node": "Error Route by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query Calendar Events",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Active Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Calendar Events": {
+      "main": [
+        [
+          {
+            "node": "Conflict Detection Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Active Deals": {
+      "main": [
+        [
+          {
+            "node": "Conflict Detection Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conflict Detection Engine": {
+      "main": [
+        [
+          {
+            "node": "Route by Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Source": {
+      "main": [
+        [
+          {
+            "node": "HTTP Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Message Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message Response": {
+      "main": [
+        [
+          {
+            "node": "Route by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format for WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Route by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c1d98695-09a1-47da-8f65-0f1062c1a0cd",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 1,
+    "consistency_note": "Status values match Workflows 00, 02 for data consistency"
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

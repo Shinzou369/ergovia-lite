@@ -1,0 +1,1223 @@
+{
+  "name": "Workflow 17: Guest Screening System [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "6b9c121b-36f5-4d48-9a1b-53478c158f1e",
+      "name": "Direct Booking Request Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.4,
+      "position": [
+        -3152,
+        1840
+      ],
+      "webhookId": "8a77463d-913c-4127-ae7b-413cfd0d2dea"
+    },
+    {
+      "parameters": {},
+      "id": "b1fff084-098e-4f7b-b4d0-8e1c439d7a7f",
+      "name": "Extract Form Data and Calculate Nights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2928,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM guest_blacklist \nWHERE (guest_phone = $1 OR guest_email = $2)\n  AND status = 'active'\n  AND (expires_at IS NULL OR expires_at > CURRENT_DATE)\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.guest_phone, $json.guest_email] } }}"
+        },
+        "options": {}
+      },
+      "id": "f0690959-0c96-4a5e-b157-49b3c03c715f",
+      "name": "Check Guest Blacklist",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2704,
+        1744
+      ],
+      "notes": "PostgreSQL: Checks if guest is on active blacklist by phone or email."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "5f63164d-59cb-43af-884c-7a27aec51b54",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2704,
+        1936
+      ],
+      "notes": "PostgreSQL: Gets property config for screening rules and owner contact."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bae08d3f-3f2c-41ab-be47-2ad6a1a2c234",
+      "name": "Is Guest Blacklisted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2480,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e03c79da-1d9d-4814-b47c-c29adb234e3d",
+      "name": "Contact Prefers Telegram or WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2256,
+        1648
+      ]
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "id": "5b22ff06-0682-491e-95c6-4744b915591d",
+      "name": "Notify Contact via Telegram - Blacklisted",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2032,
+        1552
+      ],
+      "webhookId": "efbbb9e1-dec9-443e-9e04-45d60c2d079f"
+    },
+    {
+      "parameters": {},
+      "id": "ebae6f10-bc78-446b-9d3a-63090105940f",
+      "name": "Notify Contact via WhatsApp - Blacklisted",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2032,
+        1744
+      ],
+      "webhookId": "4745f812-9f4c-487d-a05a-7430820570b0"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d83648c5-1f4f-4d09-a7fa-5e2a29274738",
+      "name": "Guest Prefers SMS or WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1808,
+        1648
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "53bd21b9-2714-490d-ba3f-4991704846f0",
+      "name": "Decline Guest via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -1584,
+        1552
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a590a381-1c9f-487f-8ea1-086cb261b665",
+      "name": "Decline Guest via WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -1584,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "guest_screening_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "screening_id": "={{ \"SCR-\" + $now.toMillis() + \"-\" + Math.random().toString(36).substring(2, 9) }}",
+            "guest_name": "={{ $json.guest_name }}",
+            "guest_phone": "={{ $json.guest_phone }}",
+            "guest_email": "={{ $json.guest_email }}",
+            "property_id": "={{ $json.property_id }}",
+            "blacklist_match": true,
+            "blacklist_reason": "={{ $json.blacklist_reason }}",
+            "decision": "auto_declined",
+            "decision_date": "={{ $now.toISO() }}",
+            "decided_by": "system"
+          }
+        },
+        "options": {}
+      },
+      "id": "99453f5a-0166-41fb-b8fa-73853a8db9cd",
+      "name": "Log Blacklist Decline",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1360,
+        1648
+      ],
+      "notes": "PostgreSQL: Logs automatic decline due to blacklist match."
+    },
+    {
+      "parameters": {},
+      "id": "11b20fd6-cfd9-4726-aebc-c3f158420fa7",
+      "name": "Calculate Pattern Risk Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a40b2064-edff-42da-ab86-b398d0508b1d",
+      "name": "OpenAI Party Risk Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2032,
+        1936
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e0c14131-3438-40ca-918c-b27c12c74020",
+      "name": "Combine Scores and Categorize Risk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "guest_screening_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "screening_id": "={{ \"SCR-\" + $now.toMillis() + \"-\" + Math.random().toString(36).substring(2, 9) }}",
+            "guest_name": "={{ $json.guest_name }}",
+            "guest_phone": "={{ $json.guest_phone }}",
+            "guest_email": "={{ $json.guest_email }}",
+            "property_id": "={{ $json.property_id }}",
+            "check_in_date": "={{ $json.check_in_date }}",
+            "check_out_date": "={{ $json.check_out_date }}",
+            "guests": "={{ $json.guests }}",
+            "risk_score": "={{ $json.risk_score }}",
+            "risk_level": "={{ $json.risk_level }}",
+            "risk_factors": "={{ JSON.stringify($json.risk_factors || []) }}",
+            "confidence": "={{ $json.confidence }}",
+            "blacklist_match": false,
+            "decision": "={{ $json.risk_level === \"high\" || $json.risk_level === \"very_high\" ? \"needs_approval\" : \"auto_approved\" }}",
+            "deal_id": "={{ $json.deal_id }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "9562c824-85a0-42ca-a7ea-c51c041fad49",
+      "name": "Log Screening Result",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1584,
+        1936
+      ],
+      "notes": "PostgreSQL: Logs AI screening result. High risk \u2192 needs_approval, Low risk \u2192 auto_approved."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "486104d2-64f5-43a9-a129-62f975add271",
+      "name": "Route by Risk Level",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1360,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9163a540-6795-467a-b9e8-733739a94ba9",
+      "name": "Contact Platform - Low Risk",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1136,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "id": "5f861444-75f3-4fbb-ab40-700f782f0fcf",
+      "name": "Notify Contact via Telegram - Low Risk",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -912,
+        1840
+      ],
+      "webhookId": "c5e82038-f9f4-4437-9ee6-edd548156694"
+    },
+    {
+      "parameters": {},
+      "id": "418b4fc2-4431-4359-b388-4255045c968a",
+      "name": "Notify Contact via WhatsApp - Low Risk",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -912,
+        2032
+      ],
+      "webhookId": "6ffce89c-7f2c-49d7-9042-90b191cb3384"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5640a9ab-bb8f-4beb-b984-768789ac771f",
+      "name": "Contact Platform - Medium Risk",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3152,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "id": "c49e3224-7dc7-4375-8f69-aeca41cc9d6e",
+      "name": "Notify Contact via Telegram - Medium Risk",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "624c3acb-d979-4b97-801e-508c1f8a0518"
+    },
+    {
+      "parameters": {},
+      "id": "766b9c08-778f-4e8d-961e-03111c1b298b",
+      "name": "Notify Contact via WhatsApp - Medium Risk",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        368
+      ],
+      "webhookId": "20b876da-c3ca-4469-8e61-a108f6b7c2e3"
+    },
+    {
+      "parameters": {},
+      "id": "72cd5c81-6f06-47d9-9651-a9f9ba894e90",
+      "name": "Wait for Medium Risk Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        272
+      ],
+      "webhookId": "ae8935e6-4ed2-4aa8-80c8-150f903ff1d0"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b2cbab66-fa4c-4e0e-81dc-e52d3b99d625",
+      "name": "Contact Platform - High Risk",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3152,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "id": "66e5b2a2-5e66-4cdb-aa86-4e00729bdfe9",
+      "name": "Notify Contact via Telegram - High Risk",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        560
+      ],
+      "webhookId": "b2d9f2c4-1849-4b65-b474-0c87456e3bbb"
+    },
+    {
+      "parameters": {},
+      "id": "08c9a954-c4cc-422c-96e2-d5d1a6044559",
+      "name": "Notify Contact via WhatsApp - High Risk",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        752
+      ],
+      "webhookId": "362c3962-d3fa-4c5c-94a3-9f16c15fb31a"
+    },
+    {
+      "parameters": {},
+      "id": "b2fef5bb-833d-4f39-969b-6046816ad927",
+      "name": "Wait for High Risk Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        656
+      ],
+      "webhookId": "1a87ad6c-eec6-4a87-bf54-05da3ead935e"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f461e11b-869c-44a0-bf0e-59acc73f36f2",
+      "name": "Process Contact Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2480,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b4903ad8-7ca5-41a5-9e83-7ce22442bfb0",
+      "name": "Guest Communication Platform - Approve",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2256,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3c5e1629-8308-4c47-ad12-84be1c9da2bc",
+      "name": "Send Payment Instructions via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "faddaf9f-818f-40bc-86ee-895a1bf2841e",
+      "name": "Send Payment Instructions via WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ebb64cbe-ed12-43e4-b287-90857693df79",
+      "name": "Guest Communication Platform - Decline",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2480,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "bff041f2-6695-4fb5-800c-43d759770170",
+      "name": "Send Decline via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2256,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5b57785e-2e65-415e-aebb-ae346fd97093",
+      "name": "Send Decline via WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2256,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE guest_screening_log \nSET decision = $2,\n    decision_date = $3,\n    decided_by = $4,\n    updated_at = CURRENT_TIMESTAMP\nWHERE screening_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.screening_id, $json.decision || \"declined_by_owner\", $now.toISO(), $json.contact_name || \"owner\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "bb3b5354-c3fb-4b15-a00d-5dc3a70c0b6f",
+      "name": "Update Log - Declined by Contact",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2032,
+        848
+      ],
+      "notes": "PostgreSQL: Updates log with owner decision (approved_by_owner or declined_by_owner)."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "149e9fd6-205e-48ec-a605-350b6203a87e",
+      "name": "Guest Communication Platform - More Info",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2256,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c5dc76bf-772e-429d-bb39-b416688288cc",
+      "name": "Request More Info via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "37ca5773-b5f7-4083-bba9-915cad852efb",
+      "name": "Request More Info via WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3f477fac-cf9c-4719-81d3-9d40bfc7da41",
+      "name": "Contact Confirmation Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1808,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "additionalFields": {}
+      },
+      "id": "0dfc5eed-752b-4c3b-a605-178540e34080",
+      "name": "Send Confirmation to Contact via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1584,
+        752
+      ],
+      "webhookId": "b9ef2c1a-547e-45ae-b6a6-bc3422ae773e"
+    },
+    {
+      "parameters": {},
+      "id": "1ae22220-22f7-436f-82a0-a8d3acabbc93",
+      "name": "Send Confirmation to Contact via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1584,
+        944
+      ],
+      "webhookId": "2d1d80b5-d3a3-4aa2-89ad-52a914301842"
+    },
+    {
+      "parameters": {
+        "path": "guest-screening",
+        "options": {}
+      },
+      "id": "9bfed5cc-8b87-4f98-a077-818a63062bdd",
+      "name": "Payment Confirmation Handler",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -3152,
+        2352
+      ],
+      "webhookId": "22272e51-0281-42be-aa6e-ef63829a1b5f"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "452ec643-a6ed-4f69-bd30-53eaab883afc",
+      "name": "Guest Communication Platform - Confirmation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2928,
+        2352
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3b6a7b96-8e8c-445e-906d-7851a9af01fa",
+      "name": "Send Booking Confirmation via SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2704,
+        2256
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a5bc5829-4984-4da1-b542-5a326dc7d51d",
+      "name": "Send Booking Confirmation via WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2704,
+        2448
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Direct Booking Request Form": {
+      "main": [
+        [
+          {
+            "node": "Extract Form Data and Calculate Nights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Form Data and Calculate Nights": {
+      "main": [
+        [
+          {
+            "node": "Check Guest Blacklist",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Guest Blacklist": {
+      "main": [
+        [
+          {
+            "node": "Is Guest Blacklisted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Guest Blacklisted?": {
+      "main": [
+        [
+          {
+            "node": "Contact Prefers Telegram or WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Pattern Risk Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Prefers Telegram or WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Notify Contact via Telegram - Blacklisted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Contact via WhatsApp - Blacklisted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Contact via Telegram - Blacklisted": {
+      "main": [
+        [
+          {
+            "node": "Guest Prefers SMS or WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Contact via WhatsApp - Blacklisted": {
+      "main": [
+        [
+          {
+            "node": "Guest Prefers SMS or WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest Prefers SMS or WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Decline Guest via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Decline Guest via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decline Guest via SMS": {
+      "main": [
+        [
+          {
+            "node": "Log Blacklist Decline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decline Guest via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Log Blacklist Decline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Pattern Risk Score": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Party Risk Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Party Risk Analysis": {
+      "main": [
+        [
+          {
+            "node": "Combine Scores and Categorize Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Scores and Categorize Risk": {
+      "main": [
+        [
+          {
+            "node": "Log Screening Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Screening Result": {
+      "main": [
+        [
+          {
+            "node": "Route by Risk Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Risk Level": {
+      "main": [
+        [
+          {
+            "node": "Contact Platform - Low Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Platform - Low Risk": {
+      "main": [
+        [
+          {
+            "node": "Notify Contact via Telegram - Low Risk",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Contact via WhatsApp - Low Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Platform - Medium Risk": {
+      "main": [
+        [
+          {
+            "node": "Notify Contact via Telegram - Medium Risk",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Contact via WhatsApp - Medium Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Contact via Telegram - Medium Risk": {
+      "main": [
+        [
+          {
+            "node": "Wait for Medium Risk Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Contact via WhatsApp - Medium Risk": {
+      "main": [
+        [
+          {
+            "node": "Wait for Medium Risk Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Medium Risk Decision": {
+      "main": [
+        [
+          {
+            "node": "Process Contact Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Platform - High Risk": {
+      "main": [
+        [
+          {
+            "node": "Notify Contact via Telegram - High Risk",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Contact via WhatsApp - High Risk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Contact via Telegram - High Risk": {
+      "main": [
+        [
+          {
+            "node": "Wait for High Risk Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Contact via WhatsApp - High Risk": {
+      "main": [
+        [
+          {
+            "node": "Wait for High Risk Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for High Risk Decision": {
+      "main": [
+        [
+          {
+            "node": "Process Contact Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Contact Decision": {
+      "main": [
+        [
+          {
+            "node": "Guest Communication Platform - Approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest Communication Platform - Approve": {
+      "main": [
+        [
+          {
+            "node": "Send Payment Instructions via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Payment Instructions via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Payment Instructions via SMS": {
+      "main": [
+        [
+          {
+            "node": "Contact Confirmation Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Payment Instructions via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Contact Confirmation Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest Communication Platform - Decline": {
+      "main": [
+        [
+          {
+            "node": "Send Decline via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Decline via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Decline via SMS": {
+      "main": [
+        [
+          {
+            "node": "Update Log - Declined by Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Decline via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Update Log - Declined by Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Log - Declined by Contact": {
+      "main": [
+        [
+          {
+            "node": "Contact Confirmation Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest Communication Platform - More Info": {
+      "main": [
+        [
+          {
+            "node": "Request More Info via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Request More Info via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request More Info via SMS": {
+      "main": [
+        [
+          {
+            "node": "Contact Confirmation Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request More Info via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Contact Confirmation Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Confirmation Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation to Contact via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirmation to Contact via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment Confirmation Handler": {
+      "main": [
+        [
+          {
+            "node": "Guest Communication Platform - Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guest Communication Platform - Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Send Booking Confirmation via SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Booking Confirmation via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 5,
+    "consistency_note": "Guest screening with AI risk assessment. Auto-declines blacklisted guests, requires approval for high-risk."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

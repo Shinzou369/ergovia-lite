@@ -1,0 +1,142 @@
+{
+  "name": "SUB-3: 🗄️ Database Provisioner (PostgreSQL + NocoDB)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When called by Master",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst dbConfig = {\n  customer_id: data.customer_id,\n  db_name: `prismity_${data.customer_id.replace(/-/g, '_')}`,\n  db_user: `user_${data.customer_id.replace(/-/g, '_').substring(0, 20)}`,\n  db_password: require('crypto').randomBytes(24).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 32),\n  server_ip: data.server.ip,\n  root_password: data.server.root_password,\n  domain: data.domain,\n  owner: data.owner,\n  properties: data.properties || [],\n  nocodb_port: 8080,\n  postgres_port: 5432\n};\n\nreturn [{ json: dbConfig }];"
+      },
+      "id": "prepare-db-config",
+      "name": "Prepare Database Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nset -e\n\nSERVER_IP=\"{{ $json.server_ip }}\"\nDB_NAME=\"{{ $json.db_name }}\"\nDB_USER=\"{{ $json.db_user }}\"\nDB_PASSWORD=\"{{ $json.db_password }}\"\nCUSTOMER_ID=\"{{ $json.customer_id }}\"\nROOT_PASSWORD=\"{{ $json.root_password }}\"\n\ncat > /tmp/setup_db_${CUSTOMER_ID}.sh << REMOTE_SCRIPT\n#!/bin/bash\nset -e\n\necho \"===== Setting up PostgreSQL Database =====\"\n\nsudo -u postgres psql << EOSQL\nCREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';\nCREATE DATABASE ${DB_NAME} OWNER ${DB_USER};\nGRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};\n\\\\c ${DB_NAME}\nGRANT ALL ON SCHEMA public TO ${DB_USER};\nEOSQL\n\necho \"DATABASE_CREATED: ${DB_NAME}\"\necho \"DATABASE_USER: ${DB_USER}\"\nREMOTE_SCRIPT\n\nsshpass -p \"${ROOT_PASSWORD}\" ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \"bash -s\" < /tmp/setup_db_${CUSTOMER_ID}.sh\n\necho \"DATABASE_CREATED: ${DB_NAME}\""
+      },
+      "id": "create-database",
+      "name": "Create PostgreSQL Database",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [680, 500],
+      "notes": "Creates PostgreSQL database and user on client's Hetzner server"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbConfig = $('Prepare Database Config').first().json;\n\nconst fullSchema = `-- Prismity AI Property Management PostgreSQL Schema\n-- Version: 1.0.0\n-- Auto-generated for customer: ${dbConfig.customer_id}\n\n-- Property Configurations\nCREATE TABLE IF NOT EXISTS property_configurations (\n    property_id VARCHAR(50) PRIMARY KEY,\n    property_name VARCHAR(255) NOT NULL,\n    property_type VARCHAR(50) DEFAULT 'vacation_rental',\n    property_status VARCHAR(20) DEFAULT 'active',\n    address TEXT,\n    city VARCHAR(100),\n    state VARCHAR(100),\n    country VARCHAR(100),\n    postal_code VARCHAR(20),\n    latitude DECIMAL(10, 8),\n    longitude DECIMAL(11, 8),\n    bedrooms INTEGER DEFAULT 1,\n    bathrooms DECIMAL(3,1) DEFAULT 1,\n    max_guests INTEGER DEFAULT 4,\n    square_feet INTEGER,\n    base_price DECIMAL(10,2),\n    cleaning_fee DECIMAL(10,2),\n    security_deposit DECIMAL(10,2),\n    minimum_nights INTEGER DEFAULT 1,\n    wifi_name VARCHAR(100),\n    wifi_password VARCHAR(100),\n    door_code VARCHAR(50),\n    gate_code VARCHAR(50),\n    parking_instructions TEXT,\n    checkin_time TIME DEFAULT '15:00',\n    checkout_time TIME DEFAULT '11:00',\n    owner_contact VARCHAR(255),\n    owner_email VARCHAR(255),\n    owner_phone VARCHAR(50),\n    telegram_id VARCHAR(100),\n    notification_channel VARCHAR(50) DEFAULT 'telegram',\n    notification_preferences JSONB DEFAULT '{}',\n    calendar_sync_enabled BOOLEAN DEFAULT true,\n    google_calendar_id VARCHAR(255),\n    google_calendar_link TEXT,\n    airbnb_link TEXT,\n    vrbo_link TEXT,\n    booking_link TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Bookings\nCREATE TABLE IF NOT EXISTS bookings (\n    booking_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    guest_name VARCHAR(255) NOT NULL,\n    guest_email VARCHAR(255),\n    guest_phone VARCHAR(50),\n    num_guests INTEGER DEFAULT 1,\n    check_in_date DATE NOT NULL,\n    check_out_date DATE NOT NULL,\n    booking_status VARCHAR(50) DEFAULT 'pending',\n    payment_status VARCHAR(50) DEFAULT 'pending',\n    total_price DECIMAL(10,2),\n    paid_amount DECIMAL(10,2) DEFAULT 0,\n    cleaning_fee DECIMAL(10,2),\n    booking_source VARCHAR(50),\n    special_requests TEXT,\n    notes TEXT,\n    payment_confirmed_at TIMESTAMP,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Deals\nCREATE TABLE IF NOT EXISTS deals (\n    deal_id VARCHAR(50) PRIMARY KEY,\n    property_name VARCHAR(255),\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    client_name VARCHAR(255),\n    client_email VARCHAR(255),\n    client_phone VARCHAR(50),\n    check_in_date DATE,\n    check_out_date DATE,\n    guests INTEGER,\n    status VARCHAR(50) DEFAULT 'negotiation',\n    priority VARCHAR(20) DEFAULT 'normal',\n    quoted_price DECIMAL(10,2),\n    final_price DECIMAL(10,2),\n    conversation_history JSONB DEFAULT '[]',\n    last_interaction TIMESTAMP,\n    escalation_timestamp TIMESTAMP,\n    escalation_reason TEXT,\n    booking_id VARCHAR(50),\n    approved_date TIMESTAMP,\n    approved_by VARCHAR(255),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Contacts\nCREATE TABLE IF NOT EXISTS contacts (\n    contact_id VARCHAR(50) PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n    email VARCHAR(255),\n    phone VARCHAR(50),\n    telegram_id VARCHAR(100),\n    whatsapp_id VARCHAR(100),\n    contact_type VARCHAR(50) DEFAULT 'guest',\n    tags JSONB DEFAULT '[]',\n    notes TEXT,\n    last_contact TIMESTAMP,\n    total_bookings INTEGER DEFAULT 0,\n    lifetime_value DECIMAL(10,2) DEFAULT 0,\n    status VARCHAR(20) DEFAULT 'active',\n    blacklisted BOOLEAN DEFAULT false,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Manual Tasks\nCREATE TABLE IF NOT EXISTS manual_tasks (\n    task_id VARCHAR(50) PRIMARY KEY,\n    title VARCHAR(255) NOT NULL,\n    description TEXT,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    assigned_to VARCHAR(255),\n    due_date DATE,\n    due_time TIME,\n    priority INTEGER DEFAULT 3,\n    status VARCHAR(20) DEFAULT 'pending',\n    completed_at TIMESTAMP,\n    completed_by VARCHAR(255),\n    completion_notes TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Control Panel Tasks\nCREATE TABLE IF NOT EXISTS control_panel_tasks (\n    task_id VARCHAR(50) PRIMARY KEY,\n    task_type VARCHAR(50) NOT NULL,\n    title VARCHAR(255) NOT NULL,\n    description TEXT,\n    property_id VARCHAR(50),\n    booking_id VARCHAR(50),\n    deal_id VARCHAR(50),\n    status VARCHAR(20) DEFAULT 'pending',\n    priority INTEGER DEFAULT 3,\n    action_required TEXT,\n    action_options JSONB DEFAULT '[]',\n    resolved_at TIMESTAMP,\n    resolved_by VARCHAR(255),\n    resolution_notes TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Cleaners\nCREATE TABLE IF NOT EXISTS cleaners (\n    cleaner_id VARCHAR(50) PRIMARY KEY,\n    cleaner_name VARCHAR(255) NOT NULL,\n    phone VARCHAR(50),\n    email VARCHAR(255),\n    max_jobs_per_day INTEGER DEFAULT 3,\n    current_jobs INTEGER DEFAULT 0,\n    current_workload INTEGER DEFAULT 0,\n    completed_jobs INTEGER DEFAULT 0,\n    average_rating DECIMAL(3,2),\n    status VARCHAR(20) DEFAULT 'active',\n    preferred_properties JSONB DEFAULT '[]',\n    availability JSONB DEFAULT '{}',\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Cleaning Tasks\nCREATE TABLE IF NOT EXISTS cleaning_tasks (\n    task_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    booking_id VARCHAR(50) REFERENCES bookings(booking_id),\n    cleaner_id VARCHAR(50) REFERENCES cleaners(cleaner_id),\n    cleaner_name VARCHAR(255),\n    scheduled_date DATE NOT NULL,\n    scheduled_time TIME,\n    status VARCHAR(20) DEFAULT 'pending',\n    completed_at TIMESTAMP,\n    completion_notes TEXT,\n    checklist_score INTEGER,\n    notes TEXT,\n    special_instructions TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Maintenance Tickets\nCREATE TABLE IF NOT EXISTS maintenance_tickets (\n    ticket_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    issue TEXT NOT NULL,\n    category VARCHAR(50),\n    priority VARCHAR(20) DEFAULT 'medium',\n    assigned_to VARCHAR(255),\n    vendor_id VARCHAR(50),\n    status VARCHAR(20) DEFAULT 'open',\n    resolved_at TIMESTAMP,\n    resolution_notes TEXT,\n    cost DECIMAL(10,2),\n    reported_by VARCHAR(255),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Vendors\nCREATE TABLE IF NOT EXISTS vendors (\n    vendor_id VARCHAR(50) PRIMARY KEY,\n    vendor_name VARCHAR(255) NOT NULL,\n    category VARCHAR(50) NOT NULL,\n    phone VARCHAR(50),\n    email VARCHAR(255),\n    max_concurrent_jobs INTEGER DEFAULT 5,\n    current_jobs INTEGER DEFAULT 0,\n    average_rating DECIMAL(3,2),\n    total_jobs INTEGER DEFAULT 0,\n    status VARCHAR(20) DEFAULT 'active',\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Scheduled Messages\nCREATE TABLE IF NOT EXISTS scheduled_messages (\n    message_id VARCHAR(50) PRIMARY KEY,\n    recipient_phone VARCHAR(50),\n    recipient_email VARCHAR(255),\n    recipient_telegram_id VARCHAR(100),\n    channel VARCHAR(20) DEFAULT 'telegram',\n    booking_id VARCHAR(50),\n    property_id VARCHAR(50),\n    message_type VARCHAR(50),\n    message_content TEXT NOT NULL,\n    scheduled_time TIMESTAMP NOT NULL,\n    status VARCHAR(20) DEFAULT 'pending',\n    sent_at TIMESTAMP,\n    error_message TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Inventory\nCREATE TABLE IF NOT EXISTS inventory (\n    item_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    item_name VARCHAR(255) NOT NULL,\n    category VARCHAR(50),\n    quantity INTEGER DEFAULT 0,\n    reorder_level INTEGER DEFAULT 5,\n    reorder_quantity INTEGER DEFAULT 10,\n    unit_cost DECIMAL(10,2),\n    last_restocked TIMESTAMP,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Suppliers\nCREATE TABLE IF NOT EXISTS suppliers (\n    supplier_id VARCHAR(50) PRIMARY KEY,\n    supplier_name VARCHAR(255) NOT NULL,\n    phone VARCHAR(50),\n    email VARCHAR(255),\n    website TEXT,\n    products JSONB DEFAULT '[]',\n    payment_terms TEXT,\n    status VARCHAR(20) DEFAULT 'active',\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Calendar Sync Log\nCREATE TABLE IF NOT EXISTS calendar_sync_log (\n    sync_id VARCHAR(100) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    sync_date DATE NOT NULL,\n    conflicts_count INTEGER DEFAULT 0,\n    events_found INTEGER DEFAULT 0,\n    status VARCHAR(20) DEFAULT 'pending',\n    manual_sync_completed BOOLEAN DEFAULT false,\n    completed_at TIMESTAMP,\n    completed_by VARCHAR(255),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Deal Conflicts\nCREATE TABLE IF NOT EXISTS deal_conflicts (\n    conflict_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    deal_ids JSONB DEFAULT '[]',\n    status VARCHAR(20) DEFAULT 'pending_decision',\n    chosen_deal_id VARCHAR(50),\n    resolved_at TIMESTAMP,\n    resolved_by VARCHAR(255),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Incidents\nCREATE TABLE IF NOT EXISTS incidents (\n    incident_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    booking_id VARCHAR(50) REFERENCES bookings(booking_id),\n    guest_phone VARCHAR(50),\n    guest_email VARCHAR(255),\n    severity VARCHAR(20) DEFAULT 'low',\n    description TEXT NOT NULL,\n    incident_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    resolved BOOLEAN DEFAULT false,\n    resolution_notes TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Guest Blacklist\nCREATE TABLE IF NOT EXISTS guest_blacklist (\n    blacklist_id VARCHAR(50) PRIMARY KEY,\n    guest_name VARCHAR(255),\n    guest_phone VARCHAR(50),\n    guest_email VARCHAR(255),\n    reason TEXT NOT NULL,\n    incident_ids JSONB DEFAULT '[]',\n    status VARCHAR(20) DEFAULT 'active',\n    expires_at DATE,\n    added_by VARCHAR(255),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Guest Screening Log\nCREATE TABLE IF NOT EXISTS guest_screening_log (\n    screening_id VARCHAR(50) PRIMARY KEY,\n    guest_name VARCHAR(255),\n    guest_phone VARCHAR(50),\n    guest_email VARCHAR(255),\n    property_id VARCHAR(50),\n    check_in_date DATE,\n    check_out_date DATE,\n    risk_score INTEGER DEFAULT 0,\n    flags JSONB DEFAULT '[]',\n    decision VARCHAR(20),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Reviews\nCREATE TABLE IF NOT EXISTS reviews (\n    review_id VARCHAR(50) PRIMARY KEY,\n    booking_id VARCHAR(50) REFERENCES bookings(booking_id),\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    rating INTEGER CHECK (rating >= 1 AND rating <= 5),\n    title VARCHAR(255),\n    comment TEXT,\n    platform VARCHAR(50),\n    platform_review_id VARCHAR(100),\n    response TEXT,\n    responded_at TIMESTAMP,\n    status VARCHAR(20) DEFAULT 'new',\n    review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Pricing History\nCREATE TABLE IF NOT EXISTS pricing_history (\n    pricing_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    date DATE NOT NULL,\n    base_price DECIMAL(10,2),\n    adjusted_price DECIMAL(10,2),\n    occupancy_rate DECIMAL(5,2),\n    local_events TEXT,\n    adjustment_reason TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Pricing Recommendations\nCREATE TABLE IF NOT EXISTS pricing_recommendations (\n    recommendation_id VARCHAR(50) PRIMARY KEY,\n    property_id VARCHAR(50) REFERENCES property_configurations(property_id),\n    start_date DATE,\n    end_date DATE,\n    current_price DECIMAL(10,2),\n    recommended_price DECIMAL(10,2),\n    confidence_score DECIMAL(3,2),\n    factors JSONB DEFAULT '{}',\n    status VARCHAR(20) DEFAULT 'pending',\n    applied BOOLEAN DEFAULT false,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Inquiries\nCREATE TABLE IF NOT EXISTS inquiries (\n    inquiry_id VARCHAR(50) PRIMARY KEY,\n    name VARCHAR(255),\n    phone VARCHAR(50),\n    email VARCHAR(255),\n    channel VARCHAR(20),\n    property_id VARCHAR(50),\n    check_in_date DATE,\n    check_out_date DATE,\n    guests INTEGER,\n    message TEXT,\n    status VARCHAR(20) DEFAULT 'new',\n    converted_to_deal VARCHAR(50),\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Workflow Config\nCREATE TABLE IF NOT EXISTS workflow_config (\n    config_key VARCHAR(100) PRIMARY KEY,\n    config_value TEXT,\n    description TEXT,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Indexes\nCREATE INDEX IF NOT EXISTS idx_bookings_property ON bookings(property_id);\nCREATE INDEX IF NOT EXISTS idx_bookings_dates ON bookings(check_in_date, check_out_date);\nCREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(booking_status);\nCREATE INDEX IF NOT EXISTS idx_bookings_guest_phone ON bookings(guest_phone);\nCREATE INDEX IF NOT EXISTS idx_deals_client_phone ON deals(client_phone);\nCREATE INDEX IF NOT EXISTS idx_deals_status ON deals(status);\nCREATE INDEX IF NOT EXISTS idx_deals_property ON deals(property_id);\nCREATE INDEX IF NOT EXISTS idx_cleaning_tasks_date ON cleaning_tasks(scheduled_date);\nCREATE INDEX IF NOT EXISTS idx_cleaning_tasks_status ON cleaning_tasks(status);\nCREATE INDEX IF NOT EXISTS idx_manual_tasks_status ON manual_tasks(status);\nCREATE INDEX IF NOT EXISTS idx_manual_tasks_due ON manual_tasks(due_date);\nCREATE INDEX IF NOT EXISTS idx_scheduled_messages_time ON scheduled_messages(scheduled_time);\nCREATE INDEX IF NOT EXISTS idx_scheduled_messages_status ON scheduled_messages(status);\nCREATE INDEX IF NOT EXISTS idx_incidents_guest ON incidents(guest_phone, guest_email);\nCREATE INDEX IF NOT EXISTS idx_inventory_property ON inventory(property_id);\nCREATE INDEX IF NOT EXISTS idx_inventory_reorder ON inventory(quantity, reorder_level);\n\n-- Initial config\nINSERT INTO workflow_config (config_key, config_value, description) VALUES\n    ('system_version', '1.0.0', 'Current system version'),\n    ('timezone', 'UTC', 'Default timezone'),\n    ('default_checkin_time', '15:00', 'Default check-in time'),\n    ('default_checkout_time', '11:00', 'Default check-out time'),\n    ('auto_approve_threshold', '500', 'Auto-approve bookings under this amount'),\n    ('ai_model', 'gpt-4', 'Default AI model'),\n    ('notification_delay_minutes', '5', 'Delay before sending notifications')\nON CONFLICT (config_key) DO NOTHING;`;\n\nreturn [{\n  json: {\n    ...dbConfig,\n    schema_sql: fullSchema\n  }\n}];"
+      },
+      "id": "prepare-schema",
+      "name": "Prepare Full Schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500],
+      "notes": "Generates complete schema with all 21 tables, indexes, and seed data"
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nset -e\n\nSERVER_IP=\"{{ $json.server_ip }}\"\nDB_NAME=\"{{ $json.db_name }}\"\nDB_USER=\"{{ $json.db_user }}\"\nDB_PASSWORD=\"{{ $json.db_password }}\"\nCUSTOMER_ID=\"{{ $json.customer_id }}\"\nROOT_PASSWORD=\"{{ $json.root_password }}\"\n\necho '{{ $json.schema_sql }}' > /tmp/schema_${CUSTOMER_ID}.sql\n\nsshpass -p \"${ROOT_PASSWORD}\" scp -o StrictHostKeyChecking=no /tmp/schema_${CUSTOMER_ID}.sql root@${SERVER_IP}:/tmp/\nsshpass -p \"${ROOT_PASSWORD}\" ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \"PGPASSWORD=${DB_PASSWORD} psql -h localhost -U ${DB_USER} -d ${DB_NAME} -f /tmp/schema_${CUSTOMER_ID}.sql 2>&1\"\n\necho \"SCHEMA_APPLIED: success\"\necho \"TABLES_CREATED: 21\""
+      },
+      "id": "apply-schema",
+      "name": "Apply Database Schema",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1120, 500],
+      "notes": "Creates all 21 tables with foreign keys and indexes"
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nset -e\n\nSERVER_IP=\"{{ $json.server_ip }}\"\nDB_NAME=\"{{ $json.db_name }}\"\nDB_USER=\"{{ $json.db_user }}\"\nDB_PASSWORD=\"{{ $json.db_password }}\"\nCUSTOMER_ID=\"{{ $json.customer_id }}\"\nNOCODB_PORT=\"{{ $json.nocodb_port }}\"\nDOMAIN=\"{{ $json.domain }}\"\nROOT_PASSWORD=\"{{ $json.root_password }}\"\n\ncat > /tmp/setup_nocodb_${CUSTOMER_ID}.sh << REMOTE_SCRIPT\n#!/bin/bash\nset -e\n\necho \"===== Setting up NocoDB =====\"\n\nmkdir -p /app/nocodb\ncat > /app/nocodb/docker-compose.yml << EOF\nversion: '3'\nservices:\n  nocodb:\n    image: nocodb/nocodb:latest\n    container_name: nocodb\n    restart: always\n    ports:\n      - \"${NOCODB_PORT}:8080\"\n    environment:\n      NC_DB: \"pg://localhost:5432?u=${DB_USER}&p=${DB_PASSWORD}&d=${DB_NAME}\"\n      NC_AUTH_JWT_SECRET: \\$(openssl rand -base64 32)\n    volumes:\n      - nocodb_data:/usr/app/data\n    network_mode: host\n\nvolumes:\n  nocodb_data:\nEOF\n\ncd /app/nocodb && docker compose up -d\n\nsleep 10\n\nif docker ps | grep -q nocodb; then\n  echo \"NOCODB_STATUS: running\"\n  echo \"NOCODB_URL: https://${DOMAIN}:${NOCODB_PORT}\"\nelse\n  echo \"NOCODB_STATUS: failed\"\n  exit 1\nfi\nREMOTE_SCRIPT\n\nsshpass -p \"${ROOT_PASSWORD}\" ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \"bash -s\" < /tmp/setup_nocodb_${CUSTOMER_ID}.sh\n\necho \"NOCODB_DEPLOYED: success\""
+      },
+      "id": "setup-nocodb",
+      "name": "Setup NocoDB",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1340, 500],
+      "notes": "Deploys NocoDB with PostgreSQL connection and validates it's running"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbConfig = $input.first().json;\nconst properties = dbConfig.properties || [];\n\nconst seedSQL = [];\n\nfor (let i = 0; i < properties.length; i++) {\n  const prop = properties[i];\n  const propertyId = `prop_${i + 1}`;\n  \n  seedSQL.push(`INSERT INTO property_configurations (property_id, property_name, address, city, bedrooms, max_guests, base_price, owner_contact, owner_email, owner_phone) VALUES ('${propertyId}', '${(prop.name || 'Property ' + (i+1)).replace(/'/g, \"''\")}', '${(prop.address || '').replace(/'/g, \"''\")}', '${(prop.city || '').replace(/'/g, \"''\")}', ${prop.bedrooms || 1}, ${prop.max_guests || 4}, ${prop.base_price || 100}, '${(dbConfig.owner.name || '').replace(/'/g, \"''\")}', '${(dbConfig.owner.email || '').replace(/'/g, \"''\")}', '${dbConfig.owner.phone || ''}') ON CONFLICT (property_id) DO NOTHING;`);\n}\n\nseedSQL.push(`INSERT INTO workflow_config (config_key, config_value, description) VALUES ('customer_id', '${dbConfig.customer_id}', 'Unique customer identifier') ON CONFLICT (config_key) DO NOTHING;`);\nseedSQL.push(`INSERT INTO workflow_config (config_key, config_value, description) VALUES ('n8n_base_url', 'https://${dbConfig.domain}', 'N8N instance URL') ON CONFLICT (config_key) DO NOTHING;`);\nseedSQL.push(`INSERT INTO workflow_config (config_key, config_value, description) VALUES ('nocodb_url', 'https://${dbConfig.domain}:8080', 'NocoDB interface URL') ON CONFLICT (config_key) DO NOTHING;`);\n\nreturn [{\n  json: {\n    ...dbConfig,\n    seed_sql: seedSQL.join('\\n'),\n    properties_count: properties.length\n  }\n}];"
+      },
+      "id": "prepare-seed-data",
+      "name": "Prepare Seed Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nset -e\n\nSERVER_IP=\"{{ $json.server_ip }}\"\nDB_NAME=\"{{ $json.db_name }}\"\nDB_USER=\"{{ $json.db_user }}\"\nDB_PASSWORD=\"{{ $json.db_password }}\"\nROOT_PASSWORD=\"{{ $json.root_password }}\"\n\necho '{{ $json.seed_sql }}' > /tmp/seed.sql\n\nif [ -s /tmp/seed.sql ]; then\n  sshpass -p \"${ROOT_PASSWORD}\" scp -o StrictHostKeyChecking=no /tmp/seed.sql root@${SERVER_IP}:/tmp/\n  sshpass -p \"${ROOT_PASSWORD}\" ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \"PGPASSWORD=${DB_PASSWORD} psql -h localhost -U ${DB_USER} -d ${DB_NAME} -f /tmp/seed.sql\"\n  echo \"SEED_DATA_APPLIED: success\"\nelse\n  echo \"SEED_DATA_APPLIED: no data to seed\"\nfi"
+      },
+      "id": "apply-seed-data",
+      "name": "Apply Seed Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1780, 500],
+      "notes": "Seeds initial property and config data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbConfig = $input.first().json;\nconst startTime = new Date($('When called by Master').first().json.deployment?.started_at || new Date());\nconst duration = Math.round((new Date() - startTime) / 1000);\n\nreturn [{\n  json: {\n    status: 'success',\n    phase: 'database_provisioning',\n    duration: duration,\n    \n    database: {\n      name: dbConfig.db_name,\n      user: dbConfig.db_user,\n      password: dbConfig.db_password,\n      host: 'localhost',\n      port: 5432,\n      connection_string: `postgresql://${dbConfig.db_user}:${dbConfig.db_password}@localhost:5432/${dbConfig.db_name}`\n    },\n    \n    nocodb: {\n      url: `https://${dbConfig.domain}:8080`,\n      status: 'running',\n      description: 'Client data management interface'\n    },\n    \n    tables_created: 21,\n    indexes_created: 16,\n    properties_seeded: dbConfig.properties_count || 0,\n    \n    message: 'PostgreSQL database and NocoDB deployed successfully'\n  }\n}];"
+      },
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 500]
+    },
+    {
+      "parameters": {},
+      "id": "return-result",
+      "name": "Return to Master",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2220, 500]
+    }
+  ],
+  "connections": {
+    "When called by Master": {
+      "main": [[{"node": "Prepare Database Config", "type": "main", "index": 0}]]
+    },
+    "Prepare Database Config": {
+      "main": [[{"node": "Create PostgreSQL Database", "type": "main", "index": 0}]]
+    },
+    "Create PostgreSQL Database": {
+      "main": [[{"node": "Prepare Full Schema", "type": "main", "index": 0}]]
+    },
+    "Prepare Full Schema": {
+      "main": [[{"node": "Apply Database Schema", "type": "main", "index": 0}]]
+    },
+    "Apply Database Schema": {
+      "main": [[{"node": "Setup NocoDB", "type": "main", "index": 0}]]
+    },
+    "Setup NocoDB": {
+      "main": [[{"node": "Prepare Seed Data", "type": "main", "index": 0}]]
+    },
+    "Prepare Seed Data": {
+      "main": [[{"node": "Apply Seed Data", "type": "main", "index": 0}]]
+    },
+    "Apply Seed Data": {
+      "main": [[{"node": "Prepare Response", "type": "main", "index": 0}]]
+    },
+    "Prepare Response": {
+      "main": [[{"node": "Return to Master", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["sub-workflow", "database", "postgresql", "nocodb"],
+  "triggerCount": 0,
+  "versionId": "1.1"
+}

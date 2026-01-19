@@ -1,0 +1,756 @@
+{
+  "name": "Workflow 0: Message Router (Master Routing Hub) - Enhanced [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "c6999ae3-c3ec-451f-b30d-7045df509391",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        -32
+      ],
+      "webhookId": "f645984d-f42f-462a-bb6b-3f2ae661f203"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "a9f00124-6e3a-40e4-be97-a0542d96fbdb",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        160
+      ],
+      "webhookId": "7d09ab4a-2e4c-4503-bf26-d5dbcb1784cc"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "com.twilio.messaging.inbound-message.received"
+        ]
+      },
+      "id": "e30537ea-a9a3-4b98-a7a9-1e20fbdd7376",
+      "name": "Twilio SMS Trigger",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        352
+      ],
+      "webhookId": "98424b13-e964-4901-84c1-e323ea96c579"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "id": "2db877d8-7f7e-4cb4-b10c-b251613e1480",
+      "name": "Merge All Channels",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        112,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Enhanced sender identifier extraction for all message channels\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  let senderId = '';\n  let senderPhone = null;\n  let messageText = '';\n  let channelType = '';\n  \n  // TELEGRAM DETECTION\n  if (data.message && data.message.from) {\n    channelType = 'telegram';\n    senderId = data.message.from.id ? data.message.from.id.toString() : '';\n    senderPhone = data.message.from.phone_number || null;\n    messageText = data.message.text || '';\n  } \n  // TWILIO SMS DETECTION\n  else if (data.Body && data.From) {\n    channelType = 'sms';\n    senderPhone = data.From;\n    senderId = senderPhone;\n    messageText = data.Body;\n  } \n  // WHATSAPP DETECTION (via WhatsApp Business API)\n  else if (data.from && data.text && data.text.body) {\n    channelType = 'whatsapp';\n    senderPhone = data.from;\n    senderId = senderPhone;\n    messageText = data.text.body;\n  }\n  // FALLBACK: WhatsApp alternative structure\n  else if (data.message && data.message.chat && data.message.from) {\n    channelType = 'whatsapp';\n    senderPhone = data.message.from;\n    senderId = senderPhone;\n    messageText = data.message.text || '';\n  }\n  \n  results.push({\n    json: {\n      sender_id: senderId,\n      sender_phone: senderPhone,\n      message_text: messageText,\n      channel_type: channelType,\n      timestamp: new Date().toISOString(),\n      original_data: data\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "a0413a89-7c1b-4889-9815-3a85e6599b32",
+      "name": "Extract Sender Identifier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check for owner commands (messages starting with '/')\nconst items = $input.all();\n\nconst ownerCommands = [];\nconst regularMessages = [];\n\nfor (const item of items) {\n  const messageText = item.json.message_text || '';\n  const trimmedText = messageText.trim();\n  \n  if (trimmedText.startsWith('/')) {\n    // This is an owner command\n    ownerCommands.push({\n      json: {\n        ...item.json,\n        is_owner_command: true,\n        command: trimmedText\n      }\n    });\n  } else {\n    // This is a regular message\n    regularMessages.push({\n      json: {\n        ...item.json,\n        is_owner_command: false,\n        command: null\n      }\n    });\n  }\n}\n\n// Return items to different output indexes\n// Output 0: Owner commands\n// Output 1: Regular messages\nreturn [ownerCommands, regularMessages];"
+      },
+      "id": "7fe510cb-056d-4208-a5b5-b06a19d152c0",
+      "name": "Check for Owner Command",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bybless.app.n8n.cloud/webhook/control-panel-hub",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sender_id",
+              "value": "={{ $json.sender_id }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message_text }}"
+            },
+            {
+              "name": "channel",
+              "value": "={{ $json.channel_type }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "a6990500-20bd-4083-8b75-eba112e63834",
+      "name": "Route to Control Panel Hub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        784,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM bookings \nWHERE guest_phone = $1 \n  AND booking_status = 'confirmed'\n  AND CURRENT_DATE >= check_in_date \n  AND CURRENT_DATE <= check_out_date\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.sender_phone] } }}"
+        },
+        "options": {}
+      },
+      "id": "8306f26e-bb5a-4a1e-bf2e-df7c0c95629b",
+      "name": "Check Active Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        112,
+        464
+      ],
+      "notes": "PostgreSQL: Finds active booking for guest phone number. Returns booking if guest is currently checked in.",
+      "credentials": {
+        "postgres": {
+          "id": "{{ POSTGRES_CREDENTIAL_ID }}",
+          "name": "PostgreSQL Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM deals \nWHERE client_phone = $1 \n  AND status IN ('negotiation', 'pending_conflict', 'needs_owner_decision', \n                 'pending_payment_confirmation', 'ai_conversation')\nORDER BY created_at DESC\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.sender_phone] } }}"
+        },
+        "options": {}
+      },
+      "id": "d198c72a-1adb-47cd-a197-9218f5c4f824",
+      "name": "Check Active Deal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        336,
+        464
+      ],
+      "notes": "PostgreSQL: Finds any active deal for this client. Checks multiple status values with IN clause for performance.",
+      "credentials": {
+        "postgres": {
+          "id": "{{ POSTGRES_CREDENTIAL_ID }}",
+          "name": "PostgreSQL Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine routing based on booking/deal status\nconst currentItem = $input.first().json;\nconst bookingResults = $('Check Active Booking').all();\nconst dealResults = $('Check Active Deal').all();\n\nconst hasActiveBooking = bookingResults.length > 0;\nconst hasActiveDeal = dealResults.length > 0;\n\nlet routeTo, routingReason, associatedId;\n\nif (hasActiveBooking) {\n  const booking = bookingResults[0].json;\n  \n  // Verify booking is currently active (check-in to check-out period)\n  const now = new Date();\n  const checkIn = new Date(booking.check_in_date);\n  const checkOut = new Date(booking.check_out_date);\n  \n  if (now >= checkIn && now <= checkOut) {\n    routeTo = 'active_booking_handler';\n    routingReason = 'Currently staying guest';\n    associatedId = booking.booking_id;\n  } else {\n    // Booking exists but guest not currently staying\n    routeTo = 'inquiry_handler';\n    routingReason = 'Past/future guest - treated as new inquiry';\n    associatedId = null;\n  }\n} else if (hasActiveDeal) {\n  const deal = dealResults[0].json;\n  routeTo = 'ai_conversation_manager';\n  routingReason = 'Active pre-booking deal';\n  associatedId = deal.deal_id;\n} else {\n  routeTo = 'inquiry_handler';\n  routingReason = 'New inquiry';\n  associatedId = null;\n}\n\nreturn [{\n  json: {\n    ...currentItem,\n    route_to: routeTo,\n    routing_reason: routingReason,\n    associated_id: associatedId\n  }\n}];"
+      },
+      "id": "2030fba0-463a-4c65-8cd5-c67575768b7a",
+      "name": "Determine Routing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.route_to }}",
+              "rightValue": "active_booking_handler",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "55a1efb9-2e68-40cb-b4c2-3b24e1e2f90e",
+      "name": "Is Active Booking?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bybless.app.n8n.cloud/webhook/guest-conversation",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "booking_id",
+              "value": "={{ $json.associated_id }}"
+            },
+            {
+              "name": "guest_message",
+              "value": "={{ $json.message_text }}"
+            },
+            {
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8fae6e34-b71b-44e4-beda-219a58ec7089",
+      "name": "Route to Active Booking Handler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1008,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.route_to }}",
+              "rightValue": "ai_conversation_manager",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "46def915-f54b-4a86-bc93-74c03718d113",
+      "name": "Is Active Deal?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bybless.app.n8n.cloud/webhook/guest-conversation",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "deal_id",
+              "value": "={{ $json.associated_id }}"
+            },
+            {
+              "name": "latest_client_message",
+              "value": "={{ $json.message_text }}"
+            },
+            {
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "5995b542-ff72-4d07-b980-c82058623f2f",
+      "name": "Route to AI Conversation Manager",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1008,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bybless.app.n8n.cloud/webhook/booking-inquiry-form",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "sender_phone",
+              "value": "={{ $json.sender_phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message_text }}"
+            },
+            {
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fcf125c9-8612-49f5-ba92-6e633a9838ad",
+      "name": "Route to Inquiry Handler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1008,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "sender_identifier",
+              "value": "={{ $json.sender_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "message_preview",
+              "value": "={{ $json.message_text.substring(0, 50) }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "routing_decision",
+              "value": "owner_command",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "routing_reason",
+              "value": "Owner command detected",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "associated_id",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "04fdf50d-7103-4842-bf51-a88d6914aab2",
+      "name": "Prepare Log Entry - Owner Command",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1008,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "sender_identifier",
+              "value": "={{ $json.sender_id }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "channel_type",
+              "value": "={{ $json.channel_type }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "message_preview",
+              "value": "={{ $json.message_text.substring(0, 50) }}",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "routing_decision",
+              "value": "={{ $json.route_to }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "routing_reason",
+              "value": "={{ $json.routing_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "id-7",
+              "name": "associated_id",
+              "value": "={{ $json.associated_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "81fb1af3-b754-413d-8d7f-7b75ddd67ea7",
+      "name": "Prepare Log Entry - Regular Routing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1232,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "37d7f191-149a-45ef-ad56-65d3d8097f0c",
+      "name": "Merge All Log Entries",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1456,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "message_router_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "sender_identifier": "={{ $json.sender_identifier }}",
+            "channel_type": "={{ $json.channel_type }}",
+            "message_preview": "={{ $json.message_preview }}",
+            "routing_decision": "={{ $json.routing_decision }}",
+            "routing_reason": "={{ $json.routing_reason }}",
+            "associated_id": "={{ $json.associated_id }}"
+          }
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "id": "9233b153-e70d-44ad-bca8-1569c3d556d4",
+      "name": "Log to Message Router Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1680,
+        272
+      ],
+      "notes": "PostgreSQL: Logs routing decision. Uses INSERT with ON CONFLICT DO NOTHING for idempotency.",
+      "credentials": {
+        "postgres": {
+          "id": "{{ POSTGRES_CREDENTIAL_ID }}",
+          "name": "PostgreSQL Database"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Channels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Channels",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Twilio SMS Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge All Channels",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge All Channels": {
+      "main": [
+        [
+          {
+            "node": "Extract Sender Identifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Sender Identifier": {
+      "main": [
+        [
+          {
+            "node": "Check for Owner Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Owner Command": {
+      "main": [
+        [
+          {
+            "node": "Route to Control Panel Hub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route to Control Panel Hub": {
+      "main": [
+        [
+          {
+            "node": "Prepare Log Entry - Owner Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Active Booking": {
+      "main": [
+        [
+          {
+            "node": "Check Active Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Active Deal": {
+      "main": [
+        [
+          {
+            "node": "Determine Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Routing": {
+      "main": [
+        [
+          {
+            "node": "Is Active Booking?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Active Booking?": {
+      "main": [
+        [
+          {
+            "node": "Route to Active Booking Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Active Deal?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route to Active Booking Handler": {
+      "main": [
+        [
+          {
+            "node": "Prepare Log Entry - Regular Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Active Deal?": {
+      "main": [
+        [
+          {
+            "node": "Route to AI Conversation Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route to Inquiry Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route to AI Conversation Manager": {
+      "main": [
+        [
+          {
+            "node": "Prepare Log Entry - Regular Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route to Inquiry Handler": {
+      "main": [
+        [
+          {
+            "node": "Prepare Log Entry - Regular Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Log Entry - Owner Command": {
+      "main": [
+        [
+          {
+            "node": "Merge All Log Entries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Log Entry - Regular Routing": {
+      "main": [
+        [
+          {
+            "node": "Merge All Log Entries",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Log Entries": {
+      "main": [
+        [
+          {
+            "node": "Log to Message Router Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c1d98695-09a1-47da-8f65-0f1062c1a0cd",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 3
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

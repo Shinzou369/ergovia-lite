@@ -1,0 +1,143 @@
+{
+  "name": "SUB-2: ⚙️ Server Setup (Docker + n8n + PostgreSQL + Authelia + SSL)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When called by Master",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 500]
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "wait-ssh-ready",
+      "name": "Wait 60s for SSH",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [460, 500],
+      "webhookId": "wait-ssh-ready",
+      "notes": "Wait for server to fully boot and SSH to become available"
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nset -e\n\nSERVER_IP=\"{{ $json.server.ip }}\"\nROOT_PASSWORD=\"{{ $json.server.root_password }}\"\nCUSTOMER_ID=\"{{ $json.customer_id }}\"\nDOMAIN=\"{{ $json.domain }}\"\nCUSTOMER_EMAIL=\"{{ $json.owner.email }}\"\nCUSTOMER_NAME=\"{{ $json.owner.name }}\"\n\ncat > /tmp/setup_${CUSTOMER_ID}.sh << 'REMOTE_SCRIPT'\n#!/bin/bash\nset -e\n\necho \"===== PHASE 1: System Update =====\"\nexport DEBIAN_FRONTEND=noninteractive\napt-get update -y\napt-get upgrade -y\n\necho \"===== PHASE 2: Install Docker =====\"\ncurl -fsSL https://get.docker.com | sh\nsystemctl enable docker\nsystemctl start docker\n\necho \"===== PHASE 3: Install PostgreSQL =====\"\napt-get install -y postgresql postgresql-contrib\nsystemctl enable postgresql\nsystemctl start postgresql\n\n# Secure PostgreSQL\nsudo -u postgres psql -c \"ALTER USER postgres PASSWORD '$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 32)';\"\n\necho \"===== PHASE 4: Install n8n =====\"\nmkdir -p /app/n8n\ncat > /app/n8n/docker-compose.yml << 'N8N_COMPOSE'\nversion: '3'\nservices:\n  n8n:\n    image: n8nio/n8n:latest\n    container_name: n8n\n    restart: always\n    ports:\n      - \"5678:5678\"\n    environment:\n      - N8N_HOST=${DOMAIN}\n      - N8N_PORT=5678\n      - N8N_PROTOCOL=https\n      - NODE_ENV=production\n      - WEBHOOK_URL=https://${DOMAIN}\n      - GENERIC_TIMEZONE=UTC\n      - N8N_ENCRYPTION_KEY=$(openssl rand -base64 32)\n    volumes:\n      - n8n_data:/home/node/.n8n\n    network_mode: host\n\nvolumes:\n  n8n_data:\nN8N_COMPOSE\n\ncd /app/n8n && docker compose up -d\n\necho \"===== PHASE 5: Install Authelia =====\"\nmkdir -p /app/authelia\nAUTHELIA_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)\nAUTHELIA_JWT_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)\n\ncat > /app/authelia/configuration.yml << AUTHELIA_CONFIG\nserver:\n  host: 0.0.0.0\n  port: 9091\n\nlog:\n  level: debug\n\njwt_secret: ${AUTHELIA_JWT_SECRET}\n\ndefault_redirection_url: https://${DOMAIN}\n\nauthentication_backend:\n  file:\n    path: /config/users_database.yml\n    password:\n      algorithm: argon2id\n\naccess_control:\n  default_policy: deny\n  rules:\n    - domain: \"${DOMAIN}\"\n      policy: one_factor\n\nsession:\n  name: authelia_session\n  secret: ${AUTHELIA_SECRET}\n  expiration: 3600\n  inactivity: 300\n  domain: ${DOMAIN}\n\nstorage:\n  local:\n    path: /config/db.sqlite3\n\nnotifier:\n  filesystem:\n    filename: /config/notification.txt\nAUTHELIA_CONFIG\n\n# Generate admin password\nADMIN_PASSWORD=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)\nCUSTOMER_PASSWORD=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)\n\ncat > /app/authelia/users_database.yml << USERS_DB\nusers:\n  admin:\n    displayname: \"Admin\"\n    password: \"$(docker run --rm authelia/authelia authelia crypto hash generate argon2 --password ${ADMIN_PASSWORD} | grep 'Digest:' | cut -d' ' -f2)\"\n    email: admin@prismity.ai\n    groups:\n      - admins\n  customer:\n    displayname: \"${CUSTOMER_NAME}\"\n    password: \"$(docker run --rm authelia/authelia authelia crypto hash generate argon2 --password ${CUSTOMER_PASSWORD} | grep 'Digest:' | cut -d' ' -f2)\"\n    email: ${CUSTOMER_EMAIL}\n    groups:\n      - users\nUSERS_DB\n\ncat > /app/authelia/docker-compose.yml << 'AUTHELIA_COMPOSE'\nversion: '3'\nservices:\n  authelia:\n    image: authelia/authelia:latest\n    container_name: authelia\n    restart: always\n    ports:\n      - \"9091:9091\"\n    volumes:\n      - ./configuration.yml:/config/configuration.yml:ro\n      - ./users_database.yml:/config/users_database.yml:ro\n      - authelia_data:/config\n    environment:\n      - TZ=UTC\n\nvolumes:\n  authelia_data:\nAUTHELIA_COMPOSE\n\ncd /app/authelia && docker compose up -d\n\necho \"===== PHASE 6: Install Nginx =====\"\napt-get install -y nginx\n\ncat > /etc/nginx/sites-available/prismity << 'NGINX_CONFIG'\nserver {\n    listen 80;\n    server_name ${DOMAIN};\n    return 301 https://$server_name$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name ${DOMAIN};\n\n    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;\n\n    # n8n\n    location / {\n        proxy_pass http://localhost:5678;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n    }\n\n    # Authelia\n    location /authelia {\n        proxy_pass http://localhost:9091;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n    }\n}\nNGINX_CONFIG\n\nln -sf /etc/nginx/sites-available/prismity /etc/nginx/sites-enabled/\nrm -f /etc/nginx/sites-enabled/default\n\necho \"===== Setup Complete =====\"\necho \"Admin Password: ${ADMIN_PASSWORD}\"\necho \"Customer Password: ${CUSTOMER_PASSWORD}\"\n\nREMOTE_SCRIPT\n\n# Execute on remote server\nsshpass -p \"${ROOT_PASSWORD}\" scp -o StrictHostKeyChecking=no /tmp/setup_${CUSTOMER_ID}.sh root@${SERVER_IP}:/tmp/\nsshpass -p \"${ROOT_PASSWORD}\" ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \"chmod +x /tmp/setup_${CUSTOMER_ID}.sh && /tmp/setup_${CUSTOMER_ID}.sh\""
+      },
+      "id": "setup-server",
+      "name": "🔧 Execute Server Setup",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [680, 500],
+      "notes": "Install Docker, PostgreSQL, n8n, Authelia, configure nginx"
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $input.first().json.stdout;\nconst customerData = $('When called by Master').first().json;\n\nconst n8nAdminMatch = stdout.match(/Admin Password: (.+)/);\nconst customerPassMatch = stdout.match(/Customer Password: (.+)/);\n\nconst n8nAdminPassword = n8nAdminMatch ? n8nAdminMatch[1].trim() : null;\nconst customerPassword = customerPassMatch ? customerPassMatch[1].trim() : null;\n\nif (!n8nAdminPassword || !customerPassword) {\n  throw new Error('Failed to extract credentials from setup output');\n}\n\nreturn [{\n  json: {\n    server_ip: customerData.server.ip,\n    domain: customerData.domain,\n    n8n_admin_password: n8nAdminPassword,\n    customer_password: customerPassword,\n    postgresql_installed: true,\n    authelia_installed: true\n  }\n}];"
+      },
+      "id": "extract-credentials",
+      "name": "Extract Credentials",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudflare.com/client/v4/zones/{{ $('When called by Master').first().json.cloudflare.zone_id }}/dns_records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"type\": \"A\",\n  \"name\": $json.domain,\n  \"content\": $json.server_ip,\n  \"ttl\": 1,\n  \"proxied\": false\n} }}",
+        "options": {}
+      },
+      "id": "create-dns-record",
+      "name": "📍 Create DNS A Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [1120, 500],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cloudflare-api-token",
+          "name": "Cloudflare API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 120,
+        "unit": "seconds"
+      },
+      "id": "wait-dns-propagation",
+      "name": "Wait 2min for DNS",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1340, 500],
+      "webhookId": "wait-dns-propagation"
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nset -e\n\nSERVER_IP=\"{{ $('Extract Credentials').first().json.server_ip }}\"\nROOT_PASSWORD=\"{{ $('When called by Master').first().json.server.root_password }}\"\nDOMAIN=\"{{ $('Extract Credentials').first().json.domain }}\"\n\nsshpass -p \"${ROOT_PASSWORD}\" ssh -o StrictHostKeyChecking=no root@${SERVER_IP} << REMOTE_SSL\napt-get install -y certbot\ncd /app\ndocker compose stop nginx || true\ncertbot certonly --standalone \\\n  -d ${DOMAIN} \\\n  --non-interactive \\\n  --agree-tos \\\n  --email admin@prismity.ai\n\nsystemctl restart nginx\necho \"SSL_CONFIGURED: success\"\nREMOTE_SSL"
+      },
+      "id": "setup-ssl",
+      "name": "🔐 Setup SSL Certificate",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const customerData = $('When called by Master').first().json;\nconst credentials = $('Extract Credentials').first().json;\nconst startTime = new Date(customerData.deployment.started_at);\nconst duration = Math.round((new Date() - startTime) / 1000);\n\nconst crypto = require('crypto');\nconst n8nApiKey = crypto.randomBytes(32).toString('hex');\n\nreturn [{\n  json: {\n    status: 'success',\n    phase: 'server_setup',\n    duration: duration,\n    \n    n8n_ready: true,\n    n8n_url: `https://${credentials.domain}`,\n    n8n_credentials: {\n      admin_password: credentials.n8n_admin_password\n    },\n    n8n_api_key: n8nApiKey,\n    \n    authelia_url: `https://${credentials.domain}/authelia`,\n    authelia_credentials: {\n      customer_password: credentials.customer_password\n    },\n    \n    postgresql_ready: true,\n    \n    message: 'Server setup complete with Docker, n8n, PostgreSQL, and Authelia'\n  }\n}];"
+      },
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 500]
+    },
+    {
+      "parameters": {},
+      "id": "return-result",
+      "name": "Return to Master",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 500]
+    }
+  ],
+  "connections": {
+    "When called by Master": {
+      "main": [[{"node": "Wait 60s for SSH", "type": "main", "index": 0}]]
+    },
+    "Wait 60s for SSH": {
+      "main": [[{"node": "🔧 Execute Server Setup", "type": "main", "index": 0}]]
+    },
+    "🔧 Execute Server Setup": {
+      "main": [[{"node": "Extract Credentials", "type": "main", "index": 0}]]
+    },
+    "Extract Credentials": {
+      "main": [[{"node": "📍 Create DNS A Record", "type": "main", "index": 0}]]
+    },
+    "📍 Create DNS A Record": {
+      "main": [[{"node": "Wait 2min for DNS", "type": "main", "index": 0}]]
+    },
+    "Wait 2min for DNS": {
+      "main": [[{"node": "🔐 Setup SSL Certificate", "type": "main", "index": 0}]]
+    },
+    "🔐 Setup SSL Certificate": {
+      "main": [[{"node": "Prepare Response", "type": "main", "index": 0}]]
+    },
+    "Prepare Response": {
+      "main": [[{"node": "Return to Master", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["sub-workflow", "server", "postgresql", "authelia"],
+  "triggerCount": 0,
+  "versionId": "1.0"
+}

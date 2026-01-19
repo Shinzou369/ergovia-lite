@@ -1,0 +1,1369 @@
+{
+  "name": "Workflow 10: Cleaning Completion Report Handler [PostgreSQL]",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cleaning-completion-report",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "97a40a53-19f1-434f-85f5-99ac90aa2810",
+      "name": "Google Forms Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -6512,
+        352
+      ],
+      "webhookId": "8d07239d-88cb-47fb-b836-697710923963"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "tasksSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Tasks Google Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "propertyConfigSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Property_Configurations Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "cleanersSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Cleaners Sheet ID__>",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "propertyStatusWebhookUrl",
+              "value": "<__PLACEHOLDER_VALUE__Property Status Update Webhook URL__>",
+              "type": "string"
+            },
+            {
+              "id": "id-5",
+              "name": "openaiApiKey",
+              "value": "<__PLACEHOLDER_VALUE__OpenAI API Key__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "289da3be-5ffe-42b0-b20b-3078775de43a",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -6288,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract form data from webhook body\nconst body = $input.item.json.body;\n\n// Define the 7 checklist items\nconst checklistItems = {\n  Dusted: body.Dusted === 'true' || body.Dusted === true || body.Dusted === 'on',\n  Vacuumed: body.Vacuumed === 'true' || body.Vacuumed === true || body.Vacuumed === 'on',\n  'Cleaned bathrooms': body['Cleaned bathrooms'] === 'true' || body['Cleaned bathrooms'] === true || body['Cleaned bathrooms'] === 'on',\n  'Changed linens': body['Changed linens'] === 'true' || body['Changed linens'] === true || body['Changed linens'] === 'on',\n  'Restocked toiletries': body['Restocked toiletries'] === 'true' || body['Restocked toiletries'] === true || body['Restocked toiletries'] === 'on',\n  'Trash out': body['Trash out'] === 'true' || body['Trash out'] === true || body['Trash out'] === 'on',\n  'Checked appliances': body['Checked appliances'] === 'true' || body['Checked appliances'] === true || body['Checked appliances'] === 'on'\n};\n\n// Count checked items\nconst checkedCount = Object.values(checklistItems).filter(item => item === true).length;\n\n// Calculate completion percentage\nconst totalItems = 7;\nconst completionPercentage = Math.round((checkedCount / totalItems) * 100);\n\n// Return structured data\nreturn [\n  {\n    json: {\n      task_id: body.task_id || body.taskId,\n      cleaner_name: body.cleaner_name || body.cleanerName,\n      completion_photos: body.completion_photos || body.completionPhotos || [],\n      checklist_items: checklistItems,\n      time_spent: body.time_spent || body.timeSpent,\n      issues_found: body.issues_found || body.issuesFound || '',\n      notes: body.notes || '',\n      completion_percentage: completionPercentage\n    }\n  }\n];"
+      },
+      "id": "5fadec49-aef6-4f72-b10c-41ba584be5d5",
+      "name": "Extract Form Data and Calculate Completion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6064,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cleaning_tasks \nWHERE task_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.task_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "a1c7e11c-2f1d-40ac-8c40-0f9f01ebe112",
+      "name": "Lookup Task from Tasks Sheet",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -5840,
+        352
+      ],
+      "notes": "PostgreSQL: Looks up cleaning task by task_id."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations \nWHERE property_id = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Lookup Task from Tasks Sheet\").first().json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "57a46d44-5025-4e54-aeca-936222bcfdb0",
+      "name": "Get Property Configuration",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -5616,
+        352
+      ],
+      "notes": "PostgreSQL: Gets property config for owner notifications."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE cleaning_tasks \nSET status = 'completed',\n    completed_at = $2,\n    completion_notes = $3,\n    checklist_score = $4,\n    updated_at = CURRENT_TIMESTAMP\nWHERE task_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Extract Form Data and Calculate Completion\").first().json.task_id, $now.toISO(), $(\"Extract Form Data and Calculate Completion\").first().json.issues_found || \"None\", $(\"Extract Form Data and Calculate Completion\").first().json.checklist_score || 100] } }}"
+        },
+        "options": {}
+      },
+      "id": "6f0fa3b7-cee7-4de3-a32b-162c163e8e82",
+      "name": "Update Task Record - Completed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -5392,
+        352
+      ],
+      "notes": "PostgreSQL: Marks cleaning task as completed with score and notes."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a friendly property management assistant. Generate 2-3 warm follow-up questions for a cleaner who just completed a cleaning task. Return your response as JSON with a 'questions' array containing strings.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Property: {{ $('Get Property Configuration').item.json.property_name }}\nCleaner: {{ $('Lookup Cleaner Contact Info').item.json.cleaner_name }}\nIssues Found: {{ $('Extract Form Data and Calculate Completion').item.json.issues_found }}\nNotes: {{ $('Extract Form Data and Calculate Completion').item.json.notes }}\"\n    }\n  ],\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "73d2a3e7-9d0b-4b5a-a899-72108bd2c463",
+      "name": "Generate Follow-up Questions via OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -5168,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract questions from OpenAI response and format into friendly message\nconst openAIResponse = $input.first().json;\n\n// Parse the OpenAI response to get questions array\nlet questions = [];\ntry {\n  // Check if response has choices array (standard OpenAI format)\n  if (openAIResponse.choices && openAIResponse.choices[0]) {\n    const content = openAIResponse.choices[0].message.content;\n    // Try to parse as JSON if it's a JSON string\n    try {\n      const parsed = JSON.parse(content);\n      questions = parsed.questions || parsed;\n    } catch {\n      // If not JSON, split by newlines and filter out empty lines\n      questions = content.split('\n').filter(q => q.trim().length > 0);\n    }\n  } else if (openAIResponse.questions) {\n    questions = openAIResponse.questions;\n  } else if (Array.isArray(openAIResponse)) {\n    questions = openAIResponse;\n  }\n} catch (error) {\n  console.log('Error parsing OpenAI response:', error);\n  questions = ['Was everything completed to your satisfaction?'];\n}\n\n// Format questions into numbered list\nconst numberedQuestions = questions\n  .map((q, index) => `${index + 1}. ${q.replace(/^\\d+\\.\\s*/, '').trim()}`)\n  .join('\n');\n\n// Create friendly message\nconst message = `Hi! Thank you for completing the cleaning task. \ud83e\uddf9\u2728\n\nTo help us ensure everything meets our quality standards, please answer these quick questions:\n\n${numberedQuestions}\n\nPlease reply with your answers. Thank you!`;\n\nreturn {\n  json: {\n    message: message,\n    questions: questions,\n    questionCount: questions.length\n  }\n};"
+      },
+      "id": "d7dc9692-e82f-49ff-96f9-f3741bebea0e",
+      "name": "Format Questions into Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4944,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cleaners \nWHERE cleaner_name = $1\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Extract Form Data and Calculate Completion\").first().json.cleaner_name] } }}"
+        },
+        "options": {}
+      },
+      "id": "bdb7ddb9-60e6-49fd-b5bb-06746af1c254",
+      "name": "Lookup Cleaner Contact Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -4720,
+        352
+      ],
+      "notes": "PostgreSQL: Gets cleaner details for performance tracking."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "df6f7215-9adf-40af-8749-7169103bb2be",
+      "name": "Route by Cleaner Contact Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -4496,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio From Phone Number__>",
+        "to": "={{ $('Lookup Cleaner Contact Info').first().json.phone_number }}",
+        "message": "={{ $('Format Questions into Message').first().json.message }}",
+        "options": {}
+      },
+      "id": "9f47efe8-70db-4917-8cb5-49f10c76abc4",
+      "name": "Send SMS to Cleaner",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -4272,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Lookup Cleaner Contact Info').first().json.telegram_chat_id }}",
+        "text": "={{ $('Format Questions into Message').first().json.message }}",
+        "additionalFields": {}
+      },
+      "id": "b63e4384-2a96-43c3-8913-f59e3c8feca3",
+      "name": "Send Telegram to Cleaner",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -4272,
+        448
+      ],
+      "webhookId": "d9927bb9-435e-4516-a9c9-edcdc18960c1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Lookup Cleaner Contact Info').first().json.whatsapp_number }}",
+        "textBody": "={{ $('Format Questions into Message').first().json.message }}",
+        "additionalFields": {}
+      },
+      "id": "200c8da3-63ba-412f-8780-2ceff5837544",
+      "name": "Send WhatsApp to Cleaner",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -4272,
+        640
+      ],
+      "webhookId": "cf625e27-0d45-46ca-a222-6ad24df3c239"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 24,
+        "options": {}
+      },
+      "id": "02a97e59-50a0-45ab-b344-09d84cac02f4",
+      "name": "Wait for Cleaner Response",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4048,
+        400
+      ],
+      "webhookId": "63284afc-f4a3-47b4-b560-4a2372d9e384"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE cleaning_tasks \nSET notes = COALESCE(notes || E'\n', '') || 'Cleaner feedback: ' || $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE task_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Extract Form Data and Calculate Completion\").first().json.task_id, $json.body || \"No feedback provided\"] } }}"
+        },
+        "options": {}
+      },
+      "id": "3c251f5a-db2d-4acf-ba47-badd3a501c8b",
+      "name": "Update Task with Cleaner Feedback",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -3824,
+        400
+      ],
+      "notes": "PostgreSQL: Appends cleaner feedback to task notes."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Extract Form Data and Calculate Completion').first().json.issues_found !== '' || $('Extract Form Data and Calculate Completion').first().json.completion_percentage < 90 }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d7e516ea-f028-48e0-a637-00a6a56e1cd6",
+      "name": "Check if Issues Found or Low Completion",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format issue alert message for property owner\nconst items = $input.all();\nconst formattedItems = [];\n\nfor (const item of items) {\n  const propertyName = item.json.propertyName || 'Unknown Property';\n  const cleanerName = item.json.cleanerName || 'Unknown Cleaner';\n  const completionPercentage = item.json.completionPercentage || 0;\n  const photos = item.json.photos || [];\n  const issuesFound = item.json.issuesFound || item.json.cleanerFeedback || 'No specific issues reported';\n  \n  // Format the alert message\n  let alertMessage = `\ud83d\udea8 CLEANING QUALITY ALERT \ud83d\udea8\n\n`;\n  alertMessage += `Property: ${propertyName}\n`;\n  alertMessage += `Cleaner: ${cleanerName}\n`;\n  alertMessage += `Completion: ${completionPercentage}%\n\n`;\n  \n  if (completionPercentage < 100) {\n    alertMessage += `\u26a0\ufe0f Task not fully completed (${completionPercentage}%)\n\n`;\n  }\n  \n  alertMessage += `Issues Reported:\n${issuesFound}\n\n`;\n  \n  if (photos && photos.length > 0) {\n    alertMessage += `\ud83d\udcf8 Photos attached: ${photos.length}\n`;\n  }\n  \n  alertMessage += `\nPlease review and decide:\n`;\n  alertMessage += `1\ufe0f\u20e3 Approve and mark property as ready\n`;\n  alertMessage += `2\ufe0f\u20e3 Request re-clean`;\n  \n  formattedItems.push({\n    json: {\n      ...item.json,\n      alertMessage: alertMessage,\n      messageText: alertMessage\n    }\n  });\n}\n\nreturn formattedItems;"
+      },
+      "id": "a619524c-f7a5-4a84-9e7e-23f7f4e5c868",
+      "name": "Format Issue Alert Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3376,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "45da6994-d28b-45ed-8a33-5922fd02342f",
+      "name": "Route by Owner Contact Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -3152,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Property Configuration').first().json.cleaning_review_contact_telegram }}",
+        "text": "={{ $('Format Issue Alert Message').first().json.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Review Photos",
+                    "additionalFields": {
+                      "callback_data": "review_photos"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Request Re-Clean",
+                    "additionalFields": {
+                      "callback_data": "request_reclean"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Accept as Is",
+                    "additionalFields": {
+                      "callback_data": "accept_as_is"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Contact Cleaner",
+                    "additionalFields": {
+                      "callback_data": "contact_cleaner"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "add92bab-5d0c-4209-a96a-f809d62830f1",
+      "name": "Send Issue Alert to Owner via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2928,
+        176
+      ],
+      "webhookId": "bb66ad79-169e-4287-85c7-995e4471a1e7"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Get Property Configuration').first().json.cleaning_review_contact_whatsapp }}",
+        "textBody": "={{ $('Format Issue Alert Message').first().json.message }}",
+        "additionalFields": {}
+      },
+      "id": "e5b567c3-a312-4935-8e1a-464d94d86809",
+      "name": "Send Issue Alert to Owner via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        400
+      ],
+      "webhookId": "9d016abf-1002-407e-a093-a55ed454f964"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 24,
+        "options": {}
+      },
+      "id": "4648648b-96b6-401d-b06d-f0238a279047",
+      "name": "Wait for Owner Decision",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2704,
+        272
+      ],
+      "webhookId": "f0f3a112-4dc5-43ed-90f5-dc2dbbef7428"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.response }}",
+                    "rightValue": "Accept as Is",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "accept"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.response }}",
+                    "rightValue": "Request Re-Clean",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reclean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c791c587-439f-41e6-b1ad-f0cace06c708",
+      "name": "Route by Owner Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2480,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Workflow Configuration').first().json.propertyStatusWebhookUrl }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "property_id",
+              "value": "={{ $('Lookup Task from Tasks Sheet').first().json.property_id }}"
+            },
+            {
+              "name": "status",
+              "value": "ready_for_guest"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "35210e58-bedd-4afd-aa47-d70587f200ef",
+      "name": "Set Property Status to Ready",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -2256,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "cleaning_tasks",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "task_id": "={{ \"RECLEAN-\" + $now.toFormat(\"yyyyMMddHHmmss\") + \"-\" + Math.random().toString(36).substr(2, 6) }}",
+            "property_id": "={{ $(\"Lookup Task from Tasks Sheet\").first().json.property_id }}",
+            "booking_id": "={{ $(\"Lookup Task from Tasks Sheet\").first().json.booking_id }}",
+            "cleaner_id": "={{ $(\"Lookup Task from Tasks Sheet\").first().json.cleaner_id }}",
+            "status": "pending",
+            "scheduled_date": "={{ $now.toISODate() }}",
+            "notes": "Re-clean required based on completion report"
+          }
+        },
+        "options": {}
+      },
+      "id": "bd662226-1c17-4a7c-b7c4-9c55844088ac",
+      "name": "Create Re-Clean Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -2256,
+        640
+      ],
+      "notes": "PostgreSQL: Creates new cleaning task for re-clean. Status: pending."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Lookup Cleaner Contact Info').item.json.preferred_contact_method }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Lookup Cleaner Contact Info').item.json.preferred_contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Lookup Cleaner Contact Info').item.json.preferred_contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f979547f-e2d7-4b84-95cc-2140e68e3b51",
+      "name": "Route Re-Clean Notification by Cleaner Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2032,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "from": "<__PLACEHOLDER_VALUE__Twilio From Phone Number__>",
+        "to": "={{ $('Lookup Cleaner Contact Info').first().json.phone_number }}",
+        "message": "A re-clean has been requested for the property you recently cleaned. Please check your schedule for the new task.",
+        "options": {}
+      },
+      "id": "0425770c-bc81-4e7c-8eef-4a780c43c0bd",
+      "name": "Send Re-Clean SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Lookup Cleaner Contact Info').first().json.telegram_chat_id }}",
+        "text": "A re-clean has been requested for the property you recently cleaned. Please check your schedule for the new task.",
+        "additionalFields": {}
+      },
+      "id": "6245bbab-5f91-4116-b6ac-aba0e685cf3d",
+      "name": "Send Re-Clean Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1808,
+        640
+      ],
+      "webhookId": "99f4cb5b-4ebf-4249-a294-ca135652cd28"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Lookup Cleaner Contact Info').first().json.whatsapp_number }}",
+        "textBody": "A re-clean has been requested for the property you recently cleaned. Please check your schedule for the new task.",
+        "additionalFields": {}
+      },
+      "id": "ba426547-24cd-4438-a5d8-44f219bfc42f",
+      "name": "Send Re-Clean WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1808,
+        832
+      ],
+      "webhookId": "f33c0374-bac9-4de3-84ac-c839c72ab9fd"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format success notification message\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const propertyName = item.json.propertyName || 'Unknown Property';\n  const cleanerName = item.json.cleanerName || 'Unknown Cleaner';\n  const completionPercentage = item.json.completionPercentage || 0;\n  const photoLink = item.json.photoLink || item.json.formResponseUrl || 'No photos available';\n  \n  const message = `\u2705 Cleaning Completed Successfully!\n\n\ud83c\udfe0 Property: ${propertyName}\n\ud83d\udc64 Cleaner: ${cleanerName}\n\ud83d\udcca Completion: ${completionPercentage}%\n\n\ud83d\udcf8 View Photos: ${photoLink}\n\nThe property is ready for guests!`;\n  \n  results.push({\n    json: {\n      ...item.json,\n      successMessage: message\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "d666353a-6fdd-47d5-aff3-8eede2583a34",
+      "name": "Format Success Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2928,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.preferred_contact_method }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8a1acfce-464d-4d40-9414-a865a68081ee",
+      "name": "Route Success Notification by Owner Method",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -2704,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Property Configuration').first().json.cleaning_review_contact_telegram }}",
+        "text": "={{ $('Format Success Notification').first().json.message }}",
+        "additionalFields": {}
+      },
+      "id": "06ac218c-5947-4bd3-bc04-ab2388e29b92",
+      "name": "Send Success to Owner via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -2480,
+        592
+      ],
+      "webhookId": "a23d52ad-9ef6-41a5-99c4-96ec9dd6c610"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Get Property Configuration').first().json.cleaning_review_contact_whatsapp }}",
+        "textBody": "={{ $('Format Success Notification').first().json.message }}",
+        "additionalFields": {}
+      },
+      "id": "f273f432-cb29-4447-9f77-1711fe15232a",
+      "name": "Send Success to Owner via WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -2480,
+        784
+      ],
+      "webhookId": "7abd7e83-2cb9-48f4-8364-fcc90767b306"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE cleaners \nSET completed_jobs = completed_jobs + 1,\n    current_workload = GREATEST(current_workload - 1, 0),\n    updated_at = CURRENT_TIMESTAMP\nWHERE cleaner_name = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$(\"Extract Form Data and Calculate Completion\").first().json.cleaner_name] } }}"
+        },
+        "options": {}
+      },
+      "id": "c9184a3d-0533-4a24-8604-8a2462e60b44",
+      "name": "Update Cleaner Stats",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -1584,
+        560
+      ],
+      "notes": "PostgreSQL: Updates cleaner performance stats. Increments completed jobs, decrements workload."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Forms Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Form Data and Calculate Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Form Data and Calculate Completion": {
+      "main": [
+        [
+          {
+            "node": "Lookup Task from Tasks Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Task from Tasks Sheet": {
+      "main": [
+        [
+          {
+            "node": "Get Property Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Configuration": {
+      "main": [
+        [
+          {
+            "node": "Update Task Record - Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task Record - Completed": {
+      "main": [
+        [
+          {
+            "node": "Generate Follow-up Questions via OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Follow-up Questions via OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Format Questions into Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Questions into Message": {
+      "main": [
+        [
+          {
+            "node": "Lookup Cleaner Contact Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Cleaner Contact Info": {
+      "main": [
+        [
+          {
+            "node": "Route by Cleaner Contact Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Cleaner Contact Method": {
+      "main": [
+        [
+          {
+            "node": "Send SMS to Cleaner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Telegram to Cleaner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp to Cleaner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS to Cleaner": {
+      "main": [
+        [
+          {
+            "node": "Wait for Cleaner Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram to Cleaner": {
+      "main": [
+        [
+          {
+            "node": "Wait for Cleaner Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp to Cleaner": {
+      "main": [
+        [
+          {
+            "node": "Wait for Cleaner Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Cleaner Response": {
+      "main": [
+        [
+          {
+            "node": "Update Task with Cleaner Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Task with Cleaner Feedback": {
+      "main": [
+        [
+          {
+            "node": "Check if Issues Found or Low Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Issues Found or Low Completion": {
+      "main": [
+        [
+          {
+            "node": "Format Issue Alert Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Issue Alert Message": {
+      "main": [
+        [
+          {
+            "node": "Route by Owner Contact Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Owner Contact Method": {
+      "main": [
+        [
+          {
+            "node": "Send Issue Alert to Owner via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Issue Alert to Owner via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Issue Alert to Owner via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Wait for Owner Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Issue Alert to Owner via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Wait for Owner Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Owner Decision": {
+      "main": [
+        [
+          {
+            "node": "Route by Owner Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Owner Decision": {
+      "main": [
+        [
+          {
+            "node": "Set Property Status to Ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Re-Clean Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Property Status to Ready": {
+      "main": [
+        [
+          {
+            "node": "Update Cleaner Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Re-Clean Task": {
+      "main": [
+        [
+          {
+            "node": "Route Re-Clean Notification by Cleaner Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Re-Clean Notification by Cleaner Method": {
+      "main": [
+        [
+          {
+            "node": "Send Re-Clean SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Re-Clean Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Re-Clean WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Re-Clean SMS": {
+      "main": [
+        [
+          {
+            "node": "Update Cleaner Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Re-Clean Telegram": {
+      "main": [
+        [
+          {
+            "node": "Update Cleaner Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Re-Clean WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Update Cleaner Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Notification": {
+      "main": [
+        [
+          {
+            "node": "Route Success Notification by Owner Method",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Success Notification by Owner Method": {
+      "main": [
+        [
+          {
+            "node": "Send Success to Owner via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Success to Owner via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Success to Owner via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Set Property Status to Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Success to Owner via WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Set Property Status to Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f95bb4ee-38b9-49b5-8c9b-b394b49e0d93",
+  "meta": {
+    "migrated_from_sheets": true,
+    "migration_date": "2026-01-14",
+    "migration_version": "2.0_precise",
+    "nodes_converted": 7,
+    "consistency_note": "Uses cleaning_tasks and cleaners tables. Updates task status to completed."
+  },
+  "id": "Uyrhtg1WwrztamXj",
+  "tags": []
+}

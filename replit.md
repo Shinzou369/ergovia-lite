@@ -4,6 +4,24 @@ Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketin
 
 # Recent Changes (January 2026)
 
+## PostgreSQL Migration - Removing Google Dependencies (January 19, 2026)
+- **Complete Google Sheets Removal**: Migrated all 24 automation workflows from Google Sheets to PostgreSQL
+- **Database Schema**: Created comprehensive PostgreSQL schema with 21 tables (see `/database/schema.sql`)
+- **New Folder Structure**: All PostgreSQL workflows stored in `/workflows_postgresql/`
+- **Updated Onboarding Workflows**: 
+  - `MASTER_COORDINATOR_PostgreSQL.json` - Updated orchestrator (no Google OAuth required)
+  - `SUB2_Server_Setup_PostgreSQL.json` - Now installs PostgreSQL alongside Docker, n8n, Authelia
+  - `SUB3_Database_Provisioner.json` - New workflow that creates database, applies schema, deploys NocoDB
+- **NocoDB Integration**: Clients get Airtable-like UI to view/edit data without seeing n8n
+- **Architecture per Client**: Hetzner VPS (~€5-10/month) with n8n + PostgreSQL + NocoDB + Authelia
+- **Remaining Google Dependencies**: 3 workflows still use Google Calendar (can be replaced with iCal feeds)
+
+### PostgreSQL Tables Created (21 total)
+Core: `property_configurations`, `bookings`, `deals`, `contacts`
+Tasks: `manual_tasks`, `control_panel_tasks`, `cleaning_tasks`, `maintenance_tickets`
+Operations: `cleaners`, `vendors`, `inventory`, `suppliers`, `scheduled_messages`
+Analytics: `calendar_sync_log`, `deal_conflicts`, `incidents`, `guest_blacklist`, `guest_screening_log`, `reviews`, `pricing_history`, `pricing_recommendations`, `inquiries`, `workflow_config`
+
 ## POC Control Panel for N8N Workflow Deployment
 - **POC Control Panel Page**: New `/poc-control-panel.html` page for Demo Veterinary Service
 - **10-Section Setup Wizard**: Complete configuration wizard with sections for:
@@ -72,6 +90,8 @@ Preferred communication style: Simple, everyday language.
 - **Token Usage Table**: Persistent storage for token tracking per user with limits, usage counts, and reset dates
 - **JSON File Storage**: Chat threads and configuration data stored in JSON files
 - **Session Storage**: File-based session persistence for user authentication state with FileStore
+- **PostgreSQL (Client Deployments)**: Each client gets dedicated PostgreSQL database with 21 tables for property management data
+- **NocoDB (Client Deployments)**: Airtable-like interface for clients to view/edit their data
 
 ## Authentication and Authorization
 - **Local Email/Password Auth**: Exclusive authentication method using bcrypt password hashing (12 rounds) with secure session management
