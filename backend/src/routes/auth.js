@@ -17,10 +17,8 @@ router.post('/login',
       const { email, password } = req.body;
 
       const result = await db.query(`
-        SELECT c.*, cs.db_password as client_password
-        FROM clients c
-        LEFT JOIN client_servers cs ON c.client_id = cs.client_id
-        WHERE c.owner_email = $1 AND c.status != 'cancelled'
+        SELECT * FROM clients
+        WHERE owner_email = $1 AND status != 'cancelled'
       `, [email]);
 
       if (result.rows.length === 0) {
@@ -29,15 +27,11 @@ router.post('/login',
 
       const client = result.rows[0];
 
-      const storedHash = await db.query(`
-        SELECT data FROM client_settings WHERE client_id = $1 AND section = 'auth'
-      `, [client.client_id]);
-
-      if (!storedHash.rows[0]?.data?.passwordHash) {
+      if (!client.password_hash) {
         return res.status(401).json({ error: 'Account not set up. Please complete onboarding.' });
       }
 
-      const validPassword = await bcrypt.compare(password, storedHash.rows[0].data.passwordHash);
+      const validPassword = await bcrypt.compare(password, client.password_hash);
       if (!validPassword) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
@@ -90,11 +84,9 @@ router.post('/setup-password',
       const passwordHash = await bcrypt.hash(password, 12);
 
       await db.query(`
-        INSERT INTO client_settings (client_id, section, data)
-        VALUES ($1, 'auth', $2)
-        ON CONFLICT (client_id, section)
-        DO UPDATE SET data = $2, updated_at = NOW()
-      `, [clientId, JSON.stringify({ passwordHash, setupAt: new Date().toISOString() })]);
+        UPDATE clients SET password_hash = $1, updated_at = NOW()
+        WHERE client_id = $2
+      `, [passwordHash, clientId]);
 
       const token = generateToken({
         clientId,
@@ -102,10 +94,16 @@ router.post('/setup-password',
         role: 'client'
       });
 
+      res.cookie('prismity_auth', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
       res.json({
         success: true,
-        message: 'Password set successfully',
-        token
+        message: 'Password set successfully'
       });
 
     } catch (error) {
