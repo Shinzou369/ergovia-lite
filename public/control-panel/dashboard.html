@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Property Manager</title>
+    <link rel="stylesheet" href="/assets/css/control-panel.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-home"></i>
+                <span>AI Property Manager</span>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="properties.html" class="nav-item">
+                    <i class="fas fa-building"></i>
+                    <span>Properties</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <div class="notification-bell" id="notificationBell" onclick="toggleNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount">0</span>
+                </div>
+                <div class="user-profile" onclick="showUserMenu()">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName">Owner</span>
+                </div>
+                <button class="btn-secondary" onclick="logout()" style="margin-left:10px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="notification-panel" id="notificationPanel">
+        <div class="notification-header">
+            <h3><i class="fas fa-bell"></i> Notifications</h3>
+            <button class="btn-close" onclick="toggleNotifications()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="notification-list" id="notificationList">
+            <div class="empty-state">
+                <i class="fas fa-bell-slash"></i>
+                <p>No notifications yet</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="welcome-banner">
+            <h1>Welcome back, <span id="ownerName">Owner</span>! 👋</h1>
+            <p id="welcomeMessage">Your AI assistant is working for you</p>
+        </div>
+
+        <div class="stats-section">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-line"></i> Quick Stats</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-robot"></i>
+                    <h3 id="activeWorkflows">0</h3>
+                    <p>Active Workflows</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3 id="activeBookings">0</h3>
+                    <p>Active Bookings</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-comments"></i>
+                    <h3 id="activeConversations">0</h3>
+                    <p>Active Conversations</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-euro-sign"></i>
+                    <h3 id="monthlyRevenue">€0</h3>
+                    <p>Monthly Revenue</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tasks-section">
+            <div class="section-header">
+                <h2><i class="fas fa-clipboard-check"></i> Tasks & Reminders</h2>
+            </div>
+            <div class="tasks-container" id="tasksContainer">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="calendar-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt"></i> Upcoming Bookings</h2>
+            </div>
+            <div class="property-filter">
+                <label><i class="fas fa-filter"></i> Show bookings for:</label>
+                <select id="propertyFilter" onchange="filterBookings()">
+                    <option value="all">All Properties</option>
+                </select>
+            </div>
+            <div id="bookingsContainer">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/backend';
+        let clientData = null;
+
+        async function init() {
+            const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+            if (!authCheck.ok) {
+                window.location.href = 'login.html';
+                return;
+            }
+            clientData = await authCheck.json();
+
+            try {
+                await loadDashboard();
+                await loadNotifications();
+            } catch (error) {
+                console.error('Failed to load dashboard:', error);
+                if (error.message.includes('401')) {
+                    localStorage.removeItem('prismity_token');
+                    window.location.href = 'login.html';
+                }
+            }
+        }
+
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        async function loadDashboard() {
+            const data = await apiRequest('/control-panel/dashboard');
+            
+            document.getElementById('ownerName').textContent = data.owner?.name || 'Owner';
+            document.getElementById('userName').textContent = data.owner?.name || 'Owner';
+            
+            document.getElementById('activeWorkflows').textContent = data.stats?.activeWorkflows || 0;
+            document.getElementById('activeBookings').textContent = data.stats?.activeBookings || 0;
+            document.getElementById('activeConversations').textContent = data.stats?.activeConversations || 0;
+            document.getElementById('monthlyRevenue').textContent = '€' + (data.stats?.monthlyRevenue || 0);
+
+            renderTasks(data.tasks || []);
+            renderBookings(data.upcomingBookings || []);
+        }
+
+        function renderTasks(tasks) {
+            const container = document.getElementById('tasksContainer');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="task-item">
+                        <div class="task-icon"><i class="fas fa-check"></i></div>
+                        <div class="task-content">
+                            <h4>All caught up!</h4>
+                            <p>No pending tasks at the moment</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => `
+                <div class="task-item ${task.priority || ''}">
+                    <div class="task-icon">
+                        <i class="fas ${getTaskIcon(task.type)}"></i>
+                    </div>
+                    <div class="task-content">
+                        <h4>${escapeHtml(task.title)}</h4>
+                        <p>${escapeHtml(task.description || '')}</p>
+                    </div>
+                    <div class="task-action">
+                        <button class="btn-primary" onclick="completeTask('${task.id}')">
+                            Complete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderBookings(bookings) {
+            const container = document.getElementById('bookingsContainer');
+            
+            if (bookings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3>No upcoming bookings</h3>
+                        <p>New bookings will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = bookings.map(booking => `
+                <div class="task-item">
+                    <div class="task-icon" style="background: var(--secondary)">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="task-content">
+                        <h4>${escapeHtml(booking.guestName || 'Guest')}</h4>
+                        <p>${escapeHtml(booking.propertyName || '')} - ${formatDate(booking.checkIn)} to ${formatDate(booking.checkOut)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadNotifications() {
+            try {
+                const data = await apiRequest('/control-panel/notifications');
+                const notifications = data.notifications || [];
+                const unread = notifications.filter(n => !n.read).length;
+                
+                document.getElementById('notificationCount').textContent = unread;
+                
+                const list = document.getElementById('notificationList');
+                if (notifications.length === 0) {
+                    list.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-bell-slash"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    `;
+                } else {
+                    list.innerHTML = notifications.map(n => `
+                        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}')">
+                            <strong>${escapeHtml(n.title)}</strong>
+                            <p>${escapeHtml(n.message)}</p>
+                            <small>${formatDate(n.createdAt)}</small>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load notifications:', error);
+            }
+        }
+
+        async function completeTask(taskId) {
+            try {
+                await apiRequest(`/control-panel/tasks/${taskId}/complete`, 'POST');
+                await loadDashboard();
+            } catch (error) {
+                alert('Failed to complete task');
+            }
+        }
+
+        async function markRead(notificationId) {
+            try {
+                await apiRequest('/control-panel/notifications/read', 'POST', { notificationId });
+                await loadNotifications();
+            } catch (error) {
+                console.error('Failed to mark notification read');
+            }
+        }
+
+        function toggleNotifications() {
+            const panel = document.getElementById('notificationPanel');
+            panel.classList.toggle('open');
+        }
+
+        async function logout() {
+            await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+            localStorage.removeItem('prismity_client');
+            window.location.href = 'login.html';
+        }
+
+        function getTaskIcon(type) {
+            const icons = {
+                'cleaning': 'fa-broom',
+                'maintenance': 'fa-wrench',
+                'checkin': 'fa-door-open',
+                'checkout': 'fa-door-closed',
+                'message': 'fa-envelope',
+                'urgent': 'fa-exclamation-circle'
+            };
+            return icons[type] || 'fa-tasks';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            return new Date(dateStr).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        init();
+    </script>
+</body>
+</html>

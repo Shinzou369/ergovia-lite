@@ -6285,6 +6285,23 @@ app.get('/api/poc/workflows/:businessName', async (req, res) => {
   }
 });
 
+// ========================================
+// PRISMITY BACKEND API INTEGRATION
+// Proper backend service for provisioning and control panel
+// ========================================
+const backendAuthRoutes = require('./backend/src/routes/auth');
+const backendOnboardingRoutes = require('./backend/src/routes/onboarding');
+const backendControlPanelRoutes = require('./backend/src/routes/controlPanel');
+const backendHealthRoutes = require('./backend/src/routes/health');
+
+// Mount backend API routes
+app.use('/api/backend/auth', backendAuthRoutes);
+app.use('/api/backend/onboarding', backendOnboardingRoutes);
+app.use('/api/backend/control-panel', backendControlPanelRoutes);
+app.use('/api/backend/health', backendHealthRoutes);
+
+console.log('✅ Backend API routes mounted at /api/backend/*');
+
 // Start server
 const port = process.env.PORT || 5000;
 

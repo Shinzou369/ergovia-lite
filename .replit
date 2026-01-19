@@ -62,3 +62,11 @@ outputType = "webview"
 
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "bea07a70f59f33cfe1c6ae80937a08db4bff05a0b5da6af287cd79ee337628c3ede753d451519955c89a59cbb3eec54a05988644cc41934f3c369cce67746b0c"
+BACKEND_PORT = "3001"
+NODE_ENV = "development"
+CREDENTIAL_ENCRYPTION_KEY = "d631bf874d89bf3d4d1432f911e55e4cbcd6a474830701b1c305b4923ac91487"

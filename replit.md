@@ -4,6 +4,37 @@ Prismity AI (TaskAI) is an AI-powered productivity assistant focused on marketin
 
 # Recent Changes (January 2026)
 
+## Backend Architecture Refactoring (January 19, 2026)
+- **Proper Backend Service**: Replaced n8n-based onboarding workflows with production-grade Express.js backend
+- **New Backend Location**: `/backend/src/` with organized structure (routes, services, middleware, models)
+- **Provisioning Orchestrator**: Complete client onboarding flow:
+  1. Create Hetzner VPS server via API
+  2. Wait for server ready, establish SSH connection
+  3. Install Docker, PostgreSQL, n8n, NocoDB, Authelia
+  4. Create client database and apply schema
+  5. Deploy 24 automation workflows to n8n
+  6. Track progress in PostgreSQL with real-time updates
+- **Control Panel API**: Express routes replacing n8n BACKEND_01-04 webhooks
+  - `/api/backend/auth/*` - Client authentication with httpOnly cookies
+  - `/api/backend/onboarding/*` - Start provisioning, track status
+  - `/api/backend/control-panel/*` - Dashboard, settings, properties, tasks
+  - `/api/backend/health` - Health check endpoint
+- **Security Improvements**:
+  - AES-256-GCM encryption for stored credentials (CREDENTIAL_ENCRYPTION_KEY)
+  - httpOnly cookies for JWT tokens (no localStorage exposure)
+  - Secret scrubbing in all logs (passwords, tokens redacted)
+  - Rate limiting on authentication endpoints
+  - Input validation and sanitization middleware
+- **Control Panel Frontend**: New pages at `/public/control-panel/`
+  - login.html - Cookie-based authentication
+  - dashboard.html - Tasks, stats, bookings overview
+  - settings.html - Client configuration with progress tracking
+  - properties.html - Property CRUD operations
+- **Backend Database Schema**: `/backend/src/models/schema.sql` with tables:
+  - clients, client_servers, provisioning_jobs
+  - client_settings, client_credentials, deployed_workflows
+  - audit_log
+
 ## PostgreSQL Migration - Removing Google Dependencies (January 19, 2026)
 - **Complete Google Sheets Removal**: Migrated all 24 automation workflows from Google Sheets to PostgreSQL
 - **Database Schema**: Created comprehensive PostgreSQL schema with 21 tables (see `/database/schema.sql`)
@@ -79,10 +110,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Backend Architecture
 - **Node.js/Express Server**: RESTful API with Express.js framework
+- **Dual Backend System**:
+  - Main server (server.js on port 5000): Original TaskAI/Chat functionality
+  - Provisioning backend (/backend/src): Client onboarding and control panel
 - **Session Management**: File-based sessions using express-session with FileStore
-- **Authentication**: Local email/password authentication with bcrypt password hashing (no third-party providers)
+- **Authentication**: 
+  - Main app: Local email/password with bcrypt and session cookies
+  - Control Panel: JWT with httpOnly cookies (7-day expiry)
 - **AI Integration**: OpenAI API integration with intelligent model routing based on prompt complexity
 - **Token Management**: Custom token counting and usage tracking system per user
+- **Provisioning Services**: Hetzner API client, SSH runner, stack installer, workflow deployer
 
 ## Data Storage Solutions
 - **SQLite Database**: Local file-based database for user accounts, ETF client data, history, and token usage
