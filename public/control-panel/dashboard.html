@@ -134,6 +134,11 @@
             }
             clientData = await authCheck.json();
 
+            if (clientData.onboarding?.needsOnboarding) {
+                window.location.href = 'onboarding.html';
+                return;
+            }
+
             try {
                 await loadDashboard();
                 await loadNotifications();

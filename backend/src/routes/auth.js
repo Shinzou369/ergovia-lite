@@ -5,7 +5,29 @@ const bcrypt = require('bcrypt');
 const { generateToken } = require('../middleware/auth');
 const { validateRequired, validateEmail, sanitizeInput } = require('../middleware/validation');
 const { rateLimiter } = require('../middleware/rateLimit');
+const { checkOnboardingStatus } = require('../config/setupDatabase');
 const logger = require('../utils/logger');
+
+async function verifyPassword(client, password) {
+  if (client.password_hash) {
+    return await bcrypt.compare(password, client.password_hash);
+  }
+  
+  const credResult = await db.query(`
+    SELECT credential_data FROM client_credentials
+    WHERE client_id = $1 AND credential_type = 'password'
+  `, [client.client_id]);
+  
+  if (credResult.rows.length === 0) {
+    return false;
+  }
+  
+  const credData = typeof credResult.rows[0].credential_data === 'string'
+    ? JSON.parse(credResult.rows[0].credential_data)
+    : credResult.rows[0].credential_data;
+  
+  return await bcrypt.compare(password, credData.hash);
+}
 
 router.post('/login',
   rateLimiter({ maxRequests: 10, windowMs: 15 * 60 * 1000 }),
@@ -27,11 +49,7 @@ router.post('/login',
 
       const client = result.rows[0];
 
-      if (!client.password_hash) {
-        return res.status(401).json({ error: 'Account not set up. Please complete onboarding.' });
-      }
-
-      const validPassword = await bcrypt.compare(password, client.password_hash);
+      const validPassword = await verifyPassword(client, password);
       if (!validPassword) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
@@ -49,6 +67,8 @@ router.post('/login',
         maxAge: 7 * 24 * 60 * 60 * 1000
       });
 
+      const onboardingStatus = await checkOnboardingStatus(client.client_id);
+
       res.json({
         success: true,
         client: {
@@ -56,7 +76,8 @@ router.post('/login',
           businessName: client.business_name,
           ownerName: client.owner_name,
           email: client.owner_email
-        }
+        },
+        onboarding: onboardingStatus
       });
 
     } catch (error) {
@@ -167,6 +188,8 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ authenticated: false });
     }
 
+    const onboardingStatus = await checkOnboardingStatus(decoded.clientId);
+
     res.json({
       authenticated: true,
       client: {
@@ -174,7 +197,8 @@ router.get('/me', async (req, res) => {
         businessName: result.rows[0].business_name,
         ownerName: result.rows[0].owner_name,
         email: result.rows[0].owner_email
-      }
+      },
+      onboarding: onboardingStatus
     });
   } catch (error) {
     res.status(500).json({ authenticated: false });

@@ -6294,16 +6294,19 @@ const backendAuthRoutes = require('./backend/src/routes/auth');
 const backendOnboardingRoutes = require('./backend/src/routes/onboarding');
 const backendControlPanelRoutes = require('./backend/src/routes/controlPanel');
 const backendHealthRoutes = require('./backend/src/routes/health');
+const backendAdminRoutes = require('./backend/src/routes/admin');
 
 // Mount backend API routes
 app.use('/api/backend/auth', backendAuthRoutes);
 app.use('/api/backend/onboarding', backendOnboardingRoutes);
 app.use('/api/backend/control-panel', backendControlPanelRoutes);
 app.use('/api/backend/health', backendHealthRoutes);
+app.use('/api/backend/admin', backendAdminRoutes);
 
 // Control Panel clean URL routes (without .html extension)
 app.get('/control-panel', (req, res) => res.redirect('/control-panel/login'));
 app.get('/control-panel/login', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/login.html')));
+app.get('/control-panel/onboarding', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/onboarding.html')));
 app.get('/control-panel/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/dashboard.html')));
 app.get('/control-panel/settings', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/settings.html')));
 app.get('/control-panel/properties', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/properties.html')));

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Wizard - AI Property Manager</title>
+    <link rel="stylesheet" href="/assets/css/control-panel.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .wizard-container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .wizard-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .wizard-header h1 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        .wizard-header p {
+            color: var(--text-secondary);
+        }
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        .wizard-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 0;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .step.active .step-number {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+        .step.completed .step-number {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: white;
+        }
+        .step-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .step.active .step-label {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+        .wizard-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        .wizard-content h2 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .wizard-content h2 i {
+            color: var(--accent-blue);
+        }
+        .wizard-content p {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+        }
+        .wizard-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+        }
+        .deploy-status {
+            text-align: center;
+            padding: 40px;
+        }
+        .deploy-status .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        .deploy-status.deploying .icon {
+            color: var(--accent-blue);
+            animation: spin 1s linear infinite;
+        }
+        .deploy-status.success .icon {
+            color: var(--accent-green);
+        }
+        .deploy-status.error .icon {
+            color: var(--accent-red);
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .workflow-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        .workflow-item {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .workflow-item.success { color: var(--accent-green); }
+        .workflow-item.pending { color: var(--text-secondary); }
+        .workflow-item.error { color: var(--accent-red); }
+    </style>
+</head>
+<body>
+    <div class="wizard-container">
+        <div class="wizard-header">
+            <i class="fas fa-home" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 15px;"></i>
+            <h1>Welcome to AI Property Manager</h1>
+            <p>Let's set up your automation system in just a few steps</p>
+        </div>
+
+        <div class="wizard-steps">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <span class="step-label">Business Info</span>
+            </div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <span class="step-label">Credentials</span>
+            </div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <span class="step-label">AI Settings</span>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <span class="step-label">Deploy</span>
+            </div>
+        </div>
+
+        <div class="wizard-content">
+            <div id="step1" class="step-content active">
+                <h2><i class="fas fa-building"></i> Business Information</h2>
+                <p>Tell us about your property management business</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="businessName"><i class="fas fa-briefcase"></i> Business Name *</label>
+                        <input type="text" id="businessName" required placeholder="My Vacation Rentals">
+                    </div>
+                    <div class="form-group">
+                        <label for="ownerName"><i class="fas fa-user"></i> Your Name *</label>
+                        <input type="text" id="ownerName" required placeholder="John Smith">
+                    </div>
+                    <div class="form-group">
+                        <label for="ownerEmail"><i class="fas fa-envelope"></i> Email *</label>
+                        <input type="email" id="ownerEmail" required placeholder="john@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="ownerPhone"><i class="fas fa-phone"></i> Phone *</label>
+                        <input type="tel" id="ownerPhone" required placeholder="+1234567890">
+                    </div>
+                    <div class="form-group">
+                        <label for="timezone"><i class="fas fa-clock"></i> Timezone</label>
+                        <select id="timezone">
+                            <option value="Europe/Berlin">Europe/Berlin (CET)</option>
+                            <option value="Europe/London">Europe/London (GMT)</option>
+                            <option value="America/New_York">America/New York (EST)</option>
+                            <option value="America/Los_Angeles">America/Los Angeles (PST)</option>
+                            <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                            <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="preferredPlatform"><i class="fas fa-comments"></i> Preferred Contact</label>
+                        <select id="preferredPlatform">
+                            <option value="telegram">Telegram</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="email">Email</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step2" class="step-content">
+                <h2><i class="fas fa-key"></i> API Credentials</h2>
+                <p>Connect your communication channels (you can skip and add later)</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="telegramBotToken"><i class="fab fa-telegram"></i> Telegram Bot Token</label>
+                        <input type="password" id="telegramBotToken" placeholder="From @BotFather">
+                        <small class="help-text">Optional - for Telegram notifications</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="telegramChatId"><i class="fab fa-telegram"></i> Telegram Chat ID</label>
+                        <input type="text" id="telegramChatId" placeholder="Your chat ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="openaiApiKey"><i class="fas fa-robot"></i> OpenAI API Key</label>
+                        <input type="password" id="openaiApiKey" placeholder="sk-...">
+                        <small class="help-text">Required for AI-powered responses</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="whatsappApiKey"><i class="fab fa-whatsapp"></i> WhatsApp API Key</label>
+                        <input type="password" id="whatsappApiKey" placeholder="Optional">
+                        <small class="help-text">Optional - for WhatsApp integration</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step3" class="step-content">
+                <h2><i class="fas fa-robot"></i> AI Preferences</h2>
+                <p>Customize how your AI assistant behaves</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="aiResponseStyle"><i class="fas fa-comment-dots"></i> Response Style</label>
+                        <select id="aiResponseStyle">
+                            <option value="professional">Professional</option>
+                            <option value="friendly">Friendly</option>
+                            <option value="casual">Casual</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="defaultLanguage"><i class="fas fa-language"></i> Default Language</label>
+                        <select id="defaultLanguage">
+                            <option value="en">English</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Espanol</option>
+                            <option value="fr">Francais</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="aiInstructions"><i class="fas fa-scroll"></i> Special Instructions</label>
+                        <textarea id="aiInstructions" rows="4" placeholder="Any special instructions for your AI assistant..."></textarea>
+                        <small class="help-text">Up to 2000 characters</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step4" class="step-content">
+                <h2><i class="fas fa-rocket"></i> Deploy Workflows</h2>
+                <p>We'll now set up your 24 automation workflows</p>
+                
+                <div id="deployStatus" class="deploy-status">
+                    <div class="icon"><i class="fas fa-cogs"></i></div>
+                    <h3>Ready to Deploy</h3>
+                    <p>Click "Deploy Now" to set up your automation system</p>
+                </div>
+
+                <div id="workflowProgress" class="workflow-list" style="display: none;">
+                </div>
+            </div>
+        </div>
+
+        <div id="alertBox" class="alert" style="display: none;"></div>
+
+        <div class="wizard-buttons">
+            <button type="button" id="prevBtn" class="btn-secondary" onclick="prevStep()" style="display: none;">
+                <i class="fas fa-arrow-left"></i> Previous
+            </button>
+            <div style="flex: 1;"></div>
+            <button type="button" id="skipBtn" class="btn-secondary" onclick="skipStep()" style="display: none;">
+                Skip for now
+            </button>
+            <button type="button" id="nextBtn" class="btn-primary" onclick="nextStep()">
+                Next <i class="fas fa-arrow-right"></i>
+            </button>
+            <button type="button" id="deployBtn" class="btn-primary" onclick="deployWorkflows()" style="display: none;">
+                <i class="fas fa-rocket"></i> Deploy Now
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/backend';
+        let currentStep = 1;
+        const totalSteps = 4;
+
+        async function init() {
+            const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+            if (!authCheck.ok) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const data = await authCheck.json();
+            if (data.onboarding && !data.onboarding.needsOnboarding) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            if (data.onboarding?.currentStep) {
+                goToStep(data.onboarding.currentStep);
+            }
+            
+            if (data.client) {
+                document.getElementById('ownerName').value = data.client.ownerName || '';
+                document.getElementById('ownerEmail').value = data.client.email || '';
+                document.getElementById('businessName').value = data.client.businessName || '';
+            }
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            updateUI();
+        }
+
+        function updateUI() {
+            document.querySelectorAll('.step-content').forEach((el, idx) => {
+                el.classList.toggle('active', idx + 1 === currentStep);
+            });
+            
+            document.querySelectorAll('.wizard-steps .step').forEach((el, idx) => {
+                const stepNum = idx + 1;
+                el.classList.remove('active', 'completed');
+                if (stepNum === currentStep) {
+                    el.classList.add('active');
+                } else if (stepNum < currentStep) {
+                    el.classList.add('completed');
+                }
+            });
+
+            document.getElementById('prevBtn').style.display = currentStep > 1 ? 'inline-flex' : 'none';
+            document.getElementById('skipBtn').style.display = currentStep === 2 ? 'inline-flex' : 'none';
+            document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
+            document.getElementById('deployBtn').style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+        }
+
+        async function nextStep() {
+            if (!await saveCurrentStep()) return;
+            
+            if (currentStep < totalSteps) {
+                currentStep++;
+                updateUI();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        function skipStep() {
+            currentStep++;
+            updateUI();
+        }
+
+        async function saveCurrentStep() {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.style.display = 'none';
+
+            try {
+                if (currentStep === 1) {
+                    const businessName = document.getElementById('businessName').value.trim();
+                    const ownerName = document.getElementById('ownerName').value.trim();
+                    const ownerEmail = document.getElementById('ownerEmail').value.trim();
+                    const ownerPhone = document.getElementById('ownerPhone').value.trim();
+                    
+                    if (!businessName || !ownerName || !ownerEmail || !ownerPhone) {
+                        showAlert('error', 'Please fill in all required fields');
+                        return false;
+                    }
+
+                    await apiRequest('/control-panel/settings', 'POST', {
+                        section: 'owner',
+                        data: {
+                            name: ownerName,
+                            email: ownerEmail,
+                            phone: ownerPhone,
+                            preferredPlatform: document.getElementById('preferredPlatform').value
+                        }
+                    });
+
+                    await apiRequest('/control-panel/settings', 'POST', {
+                        section: 'business',
+                        data: {
+                            name: businessName,
+                            timezone: document.getElementById('timezone').value
+                        }
+                    });
+                }
+
+                if (currentStep === 2) {
+                    await apiRequest('/control-panel/settings', 'POST', {
+                        section: 'credentials',
+                        data: {
+                            telegramBotToken: document.getElementById('telegramBotToken').value || undefined,
+                            telegramChatId: document.getElementById('telegramChatId').value || undefined,
+                            openaiApiKey: document.getElementById('openaiApiKey').value || undefined,
+                            whatsappApiKey: document.getElementById('whatsappApiKey').value || undefined
+                        }
+                    });
+                }
+
+                if (currentStep === 3) {
+                    await apiRequest('/control-panel/settings', 'POST', {
+                        section: 'ai',
+                        data: {
+                            responseStyle: document.getElementById('aiResponseStyle').value,
+                            defaultLanguage: document.getElementById('defaultLanguage').value,
+                            instructions: document.getElementById('aiInstructions').value
+                        }
+                    });
+                }
+
+                return true;
+            } catch (error) {
+                showAlert('error', 'Failed to save: ' + error.message);
+                return false;
+            }
+        }
+
+        async function deployWorkflows() {
+            const deployStatus = document.getElementById('deployStatus');
+            const progressList = document.getElementById('workflowProgress');
+            const deployBtn = document.getElementById('deployBtn');
+            
+            deployBtn.disabled = true;
+            deployStatus.className = 'deploy-status deploying';
+            deployStatus.innerHTML = `
+                <div class="icon"><i class="fas fa-cog fa-spin"></i></div>
+                <h3>Deploying Workflows...</h3>
+                <p>This may take a few minutes. Please don't close this page.</p>
+            `;
+
+            try {
+                const result = await apiRequest('/control-panel/workflows/deploy', 'POST', { activate: true });
+                
+                deployStatus.className = 'deploy-status success';
+                deployStatus.innerHTML = `
+                    <div class="icon"><i class="fas fa-check-circle"></i></div>
+                    <h3>Setup Complete!</h3>
+                    <p>Successfully deployed ${result.successful} of ${result.total} workflows</p>
+                `;
+
+                if (result.workflows) {
+                    progressList.style.display = 'block';
+                    progressList.innerHTML = result.workflows.map(w => `
+                        <div class="workflow-item ${w.success ? 'success' : 'error'}">
+                            <i class="fas fa-${w.success ? 'check' : 'times'}"></i>
+                            ${w.name || w.filename}
+                        </div>
+                    `).join('');
+                }
+
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 3000);
+
+            } catch (error) {
+                deployStatus.className = 'deploy-status error';
+                deployStatus.innerHTML = `
+                    <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <h3>Deployment Failed</h3>
+                    <p>${error.message}</p>
+                `;
+                deployBtn.disabled = false;
+                deployBtn.innerHTML = '<i class="fas fa-redo"></i> Retry';
+            }
+        }
+
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            };
+            if (data) options.body = JSON.stringify(data);
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({ error: 'Request failed' }));
+                throw new Error(err.error || 'Request failed');
+            }
+            return response.json();
+        }
+
+        function showAlert(type, message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type === 'success' ? 'success' : 'error'}`;
+            alertBox.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}`;
+            alertBox.style.display = 'flex';
+        }
+
+        init();
+    </script>
+</body>
+</html>

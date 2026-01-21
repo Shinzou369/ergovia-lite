@@ -111,8 +111,9 @@
                 alertBox.innerHTML = '<i class="fas fa-check"></i> Login successful! Redirecting...';
                 alertBox.style.display = 'flex';
 
+                const redirectTo = data.onboarding?.needsOnboarding ? 'onboarding.html' : 'dashboard.html';
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = redirectTo;
                 }, 1000);
 
             } catch (error) {

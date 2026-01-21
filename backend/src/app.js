@@ -9,8 +9,10 @@ const authRoutes = require('./routes/auth');
 const onboardingRoutes = require('./routes/onboarding');
 const controlPanelRoutes = require('./routes/controlPanel');
 const healthRoutes = require('./routes/health');
+const adminRoutes = require('./routes/admin');
 
 const logger = require('./utils/logger');
+const { setupDatabase } = require('./config/setupDatabase');
 
 const app = express();
 
@@ -34,10 +36,15 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+setupDatabase().catch(err => {
+  logger.error('Database setup failed on startup', { error: err.message });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/control-panel', controlPanelRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((err, req, res, next) => {
   logger.error('Unhandled error', { 
