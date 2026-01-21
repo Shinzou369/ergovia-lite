@@ -169,6 +169,44 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 -- ============================================================================
+-- API_KEY_BANK TABLE - Developer-managed API keys pool for assignment to clients
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS api_key_bank (
+    id SERIAL PRIMARY KEY,
+    key_type VARCHAR(50) NOT NULL,
+    api_key TEXT NOT NULL,
+    label VARCHAR(255),
+    is_assigned BOOLEAN DEFAULT false,
+    assigned_to_client VARCHAR(100) REFERENCES clients(client_id) ON DELETE SET NULL,
+    assigned_at TIMESTAMP,
+    is_active BOOLEAN DEFAULT true,
+    usage_count INTEGER DEFAULT 0,
+    last_used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- SUPPORT_TICKETS TABLE - Error reporting system for developer notification
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id SERIAL PRIMARY KEY,
+    ticket_id VARCHAR(100) UNIQUE NOT NULL,
+    client_id VARCHAR(100) REFERENCES clients(client_id) ON DELETE SET NULL,
+    ticket_type VARCHAR(50) NOT NULL,
+    severity VARCHAR(20) DEFAULT 'normal',
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    error_details JSONB,
+    status VARCHAR(20) DEFAULT 'open',
+    assigned_to VARCHAR(255),
+    resolution_notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
+);
+
+-- ============================================================================
 -- INDEXES
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
@@ -179,6 +217,12 @@ CREATE INDEX IF NOT EXISTS idx_jobs_status ON provisioning_jobs(status);
 CREATE INDEX IF NOT EXISTS idx_settings_client ON client_settings(client_id);
 CREATE INDEX IF NOT EXISTS idx_audit_client ON audit_log(client_id);
 CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_api_bank_type ON api_key_bank(key_type);
+CREATE INDEX IF NOT EXISTS idx_api_bank_assigned ON api_key_bank(is_assigned);
+CREATE INDEX IF NOT EXISTS idx_api_bank_client ON api_key_bank(assigned_to_client);
+CREATE INDEX IF NOT EXISTS idx_tickets_client ON support_tickets(client_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_tickets_type ON support_tickets(ticket_type);
 
 -- ============================================================================
 -- TRIGGERS

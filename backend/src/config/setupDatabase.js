@@ -96,35 +96,80 @@ async function verifyClientPassword(email, password) {
 }
 
 async function checkOnboardingStatus(clientId) {
-  const [settingsResult, workflowsResult] = await Promise.all([
-    db.query(`
-      SELECT section FROM client_settings 
-      WHERE client_id = $1
-    `, [clientId]),
-    db.query(`
-      SELECT COUNT(*) as count FROM deployed_workflows 
-      WHERE client_id = $1
-    `, [clientId])
-  ]);
+  const settingsResult = await db.query(`
+    SELECT section FROM client_settings 
+    WHERE client_id = $1
+  `, [clientId]);
 
   const completedSections = settingsResult.rows.map(r => r.section);
-  const workflowCount = parseInt(workflowsResult.rows[0]?.count || 0);
 
-  const requiredSections = ['owner', 'business', 'credentials'];
+  const requiredSections = ['owner', 'business', 'ai'];
   const hasRequiredSettings = requiredSections.every(s => completedSections.includes(s));
-  const hasWorkflows = workflowCount > 0;
 
   return {
-    needsOnboarding: !hasRequiredSettings || !hasWorkflows,
+    needsOnboarding: !hasRequiredSettings,
     completedSections,
     hasRequiredSettings,
-    hasWorkflows,
-    workflowCount,
     currentStep: !completedSections.includes('owner') ? 1 :
                  !completedSections.includes('business') ? 2 :
-                 !completedSections.includes('credentials') ? 3 :
-                 !hasWorkflows ? 4 : 0
+                 !completedSections.includes('ai') ? 3 : 0
   };
+}
+
+async function createSupportTicket(ticketData) {
+  const {
+    clientId,
+    ticketType,
+    severity = 'normal',
+    title,
+    description,
+    errorDetails
+  } = ticketData;
+
+  const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+
+  await db.query(`
+    INSERT INTO support_tickets (
+      ticket_id, client_id, ticket_type, severity, title, description, error_details, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'open')
+  `, [ticketId, clientId, ticketType, severity, title, description, JSON.stringify(errorDetails || {})]);
+
+  logger.info('Support ticket created', { ticketId, ticketType, severity });
+
+  return { ticketId };
+}
+
+async function assignApiKeyToClient(clientId, keyType) {
+  const availableKey = await db.query(`
+    SELECT id, api_key FROM api_key_bank 
+    WHERE key_type = $1 AND is_assigned = false AND is_active = true
+    ORDER BY created_at ASC LIMIT 1
+  `, [keyType]);
+
+  if (availableKey.rows.length === 0) {
+    return null;
+  }
+
+  const key = availableKey.rows[0];
+
+  await db.query(`
+    UPDATE api_key_bank 
+    SET is_assigned = true, assigned_to_client = $1, assigned_at = NOW()
+    WHERE id = $2
+  `, [clientId, key.id]);
+
+  logger.info('API key assigned to client', { clientId, keyType });
+
+  return { keyId: key.id, apiKey: key.api_key };
+}
+
+async function getClientApiKey(clientId, keyType) {
+  const result = await db.query(`
+    SELECT api_key FROM api_key_bank 
+    WHERE assigned_to_client = $1 AND key_type = $2 AND is_active = true
+  `, [clientId, keyType]);
+
+  return result.rows[0]?.api_key || null;
 }
 
 module.exports = {
@@ -132,5 +177,8 @@ module.exports = {
   createClientAccount,
   getClientByEmail,
   verifyClientPassword,
-  checkOnboardingStatus
+  checkOnboardingStatus,
+  createSupportTicket,
+  assignApiKeyToClient,
+  getClientApiKey
 };

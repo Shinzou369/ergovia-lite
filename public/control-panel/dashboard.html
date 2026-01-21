@@ -6,6 +6,159 @@
     <title>Dashboard - AI Property Manager</title>
     <link rel="stylesheet" href="/assets/css/control-panel.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .action-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            border-color: var(--accent-blue);
+        }
+        .action-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .action-card .icon.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .action-card .icon.green { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .action-card .icon.purple { background: rgba(147, 51, 234, 0.15); color: #9333ea; }
+        .action-card .icon.orange { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+        .action-card .icon.pink { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .action-card .icon.teal { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+        .action-card .content h3 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        .action-card .content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .quick-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .quick-stat .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+        .quick-stat .label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .activity-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+        }
+        .activity-section h2 {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .activity-section h2 i { color: var(--accent-blue); }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-item .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .activity-item .dot.success { background: #22c55e; }
+        .activity-item .dot.pending { background: #f59e0b; }
+        .activity-item .dot.info { background: #3b82f6; }
+        .activity-item .text {
+            flex: 1;
+            color: var(--text-primary);
+        }
+        .activity-item .time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .setup-alert {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .setup-alert.warning {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1));
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+        .setup-alert i {
+            font-size: 1.5rem;
+            color: #3b82f6;
+        }
+        .setup-alert.warning i { color: #f97316; }
+        .setup-alert .message {
+            flex: 1;
+        }
+        .setup-alert .message h4 {
+            color: var(--text-primary);
+            margin-bottom: 3px;
+        }
+        .setup-alert .message p {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        .empty-activity {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        .empty-activity i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -20,7 +173,7 @@
                     <span>Dashboard</span>
                 </a>
                 <a href="settings.html" class="nav-item">
-                    <i class="fas fa-clipboard-list"></i>
+                    <i class="fas fa-cog"></i>
                     <span>Settings</span>
                 </a>
                 <a href="properties.html" class="nav-item">
@@ -29,11 +182,7 @@
                 </a>
             </div>
             <div class="nav-user">
-                <div class="notification-bell" id="notificationBell" onclick="toggleNotifications()">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge" id="notificationCount">0</span>
-                </div>
-                <div class="user-profile" onclick="showUserMenu()">
+                <div class="user-profile">
                     <i class="fas fa-user-circle"></i>
                     <span id="userName">Owner</span>
                 </div>
@@ -44,81 +193,100 @@
         </div>
     </nav>
 
-    <div class="notification-panel" id="notificationPanel">
-        <div class="notification-header">
-            <h3><i class="fas fa-bell"></i> Notifications</h3>
-            <button class="btn-close" onclick="toggleNotifications()">
-                <i class="fas fa-times"></i>
-            </button>
+    <div class="main-container">
+        <div class="welcome-banner">
+            <h1>Welcome back, <span id="ownerName">Owner</span>!</h1>
+            <p>Your AI assistant is managing your properties</p>
         </div>
-        <div class="notification-list" id="notificationList">
-            <div class="empty-state">
-                <i class="fas fa-bell-slash"></i>
-                <p>No notifications yet</p>
+
+        <div id="setupAlerts"></div>
+
+        <div class="quick-stats">
+            <div class="quick-stat">
+                <div class="number" id="activeBookings">0</div>
+                <div class="label">Active Bookings</div>
+            </div>
+            <div class="quick-stat">
+                <div class="number" id="pendingTasks">0</div>
+                <div class="label">Pending Tasks</div>
+            </div>
+            <div class="quick-stat">
+                <div class="number" id="messagesHandled">0</div>
+                <div class="label">Messages Today</div>
+            </div>
+            <div class="quick-stat">
+                <div class="number" id="monthlyRevenue">0</div>
+                <div class="label">This Month</div>
+            </div>
+        </div>
+
+        <h2 style="color: var(--text-primary); margin-bottom: 20px;">
+            <i class="fas fa-bolt" style="color: var(--accent-blue);"></i> Quick Actions
+        </h2>
+
+        <div class="action-grid">
+            <div class="action-card" onclick="openAction('schedule-cleaning')">
+                <div class="icon green"><i class="fas fa-broom"></i></div>
+                <div class="content">
+                    <h3>Schedule Cleaning</h3>
+                    <p>Assign cleaners to properties and set schedules</p>
+                </div>
+            </div>
+            <div class="action-card" onclick="openAction('view-bookings')">
+                <div class="icon blue"><i class="fas fa-calendar-check"></i></div>
+                <div class="content">
+                    <h3>View Bookings</h3>
+                    <p>See all upcoming check-ins and check-outs</p>
+                </div>
+            </div>
+            <div class="action-card" onclick="openAction('send-message')">
+                <div class="icon purple"><i class="fas fa-comment-dots"></i></div>
+                <div class="content">
+                    <h3>Send Guest Message</h3>
+                    <p>Communicate with guests via WhatsApp or SMS</p>
+                </div>
+            </div>
+            <div class="action-card" onclick="openAction('maintenance')">
+                <div class="icon orange"><i class="fas fa-wrench"></i></div>
+                <div class="content">
+                    <h3>Report Maintenance</h3>
+                    <p>Create maintenance tickets for vendors</p>
+                </div>
+            </div>
+            <div class="action-card" onclick="openAction('pricing')">
+                <div class="icon teal"><i class="fas fa-tag"></i></div>
+                <div class="content">
+                    <h3>Adjust Pricing</h3>
+                    <p>Update nightly rates and seasonal pricing</p>
+                </div>
+            </div>
+            <div class="action-card" onclick="openAction('reports')">
+                <div class="icon pink"><i class="fas fa-chart-bar"></i></div>
+                <div class="content">
+                    <h3>View Reports</h3>
+                    <p>Analytics and performance insights</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="activity-section">
+            <h2><i class="fas fa-history"></i> Recent Activity</h2>
+            <div id="activityList">
+                <div class="empty-activity">
+                    <i class="fas fa-clock"></i>
+                    <p>Activity will appear here as your AI handles tasks</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="main-container">
-        <div class="welcome-banner">
-            <h1>Welcome back, <span id="ownerName">Owner</span>! 👋</h1>
-            <p id="welcomeMessage">Your AI assistant is working for you</p>
-        </div>
-
-        <div class="stats-section">
-            <div class="section-header">
-                <h2><i class="fas fa-chart-line"></i> Quick Stats</h2>
+    <div id="actionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Action</h3>
+                <button class="btn-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
             </div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <i class="fas fa-robot"></i>
-                    <h3 id="activeWorkflows">0</h3>
-                    <p>Active Workflows</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-calendar-check"></i>
-                    <h3 id="activeBookings">0</h3>
-                    <p>Active Bookings</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-comments"></i>
-                    <h3 id="activeConversations">0</h3>
-                    <p>Active Conversations</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-euro-sign"></i>
-                    <h3 id="monthlyRevenue">€0</h3>
-                    <p>Monthly Revenue</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="tasks-section">
-            <div class="section-header">
-                <h2><i class="fas fa-clipboard-check"></i> Tasks & Reminders</h2>
-            </div>
-            <div class="tasks-container" id="tasksContainer">
-                <div class="loading-spinner">
-                    <div class="spinner"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="calendar-section">
-            <div class="section-header">
-                <h2><i class="fas fa-calendar-alt"></i> Upcoming Bookings</h2>
-            </div>
-            <div class="property-filter">
-                <label><i class="fas fa-filter"></i> Show bookings for:</label>
-                <select id="propertyFilter" onchange="filterBookings()">
-                    <option value="all">All Properties</option>
-                </select>
-            </div>
-            <div id="bookingsContainer">
-                <div class="loading-spinner">
-                    <div class="spinner"></div>
-                </div>
-            </div>
+            <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
 
@@ -127,28 +295,243 @@
         let clientData = null;
 
         async function init() {
-            const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
-            if (!authCheck.ok) {
-                window.location.href = 'login.html';
-                return;
-            }
-            clientData = await authCheck.json();
-
-            if (clientData.onboarding?.needsOnboarding) {
-                window.location.href = 'onboarding.html';
-                return;
-            }
-
             try {
-                await loadDashboard();
-                await loadNotifications();
-            } catch (error) {
-                console.error('Failed to load dashboard:', error);
-                if (error.message.includes('401')) {
-                    localStorage.removeItem('prismity_token');
+                const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
+                if (!authCheck.ok) {
                     window.location.href = 'login.html';
+                    return;
                 }
+                clientData = await authCheck.json();
+
+                if (clientData.onboarding?.needsOnboarding) {
+                    window.location.href = 'onboarding.html';
+                    return;
+                }
+
+                await loadDashboard();
+            } catch (error) {
+                console.error('Init failed:', error);
             }
+        }
+
+        async function loadDashboard() {
+            try {
+                const data = await apiRequest('/control-panel/dashboard');
+
+                document.getElementById('ownerName').textContent = data.owner?.name || 'Owner';
+                document.getElementById('userName').textContent = data.owner?.name || 'Owner';
+
+                document.getElementById('activeBookings').textContent = data.stats?.activeBookings || 0;
+                document.getElementById('pendingTasks').textContent = data.stats?.pendingTasks || 0;
+                document.getElementById('messagesHandled').textContent = data.stats?.messagesHandled || 0;
+                document.getElementById('monthlyRevenue').textContent = formatCurrency(data.stats?.monthlyRevenue || 0);
+
+                renderSetupAlerts(data.alerts || []);
+                renderActivity(data.activity || []);
+            } catch (error) {
+                console.error('Dashboard load failed:', error);
+            }
+        }
+
+        function renderSetupAlerts(alerts) {
+            const container = document.getElementById('setupAlerts');
+            if (alerts.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = alerts.map(alert => `
+                <div class="setup-alert ${alert.type}">
+                    <i class="fas fa-${alert.type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <div class="message">
+                        <h4>${escapeHtml(alert.title)}</h4>
+                        <p>${escapeHtml(alert.message)}</p>
+                    </div>
+                    ${alert.action ? `<button class="btn-primary" onclick="${alert.action.handler}">${alert.action.label}</button>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderActivity(activities) {
+            const container = document.getElementById('activityList');
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-activity">
+                        <i class="fas fa-clock"></i>
+                        <p>Activity will appear here as your AI handles tasks</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = activities.map(item => `
+                <div class="activity-item">
+                    <div class="dot ${item.status}"></div>
+                    <div class="text">${escapeHtml(item.message)}</div>
+                    <div class="time">${formatTime(item.timestamp)}</div>
+                </div>
+            `).join('');
+        }
+
+        function openAction(action) {
+            const modal = document.getElementById('actionModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            const actions = {
+                'schedule-cleaning': { title: 'Schedule Cleaning', content: renderCleaningForm() },
+                'view-bookings': { title: 'Upcoming Bookings', content: '<p>Loading bookings...</p>' },
+                'send-message': { title: 'Send Message', content: renderMessageForm() },
+                'maintenance': { title: 'Report Maintenance', content: renderMaintenanceForm() },
+                'pricing': { title: 'Adjust Pricing', content: '<p>Coming soon...</p>' },
+                'reports': { title: 'Reports', content: '<p>Coming soon...</p>' }
+            };
+
+            const actionConfig = actions[action] || { title: 'Action', content: '<p>Not available</p>' };
+            title.textContent = actionConfig.title;
+            body.innerHTML = actionConfig.content;
+            modal.style.display = 'flex';
+
+            if (action === 'view-bookings') {
+                loadBookings();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('actionModal').style.display = 'none';
+        }
+
+        function renderCleaningForm() {
+            return `
+                <div class="form-group">
+                    <label>Property</label>
+                    <select id="cleaningProperty">
+                        <option value="">Select property...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="cleaningDate">
+                </div>
+                <div class="form-group">
+                    <label>Cleaner</label>
+                    <select id="cleaningCleaner">
+                        <option value="">Assign cleaner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="cleaningNotes" rows="3" placeholder="Special instructions..."></textarea>
+                </div>
+                <button class="btn-primary" onclick="submitCleaning()">
+                    <i class="fas fa-check"></i> Schedule Cleaning
+                </button>
+            `;
+        }
+
+        function renderMessageForm() {
+            return `
+                <div class="form-group">
+                    <label>Guest</label>
+                    <input type="text" id="messageGuest" placeholder="Guest name or phone">
+                </div>
+                <div class="form-group">
+                    <label>Channel</label>
+                    <select id="messageChannel">
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="sms">SMS</option>
+                        <option value="email">Email</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea id="messageText" rows="4" placeholder="Your message..."></textarea>
+                </div>
+                <button class="btn-primary" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            `;
+        }
+
+        function renderMaintenanceForm() {
+            return `
+                <div class="form-group">
+                    <label>Property</label>
+                    <select id="maintenanceProperty">
+                        <option value="">Select property...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Issue Type</label>
+                    <select id="maintenanceType">
+                        <option value="plumbing">Plumbing</option>
+                        <option value="electrical">Electrical</option>
+                        <option value="appliance">Appliance</option>
+                        <option value="hvac">HVAC</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="maintenancePriority">
+                        <option value="low">Low - Can wait</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High - Urgent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="maintenanceDesc" rows="4" placeholder="Describe the issue..."></textarea>
+                </div>
+                <button class="btn-primary" onclick="submitMaintenance()">
+                    <i class="fas fa-tools"></i> Create Ticket
+                </button>
+            `;
+        }
+
+        async function loadBookings() {
+            try {
+                const data = await apiRequest('/control-panel/dashboard');
+                const bookings = data.upcomingBookings || [];
+                const body = document.getElementById('modalBody');
+
+                if (bookings.length === 0) {
+                    body.innerHTML = `
+                        <div class="empty-activity">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>No upcoming bookings</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                body.innerHTML = bookings.map(b => `
+                    <div class="activity-item">
+                        <div class="dot ${b.status === 'confirmed' ? 'success' : 'pending'}"></div>
+                        <div class="text">
+                            <strong>${escapeHtml(b.guestName)}</strong> - ${escapeHtml(b.propertyName)}<br>
+                            <small>${formatDate(b.checkIn)} to ${formatDate(b.checkOut)}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('modalBody').innerHTML = '<p>Failed to load bookings</p>';
+            }
+        }
+
+        async function submitCleaning() {
+            alert('Cleaning scheduled! (Demo mode)');
+            closeModal();
+        }
+
+        async function sendMessage() {
+            alert('Message sent! (Demo mode)');
+            closeModal();
+        }
+
+        async function submitMaintenance() {
+            alert('Maintenance ticket created! (Demo mode)');
+            closeModal();
         }
 
         async function apiRequest(endpoint, method = 'GET', data = null) {
@@ -157,173 +540,35 @@
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             };
-
-            if (data) {
-                options.body = JSON.stringify(data);
-            }
-
+            if (data) options.body = JSON.stringify(data);
             const response = await fetch(`${API_BASE}${endpoint}`, options);
-            
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
             return response.json();
-        }
-
-        async function loadDashboard() {
-            const data = await apiRequest('/control-panel/dashboard');
-            
-            document.getElementById('ownerName').textContent = data.owner?.name || 'Owner';
-            document.getElementById('userName').textContent = data.owner?.name || 'Owner';
-            
-            document.getElementById('activeWorkflows').textContent = data.stats?.activeWorkflows || 0;
-            document.getElementById('activeBookings').textContent = data.stats?.activeBookings || 0;
-            document.getElementById('activeConversations').textContent = data.stats?.activeConversations || 0;
-            document.getElementById('monthlyRevenue').textContent = '€' + (data.stats?.monthlyRevenue || 0);
-
-            renderTasks(data.tasks || []);
-            renderBookings(data.upcomingBookings || []);
-        }
-
-        function renderTasks(tasks) {
-            const container = document.getElementById('tasksContainer');
-            
-            if (tasks.length === 0) {
-                container.innerHTML = `
-                    <div class="task-item">
-                        <div class="task-icon"><i class="fas fa-check"></i></div>
-                        <div class="task-content">
-                            <h4>All caught up!</h4>
-                            <p>No pending tasks at the moment</p>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = tasks.map(task => `
-                <div class="task-item ${task.priority || ''}">
-                    <div class="task-icon">
-                        <i class="fas ${getTaskIcon(task.type)}"></i>
-                    </div>
-                    <div class="task-content">
-                        <h4>${escapeHtml(task.title)}</h4>
-                        <p>${escapeHtml(task.description || '')}</p>
-                    </div>
-                    <div class="task-action">
-                        <button class="btn-primary" onclick="completeTask('${task.id}')">
-                            Complete
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderBookings(bookings) {
-            const container = document.getElementById('bookingsContainer');
-            
-            if (bookings.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3>No upcoming bookings</h3>
-                        <p>New bookings will appear here</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = bookings.map(booking => `
-                <div class="task-item">
-                    <div class="task-icon" style="background: var(--secondary)">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <div class="task-content">
-                        <h4>${escapeHtml(booking.guestName || 'Guest')}</h4>
-                        <p>${escapeHtml(booking.propertyName || '')} - ${formatDate(booking.checkIn)} to ${formatDate(booking.checkOut)}</p>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function loadNotifications() {
-            try {
-                const data = await apiRequest('/control-panel/notifications');
-                const notifications = data.notifications || [];
-                const unread = notifications.filter(n => !n.read).length;
-                
-                document.getElementById('notificationCount').textContent = unread;
-                
-                const list = document.getElementById('notificationList');
-                if (notifications.length === 0) {
-                    list.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-bell-slash"></i>
-                            <p>No notifications yet</p>
-                        </div>
-                    `;
-                } else {
-                    list.innerHTML = notifications.map(n => `
-                        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}')">
-                            <strong>${escapeHtml(n.title)}</strong>
-                            <p>${escapeHtml(n.message)}</p>
-                            <small>${formatDate(n.createdAt)}</small>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Failed to load notifications:', error);
-            }
-        }
-
-        async function completeTask(taskId) {
-            try {
-                await apiRequest(`/control-panel/tasks/${taskId}/complete`, 'POST');
-                await loadDashboard();
-            } catch (error) {
-                alert('Failed to complete task');
-            }
-        }
-
-        async function markRead(notificationId) {
-            try {
-                await apiRequest('/control-panel/notifications/read', 'POST', { notificationId });
-                await loadNotifications();
-            } catch (error) {
-                console.error('Failed to mark notification read');
-            }
-        }
-
-        function toggleNotifications() {
-            const panel = document.getElementById('notificationPanel');
-            panel.classList.toggle('open');
         }
 
         async function logout() {
             await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
-            localStorage.removeItem('prismity_client');
             window.location.href = 'login.html';
         }
 
-        function getTaskIcon(type) {
-            const icons = {
-                'cleaning': 'fa-broom',
-                'maintenance': 'fa-wrench',
-                'checkin': 'fa-door-open',
-                'checkout': 'fa-door-closed',
-                'message': 'fa-envelope',
-                'urgent': 'fa-exclamation-circle'
-            };
-            return icons[type] || 'fa-tasks';
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-EU', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
         }
 
         function formatDate(dateStr) {
             if (!dateStr) return '';
-            return new Date(dateStr).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-            });
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
         function escapeHtml(text) {

@@ -7,6 +7,7 @@ const { rateLimiter } = require('../middleware/rateLimit');
 const logger = require('../utils/logger');
 const N8NClient = require('../services/n8n/client');
 const WorkflowDeployer = require('../services/n8n/deployer');
+const { createSupportTicket, getClientApiKey } = require('../config/setupDatabase');
 
 router.post('/settings',
   authenticateClient,
@@ -70,48 +71,56 @@ router.get('/dashboard',
     try {
       const clientId = req.clientId;
 
-      const [clientResult, serverResult, statsResult, tasksResult, bookingsResult] = await Promise.all([
+      const [clientResult, serverResult, settingsResult, tasksResult, bookingsResult, activityResult] = await Promise.all([
         db.query('SELECT * FROM clients WHERE client_id = $1', [clientId]),
         db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]),
-        db.query(`
-          SELECT 
-            (SELECT COUNT(*) FROM deployed_workflows WHERE client_id = $1 AND is_active = true) as active_workflows,
-            (SELECT COUNT(*) FROM deployed_workflows WHERE client_id = $1) as total_workflows
-        `, [clientId]),
-        db.query(`
-          SELECT * FROM client_settings WHERE client_id = $1 AND section = 'tasks'
-        `, [clientId]),
-        db.query(`
-          SELECT * FROM client_settings WHERE client_id = $1 AND section = 'bookings'
-        `, [clientId])
+        db.query('SELECT section, data FROM client_settings WHERE client_id = $1', [clientId]),
+        db.query(`SELECT * FROM client_settings WHERE client_id = $1 AND section = 'tasks'`, [clientId]),
+        db.query(`SELECT * FROM client_settings WHERE client_id = $1 AND section = 'bookings'`, [clientId]),
+        db.query(`SELECT * FROM client_settings WHERE client_id = $1 AND section = 'activity'`, [clientId])
       ]);
 
       const client = clientResult.rows[0];
       const server = serverResult.rows[0];
-      const stats = statsResult.rows[0];
+
+      const settings = {};
+      settingsResult.rows.forEach(row => {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      });
+
+      const alerts = [];
+
+      if (!settings.business?.name) {
+        alerts.push({
+          type: 'warning',
+          title: 'Complete Your Profile',
+          message: 'Please complete your business information in Settings'
+        });
+      }
+
+      const tasks = tasksResult.rows[0]?.data || [];
+      const pendingTasks = tasks.filter(t => t.status === 'pending');
+      const bookings = bookingsResult.rows[0]?.data || [];
+      const activeBookings = bookings.filter(b => new Date(b.checkOut) > new Date());
+      const activity = activityResult.rows[0]?.data || [];
 
       res.json({
         success: true,
         owner: {
-          name: client?.owner_name,
-          email: client?.owner_email,
-          businessName: client?.business_name
-        },
-        server: {
-          domain: server?.domain,
-          status: server?.server_status,
-          nocodbUrl: server?.nocodb_url,
-          lastHealthCheck: server?.last_health_check
+          name: settings.owner?.name || client?.owner_name,
+          email: settings.owner?.email || client?.owner_email,
+          businessName: settings.business?.name || client?.business_name
         },
         stats: {
-          activeWorkflows: parseInt(stats?.active_workflows) || 0,
-          totalWorkflows: parseInt(stats?.total_workflows) || 0,
-          activeBookings: 0,
-          activeConversations: 0,
+          activeBookings: activeBookings.length,
+          pendingTasks: pendingTasks.length,
+          messagesHandled: 0,
           monthlyRevenue: 0
         },
-        tasks: tasksResult.rows[0]?.data || [],
-        upcomingBookings: bookingsResult.rows[0]?.data || []
+        alerts,
+        tasks: pendingTasks.slice(0, 5),
+        upcomingBookings: activeBookings.slice(0, 5),
+        activity: activity.slice(0, 10)
       });
 
     } catch (error) {
@@ -764,6 +773,71 @@ router.post('/workflows/:workflowId/toggle',
     } catch (error) {
       logger.error('Failed to toggle workflow', { error: error.message });
       res.status(500).json({ error: 'Failed to toggle workflow: ' + error.message });
+    }
+  }
+);
+
+router.post('/support/ticket',
+  authenticateClient,
+  sanitizeInput,
+  validateRequired(['title', 'description']),
+  rateLimiter({ maxRequests: 10, windowMs: 60 * 60 * 1000 }),
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+      const { title, description, category } = req.body;
+
+      const result = await createSupportTicket({
+        clientId,
+        ticketType: category || 'general',
+        severity: 'normal',
+        title,
+        description,
+        errorDetails: { userAgent: req.headers['user-agent'] }
+      });
+
+      res.json({
+        success: true,
+        message: 'Your support request has been submitted. We will get back to you shortly.',
+        ticketId: result.ticketId
+      });
+
+    } catch (error) {
+      logger.error('Failed to create support ticket', { error: error.message });
+      res.status(500).json({ error: 'Failed to submit support request. Please try again.' });
+    }
+  }
+);
+
+router.get('/support/tickets',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+
+      const result = await db.query(`
+        SELECT ticket_id, ticket_type, title, status, created_at, resolved_at
+        FROM support_tickets
+        WHERE client_id = $1
+        ORDER BY created_at DESC
+        LIMIT 20
+      `, [clientId]);
+
+      res.json({
+        success: true,
+        tickets: result.rows.map(row => ({
+          id: row.ticket_id,
+          type: row.ticket_type,
+          title: row.title,
+          status: row.status,
+          createdAt: row.created_at,
+          resolvedAt: row.resolved_at
+        }))
+      });
+
+    } catch (error) {
+      logger.error('Failed to get support tickets', { error: error.message });
+      res.status(500).json({ error: 'Failed to get support requests' });
     }
   }
 );
