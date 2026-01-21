@@ -124,37 +124,7 @@
 
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-key"></i> 3. API Credentials</h2>
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="telegramBotToken">
-                                <i class="fab fa-telegram"></i> Telegram Bot Token
-                            </label>
-                            <input type="password" id="telegramBotToken" name="telegramBotToken" placeholder="Your bot token from @BotFather">
-                            <small class="help-text">
-                                <a href="https://core.telegram.org/bots#creating-a-new-bot" target="_blank">How to create a Telegram bot?</a>
-                            </small>
-                        </div>
-                        <div class="form-group">
-                            <label for="telegramChatId">
-                                <i class="fab fa-telegram"></i> Telegram Chat ID
-                            </label>
-                            <input type="text" id="telegramChatId" name="telegramChatId" placeholder="Your chat ID for notifications">
-                        </div>
-                        <div class="form-group">
-                            <label for="openaiApiKey">
-                                <i class="fas fa-robot"></i> OpenAI API Key
-                            </label>
-                            <input type="password" id="openaiApiKey" name="openaiApiKey" placeholder="sk-...">
-                            <small class="help-text">Required for AI-powered responses</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <div class="section-header-form">
-                        <h2><i class="fas fa-sliders-h"></i> 4. AI Preferences</h2>
+                        <h2><i class="fas fa-sliders-h"></i> 3. AI Preferences</h2>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
@@ -198,47 +168,6 @@
                 </div>
             </form>
 
-            <div class="form-section" style="margin-top: 40px;">
-                <div class="section-header-form">
-                    <h2><i class="fas fa-cogs"></i> 5. Workflow Management</h2>
-                </div>
-                <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                    After saving your settings, redeploy workflows to apply your configuration changes.
-                </p>
-                
-                <div id="workflowStatus" style="margin-bottom: 20px;">
-                    <div class="stat-card" style="display: inline-block; margin-right: 15px;">
-                        <div class="stat-number" id="deployedCount">0</div>
-                        <div class="stat-label">Deployed</div>
-                    </div>
-                    <div class="stat-card" style="display: inline-block;">
-                        <div class="stat-number" id="activeCount">0</div>
-                        <div class="stat-label">Active</div>
-                    </div>
-                </div>
-
-                <div id="workflowList" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
-                    <p style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Loading workflows...</p>
-                </div>
-
-                <div id="redeployProgress" style="display: none; margin-bottom: 20px;">
-                    <div class="progress-bar" style="height: 8px;">
-                        <div class="progress-fill" id="redeployProgressFill" style="width: 0%;"></div>
-                    </div>
-                    <p id="redeployProgressText" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 5px;">Redeploying...</p>
-                </div>
-
-                <div style="display: flex; gap: 15px;">
-                    <button type="button" class="btn-secondary" onclick="testN8nConnection()">
-                        <i class="fas fa-plug"></i> Test Connection
-                    </button>
-                    <button type="button" class="btn-primary" onclick="redeployAllWorkflows()">
-                        <i class="fas fa-sync-alt"></i> Redeploy All
-                    </button>
-                </div>
-                
-                <div id="workflowAlert" class="alert" style="display: none; margin-top: 15px;"></div>
-            </div>
         </div>
     </div>
 
