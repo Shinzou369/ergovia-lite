@@ -121,7 +121,17 @@ Preferred communication style: Simple, everyday language.
 - **Phase 3 (Documented):** Medium-risk patches for future if needed (Issues 1, 3, 4)
 
 ### Key Decisions:
-- Multi-tenant architecture: 1 Hetzner server per client for isolation
+- Multi-tenant architecture: Supports both 1 server per client OR shared n8n with multi-user accounts
 - n8n self-hosted for unlimited free executions
 - PostgreSQL as shared state between workflows
 - Telegram/WhatsApp as primary owner communication channels
+
+### Workflow Organization:
+- All 25 workflows tagged by trigger type for easy filtering:
+  - `trigger:webhook` (16 workflows) - Response-based
+  - `trigger:scheduled` (6 workflows) - Time-based/cron
+  - `trigger:event` (3 workflows) - Internal system events
+- All production workflows in `workflows_postgresql/` folder
+
+### Testing Resources:
+- **RENDER_MULTIUSER_TESTING_HANDOUT.md** - Complete client simulation guide for Render-hosted n8n
