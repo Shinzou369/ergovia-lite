@@ -28,7 +28,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Storage Solutions
 - **SQLite**: Primary database for user accounts, ETF client data, chat history, and token usage tracking.
-- **PostgreSQL**: Each client deployment includes a dedicated PostgreSQL database with 21 tables for property management, bookings, tasks, and operational data.
+- **PostgreSQL**: Each client deployment includes a dedicated PostgreSQL database with 26 tables for property management, bookings, tasks, and operational data.
 - **NocoDB**: Integrated with client PostgreSQL databases to provide an Airtable-like UI for data viewing and editing without exposing n8n.
 - **JSON Files**: Used for storing chat threads and configuration data.
 - **FileStore**: For express-session persistence.
@@ -96,7 +96,7 @@ Preferred communication style: Simple, everyday language.
 
 2. **deployments/HETZNER_TEST_ENVIRONMENT_SETUP.md** - Complete test environment guide
    - Docker Compose configuration for n8n + PostgreSQL
-   - Full database schema with 21+ tables
+   - Full database schema with 26 tables
    - SSL/domain configuration
    - Backup and monitoring scripts
    - Multi-client architecture notes (1 Client = 1 Server)
@@ -106,8 +106,8 @@ Preferred communication style: Simple, everyday language.
    - Monitors workflow_errors table
    - Checks for stuck processing items
    - Detects stale calendar syncs
-   - Alerts via Telegram/WhatsApp
-   - Logs health check results
+   - Alerts via Telegram/WhatsApp with proper alert_sent tracking
+   - Auto-resolves errors older than 7 days
 
 4. **Patch Files** (in `/patches/` directory):
    - **ISSUE_02_Discount_Validation_Patch.md** - Prevents discount stacking in negotiations
