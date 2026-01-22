@@ -134,4 +134,5 @@ Preferred communication style: Simple, everyday language.
 - All production workflows in `workflows_postgresql/` folder
 
 ### Testing Resources:
-- **RENDER_MULTIUSER_TESTING_HANDOUT.md** - Complete client simulation guide for Render-hosted n8n
+- **CLIENT_GETTING_STARTED_GUIDE.md** - Client-facing onboarding guide (from login to going live)
+- **RENDER_MULTIUSER_TESTING_HANDOUT.md** - Developer testing guide for Render-hosted n8n
