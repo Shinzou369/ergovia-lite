@@ -1,0 +1,452 @@
+{
+  "name": "Workflow 24: Watchdog Error Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "alertTelegramChatId",
+              "value": "={{$env.ADMIN_TELEGRAM_CHAT_ID}}"
+            },
+            {
+              "name": "alertWhatsAppNumber",
+              "value": "={{$env.ADMIN_WHATSAPP_NUMBER}}"
+            },
+            {
+              "name": "alertPreferredPlatform",
+              "value": "telegram"
+            },
+            {
+              "name": "errorThresholdMinutes",
+              "value": "15"
+            },
+            {
+              "name": "criticalWorkflows",
+              "value": "Message Router,Payment Confirmation Handler,Guest Screening System"
+            }
+          ]
+        }
+      },
+      "id": "config",
+      "name": "Watchdog Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  workflow_name,\n  COUNT(*) as error_count,\n  MAX(created_at) as last_error_at,\n  STRING_AGG(DISTINCT error_message, ' | ' ORDER BY error_message) as error_messages\nFROM workflow_errors\nWHERE created_at >= NOW() - INTERVAL '15 minutes'\n  AND resolved = false\n  AND alert_sent = false\nGROUP BY workflow_name\nORDER BY error_count DESC",
+        "options": {}
+      },
+      "id": "query-recent-errors",
+      "name": "Query Recent Workflow Errors",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 0],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  'scheduled_messages' as check_type,\n  COUNT(*) as stuck_count,\n  MIN(scheduled_datetime) as oldest_stuck\nFROM scheduled_messages\nWHERE status = 'pending'\n  AND scheduled_datetime < NOW() - INTERVAL '1 hour'\nUNION ALL\nSELECT \n  'cleaning_tasks' as check_type,\n  COUNT(*) as stuck_count,\n  MIN(scheduled_date::timestamp) as oldest_stuck\nFROM cleaning_tasks\nWHERE status = 'pending'\n  AND scheduled_date < CURRENT_DATE\nUNION ALL\nSELECT \n  'maintenance_tickets' as check_type,\n  COUNT(*) as stuck_count,\n  MIN(created_at) as oldest_stuck\nFROM maintenance_tickets\nWHERE status = 'pending'\n  AND urgency IN ('emergency', 'high')\n  AND created_at < NOW() - INTERVAL '2 hours'\nUNION ALL\nSELECT \n  'unprocessed_deals' as check_type,\n  COUNT(*) as stuck_count,\n  MIN(last_message_at) as oldest_stuck\nFROM deals\nWHERE status = 'awaiting_response'\n  AND last_message_at < NOW() - INTERVAL '4 hours'",
+        "options": {}
+      },
+      "id": "query-stuck-items",
+      "name": "Query Stuck Processing Items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 220],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  property_id,\n  property_name,\n  owner_contact\nFROM property_configurations\nWHERE property_status = 'active'\n  AND calendar_sync_enabled = true\n  AND (\n    last_calendar_sync IS NULL \n    OR last_calendar_sync < NOW() - INTERVAL '48 hours'\n  )",
+        "options": {}
+      },
+      "id": "query-stale-syncs",
+      "name": "Query Stale Calendar Syncs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [440, 440],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Watchdog Configuration').item.json;\nconst recentErrors = $('Query Recent Workflow Errors').all();\nconst stuckItems = $('Query Stuck Processing Items').all();\nconst staleSyncs = $('Query Stale Calendar Syncs').all();\n\nconst criticalWorkflows = config.criticalWorkflows.split(',').map(w => w.trim());\n\n// Build alert report\nlet alerts = [];\nlet severity = 'info';\nlet alertNeeded = false;\n\n// Check workflow errors\nif (recentErrors.length > 0) {\n  for (const error of recentErrors) {\n    const isCritical = criticalWorkflows.some(cw => \n      error.json.workflow_name.toLowerCase().includes(cw.toLowerCase())\n    );\n    \n    alerts.push({\n      type: 'workflow_error',\n      severity: isCritical ? 'critical' : 'warning',\n      workflow: error.json.workflow_name,\n      count: error.json.error_count,\n      lastError: error.json.last_error_at,\n      messages: error.json.error_messages\n    });\n    \n    if (isCritical) {\n      severity = 'critical';\n    } else if (severity !== 'critical') {\n      severity = 'warning';\n    }\n    alertNeeded = true;\n  }\n}\n\n// Check stuck items\nfor (const item of stuckItems) {\n  if (parseInt(item.json.stuck_count) > 0) {\n    const checkType = item.json.check_type;\n    let itemSeverity = 'warning';\n    \n    // Emergency maintenance stuck is critical\n    if (checkType === 'maintenance_tickets') {\n      itemSeverity = 'critical';\n      if (severity !== 'critical') severity = 'critical';\n    } else if (severity !== 'critical' && severity !== 'warning') {\n      severity = 'warning';\n    }\n    \n    alerts.push({\n      type: 'stuck_processing',\n      severity: itemSeverity,\n      checkType: checkType,\n      count: item.json.stuck_count,\n      oldestStuck: item.json.oldest_stuck\n    });\n    alertNeeded = true;\n  }\n}\n\n// Check stale syncs (lower priority)\nif (staleSyncs.length > 0) {\n  alerts.push({\n    type: 'stale_calendar_sync',\n    severity: 'info',\n    count: staleSyncs.length,\n    properties: staleSyncs.map(s => s.json.property_name).join(', ')\n  });\n  if (!alertNeeded && staleSyncs.length >= 3) {\n    alertNeeded = true;\n  }\n}\n\n// Format alert message\nlet alertMessage = '';\nif (alertNeeded) {\n  const emoji = severity === 'critical' ? '🚨' : (severity === 'warning' ? '⚠️' : 'ℹ️');\n  alertMessage = `${emoji} **WATCHDOG ALERT** - ${severity.toUpperCase()}\\n`;\n  alertMessage += `Time: ${new Date().toISOString()}\\n\\n`;\n  \n  // Group by type\n  const workflowErrors = alerts.filter(a => a.type === 'workflow_error');\n  const stuckProcessing = alerts.filter(a => a.type === 'stuck_processing');\n  const staleCalendars = alerts.filter(a => a.type === 'stale_calendar_sync');\n  \n  if (workflowErrors.length > 0) {\n    alertMessage += '**Workflow Errors:**\\n';\n    for (const err of workflowErrors) {\n      alertMessage += `• ${err.workflow}: ${err.count} error(s)\\n`;\n      alertMessage += `  Last: ${err.lastError}\\n`;\n      if (err.messages) {\n        alertMessage += `  Msg: ${err.messages.substring(0, 100)}...\\n`;\n      }\n    }\n    alertMessage += '\\n';\n  }\n  \n  if (stuckProcessing.length > 0) {\n    alertMessage += '**Stuck Processing:**\\n';\n    for (const stuck of stuckProcessing) {\n      alertMessage += `• ${stuck.checkType}: ${stuck.count} stuck since ${stuck.oldestStuck}\\n`;\n    }\n    alertMessage += '\\n';\n  }\n  \n  if (staleCalendars.length > 0) {\n    alertMessage += '**Stale Calendar Syncs:**\\n';\n    alertMessage += `• ${staleCalendars[0].count} properties not synced in 48h\\n`;\n    alertMessage += `  Properties: ${staleCalendars[0].properties}\\n`;\n  }\n  \n  alertMessage += '\\n---\\nCheck n8n dashboard for details.';\n}\n\nreturn {\n  alertNeeded,\n  severity,\n  alertCount: alerts.length,\n  alerts,\n  alertMessage,\n  alertTelegramChatId: config.alertTelegramChatId,\n  alertWhatsAppNumber: config.alertWhatsAppNumber,\n  alertPreferredPlatform: config.alertPreferredPlatform,\n  checkTimestamp: new Date().toISOString()\n};"
+      },
+      "id": "analyze-health",
+      "name": "Analyze System Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 120]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "alert-needed",
+              "leftValue": "={{ $json.alertNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-alert-needed",
+      "name": "Alert Needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [940, 120]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "platform-check",
+              "leftValue": "={{ $json.alertPreferredPlatform }}",
+              "rightValue": "telegram",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "route-by-platform",
+      "name": "Route by Platform",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1160, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.alertTelegramChatId }}",
+        "text": "={{ $json.alertMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-telegram-alert",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1380, -60],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-credential-id",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumber": "={{ $json.alertWhatsAppNumber }}",
+        "text": "={{ $json.alertMessage }}"
+      },
+      "id": "send-whatsapp-alert",
+      "name": "Send WhatsApp Alert",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1380, 120],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credential-id",
+          "name": "WhatsApp Business"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE workflow_errors\nSET alert_sent = true,\n    updated_at = CURRENT_TIMESTAMP\nWHERE created_at >= NOW() - INTERVAL '15 minutes'\n  AND resolved = false\n  AND alert_sent = false;\n\n-- Also mark workflow_errors older than 7 days as resolved if still open\nUPDATE workflow_errors\nSET resolved = true,\n    resolved_at = CURRENT_TIMESTAMP,\n    resolved_by = 'system_auto_resolve'\nWHERE created_at < NOW() - INTERVAL '7 days'\n  AND resolved = false;",
+        "options": {}
+      },
+      "id": "mark-alerts-sent",
+      "name": "Mark Alerts as Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1600, 0],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_errors (\n  workflow_name,\n  error_message,\n  severity,\n  created_at\n) VALUES (\n  'Watchdog Monitor',\n  'Health check completed - {{ $json.alertCount }} issues found',\n  '{{ $json.severity }}',\n  NOW()\n)\nON CONFLICT DO NOTHING",
+        "options": {}
+      },
+      "id": "log-health-check",
+      "name": "Log Health Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1160, 240],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credential-id",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "merge-after-alert",
+      "name": "Merge After Alert",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1600, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Final summary\nconst healthData = $('Analyze System Health').item.json;\n\nreturn {\n  watchdog_run_completed: true,\n  timestamp: new Date().toISOString(),\n  alert_sent: healthData.alertNeeded,\n  severity: healthData.severity,\n  issues_found: healthData.alertCount,\n  next_check_in: '15 minutes'\n};"
+      },
+      "id": "completion-summary",
+      "name": "Completion Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1820, 100]
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Watchdog Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Watchdog Configuration": {
+      "main": [
+        [
+          {
+            "node": "Query Recent Workflow Errors",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Stuck Processing Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Stale Calendar Syncs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Recent Workflow Errors": {
+      "main": [
+        [
+          {
+            "node": "Analyze System Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Stuck Processing Items": {
+      "main": [
+        [
+          {
+            "node": "Analyze System Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Stale Calendar Syncs": {
+      "main": [
+        [
+          {
+            "node": "Analyze System Health",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze System Health": {
+      "main": [
+        [
+          {
+            "node": "Alert Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Needed?": {
+      "main": [
+        [
+          {
+            "node": "Route by Platform",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Platform": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Mark Alerts as Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Alert": {
+      "main": [
+        [
+          {
+            "node": "Mark Alerts as Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Alerts as Sent": {
+      "main": [
+        [
+          {
+            "node": "Merge After Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Health Check": {
+      "main": [
+        [
+          {
+            "node": "Merge After Alert",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge After Alert": {
+      "main": [
+        [
+          {
+            "node": "Completion Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "Monitoring",
+      "id": "monitoring-tag"
+    },
+    {
+      "name": "System",
+      "id": "system-tag"
+    }
+  ]
+}

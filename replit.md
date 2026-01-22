@@ -81,3 +81,47 @@ Preferred communication style: Simple, everyday language.
 - **Lucide**: Icon library.
 - **Animate.css**: CSS animation library.
 - **Express Session**: For session management.
+
+# Recent Changes
+
+## January 2026 - Workflow Analysis & Patch Development
+
+### Deliverables Created:
+1. **WORKFLOW_ANALYSIS_REPORT.md** - Comprehensive analysis of 24 property management workflows
+   - Categorization by trigger type (webhook, scheduled, event-based)
+   - Variable requirements per workflow
+   - Critical and moderate issues identified
+   - Database schema requirements
+   - Workflow dependency map
+
+2. **deployments/HETZNER_TEST_ENVIRONMENT_SETUP.md** - Complete test environment guide
+   - Docker Compose configuration for n8n + PostgreSQL
+   - Full database schema with 21+ tables
+   - SSL/domain configuration
+   - Backup and monitoring scripts
+   - Multi-client architecture notes (1 Client = 1 Server)
+
+3. **workflows/Workflow_24_Watchdog_Error_Monitor.json** - New error monitoring workflow
+   - Runs every 15 minutes
+   - Monitors workflow_errors table
+   - Checks for stuck processing items
+   - Detects stale calendar syncs
+   - Alerts via Telegram/WhatsApp
+   - Logs health check results
+
+4. **Patch Files** (in `/patches/` directory):
+   - **ISSUE_02_Discount_Validation_Patch.md** - Prevents discount stacking in negotiations
+   - **ISSUE_07_Vendor_Fallback_Patch.md** - Handles vendor unavailability gracefully
+   - **ISSUE_08_Context_Window_Patch.md** - Sliding window for long AI conversations
+   - **PHASE_3_Future_Patches.md** - Reference for Issues 1, 3, 4 (medium-risk)
+
+### Implementation Phases:
+- **Phase 1 (Complete):** Test environment setup + Watchdog workflow
+- **Phase 2 (Complete):** Low-risk patches (Issues 2, 7, 8)
+- **Phase 3 (Documented):** Medium-risk patches for future if needed (Issues 1, 3, 4)
+
+### Key Decisions:
+- Multi-tenant architecture: 1 Hetzner server per client for isolation
+- n8n self-hosted for unlimited free executions
+- PostgreSQL as shared state between workflows
+- Telegram/WhatsApp as primary owner communication channels
