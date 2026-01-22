@@ -842,4 +842,184 @@ router.get('/support/tickets',
   }
 );
 
+router.post('/onboarding/complete',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+      
+      const [clientResult, serverResult, settingsResult] = await Promise.all([
+        db.query('SELECT * FROM clients WHERE client_id = $1', [clientId]),
+        db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]),
+        db.query('SELECT section, data FROM client_settings WHERE client_id = $1', [clientId])
+      ]);
+
+      if (clientResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      
+      const client = clientResult.rows[0];
+      const server = serverResult.rows[0];
+      
+      const settings = {};
+      settingsResult.rows.forEach(row => {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      });
+
+      await db.query(`
+        INSERT INTO client_settings (client_id, section, data)
+        VALUES ($1, 'credentials', $2)
+        ON CONFLICT (client_id, section) 
+        DO UPDATE SET data = $2, updated_at = NOW()
+      `, [clientId, JSON.stringify({ autoAssigned: true, completedAt: new Date().toISOString() })]);
+
+      await db.query(`
+        INSERT INTO client_settings (client_id, section, data)
+        VALUES ($1, 'onboarding', $2)
+        ON CONFLICT (client_id, section) 
+        DO UPDATE SET data = $2, updated_at = NOW()
+      `, [clientId, JSON.stringify({ completed: true, completedAt: new Date().toISOString() })]);
+
+      await db.query('UPDATE clients SET status = $1 WHERE client_id = $2', ['active', clientId]);
+
+      const n8nUrl = process.env.N8N_BASE_URL;
+      const n8nApiKey = process.env.N8N_API_KEY;
+
+      let workflowDeploymentResult = { 
+        success: false, 
+        message: 'Automation system not configured. Contact support to enable workflows.',
+        skipped: true 
+      };
+
+      if (n8nUrl && n8nApiKey) {
+        try {
+          const assignedKey = await getClientApiKey(clientId, 'openai');
+          
+          const dbHost = server?.server_ip || process.env.PGHOST || 'localhost';
+          const dbPort = server?.db_port || process.env.PGPORT || '5432';
+          const dbName = server?.db_name || `client_${clientId.substring(0, 20)}`;
+          const dbUser = server?.db_user || clientId.substring(0, 20);
+          const dbPassword = server?.db_password || '';
+
+          const config = {
+            businessName: client.business_name || 'Property Manager',
+            propertyName: settings.business?.name || client.business_name || 'Property',
+            ownerPhone: settings.owner?.phone || client.owner_phone || '',
+            ownerEmail: settings.owner?.email || client.owner_email || '',
+            ownerTelegram: client.telegram_chat_id || '',
+            openaiApiKey: assignedKey?.api_key || process.env.OPENAI_API_KEY || '',
+            telegramBotToken: '',
+            whatsappApiKey: '',
+            dbHost: dbHost,
+            dbPort: dbPort,
+            dbName: dbName,
+            dbUser: dbUser,
+            dbPassword: dbPassword,
+            subdomain: client.subdomain,
+            domain: server?.domain || `${client.subdomain}.prismity.ai`
+          };
+
+          const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
+          const deployer = new WorkflowDeployer(n8nClient);
+          const workflowFiles = await deployer.listAvailableWorkflows();
+
+          const coreWorkflowNames = [
+            'Workflow_00_',
+            'Workflow_01_',
+            'Workflow_02_',
+            'Workflow_03_',
+            'Workflow_04_'
+          ];
+          
+          const results = [];
+
+          for (let i = 0; i < coreWorkflowNames.length; i++) {
+            const workflowNumber = i + 1;
+            const prefix = coreWorkflowNames[i];
+            const filename = workflowFiles.find(f => f.startsWith(prefix));
+            
+            if (!filename) {
+              logger.warn('Core workflow not found', { prefix, clientId });
+              results.push({ number: workflowNumber, success: false, error: `Workflow ${prefix} not found` });
+              continue;
+            }
+
+            const existingCheck = await db.query(
+              'SELECT n8n_workflow_id FROM deployed_workflows WHERE client_id = $1 AND workflow_number = $2',
+              [clientId, workflowNumber]
+            );
+            
+            if (existingCheck.rows.length > 0) {
+              results.push({ number: workflowNumber, success: true, name: filename, skipped: true });
+              continue;
+            }
+            
+            try {
+              const result = await deployer.deployWorkflow(filename, config, { 
+                activate: true,
+                tag: `client_${client.subdomain}` 
+              });
+
+              await db.query(`
+                INSERT INTO deployed_workflows (client_id, workflow_number, workflow_name, n8n_workflow_id, is_active)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (client_id, workflow_number)
+                DO UPDATE SET workflow_name = $3, n8n_workflow_id = $4, is_active = $5, updated_at = NOW()
+              `, [clientId, workflowNumber, result.name, result.id, result.active]);
+
+              results.push({ number: workflowNumber, success: true, name: result.name });
+            } catch (deployError) {
+              logger.error('Failed to deploy workflow', { 
+                workflowNum: workflowNumber, 
+                filename, 
+                clientId,
+                error: deployError.message 
+              });
+              results.push({ number: workflowNumber, success: false, error: deployError.message });
+            }
+          }
+
+          const successful = results.filter(r => r.success).length;
+          const failed = results.filter(r => !r.success).length;
+          
+          workflowDeploymentResult = {
+            success: successful > 0,
+            message: failed > 0 
+              ? `Deployed ${successful} workflows, ${failed} failed. Some features may be limited.`
+              : `Successfully deployed ${successful} automation workflows`,
+            deployed: successful,
+            failed: failed,
+            total: coreWorkflowNames.length,
+            details: results
+          };
+
+          logger.info('Onboarding workflows deployment completed', { clientId, results: workflowDeploymentResult });
+
+        } catch (deploymentError) {
+          logger.error('Workflow deployment failed during onboarding', { 
+            clientId,
+            error: deploymentError.message,
+            stack: deploymentError.stack 
+          });
+          workflowDeploymentResult = { 
+            success: false, 
+            message: 'Workflow deployment failed: ' + deploymentError.message,
+            canRetry: true 
+          };
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Onboarding completed successfully',
+        workflowDeployment: workflowDeploymentResult
+      });
+
+    } catch (error) {
+      logger.error('Failed to complete onboarding', { error: error.message });
+      res.status(500).json({ error: 'Failed to complete onboarding' });
+    }
+  }
+);
+
 module.exports = router;

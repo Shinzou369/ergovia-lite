@@ -469,7 +469,7 @@
         async function finishSetup() {
             const finishBtn = document.getElementById('finishBtn');
             finishBtn.disabled = true;
-            finishBtn.innerHTML = '<span class="loading-spinner"></span> Setting up...';
+            finishBtn.innerHTML = '<span class="loading-spinner"></span> Setting up your automation...';
 
             try {
                 if (!await saveCurrentStep()) {
@@ -478,10 +478,23 @@
                     return;
                 }
 
-                await apiRequest('/control-panel/settings', 'POST', {
-                    section: 'credentials',
-                    data: { autoAssigned: true }
-                });
+                finishBtn.innerHTML = '<span class="loading-spinner"></span> Deploying AI workflows...';
+
+                const result = await apiRequest('/control-panel/onboarding/complete', 'POST');
+                
+                if (result.workflowDeployment?.success) {
+                    if (result.workflowDeployment.failed > 0) {
+                        showAlert('warning', result.workflowDeployment.message);
+                    } else {
+                        showAlert('success', result.workflowDeployment.message);
+                    }
+                } else if (result.workflowDeployment?.skipped) {
+                    showAlert('info', 'Setup complete! Automation workflows will be configured by our team shortly.');
+                } else if (result.workflowDeployment?.canRetry) {
+                    showAlert('warning', result.workflowDeployment.message + ' You can retry from the dashboard.');
+                } else {
+                    showAlert('success', 'Setup complete! Your account is ready.');
+                }
 
                 currentStep = 4;
                 updateUI();
