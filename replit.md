@@ -136,3 +136,36 @@ Preferred communication style: Simple, everyday language.
 ### Testing Resources:
 - **CLIENT_GETTING_STARTED_GUIDE.md** - Client-facing onboarding guide (from login to going live)
 - **RENDER_MULTIUSER_TESTING_HANDOUT.md** - Developer testing guide for Render-hosted n8n
+
+## January 22, 2026 - Control Panel UI Redesign & Workflow Deployment
+
+### Dashboard Improvements:
+1. **GHL-Style UI Redesign** - Professional sidebar navigation layout
+   - Collapsible sidebar with icon/text navigation
+   - Stat widgets with trend indicators and sparklines
+   - Quick actions grid for common tasks
+   - Activity feed with real-time updates
+   - Dark/light theme toggle support
+
+2. **Interactive Tutorial System** - 5-step walkthrough for new users
+   - Covers stats overview, quick actions, activity feed, navigation, and help
+   - Spotlight highlighting with step-by-step guidance
+   - Skip option and progress indicator
+
+3. **Modal Readability Fixes** - Improved contrast and colors for dark mode
+
+### Onboarding & Workflow Deployment:
+1. **Automatic Workflow Deployment** - Core workflows deploy on onboarding completion
+   - Uses per-client DB credentials from client_servers table (multi-tenant safe)
+   - Name-based workflow matching (Workflow_00_, Workflow_01_, etc.)
+   - Idempotency checks prevent duplicate deployments
+   - 1-based workflow numbering consistent with other APIs
+
+2. **Error Handling** - Clear user feedback for deployment status
+   - Success, warning, skipped, and retry states
+   - Credentials section saved during onboarding
+
+### Test Credentials:
+- **Test client**: testclient@example.com / TestClient123!
+- **Property**: Beach House Miami (client_1769061392149_x10bk6up2)
+- **OpenAI API key**: Added to api_key_bank (ID: 2)
