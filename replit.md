@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 - **Technology**: Static HTML/CSS/JavaScript with vanilla JavaScript.
 - **Responsiveness**: Mobile-first approach using CSS Grid and Flexbox.
 - **UI/UX**: Animate.css for transitions, Lucide icons, and dark/light mode support via CSS custom properties.
-- **Control Panel**: Client-friendly interface (`/public/control-panel/`) for managing tasks, settings, and properties, featuring a simplified 3-step onboarding process.
+- **Control Panel**: Client-friendly interface (`/public/control-panel/`) for managing tasks, settings, and properties, featuring a comprehensive 5-step onboarding wizard that captures all workflow variables.
 
 ## Backend Architecture
 - **Core Framework**: Node.js/Express.js for RESTful APIs.
@@ -155,15 +155,28 @@ Preferred communication style: Simple, everyday language.
 3. **Modal Readability Fixes** - Improved contrast and colors for dark mode
 
 ### Onboarding & Workflow Deployment:
-1. **Automatic Workflow Deployment** - Core workflows deploy on onboarding completion
+1. **Comprehensive 5-Step Onboarding Wizard** - Captures all 40+ workflow variables:
+   - Step 1 - Owner Info: Name, email, phone, preferred communication platform, Telegram Chat ID
+   - Step 2 - Property Details: Name, address, city, bedrooms, max guests, base price, min/max pricing, max discount %, timezone
+   - Step 3 - Guest Access: Door code, WiFi credentials, parking info, check-in/out times, house rules, local recommendations
+   - Step 4 - Calendar Integration: Airbnb iCal URL, VRBO iCal URL, other calendar URLs
+   - Step 5 - Team: Cleaner name(s) and phone number(s)
+
+2. **Unified Workflow Config Builder** - `buildWorkflowConfig()` helper function
+   - All 4 deploy endpoints use the same config builder for consistency
+   - Endpoints: /onboarding/complete, /workflows/deploy, /workflows/deploy-single, /workflows/redeploy
+   - Consistent tag format: `client_${subdomain}` with clientName metadata
+   - Developer-provided variables (OpenAI, Telegram, Twilio keys) injected automatically
+
+3. **Automatic Workflow Deployment** - Core workflows deploy on onboarding completion
    - Uses per-client DB credentials from client_servers table (multi-tenant safe)
    - Name-based workflow matching (Workflow_00_, Workflow_01_, etc.)
    - Idempotency checks prevent duplicate deployments
    - 1-based workflow numbering consistent with other APIs
 
-2. **Error Handling** - Clear user feedback for deployment status
+4. **Error Handling** - Clear user feedback for deployment status
    - Success, warning, skipped, and retry states
-   - Credentials section saved during onboarding
+   - All onboarding sections saved to client_settings table
 
 ### Test Credentials:
 - **Test client**: testclient@example.com / TestClient123!
