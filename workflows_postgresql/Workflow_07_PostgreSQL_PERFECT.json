@@ -666,5 +666,9 @@
     "consistency_note": "Completes deal\u2192booking transition. Sets booking_status=confirmed (matches WF00)."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

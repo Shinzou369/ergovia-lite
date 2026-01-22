@@ -713,5 +713,9 @@
     "consistency_note": "Creates scheduled_messages for WF09 to send. Reads confirmed bookings from WF07."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

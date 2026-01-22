@@ -636,5 +636,9 @@
     "consistency_note": "Incident tracking system. Links to bookings, counts repeat offenders, may trigger blacklist."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

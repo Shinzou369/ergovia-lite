@@ -1389,5 +1389,9 @@
     "consistency_note": "Vendor status updates. Status flow: dispatched \u2192 in_progress \u2192 completed. Coordinates with WF13."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:scheduled"
+    }
+  ]
 }

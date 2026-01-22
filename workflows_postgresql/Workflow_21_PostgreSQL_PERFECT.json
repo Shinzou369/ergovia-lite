@@ -353,5 +353,9 @@
     "consistency_note": "Property status update service. Called by WF10 (cleaning) and WF14 (maintenance)."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

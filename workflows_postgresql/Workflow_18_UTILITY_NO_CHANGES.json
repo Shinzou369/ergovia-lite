@@ -136,5 +136,10 @@
     "instanceId": "c9d96e2ea08a9bb00cf18227c8191d7fd48e2508fec2082b163835511edaf7a2",
     "templateVersion": "8.0"
   },
-  "name": "Workflow 18: Email Service (Utility)"
+  "name": "Workflow 18: Email Service (Utility)",
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

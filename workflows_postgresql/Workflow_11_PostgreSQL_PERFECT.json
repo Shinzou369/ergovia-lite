@@ -613,5 +613,9 @@
     "consistency_note": "Daily calendar sync at 9 AM. Uses property_configurations and calendar_sync_log."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:scheduled"
+    }
+  ]
 }

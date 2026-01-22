@@ -752,5 +752,9 @@
     "nodes_converted": 3
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

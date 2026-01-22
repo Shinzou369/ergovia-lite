@@ -1118,5 +1118,9 @@
     "consistency_note": "Data integration hub. Aggregates data from bookings, properties, cleaners."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

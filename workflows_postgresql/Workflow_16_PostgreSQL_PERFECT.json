@@ -1048,5 +1048,9 @@
     "consistency_note": "Review monitoring with AI responses. Status: pending \u2192 approved \u2192 posted."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

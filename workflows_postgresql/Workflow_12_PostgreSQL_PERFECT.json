@@ -771,5 +771,9 @@
     "consistency_note": "Nightly dynamic pricing at 2 AM. Uses pricing_history and pricing_recommendations tables."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:scheduled"
+    }
+  ]
 }

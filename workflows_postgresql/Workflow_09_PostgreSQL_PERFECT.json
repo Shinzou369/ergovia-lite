@@ -795,5 +795,9 @@
     "consistency_note": "Sends messages created by WF08. Status coordination: pending \u2192 sent."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:scheduled"
+    }
+  ]
 }

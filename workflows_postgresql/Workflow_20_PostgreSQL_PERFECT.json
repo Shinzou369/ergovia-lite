@@ -624,5 +624,9 @@
     "consistency_note": "Owner dashboard and task creation. Uses property_configurations, creates manual_tasks."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:event"
+    }
+  ]
 }

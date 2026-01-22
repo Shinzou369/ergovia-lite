@@ -1252,5 +1252,9 @@
     "consistency_note": "Maintenance ticket management. Uses maintenance_tickets and vendors tables."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

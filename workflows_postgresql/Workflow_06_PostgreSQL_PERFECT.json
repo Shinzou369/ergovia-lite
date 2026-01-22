@@ -1996,5 +1996,9 @@
     "consistency_note": "Introduces new statuses: needs_pricing_decision, needs_party_decision. pending_payment_confirmation matches WF00."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

@@ -1314,5 +1314,9 @@
     "consistency_note": "Status values match WF01: pending, in_progress, completed, cancelled"
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:event"
+    }
+  ]
 }

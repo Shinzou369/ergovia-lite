@@ -404,5 +404,9 @@
     "enhancement_note": "\nIMPORTANT ENHANCEMENT: This workflow now also creates a deal record.\n\nWhy: Even though this is a direct booking (bypassing inquiry flow), \nwe still create a deal with status='confirmed' so that:\n1. Reporting is consistent (all bookings have deals)\n2. Revenue tracking works correctly\n3. Deal analytics include direct bookings\n\nThe deal is created AFTER the booking, with:\n- deal_id = 'DIRECT-' + booking_id\n- status = 'confirmed'\n- source = 'direct'\n"
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

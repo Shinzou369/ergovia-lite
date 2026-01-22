@@ -1219,5 +1219,9 @@
     "consistency_note": "Guest screening with AI risk assessment. Auto-declines blacklisted guests, requires approval for high-risk."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }

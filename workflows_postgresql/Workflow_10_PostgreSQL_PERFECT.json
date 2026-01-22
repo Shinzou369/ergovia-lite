@@ -1365,5 +1365,9 @@
     "consistency_note": "Uses cleaning_tasks and cleaners tables. Updates task status to completed."
   },
   "id": "Uyrhtg1WwrztamXj",
-  "tags": []
+  "tags": [
+    {
+      "name": "trigger:webhook"
+    }
+  ]
 }
