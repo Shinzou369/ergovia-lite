@@ -9,6 +9,64 @@ const N8NClient = require('../services/n8n/client');
 const WorkflowDeployer = require('../services/n8n/deployer');
 const { createSupportTicket, getClientApiKey } = require('../config/setupDatabase');
 
+function buildWorkflowConfig(client, settings, server, assignedApiKey = null) {
+  const ownerSettings = settings.owner || {};
+  const propertySettings = settings.property || {};
+  const guestAccessSettings = settings.guestAccess || {};
+  const calendarSettings = settings.calendars || {};
+  const teamSettings = settings.team || {};
+
+  return {
+    ownerName: ownerSettings.ownerName || client.business_name || 'Property Manager',
+    ownerEmail: ownerSettings.ownerEmail || client.owner_email || '',
+    ownerPhone: ownerSettings.ownerPhone || client.owner_phone || '',
+    preferredPlatform: ownerSettings.preferredPlatform || 'email',
+    telegramChatId: ownerSettings.telegramChatId || client.telegram_chat_id || '',
+    whatsappNumber: ownerSettings.whatsappNumber || '',
+    
+    propertyName: propertySettings.propertyName || client.business_name || 'Property',
+    propertyAddress: propertySettings.propertyAddress || '',
+    propertyCity: propertySettings.propertyCity || '',
+    timezone: propertySettings.timezone || 'America/New_York',
+    bedrooms: propertySettings.bedrooms || '1',
+    maxGuests: propertySettings.maxGuests || '4',
+    basePrice: propertySettings.basePrice || '100',
+    minPrice: propertySettings.minPrice || '50',
+    maxDiscount: propertySettings.maxDiscount || '20',
+    
+    checkInTime: guestAccessSettings.checkInTime || '15:00',
+    checkOutTime: guestAccessSettings.checkOutTime || '11:00',
+    doorCode: guestAccessSettings.doorCode || '',
+    wifiNetwork: guestAccessSettings.wifiNetwork || '',
+    wifiPassword: guestAccessSettings.wifiPassword || '',
+    parkingInstructions: guestAccessSettings.parkingInstructions || '',
+    houseRules: guestAccessSettings.houseRules || '',
+    localRecommendations: guestAccessSettings.localRecommendations || '',
+    
+    airbnbCalendarUrl: calendarSettings.airbnbCalendar || '',
+    vrboCalendarUrl: calendarSettings.vrboCalendar || '',
+    bookingCalendarUrl: calendarSettings.bookingCalendar || '',
+    otherCalendarUrl: calendarSettings.otherCalendar || '',
+    
+    cleaners: teamSettings.cleaners || [],
+    
+    openaiApiKey: assignedApiKey || process.env.OPENAI_API_KEY || '',
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    whatsappApiKey: process.env.WHATSAPP_API_KEY || '',
+    twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
+    twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',
+    twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
+    
+    dbHost: server?.server_ip || process.env.PGHOST || 'localhost',
+    dbPort: server?.db_port || process.env.PGPORT || '5432',
+    dbName: server?.db_name || `client_${client.client_id?.substring(0, 20) || 'default'}`,
+    dbUser: server?.db_user || client.client_id?.substring(0, 20) || 'client',
+    dbPassword: server?.db_password || '',
+    subdomain: client.subdomain || '',
+    domain: server?.domain || `${client.subdomain || 'app'}.prismity.ai`
+  };
+}
+
 router.post('/settings',
   authenticateClient,
   sanitizeInput,
@@ -444,23 +502,8 @@ router.post('/workflows/deploy',
       const serverResult = await db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]);
       const server = serverResult.rows[0];
 
-      const config = {
-        businessName: settings.business?.name || client.business_name,
-        propertyName: settings.business?.propertyName || client.business_name,
-        ownerEmail: settings.owner?.email || client.owner_email,
-        ownerPhone: settings.owner?.phone || client.owner_phone || '',
-        ownerTelegram: settings.credentials?.telegramChatId || client.telegram_chat_id || '',
-        openaiApiKey: settings.credentials?.openaiApiKey || process.env.OPENAI_API_KEY || '',
-        telegramBotToken: settings.credentials?.telegramBotToken || '',
-        whatsappApiKey: settings.credentials?.whatsappApiKey || '',
-        dbHost: server?.server_ip || 'localhost',
-        dbPort: '5432',
-        dbName: server?.db_name || `client_${clientId}`,
-        dbUser: server?.db_user || clientId,
-        dbPassword: server?.db_password || '',
-        subdomain: client.subdomain,
-        domain: server?.domain || `${client.subdomain}.prismity.ai`
-      };
+      const assignedKey = await getClientApiKey(clientId, 'openai');
+      const config = buildWorkflowConfig(client, settings, server, assignedKey?.api_key);
 
       const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
       const deployer = new WorkflowDeployer(n8nClient);
@@ -527,23 +570,8 @@ router.post('/workflows/deploy-single',
       const serverResult = await db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]);
       const server = serverResult.rows[0];
 
-      const config = {
-        businessName: settings.business?.name || client.business_name,
-        propertyName: settings.business?.propertyName || client.business_name,
-        ownerEmail: settings.owner?.email || client.owner_email,
-        ownerPhone: settings.owner?.phone || client.owner_phone || '',
-        ownerTelegram: settings.credentials?.telegramChatId || client.telegram_chat_id || '',
-        openaiApiKey: settings.credentials?.openaiApiKey || process.env.OPENAI_API_KEY || '',
-        telegramBotToken: settings.credentials?.telegramBotToken || '',
-        whatsappApiKey: settings.credentials?.whatsappApiKey || '',
-        subdomain: client.subdomain,
-        dbHost: server?.server_ip || 'localhost',
-        dbPort: '5432',
-        dbName: server?.db_name || `client_${clientId}`,
-        dbUser: server?.db_user || clientId,
-        dbPassword: server?.db_password || '',
-        domain: server?.domain || `${client.subdomain}.prismity.ai`
-      };
+      const assignedKey = await getClientApiKey(clientId, 'openai');
+      const config = buildWorkflowConfig(client, settings, server, assignedKey?.api_key);
 
       const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
       const deployer = new WorkflowDeployer(n8nClient);
@@ -557,7 +585,8 @@ router.post('/workflows/deploy-single',
       const filename = workflowFiles[workflowNumber - 1];
       const result = await deployer.deployWorkflow(filename, config, { 
         activate, 
-        tag: config.businessName.replace(/\s+/g, '_') 
+        tag: `client_${config.subdomain || 'default'}`,
+        clientName: config.ownerName
       });
 
       await db.query(`
@@ -646,22 +675,8 @@ router.post('/workflows/redeploy',
       const serverResult = await db.query('SELECT * FROM client_servers WHERE client_id = $1', [clientId]);
       const server = serverResult.rows[0];
 
-      const config = {
-        businessName: settings.business?.name || client.business_name,
-        propertyName: settings.business?.propertyName || client.business_name,
-        ownerEmail: settings.owner?.email || client.owner_email,
-        ownerPhone: settings.owner?.phone || client.owner_phone || '',
-        ownerTelegram: settings.credentials?.telegramChatId || client.telegram_chat_id || '',
-        openaiApiKey: settings.credentials?.openaiApiKey || process.env.OPENAI_API_KEY || '',
-        telegramBotToken: settings.credentials?.telegramBotToken || '',
-        dbHost: server?.server_ip || 'localhost',
-        dbPort: '5432',
-        dbName: server?.db_name || `client_${clientId}`,
-        dbUser: server?.db_user || clientId,
-        dbPassword: server?.db_password || '',
-        subdomain: client.subdomain,
-        domain: server?.domain || `${client.subdomain}.prismity.ai`
-      };
+      const assignedKey = await getClientApiKey(clientId, 'openai');
+      const config = buildWorkflowConfig(client, settings, server, assignedKey?.api_key);
 
       const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
       const deployer = new WorkflowDeployer(n8nClient);
@@ -693,7 +708,8 @@ router.post('/workflows/redeploy',
           const filename = workflowFiles[workflowNum - 1];
           const result = await deployer.deployWorkflow(filename, config, { 
             activate: existingWorkflow?.is_active ?? true,
-            tag: config.businessName.replace(/\s+/g, '_') 
+            tag: `client_${config.subdomain || 'default'}`,
+            clientName: config.ownerName
           });
 
           await db.query(`
@@ -842,6 +858,106 @@ router.get('/support/tickets',
   }
 );
 
+router.get('/onboarding',
+  authenticateClient,
+  async (req, res) => {
+    try {
+      const clientId = req.clientId;
+
+      const [clientResult, settingsResult] = await Promise.all([
+        db.query('SELECT business_name, owner_email, owner_phone, status FROM clients WHERE client_id = $1', [clientId]),
+        db.query('SELECT section, data FROM client_settings WHERE client_id = $1', [clientId])
+      ]);
+
+      const client = clientResult.rows[0] || {};
+      const settings = {};
+      settingsResult.rows.forEach(row => {
+        settings[row.section] = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      });
+
+      if (!settings.owner && client.owner_email) {
+        settings.owner = {
+          ownerName: client.business_name || '',
+          ownerEmail: client.owner_email || '',
+          ownerPhone: client.owner_phone || '',
+          preferredPlatform: ''
+        };
+      }
+
+      res.json({
+        success: true,
+        settings,
+        onboardingCompleted: settings.onboarding?.completed || false
+      });
+
+    } catch (error) {
+      logger.error('Failed to get onboarding data', { error: error.message });
+      res.status(500).json({ error: 'Failed to get onboarding data' });
+    }
+  }
+);
+
+router.post('/onboarding/settings',
+  authenticateClient,
+  sanitizeInput,
+  validateRequired(['section', 'data']),
+  async (req, res) => {
+    try {
+      const { section, data } = req.body;
+      const clientId = req.clientId;
+
+      const allowedSections = ['owner', 'property', 'guestAccess', 'calendars', 'team'];
+      if (!allowedSections.includes(section)) {
+        return res.status(400).json({ error: 'Invalid section' });
+      }
+
+      await db.query(`
+        INSERT INTO client_settings (client_id, section, data)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (client_id, section) 
+        DO UPDATE SET data = $3, updated_at = NOW()
+      `, [clientId, section, JSON.stringify(data)]);
+
+      if (section === 'owner') {
+        const updates = [];
+        const values = [];
+        let paramCount = 1;
+
+        if (data.ownerName) {
+          updates.push(`business_name = $${paramCount++}`);
+          values.push(data.ownerName);
+        }
+        if (data.ownerEmail) {
+          updates.push(`owner_email = $${paramCount++}`);
+          values.push(data.ownerEmail);
+        }
+        if (data.ownerPhone) {
+          updates.push(`owner_phone = $${paramCount++}`);
+          values.push(data.ownerPhone);
+        }
+        if (data.telegramChatId) {
+          updates.push(`telegram_chat_id = $${paramCount++}`);
+          values.push(data.telegramChatId);
+        }
+
+        if (updates.length > 0) {
+          values.push(clientId);
+          await db.query(
+            `UPDATE clients SET ${updates.join(', ')} WHERE client_id = $${paramCount}`,
+            values
+          );
+        }
+      }
+
+      res.json({ success: true, message: 'Settings saved' });
+
+    } catch (error) {
+      logger.error('Failed to save onboarding settings', { error: error.message });
+      res.status(500).json({ error: 'Failed to save settings' });
+    }
+  }
+);
+
 router.post('/onboarding/complete',
   authenticateClient,
   async (req, res) => {
@@ -894,30 +1010,7 @@ router.post('/onboarding/complete',
       if (n8nUrl && n8nApiKey) {
         try {
           const assignedKey = await getClientApiKey(clientId, 'openai');
-          
-          const dbHost = server?.server_ip || process.env.PGHOST || 'localhost';
-          const dbPort = server?.db_port || process.env.PGPORT || '5432';
-          const dbName = server?.db_name || `client_${clientId.substring(0, 20)}`;
-          const dbUser = server?.db_user || clientId.substring(0, 20);
-          const dbPassword = server?.db_password || '';
-
-          const config = {
-            businessName: client.business_name || 'Property Manager',
-            propertyName: settings.business?.name || client.business_name || 'Property',
-            ownerPhone: settings.owner?.phone || client.owner_phone || '',
-            ownerEmail: settings.owner?.email || client.owner_email || '',
-            ownerTelegram: client.telegram_chat_id || '',
-            openaiApiKey: assignedKey?.api_key || process.env.OPENAI_API_KEY || '',
-            telegramBotToken: '',
-            whatsappApiKey: '',
-            dbHost: dbHost,
-            dbPort: dbPort,
-            dbName: dbName,
-            dbUser: dbUser,
-            dbPassword: dbPassword,
-            subdomain: client.subdomain,
-            domain: server?.domain || `${client.subdomain}.prismity.ai`
-          };
+          const config = buildWorkflowConfig(client, settings, server, assignedKey?.api_key);
 
           const n8nClient = new N8NClient(n8nUrl, n8nApiKey);
           const deployer = new WorkflowDeployer(n8nClient);
@@ -957,7 +1050,8 @@ router.post('/onboarding/complete',
             try {
               const result = await deployer.deployWorkflow(filename, config, { 
                 activate: true,
-                tag: `client_${client.subdomain}` 
+                tag: `client_${client.subdomain}`,
+                clientName: config.ownerName
               });
 
               await db.query(`

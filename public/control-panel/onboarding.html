@@ -8,34 +8,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .wizard-container {
-            max-width: 600px;
-            margin: 40px auto;
+            max-width: 700px;
+            margin: 30px auto;
             padding: 20px;
         }
         .wizard-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         .wizard-header h1 {
             color: var(--text-primary);
-            font-size: 1.8rem;
-            margin-bottom: 10px;
+            font-size: 1.6rem;
+            margin-bottom: 8px;
         }
         .wizard-header p {
             color: var(--text-secondary);
+            font-size: 0.95rem;
         }
         .wizard-steps {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             position: relative;
+            overflow-x: auto;
+            padding: 10px 0;
         }
         .wizard-steps::before {
             content: '';
             position: absolute;
-            top: 20px;
-            left: 80px;
-            right: 80px;
+            top: 25px;
+            left: 50px;
+            right: 50px;
             height: 2px;
             background: var(--border-color);
             z-index: 0;
@@ -45,10 +48,11 @@
             flex-direction: column;
             align-items: center;
             z-index: 1;
+            min-width: 70px;
         }
         .step-number {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: var(--bg-secondary);
             border: 2px solid var(--border-color);
@@ -56,13 +60,16 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            transition: all 0.3s ease;
         }
         .step.active .step-number {
             background: var(--accent-blue);
             border-color: var(--accent-blue);
             color: white;
+            transform: scale(1.1);
         }
         .step.completed .step-number {
             background: var(--accent-green);
@@ -70,8 +77,9 @@
             color: white;
         }
         .step-label {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
+            text-align: center;
         }
         .step.active .step-label {
             color: var(--accent-blue);
@@ -80,25 +88,25 @@
         .wizard-content {
             background: var(--bg-card);
             border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 25px;
+            padding: 25px;
+            margin-bottom: 20px;
             border: 1px solid var(--border-color);
         }
         .wizard-content h2 {
             color: var(--text-primary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
         }
         .wizard-content h2 i {
             color: var(--accent-blue);
         }
         .wizard-content > p {
             color: var(--text-secondary);
-            margin-bottom: 25px;
-            font-size: 0.95rem;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
         }
         .wizard-buttons {
             display: flex;
@@ -110,6 +118,111 @@
         }
         .step-content.active {
             display: block;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .form-grid.single {
+            grid-template-columns: 1fr;
+        }
+        .form-group {
+            margin-bottom: 0;
+        }
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .form-group label i {
+            margin-right: 6px;
+            color: var(--accent-blue);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-muted);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-group .hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .section-divider {
+            border-top: 1px solid var(--border-color);
+            margin: 20px 0;
+            padding-top: 15px;
+        }
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i {
+            color: var(--accent-blue);
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-primary:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-hover);
         }
         .success-screen {
             text-align: center;
@@ -126,34 +239,34 @@
         }
         .success-screen p {
             color: var(--text-secondary);
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         .feature-list {
             text-align: left;
             background: var(--bg-secondary);
             border-radius: 10px;
-            padding: 20px;
+            padding: 15px 20px;
             margin: 20px 0;
         }
         .feature-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 0;
+            gap: 10px;
+            padding: 8px 0;
             border-bottom: 1px solid var(--border-color);
         }
         .feature-item:last-child { border-bottom: none; }
         .feature-item i {
             color: var(--accent-green);
-            font-size: 1.1rem;
         }
         .feature-item span {
             color: var(--text-primary);
+            font-size: 0.9rem;
         }
         .loading-spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border: 2px solid rgba(255,255,255,0.3);
             border-top-color: white;
             border-radius: 50%;
@@ -162,35 +275,141 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #f59e0b;
+        }
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+        }
+        .cleaner-entry {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+        }
+        .cleaner-entry .form-grid {
+            margin-bottom: 0;
+        }
+        .add-cleaner-btn {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .add-cleaner-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+        .remove-cleaner-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        .remove-cleaner-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        .optional-badge {
+            font-size: 0.7rem;
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            font-weight: normal;
+        }
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .wizard-steps::before {
+                left: 30px;
+                right: 30px;
+            }
+            .step {
+                min-width: 55px;
+            }
+            .step-label {
+                font-size: 0.65rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="wizard-container">
         <div class="wizard-header">
-            <i class="fas fa-home" style="font-size: 3rem; color: var(--accent-blue); margin-bottom: 15px;"></i>
+            <i class="fas fa-home" style="font-size: 2.5rem; color: var(--accent-blue); margin-bottom: 12px;"></i>
             <h1>Welcome to AI Property Manager</h1>
-            <p>Let's set up your account in just a few minutes</p>
+            <p>Complete this setup to activate your automation workflows</p>
         </div>
 
         <div class="wizard-steps">
             <div class="step active" data-step="1">
                 <div class="step-number">1</div>
-                <span class="step-label">Your Info</span>
+                <span class="step-label">Owner</span>
             </div>
             <div class="step" data-step="2">
                 <div class="step-number">2</div>
-                <span class="step-label">Business</span>
+                <span class="step-label">Property</span>
             </div>
             <div class="step" data-step="3">
                 <div class="step-number">3</div>
-                <span class="step-label">Preferences</span>
+                <span class="step-label">Guest Info</span>
+            </div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <span class="step-label">Calendars</span>
+            </div>
+            <div class="step" data-step="5">
+                <div class="step-number">5</div>
+                <span class="step-label">Team</span>
             </div>
         </div>
 
+        <div id="alertContainer"></div>
+
         <div class="wizard-content">
+            <!-- Step 1: Owner Information -->
             <div id="step1" class="step-content active">
-                <h2><i class="fas fa-user"></i> Your Information</h2>
-                <p>Tell us about yourself so we can personalize your experience</p>
+                <h2><i class="fas fa-user"></i> Owner Information</h2>
+                <p>Your contact details for notifications and guest communication</p>
+                
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="ownerName"><i class="fas fa-user"></i> Your Name *</label>
@@ -202,263 +421,507 @@
                     </div>
                     <div class="form-group">
                         <label for="ownerPhone"><i class="fas fa-phone"></i> Phone Number *</label>
-                        <input type="tel" id="ownerPhone" required placeholder="+1234567890">
+                        <input type="tel" id="ownerPhone" required placeholder="+1 (555) 123-4567">
                     </div>
                     <div class="form-group">
-                        <label for="preferredContact"><i class="fas fa-comments"></i> Preferred Contact Method</label>
-                        <select id="preferredContact">
-                            <option value="email">Email</option>
-                            <option value="whatsapp">WhatsApp</option>
+                        <label for="preferredPlatform"><i class="fas fa-comment-dots"></i> Preferred Contact *</label>
+                        <select id="preferredPlatform" required>
+                            <option value="">Select platform...</option>
                             <option value="telegram">Telegram</option>
+                            <option value="whatsapp">WhatsApp</option>
                             <option value="sms">SMS</option>
+                            <option value="email">Email Only</option>
                         </select>
+                    </div>
+                </div>
+
+                <div id="telegramSection" style="display: none;">
+                    <div class="section-divider">
+                        <div class="section-title"><i class="fab fa-telegram"></i> Telegram Settings</div>
+                    </div>
+                    <div class="form-grid single">
+                        <div class="form-group">
+                            <label for="telegramChatId"><i class="fab fa-telegram"></i> Telegram Chat ID *</label>
+                            <input type="text" id="telegramChatId" placeholder="123456789">
+                            <div class="hint">Message @userinfobot on Telegram to get your Chat ID</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="whatsappSection" style="display: none;">
+                    <div class="section-divider">
+                        <div class="section-title"><i class="fab fa-whatsapp"></i> WhatsApp Settings</div>
+                    </div>
+                    <div class="form-grid single">
+                        <div class="form-group">
+                            <label for="whatsappNumber"><i class="fab fa-whatsapp"></i> WhatsApp Number *</label>
+                            <input type="tel" id="whatsappNumber" placeholder="+1 (555) 123-4567">
+                            <div class="hint">Include country code (same as phone if using same number)</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Step 2: Property Details -->
             <div id="step2" class="step-content">
-                <h2><i class="fas fa-building"></i> Business Details</h2>
-                <p>Information about your property management business</p>
+                <h2><i class="fas fa-building"></i> Property Details</h2>
+                <p>Information about your rental property</p>
+                
                 <div class="form-grid">
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="businessName"><i class="fas fa-briefcase"></i> Business Name *</label>
-                        <input type="text" id="businessName" required placeholder="My Vacation Rentals">
+                    <div class="form-group full-width">
+                        <label for="propertyName"><i class="fas fa-home"></i> Property Name *</label>
+                        <input type="text" id="propertyName" required placeholder="Beach House Miami">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="propertyAddress"><i class="fas fa-map-marker-alt"></i> Full Address *</label>
+                        <input type="text" id="propertyAddress" required placeholder="123 Ocean Drive, Miami Beach, FL 33139">
                     </div>
                     <div class="form-group">
-                        <label for="propertyCount"><i class="fas fa-home"></i> Number of Properties</label>
-                        <select id="propertyCount">
-                            <option value="1-5">1-5 properties</option>
-                            <option value="6-15">6-15 properties</option>
-                            <option value="16-30">16-30 properties</option>
-                            <option value="30+">30+ properties</option>
+                        <label for="propertyCity"><i class="fas fa-city"></i> City *</label>
+                        <input type="text" id="propertyCity" required placeholder="Miami Beach">
+                    </div>
+                    <div class="form-group">
+                        <label for="timezone"><i class="fas fa-clock"></i> Timezone *</label>
+                        <select id="timezone" required>
+                            <option value="">Select timezone...</option>
+                            <option value="America/New_York">Eastern Time (ET)</option>
+                            <option value="America/Chicago">Central Time (CT)</option>
+                            <option value="America/Denver">Mountain Time (MT)</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                            <option value="America/Phoenix">Arizona (no DST)</option>
+                            <option value="Pacific/Honolulu">Hawaii Time</option>
+                            <option value="America/Anchorage">Alaska Time</option>
+                            <option value="Europe/London">London (GMT/BST)</option>
+                            <option value="Europe/Paris">Paris (CET)</option>
+                            <option value="Europe/Berlin">Berlin (CET)</option>
+                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                            <option value="Asia/Dubai">Dubai (GST)</option>
+                            <option value="Australia/Sydney">Sydney (AEST)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="timezone"><i class="fas fa-clock"></i> Timezone</label>
-                        <select id="timezone">
-                            <option value="Europe/Berlin">Europe/Berlin (CET)</option>
-                            <option value="Europe/London">Europe/London (GMT)</option>
-                            <option value="America/New_York">America/New York (EST)</option>
-                            <option value="America/Los_Angeles">America/Los Angeles (PST)</option>
-                            <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
-                            <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
-                        </select>
+                        <label for="bedrooms"><i class="fas fa-bed"></i> Bedrooms *</label>
+                        <input type="number" id="bedrooms" required min="1" max="20" placeholder="3">
                     </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="businessAddress"><i class="fas fa-map-marker-alt"></i> Business Address</label>
-                        <input type="text" id="businessAddress" placeholder="123 Main Street, City, Country">
+                    <div class="form-group">
+                        <label for="maxGuests"><i class="fas fa-users"></i> Max Guests *</label>
+                        <input type="number" id="maxGuests" required min="1" max="50" placeholder="8">
+                    </div>
+                </div>
+
+                <div class="section-divider">
+                    <div class="section-title"><i class="fas fa-dollar-sign"></i> Pricing</div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="basePrice"><i class="fas fa-tag"></i> Base Nightly Rate *</label>
+                        <input type="number" id="basePrice" required min="1" placeholder="250">
+                        <div class="hint">Your standard nightly price in USD</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="minPrice"><i class="fas fa-arrow-down"></i> Minimum Price *</label>
+                        <input type="number" id="minPrice" required min="1" placeholder="150">
+                        <div class="hint">Lowest rate you'll accept</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxDiscount"><i class="fas fa-percent"></i> Max Discount %</label>
+                        <input type="number" id="maxDiscount" min="0" max="50" placeholder="20">
+                        <div class="hint">Max discount AI can offer (0-50%)</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Step 3: Guest Access Information -->
             <div id="step3" class="step-content">
-                <h2><i class="fas fa-sliders-h"></i> Your Preferences</h2>
-                <p>Customize how your AI assistant works for you</p>
+                <h2><i class="fas fa-key"></i> Guest Access Information</h2>
+                <p>Details guests need for their stay (sent automatically after booking)</p>
+                
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="aiStyle"><i class="fas fa-robot"></i> AI Communication Style</label>
-                        <select id="aiStyle">
-                            <option value="professional">Professional</option>
-                            <option value="friendly">Friendly</option>
-                            <option value="casual">Casual</option>
-                        </select>
+                        <label for="checkInTime"><i class="fas fa-sign-in-alt"></i> Check-in Time *</label>
+                        <input type="time" id="checkInTime" required value="15:00">
                     </div>
                     <div class="form-group">
-                        <label for="defaultLanguage"><i class="fas fa-language"></i> Default Language</label>
-                        <select id="defaultLanguage">
-                            <option value="en">English</option>
-                            <option value="de">Deutsch</option>
-                            <option value="es">Espanol</option>
-                            <option value="fr">Francais</option>
-                            <option value="it">Italiano</option>
-                        </select>
+                        <label for="checkOutTime"><i class="fas fa-sign-out-alt"></i> Check-out Time *</label>
+                        <input type="time" id="checkOutTime" required value="11:00">
                     </div>
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="specialInstructions"><i class="fas fa-scroll"></i> Special Instructions for AI</label>
-                        <textarea id="specialInstructions" rows="3" placeholder="Any specific guidelines for your AI assistant..."></textarea>
-                        <small class="help-text">Optional - Tell the AI about your preferences, policies, or style</small>
+                    <div class="form-group">
+                        <label for="doorCode"><i class="fas fa-lock"></i> Door/Lock Code <span class="optional-badge">Optional</span></label>
+                        <input type="text" id="doorCode" placeholder="1234 or 'Key in lockbox #5432'">
+                    </div>
+                    <div class="form-group">
+                        <label for="wifiNetwork"><i class="fas fa-wifi"></i> WiFi Network Name</label>
+                        <input type="text" id="wifiNetwork" placeholder="BeachHouse_Guest">
+                    </div>
+                    <div class="form-group">
+                        <label for="wifiPassword"><i class="fas fa-key"></i> WiFi Password</label>
+                        <input type="text" id="wifiPassword" placeholder="Welcome2024!">
+                    </div>
+                </div>
+
+                <div class="section-divider">
+                    <div class="section-title"><i class="fas fa-car"></i> Parking & Access</div>
+                </div>
+                <div class="form-grid single">
+                    <div class="form-group">
+                        <label for="parkingInstructions"><i class="fas fa-parking"></i> Parking Instructions</label>
+                        <textarea id="parkingInstructions" placeholder="Free parking in driveway. Street parking also available."></textarea>
+                    </div>
+                </div>
+
+                <div class="section-divider">
+                    <div class="section-title"><i class="fas fa-list-check"></i> House Rules & Recommendations</div>
+                </div>
+                <div class="form-grid single">
+                    <div class="form-group">
+                        <label for="houseRules"><i class="fas fa-clipboard-list"></i> House Rules</label>
+                        <textarea id="houseRules" placeholder="No smoking. No parties. Quiet hours 10pm-8am. Max 8 guests."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="localRecommendations"><i class="fas fa-map-signs"></i> Local Recommendations</label>
+                        <textarea id="localRecommendations" placeholder="Joe's Cafe (2 min walk) - great breakfast. Beach access 1 block south."></textarea>
                     </div>
                 </div>
             </div>
 
-            <div id="stepSuccess" class="step-content">
+            <!-- Step 4: Calendar Integration -->
+            <div id="step4" class="step-content">
+                <h2><i class="fas fa-calendar-alt"></i> Calendar Integration</h2>
+                <p>Connect your booking calendars for automatic sync and conflict detection</p>
+                
+                <div class="form-grid single">
+                    <div class="form-group">
+                        <label for="airbnbCalendar"><i class="fab fa-airbnb"></i> Airbnb iCal URL</label>
+                        <input type="url" id="airbnbCalendar" placeholder="https://www.airbnb.com/calendar/ical/...">
+                        <div class="hint">Find this in Airbnb > Your Listing > Availability > Connect Calendars > Export Calendar</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="vrboCalendar"><i class="fas fa-home"></i> VRBO/HomeAway iCal URL</label>
+                        <input type="url" id="vrboCalendar" placeholder="https://www.vrbo.com/icalendar/...">
+                        <div class="hint">Find this in VRBO > Calendar > Export Calendar</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookingCalendar"><i class="fas fa-globe"></i> Booking.com iCal URL</label>
+                        <input type="url" id="bookingCalendar" placeholder="https://admin.booking.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label for="otherCalendar"><i class="fas fa-calendar-plus"></i> Other Calendar URL</label>
+                        <input type="url" id="otherCalendar" placeholder="Any other iCal feed URL">
+                    </div>
+                </div>
+
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Calendar sync runs daily at 9 AM. You can also trigger manual syncs from your dashboard.</span>
+                </div>
+            </div>
+
+            <!-- Step 5: Team (Cleaners) -->
+            <div id="step5" class="step-content">
+                <h2><i class="fas fa-broom"></i> Cleaning Team</h2>
+                <p>Add your cleaners for automated turnover scheduling (you can add more later)</p>
+                
+                <div id="cleanersContainer">
+                    <div class="cleaner-entry" data-cleaner="1">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label><i class="fas fa-user"></i> Cleaner Name</label>
+                                <input type="text" class="cleanerName" placeholder="Maria Garcia">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-phone"></i> Cleaner Phone</label>
+                                <input type="tel" class="cleanerPhone" placeholder="+1 (555) 987-6543">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-comment"></i> Contact Method</label>
+                                <select class="cleanerContactMethod">
+                                    <option value="sms">SMS</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                    <option value="telegram">Telegram</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="add-cleaner-btn" onclick="addCleaner()">
+                    <i class="fas fa-plus"></i> Add Another Cleaner
+                </button>
+
+                <div class="alert alert-info" style="margin-top: 20px;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Cleaners will receive automatic notifications when turnovers are scheduled after guest checkouts.</span>
+                </div>
+            </div>
+
+            <!-- Success Screen -->
+            <div id="step6" class="step-content">
                 <div class="success-screen">
                     <div class="icon"><i class="fas fa-check-circle"></i></div>
-                    <h2>You're All Set!</h2>
-                    <p>Your AI Property Manager is ready to help you</p>
+                    <h2>Setup Complete!</h2>
+                    <p>Your AI Property Manager is now configured and ready to work for you.</p>
                     
                     <div class="feature-list">
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>Automated guest messaging</span>
+                            <span>AI will respond to guest inquiries automatically</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>Cleaning & maintenance scheduling</span>
+                            <span>Calendars will sync daily to prevent double bookings</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>Booking management & calendar sync</span>
+                            <span>Cleaners will be notified of turnovers automatically</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>Smart pricing recommendations</span>
+                            <span>Guests receive automated check-in instructions</span>
                         </div>
                         <div class="feature-item">
                             <i class="fas fa-check"></i>
-                            <span>24/7 AI-powered support</span>
+                            <span>You'll get notifications via your preferred platform</span>
                         </div>
                     </div>
 
-                    <button class="btn-primary" onclick="goToDashboard()" style="padding: 15px 40px; font-size: 1.1rem;">
-                        <i class="fas fa-arrow-right"></i> Go to Dashboard
+                    <button class="btn btn-primary" onclick="goToDashboard()">
+                        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
                     </button>
                 </div>
             </div>
         </div>
 
-        <div id="alertBox" class="alert" style="display: none;"></div>
-
         <div class="wizard-buttons" id="wizardButtons">
-            <button type="button" id="prevBtn" class="btn-secondary" onclick="prevStep()" style="display: none;">
+            <button class="btn btn-secondary" id="backBtn" onclick="previousStep()" style="display: none;">
                 <i class="fas fa-arrow-left"></i> Back
             </button>
             <div style="flex: 1;"></div>
-            <button type="button" id="nextBtn" class="btn-primary" onclick="nextStep()">
-                Continue <i class="fas fa-arrow-right"></i>
+            <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">
+                Next <i class="fas fa-arrow-right"></i>
             </button>
-            <button type="button" id="finishBtn" class="btn-primary" onclick="finishSetup()" style="display: none;">
+            <button class="btn btn-primary" id="finishBtn" onclick="finishSetup()" style="display: none;">
                 <i class="fas fa-check"></i> Complete Setup
             </button>
         </div>
     </div>
 
     <script>
-        const API_BASE = '/api/backend';
         let currentStep = 1;
-        const totalSteps = 3;
-        let clientData = null;
+        const totalSteps = 5;
+        let cleanerCount = 1;
 
-        async function init() {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkAuth();
+            await loadSavedData();
+            setupPlatformToggle();
+        });
+
+        async function checkAuth() {
             try {
-                const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
-                if (!authCheck.ok) {
+                const response = await fetch('/api/backend/control-panel/auth/status', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (!data.authenticated) {
                     window.location.href = 'login.html';
-                    return;
                 }
-
-                clientData = await authCheck.json();
-
-                if (clientData.onboarding && !clientData.onboarding.needsOnboarding) {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                if (clientData.client) {
-                    document.getElementById('ownerName').value = clientData.client.ownerName || '';
-                    document.getElementById('ownerEmail').value = clientData.client.email || '';
-                    document.getElementById('businessName').value = clientData.client.businessName || '';
-                }
-
-                updateUI();
             } catch (error) {
-                console.error('Init error:', error);
+                window.location.href = 'login.html';
             }
         }
 
-        function updateUI() {
-            document.querySelectorAll('.step-content').forEach((el, idx) => {
-                el.classList.toggle('active', idx + 1 === currentStep || (currentStep === 4 && el.id === 'stepSuccess'));
+        function setupPlatformToggle() {
+            const platformSelect = document.getElementById('preferredPlatform');
+            platformSelect.addEventListener('change', function() {
+                document.getElementById('telegramSection').style.display = 
+                    this.value === 'telegram' ? 'block' : 'none';
+                document.getElementById('whatsappSection').style.display = 
+                    this.value === 'whatsapp' ? 'block' : 'none';
             });
+        }
 
-            document.querySelectorAll('.wizard-steps .step').forEach((el, idx) => {
-                const stepNum = idx + 1;
-                el.classList.remove('active', 'completed');
-                if (stepNum === currentStep && currentStep <= totalSteps) {
-                    el.classList.add('active');
-                } else if (stepNum < currentStep || currentStep === 4) {
-                    el.classList.add('completed');
+        async function loadSavedData() {
+            try {
+                const response = await apiRequest('/control-panel/onboarding', 'GET');
+                if (response.settings) {
+                    populateForm(response.settings);
                 }
-            });
-
-            const isSuccess = currentStep === 4;
-            document.getElementById('wizardButtons').style.display = isSuccess ? 'none' : 'flex';
-            document.getElementById('prevBtn').style.display = currentStep > 1 && !isSuccess ? 'inline-flex' : 'none';
-            document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
-            document.getElementById('finishBtn').style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
-        }
-
-        async function nextStep() {
-            if (!await saveCurrentStep()) return;
-
-            if (currentStep < totalSteps) {
-                currentStep++;
-                updateUI();
+            } catch (error) {
+                console.log('No saved data found, starting fresh');
             }
         }
 
-        function prevStep() {
-            if (currentStep > 1) {
-                currentStep--;
-                updateUI();
+        function populateForm(settings) {
+            const fieldMappings = {
+                'owner': ['ownerName', 'ownerEmail', 'ownerPhone', 'preferredPlatform', 'telegramChatId', 'whatsappNumber'],
+                'property': ['propertyName', 'propertyAddress', 'propertyCity', 'timezone', 'bedrooms', 'maxGuests', 'basePrice', 'minPrice', 'maxDiscount'],
+                'guestAccess': ['checkInTime', 'checkOutTime', 'doorCode', 'wifiNetwork', 'wifiPassword', 'parkingInstructions', 'houseRules', 'localRecommendations'],
+                'calendars': ['airbnbCalendar', 'vrboCalendar', 'bookingCalendar', 'otherCalendar']
+            };
+
+            for (const [section, fields] of Object.entries(fieldMappings)) {
+                if (settings[section]) {
+                    for (const field of fields) {
+                        const element = document.getElementById(field);
+                        if (element && settings[section][field]) {
+                            element.value = settings[section][field];
+                        }
+                    }
+                }
             }
+
+            if (settings.owner?.preferredPlatform) {
+                document.getElementById('telegramSection').style.display = 
+                    settings.owner.preferredPlatform === 'telegram' ? 'block' : 'none';
+                document.getElementById('whatsappSection').style.display = 
+                    settings.owner.preferredPlatform === 'whatsapp' ? 'block' : 'none';
+            }
+
+            if (settings.team?.cleaners && settings.team.cleaners.length > 0) {
+                settings.team.cleaners.forEach((cleaner, index) => {
+                    if (index > 0) addCleaner();
+                    const entry = document.querySelectorAll('.cleaner-entry')[index];
+                    if (entry) {
+                        entry.querySelector('.cleanerName').value = cleaner.name || '';
+                        entry.querySelector('.cleanerPhone').value = cleaner.phone || '';
+                        entry.querySelector('.cleanerContactMethod').value = cleaner.contactMethod || 'sms';
+                    }
+                });
+            }
+        }
+
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            const options = {
+                method,
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (body) options.body = JSON.stringify(body);
+            
+            const response = await fetch(`/api/backend${endpoint}`, options);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Request failed');
+            }
+            return data;
+        }
+
+        function showAlert(type, message) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `
+                <div class="alert alert-${type}">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            setTimeout(() => { container.innerHTML = ''; }, 5000);
+        }
+
+        function getStepData(step) {
+            switch(step) {
+                case 1:
+                    return {
+                        section: 'owner',
+                        data: {
+                            ownerName: document.getElementById('ownerName').value,
+                            ownerEmail: document.getElementById('ownerEmail').value,
+                            ownerPhone: document.getElementById('ownerPhone').value,
+                            preferredPlatform: document.getElementById('preferredPlatform').value,
+                            telegramChatId: document.getElementById('telegramChatId').value,
+                            whatsappNumber: document.getElementById('whatsappNumber').value
+                        }
+                    };
+                case 2:
+                    return {
+                        section: 'property',
+                        data: {
+                            propertyName: document.getElementById('propertyName').value,
+                            propertyAddress: document.getElementById('propertyAddress').value,
+                            propertyCity: document.getElementById('propertyCity').value,
+                            timezone: document.getElementById('timezone').value,
+                            bedrooms: document.getElementById('bedrooms').value,
+                            maxGuests: document.getElementById('maxGuests').value,
+                            basePrice: document.getElementById('basePrice').value,
+                            minPrice: document.getElementById('minPrice').value,
+                            maxDiscount: document.getElementById('maxDiscount').value || '20'
+                        }
+                    };
+                case 3:
+                    return {
+                        section: 'guestAccess',
+                        data: {
+                            checkInTime: document.getElementById('checkInTime').value,
+                            checkOutTime: document.getElementById('checkOutTime').value,
+                            doorCode: document.getElementById('doorCode').value,
+                            wifiNetwork: document.getElementById('wifiNetwork').value,
+                            wifiPassword: document.getElementById('wifiPassword').value,
+                            parkingInstructions: document.getElementById('parkingInstructions').value,
+                            houseRules: document.getElementById('houseRules').value,
+                            localRecommendations: document.getElementById('localRecommendations').value
+                        }
+                    };
+                case 4:
+                    return {
+                        section: 'calendars',
+                        data: {
+                            airbnbCalendar: document.getElementById('airbnbCalendar').value,
+                            vrboCalendar: document.getElementById('vrboCalendar').value,
+                            bookingCalendar: document.getElementById('bookingCalendar').value,
+                            otherCalendar: document.getElementById('otherCalendar').value
+                        }
+                    };
+                case 5:
+                    const cleaners = [];
+                    document.querySelectorAll('.cleaner-entry').forEach(entry => {
+                        const name = entry.querySelector('.cleanerName').value;
+                        const phone = entry.querySelector('.cleanerPhone').value;
+                        const contactMethod = entry.querySelector('.cleanerContactMethod').value;
+                        if (name || phone) {
+                            cleaners.push({ name, phone, contactMethod });
+                        }
+                    });
+                    return {
+                        section: 'team',
+                        data: { cleaners }
+                    };
+            }
+        }
+
+        function validateStep(step) {
+            const requiredFields = {
+                1: ['ownerName', 'ownerEmail', 'ownerPhone', 'preferredPlatform'],
+                2: ['propertyName', 'propertyAddress', 'propertyCity', 'timezone', 'bedrooms', 'maxGuests', 'basePrice', 'minPrice'],
+                3: ['checkInTime', 'checkOutTime'],
+                4: [],
+                5: []
+            };
+
+            const platform = document.getElementById('preferredPlatform').value;
+            if (step === 1 && platform === 'telegram') {
+                requiredFields[1].push('telegramChatId');
+            }
+            if (step === 1 && platform === 'whatsapp') {
+                requiredFields[1].push('whatsappNumber');
+            }
+
+            for (const fieldId of requiredFields[step]) {
+                const field = document.getElementById(fieldId);
+                if (!field || !field.value.trim()) {
+                    showAlert('error', `Please fill in all required fields`);
+                    field?.focus();
+                    return false;
+                }
+            }
+            return true;
         }
 
         async function saveCurrentStep() {
-            hideAlert();
+            const stepData = getStepData(currentStep);
+            if (!stepData) return true;
 
             try {
-                if (currentStep === 1) {
-                    const ownerName = document.getElementById('ownerName').value.trim();
-                    const ownerEmail = document.getElementById('ownerEmail').value.trim();
-                    const ownerPhone = document.getElementById('ownerPhone').value.trim();
-
-                    if (!ownerName || !ownerEmail || !ownerPhone) {
-                        showAlert('error', 'Please fill in all required fields');
-                        return false;
-                    }
-
-                    await apiRequest('/control-panel/settings', 'POST', {
-                        section: 'owner',
-                        data: {
-                            name: ownerName,
-                            email: ownerEmail,
-                            phone: ownerPhone,
-                            preferredContact: document.getElementById('preferredContact').value
-                        }
-                    });
-                }
-
-                if (currentStep === 2) {
-                    const businessName = document.getElementById('businessName').value.trim();
-
-                    if (!businessName) {
-                        showAlert('error', 'Please enter your business name');
-                        return false;
-                    }
-
-                    await apiRequest('/control-panel/settings', 'POST', {
-                        section: 'business',
-                        data: {
-                            name: businessName,
-                            propertyCount: document.getElementById('propertyCount').value,
-                            timezone: document.getElementById('timezone').value,
-                            address: document.getElementById('businessAddress').value
-                        }
-                    });
-                }
-
-                if (currentStep === 3) {
-                    await apiRequest('/control-panel/settings', 'POST', {
-                        section: 'ai',
-                        data: {
-                            style: document.getElementById('aiStyle').value,
-                            language: document.getElementById('defaultLanguage').value,
-                            instructions: document.getElementById('specialInstructions').value
-                        }
-                    });
-                }
-
+                await apiRequest('/control-panel/onboarding/settings', 'POST', stepData);
                 return true;
             } catch (error) {
                 showAlert('error', 'Failed to save: ' + error.message);
@@ -466,10 +929,54 @@
             }
         }
 
+        async function nextStep() {
+            if (!validateStep(currentStep)) return;
+            
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.disabled = true;
+            nextBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+            const saved = await saveCurrentStep();
+            
+            nextBtn.disabled = false;
+            nextBtn.innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
+
+            if (!saved) return;
+
+            currentStep++;
+            updateUI();
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${currentStep}`).classList.add('active');
+
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                } else if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                }
+            });
+
+            document.getElementById('backBtn').style.display = currentStep > 1 && currentStep <= totalSteps ? 'inline-flex' : 'none';
+            document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
+            document.getElementById('finishBtn').style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+            document.getElementById('wizardButtons').style.display = currentStep > totalSteps ? 'none' : 'flex';
+        }
+
         async function finishSetup() {
             const finishBtn = document.getElementById('finishBtn');
             finishBtn.disabled = true;
-            finishBtn.innerHTML = '<span class="loading-spinner"></span> Setting up your automation...';
+            finishBtn.innerHTML = '<span class="loading-spinner"></span> Setting up...';
 
             try {
                 if (!await saveCurrentStep()) {
@@ -478,7 +985,7 @@
                     return;
                 }
 
-                finishBtn.innerHTML = '<span class="loading-spinner"></span> Deploying AI workflows...';
+                finishBtn.innerHTML = '<span class="loading-spinner"></span> Deploying workflows...';
 
                 const result = await apiRequest('/control-panel/onboarding/complete', 'POST');
                 
@@ -496,7 +1003,7 @@
                     showAlert('success', 'Setup complete! Your account is ready.');
                 }
 
-                currentStep = 4;
+                currentStep = 6;
                 updateUI();
             } catch (error) {
                 showAlert('error', 'Setup failed: ' + error.message);
@@ -505,38 +1012,45 @@
             }
         }
 
+        function addCleaner() {
+            cleanerCount++;
+            const container = document.getElementById('cleanersContainer');
+            const newEntry = document.createElement('div');
+            newEntry.className = 'cleaner-entry';
+            newEntry.dataset.cleaner = cleanerCount;
+            newEntry.innerHTML = `
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Cleaner Name</label>
+                        <input type="text" class="cleanerName" placeholder="Cleaner name">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Cleaner Phone</label>
+                        <input type="tel" class="cleanerPhone" placeholder="+1 (555) 000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-comment"></i> Contact Method</label>
+                        <select class="cleanerContactMethod">
+                            <option value="sms">SMS</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="telegram">Telegram</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" class="remove-cleaner-btn" onclick="removeCleaner(this)">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            `;
+            container.appendChild(newEntry);
+        }
+
+        function removeCleaner(btn) {
+            btn.closest('.cleaner-entry').remove();
+        }
+
         function goToDashboard() {
             window.location.href = 'dashboard.html';
         }
-
-        async function apiRequest(endpoint, method = 'GET', data = null) {
-            const options = {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            };
-            if (data) options.body = JSON.stringify(data);
-
-            const response = await fetch(`${API_BASE}${endpoint}`, options);
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({ error: 'Request failed' }));
-                throw new Error(err.error || 'Request failed');
-            }
-            return response.json();
-        }
-
-        function showAlert(type, message) {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.className = `alert alert-${type === 'success' ? 'success' : 'error'}`;
-            alertBox.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}`;
-            alertBox.style.display = 'flex';
-        }
-
-        function hideAlert() {
-            document.getElementById('alertBox').style.display = 'none';
-        }
-
-        init();
     </script>
 </body>
 </html>
