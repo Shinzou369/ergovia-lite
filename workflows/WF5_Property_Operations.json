@@ -1,0 +1,279 @@
+{
+  "name": "WF5: Property Operations",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "entry-webhook",
+      "name": "When Called by Other Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "updates": ["callback_query"],
+        "additionalFields": {}
+      },
+      "id": "callback-trigger",
+      "name": "Callback Handler",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200],
+      "webhookId": "ops-callbacks",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize input from webhook or callback\nconst input = $input.item.json;\n\nlet operation = {\n  type: 'unknown',\n  property_id: null,\n  ticket_id: null,\n  vendor_id: null,\n  action: null,\n  data: {}\n};\n\n// From routed message (maintenance report, owner action)\nif (input.category) {\n  operation.type = input.category === 'MAINTENANCE_REPORT' ? 'maintenance' : 'owner_action';\n  operation.property_id = input.property_id;\n  operation.data = {\n    message: input.message_text,\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Direct API call\nelse if (input.operation_type) {\n  operation.type = input.operation_type;\n  operation.property_id = input.property_id;\n  operation.ticket_id = input.ticket_id;\n  operation.vendor_id = input.vendor_id;\n  operation.action = input.action;\n  operation.data = input.data || {};\n}\n// Telegram callback\nelse if (input.callback_query) {\n  const callbackData = input.callback_query.data || '';\n  const parts = callbackData.split('_');\n  operation.type = parts[0]; // e.g., 'complete', 'dispatch', 'schedule'\n  operation.ticket_id = parts[1];\n  operation.action = parts[2] || 'confirm';\n  operation.data.callback_from = input.callback_query.from;\n}\n// Vendor status update (SMS/message)\nelse if (input.ticket_id || input.status) {\n  operation.type = 'vendor_update';\n  operation.ticket_id = input.ticket_id;\n  operation.data = {\n    status: input.status,\n    notes: input.notes,\n    photos: input.photos\n  };\n}\n\nreturn operation;"
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 100]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.type }}", "rightValue": "maintenance", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "maintenance"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.type }}", "rightValue": "cleaning", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cleaning"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.type }}", "rightValue": "vendor_update", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "vendor"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.type }}", "rightValue": "property_details", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "details"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "route-operation",
+      "name": "Route Operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [440, 100]
+    },
+    {
+      "parameters": {
+        "agent": "toolsAgent",
+        "promptType": "define",
+        "text": "You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json.property_id }}\nReporter: {{ $json.data.sender_id }}\n\nDetermine:\n1. Issue category (plumbing, electrical, hvac, appliance, structural, other)\n2. Urgency level (emergency, high, medium, low)\n3. Brief description\n\nUse the create_maintenance_ticket tool to log this issue.",
+        "hasOutputParser": false,
+        "options": { "maxIterations": 3 }
+      },
+      "id": "ai-maintenance",
+      "name": "AI Maintenance Handler",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, -100]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": { "temperature": 0.3 }
+      },
+      "id": "maint-model",
+      "name": "Maintenance Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [660, 100],
+      "credentials": {
+        "openAiApi": { "id": "openai-cred", "name": "OpenAI" }
+      }
+    },
+    {
+      "parameters": {
+        "name": "create_maintenance_ticket",
+        "description": "Create a maintenance ticket for the property",
+        "code": "const { property_id, category, urgency, description, reporter_id } = $input.item.json;\n\nconst ticketId = `MT${Date.now()}`;\n\n// This would insert into database\nreturn {\n  ticket_id: ticketId,\n  property_id: property_id,\n  category: category,\n  urgency: urgency,\n  description: description,\n  status: 'new',\n  created_at: new Date().toISOString(),\n  message: `Ticket ${ticketId} created for ${category} issue (${urgency} priority)`\n};"
+      },
+      "id": "tool-create-ticket",
+      "name": "Create Ticket Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [800, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT b.*, p.cleaning_vendor_id, v.vendor_name, v.vendor_phone, v.vendor_email\nFROM bookings b\nJOIN property_configurations p ON b.property_id = p.property_id\nLEFT JOIN vendors v ON p.cleaning_vendor_id = v.vendor_id\nWHERE b.property_id = $1\n  AND b.check_out_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "get-checkout",
+      "name": "Get Today's Checkouts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 150],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "cleaning_schedules",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "schedule_id": "={{ 'clean_' + $now.toMillis() }}",
+            "property_id": "={{ $json.property_id }}",
+            "booking_id": "={{ $json.booking_id }}",
+            "vendor_id": "={{ $json.cleaning_vendor_id }}",
+            "scheduled_date": "={{ $now.toFormat('yyyy-MM-dd') }}",
+            "status": "scheduled"
+          }
+        },
+        "options": {}
+      },
+      "id": "schedule-cleaning",
+      "name": "Schedule Cleaning",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [880, 150],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE maintenance_tickets\nSET status = $2,\n    vendor_notes = COALESCE(vendor_notes, '') || E'\\n' || $3,\n    photos = $4::jsonb,\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1\nRETURNING *",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.ticket_id, $json.data.status, $json.data.notes || '', JSON.stringify($json.data.photos || [])] } }}"
+        },
+        "options": {}
+      },
+      "id": "update-ticket",
+      "name": "Update Ticket Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 300],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM property_configurations WHERE property_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "get-property",
+      "name": "Get Property Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 450],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "name", "value": "SUB: Universal Messenger" },
+        "options": {}
+      },
+      "id": "send-notification",
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Return operation result to calling workflow\nreturn $input.item.json;"
+      },
+      "id": "return-result",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 100]
+    }
+  ],
+  "connections": {
+    "When Called by Other Workflow": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "Callback Handler": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "Normalize Input": {
+      "main": [[{ "node": "Route Operation", "type": "main", "index": 0 }]]
+    },
+    "Route Operation": {
+      "main": [
+        [{ "node": "AI Maintenance Handler", "type": "main", "index": 0 }],
+        [{ "node": "Get Today's Checkouts", "type": "main", "index": 0 }],
+        [{ "node": "Update Ticket Status", "type": "main", "index": 0 }],
+        [{ "node": "Get Property Details", "type": "main", "index": 0 }]
+      ]
+    },
+    "Maintenance Model": {
+      "ai_languageModel": [[{ "node": "AI Maintenance Handler", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Create Ticket Tool": {
+      "ai_tool": [[{ "node": "AI Maintenance Handler", "type": "ai_tool", "index": 0 }]]
+    },
+    "AI Maintenance Handler": {
+      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
+    },
+    "Get Today's Checkouts": {
+      "main": [[{ "node": "Schedule Cleaning", "type": "main", "index": 0 }]]
+    },
+    "Schedule Cleaning": {
+      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
+    },
+    "Update Ticket Status": {
+      "main": [[{ "node": "Send Notification", "type": "main", "index": 0 }]]
+    },
+    "Get Property Details": {
+      "main": [[{ "node": "Return Result", "type": "main", "index": 0 }]]
+    },
+    "Send Notification": {
+      "main": [[{ "node": "Return Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Unified property operations: maintenance, cleaning, vendor management. Replaces WF10, WF14, WF15."
+  },
+  "tags": ["operations", "maintenance", "cleaning", "optimized"]
+}

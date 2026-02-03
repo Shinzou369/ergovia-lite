@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Check - Ergovia</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .check-item {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+    }
+    .check-item.pass { border-left: 4px solid #22c55e; }
+    .check-item.fail { border-left: 4px solid #ef4444; }
+    .check-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .check-item.pass .check-icon { background: #22c55e; color: white; }
+    .check-item.fail .check-icon { background: #ef4444; color: white; }
+    .check-content { flex: 1; }
+    .check-title { font-weight: 600; margin-bottom: 4px; }
+    .check-detail { font-size: 13px; color: var(--text-secondary); }
+    .check-value { font-family: monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+    .instructions {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+    .instructions h4 { color: #92400e; margin-bottom: 12px; }
+    .instructions ol { padding-left: 20px; line-height: 1.8; }
+    .instructions code {
+      background: #fde68a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+        <a href="/admin.html" class="nav-link">API Bank</a>
+        <a href="/setup-check.html" class="nav-link active">Setup Check</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Setup Check</h1>
+        <p class="page-subtitle">Verify all requirements before deploying</p>
+      </div>
+      <button id="refresh-btn" class="btn btn-outline">Refresh</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Deployment Requirements</h3>
+      </div>
+      <div class="card-body">
+        <div id="checks-container">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="instructions-container"></div>
+  </div>
+
+  <script>
+    async function runChecks() {
+      const container = document.getElementById('checks-container');
+      const instructionsContainer = document.getElementById('instructions-container');
+
+      container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+      try {
+        const res = await fetch('/api/debug');
+        const data = await res.json();
+
+        if (!data.success) throw new Error(data.error);
+
+        const debug = data.debug;
+        const checks = debug.canDeploy;
+
+        let html = '';
+        let allPass = true;
+        let instructions = [];
+
+        // Check 1: n8n URL
+        const n8nUrlOk = debug.n8nUrl !== 'NOT SET';
+        html += renderCheck(
+          n8nUrlOk,
+          'n8n URL',
+          n8nUrlOk ? `Configured: <span class="check-value">${debug.n8nUrl}</span>` : 'Not set in environment'
+        );
+        if (!n8nUrlOk) {
+          allPass = false;
+          instructions.push('Set <code>N8N_URL</code> in Replit Secrets (Tools → Secrets)');
+        }
+
+        // Check 2: n8n API Key
+        const n8nKeyOk = debug.n8nApiKey === 'SET (hidden)';
+        html += renderCheck(
+          n8nKeyOk,
+          'n8n API Key',
+          n8nKeyOk ? 'Configured (hidden for security)' : 'Not set in environment'
+        );
+        if (!n8nKeyOk) {
+          allPass = false;
+          instructions.push('Set <code>N8N_API_KEY</code> in Replit Secrets (Tools → Secrets)');
+        }
+
+        // Check 3: Onboarding
+        html += renderCheck(
+          checks.onboardingOk,
+          'Onboarding Complete',
+          checks.onboardingOk ? 'All required data collected' : 'Please complete onboarding first'
+        );
+        if (!checks.onboardingOk) {
+          allPass = false;
+          instructions.push('Complete the <a href="/onboarding.html">onboarding wizard</a>');
+        }
+
+        // Check 4: API Key Bank
+        const hasKeys = debug.totalKeysInBank > 0;
+        html += renderCheck(
+          hasKeys,
+          'OpenAI API Key Bank',
+          hasKeys
+            ? `${debug.availableKeys} available / ${debug.totalKeysInBank} total keys`
+            : 'No API keys in bank'
+        );
+        if (!hasKeys) {
+          allPass = false;
+          instructions.push('Add an OpenAI API key at <a href="/admin.html">/admin.html</a>');
+        }
+
+        // Check 5: Not already deployed
+        html += renderCheck(
+          checks.notAlreadyDeployed,
+          'Ready to Deploy',
+          checks.notAlreadyDeployed
+            ? 'No existing deployment (ready to deploy)'
+            : 'Already deployed - reset first to redeploy'
+        );
+        if (!checks.notAlreadyDeployed) {
+          allPass = false;
+          instructions.push('Reset existing deployment from the dashboard before redeploying');
+        }
+
+        container.innerHTML = html;
+
+        // Show instructions if needed
+        if (instructions.length > 0) {
+          instructionsContainer.innerHTML = `
+            <div class="instructions">
+              <h4>⚠️ Action Required</h4>
+              <ol>
+                ${instructions.map(i => `<li>${i}</li>`).join('')}
+              </ol>
+            </div>
+          `;
+        } else {
+          instructionsContainer.innerHTML = `
+            <div class="card mt-3" style="background: #dcfce7; border-color: #22c55e;">
+              <div class="card-body text-center">
+                <h3 style="color: #166534;">✓ All Checks Passed!</h3>
+                <p style="color: #166534;">You can now deploy automations from the <a href="/dashboard.html">dashboard</a>.</p>
+              </div>
+            </div>
+          `;
+        }
+
+      } catch (error) {
+        container.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+      }
+    }
+
+    function renderCheck(pass, title, detail) {
+      return `
+        <div class="check-item ${pass ? 'pass' : 'fail'}">
+          <div class="check-icon">${pass ? '✓' : '✗'}</div>
+          <div class="check-content">
+            <div class="check-title">${title}</div>
+            <div class="check-detail">${detail}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', runChecks);
+    runChecks();
+  </script>
+</body>
+</html>

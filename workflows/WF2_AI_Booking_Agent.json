@@ -1,0 +1,984 @@
+{
+  "name": "WF2: AI Booking Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "entry-webhook",
+      "name": "When Called by Other Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "owner-decision-callback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "owner-callback-webhook",
+      "name": "Owner Decision Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 600],
+      "webhookId": "owner-decision-callback"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.conversation_id,\n  c.contact_id,\n  c.property_id,\n  c.conversation_stage,\n  c.conversation_history,\n  c.collected_data,\n  c.updated_at,\n  p.property_name,\n  p.property_type,\n  p.base_price,\n  p.max_guests,\n  p.bedrooms,\n  p.amenities,\n  p.house_rules,\n  p.check_in_time,\n  p.check_out_time,\n  p.location_description,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform\nFROM conversations c\nLEFT JOIN property_configurations p ON c.property_id = p.property_id\nWHERE c.contact_id = $1\nORDER BY c.updated_at DESC\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.sender_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "load-context",
+      "name": "Load Conversation Context",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [220, 0],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Merge incoming data with loaded context\nconst input = $('When Called by Other Workflow').item.json;\nconst context = $input.item.json;\n\nlet conversationHistory = [];\ntry {\n  conversationHistory = context.conversation_history ? JSON.parse(context.conversation_history) : [];\n} catch (e) {\n  conversationHistory = [];\n}\n\nlet collectedData = {};\ntry {\n  collectedData = context.collected_data ? JSON.parse(context.collected_data) : {};\n} catch (e) {\n  collectedData = {};\n}\n\n// Extract dates from message using regex patterns\nconst message = input.message_text || '';\nconst datePattern = /(\\d{4}-\\d{2}-\\d{2})/g;\nconst foundDates = message.match(datePattern) || [];\n\n// Try to extract check-in/check-out from collected data or message\nlet checkIn = collectedData.check_in || (foundDates[0] || null);\nlet checkOut = collectedData.check_out || (foundDates[1] || null);\n\nreturn {\n  // Session info\n  conversation_id: context.conversation_id || `conv_${Date.now()}`,\n  contact_id: input.sender_id,\n  channel: input.channel,\n  \n  // Current message\n  user_message: input.message_text,\n  is_callback: input.is_callback || false,\n  callback_data: input.callback_data || null,\n  \n  // Conversation state\n  stage: context.conversation_stage || 'greeting',\n  history: conversationHistory,\n  collected: collectedData,\n  \n  // Property info (if associated)\n  property_id: context.property_id || input.property_id || null,\n  property_name: context.property_name || null,\n  property_type: context.property_type || null,\n  base_price: context.base_price || null,\n  max_guests: context.max_guests || null,\n  amenities: context.amenities || null,\n  house_rules: context.house_rules || null,\n  check_in_time: context.check_in_time || '15:00',\n  check_out_time: context.check_out_time || '11:00',\n  owner_name: context.owner_name || null,\n  owner_contact: context.owner_contact || null,\n  preferred_platform: context.preferred_platform || 'telegram',\n  \n  // Dates for competing offer check\n  detected_check_in: checkIn,\n  detected_check_out: checkOut,\n  \n  // AI context\n  ai_category: input.category || 'BOOKING_INQUIRY',\n  ai_confidence: input.confidence || 0.8,\n  suggested_response: input.suggested_response || null\n};"
+      },
+      "id": "prepare-context",
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Check for competing offers (pending deals for same property and overlapping dates)\nSELECT \n  d.deal_id,\n  d.contact_id,\n  d.guest_name,\n  d.guest_phone,\n  d.guest_email,\n  d.property_id,\n  d.check_in_date,\n  d.check_out_date,\n  d.num_guests,\n  d.total_amount,\n  d.deal_status,\n  d.created_at,\n  d.channel,\n  d.priority_score,\n  d.notes\nFROM deals d\nWHERE d.property_id = $1\n  AND d.deal_status IN ('pending', 'pending_offer', 'ai_conversation', 'negotiating')\n  AND d.contact_id != $4\n  AND (\n    -- Check for date overlap\n    (d.check_in_date <= $3 AND d.check_out_date >= $2)\n    OR (d.check_in_date >= $2 AND d.check_in_date < $3)\n    OR (d.check_out_date > $2 AND d.check_out_date <= $3)\n  )\nORDER BY d.created_at ASC",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id, $json.detected_check_in, $json.detected_check_out, $json.contact_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "check-competing-offers",
+      "name": "Check Competing Offers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 0],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Detect if there are competing offers and prepare data\nconst context = $('Prepare Context').item.json;\nconst competingOffers = $input.all().map(i => i.json).filter(d => d.deal_id);\n\n// Check if we have valid dates to compare\nconst hasValidDates = context.detected_check_in && context.detected_check_out;\n\n// If no dates yet or no competing offers, continue normal flow\nif (!hasValidDates || competingOffers.length === 0) {\n  return [{\n    json: {\n      ...context,\n      has_competing_offers: false,\n      competing_offers: [],\n      competing_count: 0,\n      flow_type: 'normal'\n    }\n  }];\n}\n\n// Calculate priority score for current inquiry\nconst calculatePriorityScore = (offer) => {\n  let score = 0;\n  \n  const checkIn = new Date(offer.check_in_date || offer.detected_check_in);\n  const checkOut = new Date(offer.check_out_date || offer.detected_check_out);\n  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n  const totalValue = parseFloat(offer.total_amount) || (nights * (context.base_price || 150));\n  const dailyRate = nights > 0 ? totalValue / nights : 0;\n  \n  // Lead time (days until check-in)\n  const now = new Date();\n  const leadTime = Math.ceil((checkIn - now) / (1000 * 60 * 60 * 24));\n  \n  // Pricing factors\n  score += dailyRate / 10;\n  score += totalValue / 100;\n  \n  // Length of stay bonuses\n  if (nights >= 7) score += 10;\n  if (nights >= 14) score += 20;\n  if (nights >= 28) score += 30;\n  \n  // Lead time factors\n  if (leadTime < 3) score -= 15;\n  if (leadTime >= 7) score += 3;\n  if (leadTime >= 14) score += 5;\n  if (leadTime >= 30) score += 8;\n  \n  // Time-based factor (first come advantage)\n  const createdAt = new Date(offer.created_at || new Date());\n  const hoursAgo = (now - createdAt) / (1000 * 60 * 60);\n  if (hoursAgo < 1) score += 5; // Recent inquiry bonus\n  if (hoursAgo > 24) score -= 5; // Older inquiry penalty\n  \n  return Math.round(score * 10) / 10;\n};\n\n// Score all competing offers\nconst scoredCompetitors = competingOffers.map(offer => ({\n  ...offer,\n  priority_score: offer.priority_score || calculatePriorityScore(offer),\n  nights: Math.ceil((new Date(offer.check_out_date) - new Date(offer.check_in_date)) / (1000 * 60 * 60 * 24))\n}));\n\n// Calculate current inquiry's score\nconst currentInquiryScore = calculatePriorityScore({\n  check_in_date: context.detected_check_in,\n  check_out_date: context.detected_check_out,\n  total_amount: null,\n  created_at: new Date().toISOString()\n});\n\nconst currentNights = Math.ceil(\n  (new Date(context.detected_check_out) - new Date(context.detected_check_in)) / (1000 * 60 * 60 * 24)\n);\n\nreturn [{\n  json: {\n    ...context,\n    has_competing_offers: true,\n    competing_offers: scoredCompetitors,\n    competing_count: scoredCompetitors.length,\n    current_inquiry_score: currentInquiryScore,\n    current_inquiry_nights: currentNights,\n    current_inquiry_estimated_total: currentNights * (context.base_price || 150),\n    flow_type: 'conflicting_offer'\n  }\n}];"
+      },
+      "id": "detect-competing",
+      "name": "Detect Competing Offers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "has-competing",
+              "leftValue": "={{ $json.has_competing_offers }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-competing-check",
+      "name": "Has Competing Offers?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Format owner notification for competing offers\nconst data = $json;\nconst competitors = data.competing_offers;\n\n// Create new deal for current inquiry\nconst newDealId = `DEAL-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n\n// Build all offers array (competitors + current)\nconst allOffers = [\n  ...competitors.map((c, i) => ({\n    offer_number: i + 1,\n    deal_id: c.deal_id,\n    guest_name: c.guest_name || 'Guest',\n    guest_phone: c.guest_phone,\n    check_in: c.check_in_date,\n    check_out: c.check_out_date,\n    nights: c.nights,\n    total_amount: c.total_amount || (c.nights * (data.base_price || 150)),\n    priority_score: c.priority_score,\n    channel: c.channel || 'unknown',\n    created_at: c.created_at,\n    is_current: false\n  })),\n  {\n    offer_number: competitors.length + 1,\n    deal_id: newDealId,\n    guest_name: data.collected.guest_name || 'New Guest',\n    guest_phone: data.contact_id,\n    check_in: data.detected_check_in,\n    check_out: data.detected_check_out,\n    nights: data.current_inquiry_nights,\n    total_amount: data.current_inquiry_estimated_total,\n    priority_score: data.current_inquiry_score,\n    channel: data.channel,\n    created_at: new Date().toISOString(),\n    is_current: true\n  }\n];\n\n// Sort by priority score (highest first)\nallOffers.sort((a, b) => b.priority_score - a.priority_score);\n\n// Re-number after sorting\nallOffers.forEach((offer, i) => {\n  offer.offer_number = i + 1;\n  offer.is_recommended = i === 0;\n});\n\n// Build notification message\nlet message = `🔔 *CONFLICTING OFFERS DETECTED*\\n`;\nmessage += `━━━━━━━━━━━━━━━━━━━━━━━━━━\\n\\n`;\nmessage += `🏠 *Property:* ${data.property_name}\\n`;\nmessage += `📅 *Dates:* ${data.detected_check_in} → ${data.detected_check_out}\\n`;\nmessage += `👥 *${allOffers.length} guests* want the same dates!\\n\\n`;\n\nallOffers.forEach((offer, i) => {\n  message += `━━━━━━━━━━━━━━━━━━━━━━━━━━\\n`;\n  message += `*OFFER ${offer.offer_number}*`;\n  \n  if (offer.is_recommended) {\n    message += ` ⭐ RECOMMENDED`;\n  }\n  if (offer.is_current) {\n    message += ` 🆕 NEW`;\n  }\n  \n  message += `\\n\\n`;\n  message += `👤 Guest: ${offer.guest_name}\\n`;\n  message += `📱 Contact: ${offer.guest_phone}\\n`;\n  message += `📅 ${offer.check_in} → ${offer.check_out}\\n`;\n  message += `🌙 ${offer.nights} nights\\n`;\n  message += `💰 Est. Value: $${offer.total_amount}\\n`;\n  message += `🎯 Priority Score: ${offer.priority_score}\\n`;\n  message += `📲 Channel: ${offer.channel}\\n\\n`;\n});\n\nmessage += `━━━━━━━━━━━━━━━━━━━━━━━━━━\\n`;\nmessage += `⏱️ Please decide within 2 hours\\n`;\nmessage += `The highest-scored offer is recommended.`;\n\n// Create Telegram inline keyboard\nconst keyboard = {\n  inline_keyboard: [\n    ...allOffers.map(offer => [{\n      text: `${offer.is_recommended ? '⭐ ' : ''}Accept Offer ${offer.offer_number} - ${offer.guest_name}`,\n      callback_data: `accept_offer_${offer.deal_id}`\n    }]),\n    [{ text: '❌ Decline All Offers', callback_data: `decline_all_${data.property_id}_${data.detected_check_in}` }],\n    [{ text: 'ℹ️ Need More Time (Hold 24h)', callback_data: `hold_offers_${data.property_id}_${data.detected_check_in}` }]\n  ]\n};\n\n// Create conflict record for control panel\nconst conflictRecord = {\n  conflict_id: `CONFLICT-${Date.now()}`,\n  property_id: data.property_id,\n  property_name: data.property_name,\n  check_in_date: data.detected_check_in,\n  check_out_date: data.detected_check_out,\n  offers: JSON.stringify(allOffers),\n  status: 'pending_decision',\n  created_at: new Date().toISOString(),\n  owner_notified: true\n};\n\nreturn {\n  // Notification data\n  notification_message: message,\n  keyboard: keyboard,\n  owner_contact: data.owner_contact,\n  preferred_platform: data.preferred_platform,\n  \n  // New deal data for current inquiry\n  new_deal_id: newDealId,\n  \n  // All offers for reference\n  all_offers: allOffers,\n  conflict_record: conflictRecord,\n  \n  // Original context\n  ...data\n};"
+      },
+      "id": "format-owner-notification",
+      "name": "Format Owner Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -200]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "deals",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "deal_id": "={{ $json.new_deal_id }}",
+            "contact_id": "={{ $json.contact_id }}",
+            "guest_name": "={{ $json.collected.guest_name || 'Guest' }}",
+            "guest_phone": "={{ $json.contact_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "property_name": "={{ $json.property_name }}",
+            "check_in_date": "={{ $json.detected_check_in }}",
+            "check_out_date": "={{ $json.detected_check_out }}",
+            "num_guests": "={{ $json.collected.guests || 1 }}",
+            "total_amount": "={{ $json.current_inquiry_estimated_total }}",
+            "deal_status": "competing_offer",
+            "priority_score": "={{ $json.current_inquiry_score }}",
+            "channel": "={{ $json.channel }}",
+            "created_at": "={{ $now.toISO() }}",
+            "notes": "Part of conflicting offers - awaiting owner decision"
+          }
+        },
+        "options": {}
+      },
+      "id": "save-competing-deal",
+      "name": "Save Competing Deal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1540, -200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "offer_conflicts",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conflict_id": "={{ $json.conflict_record.conflict_id }}",
+            "property_id": "={{ $json.conflict_record.property_id }}",
+            "property_name": "={{ $json.conflict_record.property_name }}",
+            "check_in_date": "={{ $json.conflict_record.check_in_date }}",
+            "check_out_date": "={{ $json.conflict_record.check_out_date }}",
+            "offers": "={{ $json.conflict_record.offers }}",
+            "status": "={{ $json.conflict_record.status }}",
+            "created_at": "={{ $json.conflict_record.created_at }}",
+            "owner_notified": true
+          }
+        },
+        "options": { "skipOnConflict": true }
+      },
+      "id": "save-conflict-record",
+      "name": "Save Conflict Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1760, -200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [
+                  { "leftValue": "={{ $json.preferred_platform }}", "rightValue": "telegram", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Telegram"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [
+                  { "leftValue": "={{ $json.preferred_platform }}", "rightValue": "whatsapp", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra", "renameFallbackOutput": "Telegram" }
+      },
+      "id": "route-owner-channel",
+      "name": "Route Owner Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [1980, -200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.owner_contact }}",
+        "text": "={{ $json.notification_message }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": "={{ $json.keyboard }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "notify-owner-telegram",
+      "name": "Notify Owner Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2200, -300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "={{ $credentials.twilioPhoneNumber }}",
+        "to": "whatsapp:{{ $json.owner_contact }}",
+        "message": "={{ $json.notification_message + '\\n\\nReply with the offer number (1, 2, 3...) to accept, or DECLINE ALL' }}",
+        "options": {}
+      },
+      "id": "notify-owner-whatsapp",
+      "name": "Notify Owner WhatsApp",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [2200, -100],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-cred",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONTROL_PANEL_API_URL || 'http://localhost:5678/webhook/control-panel-task' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"task_type\": \"conflicting_offer_decision\",\n  \"priority\": \"high\",\n  \"property_id\": \"{{ $json.property_id }}\",\n  \"property_name\": \"{{ $json.property_name }}\",\n  \"conflict_id\": \"{{ $json.conflict_record.conflict_id }}\",\n  \"offers\": {{ $json.conflict_record.offers }},\n  \"check_in\": \"{{ $json.detected_check_in }}\",\n  \"check_out\": \"{{ $json.detected_check_out }}\",\n  \"status\": \"pending_decision\",\n  \"created_at\": \"{{ $now.toISO() }}\",\n  \"expires_at\": \"{{ $now.plus({hours: 24}).toISO() }}\"\n}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "update-control-panel",
+      "name": "Update Control Panel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [2420, -200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prepare response for the guest (competing offer situation)\nconst data = $json;\n\nconst responseText = `Thanks for your interest in ${data.property_name} for ${data.detected_check_in} to ${data.detected_check_out}! 🏠\\n\\nI want to be upfront with you - we have multiple guests interested in these same dates. I've notified the property owner to review all offers.\\n\\nYou'll hear back within 2 hours with a decision. Your offer is being considered! 🤞\\n\\nIn the meantime, is there anything else you'd like to know about the property?`;\n\nreturn {\n  response_text: responseText,\n  conversation_id: data.conversation_id,\n  contact_id: data.contact_id,\n  property_id: data.property_id,\n  stage: 'awaiting_owner_decision',\n  history: data.history || [],\n  collected: data.collected || {},\n  channel: data.channel,\n  recipient: data.contact_id\n};"
+      },
+      "id": "prepare-guest-response-competing",
+      "name": "Prepare Guest Response (Competing)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, -200]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "conversations",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $json.conversation_id }}",
+            "contact_id": "={{ $json.contact_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "conversation_stage": "={{ $json.stage }}",
+            "conversation_history": "={{ JSON.stringify($json.history) }}",
+            "collected_data": "={{ JSON.stringify($json.collected) }}",
+            "updated_at": "={{ $now.toISO() }}"
+          }
+        },
+        "conflictColumns": ["conversation_id"],
+        "options": {}
+      },
+      "id": "save-conversation-competing",
+      "name": "Save Conversation (Competing)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2860, -200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "options": {}
+      },
+      "id": "send-response-competing",
+      "name": "Send Response (Competing)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [3080, -200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Return result for competing offer flow\nreturn {\n  success: true,\n  message_sent: true,\n  flow: 'conflicting_offer',\n  conflict_id: $('Format Owner Notification').item.json.conflict_record.conflict_id,\n  response_text: $('Prepare Guest Response (Competing)').item.json.response_text\n};"
+      },
+      "id": "return-result-competing",
+      "name": "Return Result (Competing)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3300, -200]
+    },
+    {
+      "parameters": {
+        "agent": "toolsAgent",
+        "promptType": "define",
+        "text": "You are a friendly and professional vacation rental booking assistant for {{ $json.property_name || 'our properties' }}.\n\n## Current Conversation Context\n- Stage: {{ $json.stage }}\n- Guest Name: {{ $json.collected.guest_name || 'Not provided' }}\n- Requested Dates: {{ $json.collected.check_in || 'Not provided' }} to {{ $json.collected.check_out || 'Not provided' }}\n- Number of Guests: {{ $json.collected.guests || 'Not provided' }}\n\n## Property Information\n- Property: {{ $json.property_name || 'Multiple properties available' }}\n- Type: {{ $json.property_type || 'Vacation rental' }}\n- Base Price: ${{ $json.base_price || 'varies' }}/night\n- Max Guests: {{ $json.max_guests || 'varies' }}\n- Check-in: {{ $json.check_in_time }}\n- Check-out: {{ $json.check_out_time }}\n- Amenities: {{ $json.amenities || 'Contact for details' }}\n\n## Previous Conversation\n{{ $json.history.slice(-5).map(m => m.role + ': ' + m.content).join('\\n') || 'New conversation' }}\n\n## Current User Message\n{{ $json.user_message }}\n\n## Your Tasks\n1. If greeting/new inquiry: Welcome warmly, ask about their travel dates and party size\n2. If dates mentioned: Use check_availability tool to verify availability\n3. If asking about property: Provide relevant details from property info\n4. If ready to book: Collect guest name, email, phone, then use create_booking_hold tool\n5. If payment related: Explain that a payment link will be sent\n6. Always be helpful, concise, and professional\n\n## Response Guidelines\n- Keep responses under 200 words\n- Use friendly emojis sparingly\n- If dates unavailable, suggest alternatives\n- Always confirm understanding before proceeding\n- End with a clear call-to-action or question",
+        "hasOutputParser": false,
+        "options": {
+          "systemMessage": "You are a helpful vacation rental booking assistant. Use tools when needed to check availability and create bookings. Be conversational and helpful.",
+          "maxIterations": 5,
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Booking Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1320, 200]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-chat",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1320, 420],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Prepare Context').item.json.contact_id }}"
+      },
+      "id": "memory",
+      "name": "Postgres Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [1460, 420],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "check_availability",
+        "description": "Check if a property is available for specific dates. Returns available dates and pricing.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF3: Calendar Manager"
+        },
+        "responsePropertyName": "availability_result",
+        "fields": {
+          "values": [
+            { "name": "property_id", "description": "The property ID to check", "type": "string" },
+            { "name": "check_in_date", "description": "Desired check-in date (YYYY-MM-DD)", "type": "string" },
+            { "name": "check_out_date", "description": "Desired check-out date (YYYY-MM-DD)", "type": "string" }
+          ]
+        }
+      },
+      "id": "tool-availability",
+      "name": "Check Availability Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [1600, 420]
+    },
+    {
+      "parameters": {
+        "name": "get_property_details",
+        "description": "Get detailed information about a specific property including amenities, rules, and photos.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF5: Property Operations"
+        },
+        "responsePropertyName": "property_details",
+        "fields": {
+          "values": [
+            { "name": "property_id", "description": "The property ID", "type": "string" },
+            { "name": "detail_type", "description": "Type of details: 'full', 'amenities', 'rules', 'location'", "type": "string" }
+          ]
+        }
+      },
+      "id": "tool-property",
+      "name": "Get Property Details Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [1740, 420]
+    },
+    {
+      "parameters": {
+        "name": "calculate_price",
+        "description": "Calculate the total price for a stay including any discounts or fees.",
+        "code": "const { property_id, check_in, check_out, guests } = $input.item.json;\n\n// Get property pricing from context or database\nconst basePrice = 150; // Default, would query DB\nconst cleaningFee = 75;\nconst serviceFee = 0.12; // 12%\n\nconst checkIn = new Date(check_in);\nconst checkOut = new Date(check_out);\nconst nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\nif (nights <= 0) {\n  return { error: 'Invalid date range' };\n}\n\nconst nightsTotal = basePrice * nights;\nconst subtotal = nightsTotal + cleaningFee;\nconst serviceFeeAmount = subtotal * serviceFee;\nconst total = subtotal + serviceFeeAmount;\n\n// Weekly discount\nlet discount = 0;\nif (nights >= 7) discount = 0.10;\nif (nights >= 28) discount = 0.20;\n\nconst discountAmount = nightsTotal * discount;\nconst finalTotal = total - discountAmount;\n\nreturn {\n  property_id,\n  nights,\n  base_price_per_night: basePrice,\n  nights_total: nightsTotal,\n  cleaning_fee: cleaningFee,\n  service_fee: serviceFeeAmount.toFixed(2),\n  discount_percent: discount * 100,\n  discount_amount: discountAmount.toFixed(2),\n  total: finalTotal.toFixed(2),\n  currency: 'USD'\n};"
+      },
+      "id": "tool-pricing",
+      "name": "Calculate Price Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [1880, 420]
+    },
+    {
+      "parameters": {
+        "name": "create_booking_hold",
+        "description": "Create a temporary booking hold and generate a payment link. Use when guest confirms they want to book.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF4: Payment Processor"
+        },
+        "responsePropertyName": "booking_result",
+        "fields": {
+          "values": [
+            { "name": "property_id", "description": "The property ID", "type": "string" },
+            { "name": "guest_name", "description": "Guest's full name", "type": "string" },
+            { "name": "guest_email", "description": "Guest's email address", "type": "string" },
+            { "name": "guest_phone", "description": "Guest's phone number", "type": "string" },
+            { "name": "check_in_date", "description": "Check-in date (YYYY-MM-DD)", "type": "string" },
+            { "name": "check_out_date", "description": "Check-out date (YYYY-MM-DD)", "type": "string" },
+            { "name": "num_guests", "description": "Number of guests", "type": "number" },
+            { "name": "total_amount", "description": "Total amount to charge", "type": "number" }
+          ]
+        }
+      },
+      "id": "tool-booking",
+      "name": "Create Booking Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [2020, 420]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Process AI Agent response and prepare for saving\nconst context = $('Detect Competing Offers').item.json;\nconst aiResponse = $input.item.json;\n\n// Extract the AI's response text\nconst responseText = aiResponse.output || aiResponse.text || 'I apologize, I encountered an issue. Please try again.';\n\n// Update conversation history\nconst history = context.history || [];\nhistory.push({ role: 'user', content: context.user_message, timestamp: new Date().toISOString() });\nhistory.push({ role: 'assistant', content: responseText, timestamp: new Date().toISOString() });\n\n// Keep only last 20 messages to prevent overflow\nconst trimmedHistory = history.slice(-20);\n\n// Determine new stage based on conversation\nlet newStage = context.stage;\nif (responseText.toLowerCase().includes('payment link')) {\n  newStage = 'payment_pending';\n} else if (responseText.toLowerCase().includes('check-in') || responseText.toLowerCase().includes('check out')) {\n  newStage = 'collecting_dates';\n} else if (responseText.toLowerCase().includes('confirm') && responseText.toLowerCase().includes('book')) {\n  newStage = 'confirming_booking';\n}\n\n// Extract any collected data from AI response (simplified)\nconst collected = context.collected || {};\n\n// Look for dates in AI intermediate steps if available\nif (aiResponse.intermediateSteps) {\n  for (const step of aiResponse.intermediateSteps) {\n    if (step.action?.tool === 'check_availability') {\n      collected.check_in = step.action.toolInput?.check_in_date;\n      collected.check_out = step.action.toolInput?.check_out_date;\n    }\n    if (step.action?.tool === 'create_booking_hold') {\n      collected.guest_name = step.action.toolInput?.guest_name;\n      collected.guest_email = step.action.toolInput?.guest_email;\n      newStage = 'booking_created';\n    }\n  }\n}\n\nreturn {\n  // Response to send\n  response_text: responseText,\n  \n  // Conversation state to save\n  conversation_id: context.conversation_id,\n  contact_id: context.contact_id,\n  property_id: context.property_id,\n  stage: newStage,\n  history: trimmedHistory,\n  collected: collected,\n  \n  // Messaging info\n  channel: context.channel,\n  recipient: context.contact_id\n};"
+      },
+      "id": "process-response",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 200]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "conversations",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $json.conversation_id }}",
+            "contact_id": "={{ $json.contact_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "conversation_stage": "={{ $json.stage }}",
+            "conversation_history": "={{ JSON.stringify($json.history) }}",
+            "collected_data": "={{ JSON.stringify($json.collected) }}",
+            "updated_at": "={{ $now.toISO() }}"
+          }
+        },
+        "conflictColumns": ["conversation_id"],
+        "options": {}
+      },
+      "id": "save-context",
+      "name": "Save Conversation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1760, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "options": {}
+      },
+      "id": "send-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1980, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Return result to calling workflow\nreturn {\n  success: true,\n  message_sent: true,\n  conversation_id: $('Process AI Response').item.json.conversation_id,\n  response_text: $('Process AI Response').item.json.response_text\n};"
+      },
+      "id": "return-result",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Process owner decision callback\nconst data = $json;\nconst callbackData = data.body?.callback_data || data.callback_data || '';\nconst messageId = data.body?.message_id || data.message?.message_id;\nconst chatId = data.body?.chat?.id || data.message?.chat?.id;\n\nlet action = '';\nlet dealId = '';\nlet propertyId = '';\nlet checkIn = '';\n\nif (callbackData.startsWith('accept_offer_')) {\n  action = 'accept';\n  dealId = callbackData.replace('accept_offer_', '');\n} else if (callbackData.startsWith('decline_all_')) {\n  action = 'decline_all';\n  const parts = callbackData.replace('decline_all_', '').split('_');\n  propertyId = parts[0];\n  checkIn = parts.slice(1).join('_');\n} else if (callbackData.startsWith('hold_offers_')) {\n  action = 'hold';\n  const parts = callbackData.replace('hold_offers_', '').split('_');\n  propertyId = parts[0];\n  checkIn = parts.slice(1).join('_');\n}\n\nreturn {\n  action,\n  deal_id: dealId,\n  property_id: propertyId,\n  check_in: checkIn,\n  message_id: messageId,\n  chat_id: chatId,\n  raw_callback: callbackData\n};"
+      },
+      "id": "parse-owner-callback",
+      "name": "Parse Owner Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 600]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{ $json.action }}", "rightValue": "accept", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Accept Offer"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{ $json.action }}", "rightValue": "decline_all", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Decline All"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{ $json.action }}", "rightValue": "hold", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Hold"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-owner-decision",
+      "name": "Route Owner Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [440, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Accept the chosen offer and decline others\nWITH accepted AS (\n  UPDATE deals \n  SET deal_status = 'accepted',\n      updated_at = NOW()\n  WHERE deal_id = $1\n  RETURNING *\n),\ndeclined AS (\n  UPDATE deals \n  SET deal_status = 'declined_competing',\n      updated_at = NOW(),\n      notes = COALESCE(notes, '') || ' | Declined: Another offer was accepted'\n  WHERE property_id = (SELECT property_id FROM accepted)\n    AND deal_id != $1\n    AND deal_status IN ('pending', 'pending_offer', 'competing_offer', 'ai_conversation')\n    AND check_in_date = (SELECT check_in_date FROM accepted)\n  RETURNING *\n)\nSELECT \n  a.deal_id as accepted_deal_id,\n  a.guest_name as accepted_guest,\n  a.guest_phone as accepted_phone,\n  a.contact_id as accepted_contact,\n  a.property_id,\n  a.property_name,\n  a.check_in_date,\n  a.check_out_date,\n  a.total_amount,\n  a.channel as accepted_channel,\n  (SELECT json_agg(json_build_object(\n    'deal_id', d.deal_id,\n    'guest_name', d.guest_name,\n    'guest_phone', d.guest_phone,\n    'contact_id', d.contact_id,\n    'channel', d.channel\n  )) FROM declined d) as declined_offers\nFROM accepted a",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.deal_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "process-accept",
+      "name": "Process Accept Decision",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 500],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prepare notifications for accepted and declined guests\nconst data = $json;\nconst declinedOffers = data.declined_offers || [];\n\n// Message for accepted guest\nconst acceptedMessage = `🎉 *Great news!*\\n\\nYour booking request for *${data.property_name}* has been ACCEPTED!\\n\\n📅 Check-in: ${data.check_in_date}\\n📅 Check-out: ${data.check_out_date}\\n💰 Total: $${data.total_amount}\\n\\nYou'll receive a payment link shortly to confirm your reservation. Welcome! 🏠`;\n\n// Message for declined guests\nconst declinedMessage = `Hi there,\\n\\nThank you for your interest in *${data.property_name}* for ${data.check_in_date} to ${data.check_out_date}.\\n\\nUnfortunately, the property owner has accepted another booking for these dates. 😔\\n\\nWould you like me to:\\n1. Check alternative dates for this property?\\n2. Show you similar properties that are available?\\n\\nJust let me know! 🏡`;\n\nreturn {\n  accepted: {\n    contact_id: data.accepted_contact,\n    channel: data.accepted_channel,\n    message: acceptedMessage,\n    guest_name: data.accepted_guest\n  },\n  declined: declinedOffers ? declinedOffers.map(d => ({\n    contact_id: d.contact_id,\n    channel: d.channel,\n    message: declinedMessage,\n    guest_name: d.guest_name\n  })) : [],\n  property_name: data.property_name,\n  accepted_deal_id: data.accepted_deal_id\n};"
+      },
+      "id": "prepare-decision-notifications",
+      "name": "Prepare Decision Notifications",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 500]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recipient": "={{ $json.accepted.contact_id }}",
+            "channel": "={{ $json.accepted.channel }}",
+            "message": "={{ $json.accepted.message }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "notify-accepted-guest",
+      "name": "Notify Accepted Guest",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1100, 500]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Split declined offers for individual notifications\nconst data = $input.first().json;\nconst declined = data.declined || [];\n\nreturn declined.map(d => ({ json: d }));"
+      },
+      "id": "split-declined",
+      "name": "Split Declined Offers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 500]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recipient": "={{ $json.contact_id }}",
+            "channel": "={{ $json.channel }}",
+            "message": "={{ $json.message }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "notify-declined-guests",
+      "name": "Notify Declined Guests",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1540, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE offer_conflicts \nSET status = 'resolved_accepted',\n    resolved_at = NOW(),\n    resolution_notes = 'Owner accepted deal: ' || $1\nWHERE property_id = $2 \n  AND status = 'pending_decision'\n  AND check_in_date = $3",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$('Parse Owner Callback').item.json.deal_id, $('Process Accept Decision').item.json.property_id, $('Process Accept Decision').item.json.check_in_date] } }}"
+        },
+        "options": {}
+      },
+      "id": "update-conflict-resolved",
+      "name": "Update Conflict Resolved",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1760, 500],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, action: 'accepted', deal_id: $('Parse Owner Callback').item.json.deal_id } }}",
+        "options": {}
+      },
+      "id": "respond-callback-accept",
+      "name": "Respond Callback (Accept)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1980, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Decline all competing offers for the property and dates\nUPDATE deals \nSET deal_status = 'declined_by_owner',\n    updated_at = NOW(),\n    notes = COALESCE(notes, '') || ' | Owner declined all competing offers'\nWHERE property_id = $1\n  AND deal_status IN ('pending', 'pending_offer', 'competing_offer', 'ai_conversation')\n  AND check_in_date >= $2::date\n  AND check_in_date <= ($2::date + interval '1 day')\nRETURNING deal_id, guest_name, contact_id, channel, property_name, check_in_date, check_out_date",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id, $json.check_in] } }}"
+        },
+        "options": {}
+      },
+      "id": "process-decline-all",
+      "name": "Process Decline All",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 700],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare decline notifications for all guests\nconst guests = $input.all().map(i => i.json);\n\nreturn guests.map(g => ({\n  json: {\n    contact_id: g.contact_id,\n    channel: g.channel,\n    message: `Hi ${g.guest_name},\\n\\nThank you for your interest in *${g.property_name}* for ${g.check_in_date} to ${g.check_out_date}.\\n\\nUnfortunately, the property owner has decided not to accept bookings for these dates at this time.\\n\\nWould you like me to check alternative dates or show you similar properties?\\n\\nLet me know how I can help! 🏡`\n  }\n}));"
+      },
+      "id": "prepare-decline-all-notifications",
+      "name": "Prepare Decline All Notifications",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 700]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recipient": "={{ $json.contact_id }}",
+            "channel": "={{ $json.channel }}",
+            "message": "={{ $json.message }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "notify-all-declined",
+      "name": "Notify All Declined",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1100, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, action: 'declined_all' } }}",
+        "options": {}
+      },
+      "id": "respond-callback-decline",
+      "name": "Respond Callback (Decline)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 700]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Extend hold on all competing offers\nUPDATE deals \nSET deal_status = 'on_hold',\n    updated_at = NOW(),\n    notes = COALESCE(notes, '') || ' | Owner requested 24h hold'\nWHERE property_id = $1\n  AND deal_status IN ('pending', 'pending_offer', 'competing_offer')\n  AND check_in_date >= $2::date\n  AND check_in_date <= ($2::date + interval '1 day')\nRETURNING deal_id, guest_name",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.property_id, $json.check_in] } }}"
+        },
+        "options": {}
+      },
+      "id": "process-hold",
+      "name": "Process Hold Request",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 900],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, action: 'hold', message: 'Offers placed on 24-hour hold' } }}",
+        "options": {}
+      },
+      "id": "respond-callback-hold",
+      "name": "Respond Callback (Hold)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 900]
+    }
+  ],
+  "connections": {
+    "When Called by Other Workflow": {
+      "main": [[{ "node": "Load Conversation Context", "type": "main", "index": 0 }]]
+    },
+    "Load Conversation Context": {
+      "main": [[{ "node": "Prepare Context", "type": "main", "index": 0 }]]
+    },
+    "Prepare Context": {
+      "main": [[{ "node": "Check Competing Offers", "type": "main", "index": 0 }]]
+    },
+    "Check Competing Offers": {
+      "main": [[{ "node": "Detect Competing Offers", "type": "main", "index": 0 }]]
+    },
+    "Detect Competing Offers": {
+      "main": [[{ "node": "Has Competing Offers?", "type": "main", "index": 0 }]]
+    },
+    "Has Competing Offers?": {
+      "main": [
+        [{ "node": "Format Owner Notification", "type": "main", "index": 0 }],
+        [{ "node": "AI Booking Agent", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Owner Notification": {
+      "main": [[{ "node": "Save Competing Deal", "type": "main", "index": 0 }]]
+    },
+    "Save Competing Deal": {
+      "main": [[{ "node": "Save Conflict Record", "type": "main", "index": 0 }]]
+    },
+    "Save Conflict Record": {
+      "main": [[{ "node": "Route Owner Channel", "type": "main", "index": 0 }]]
+    },
+    "Route Owner Channel": {
+      "main": [
+        [{ "node": "Notify Owner Telegram", "type": "main", "index": 0 }],
+        [{ "node": "Notify Owner WhatsApp", "type": "main", "index": 0 }],
+        [{ "node": "Notify Owner Telegram", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notify Owner Telegram": {
+      "main": [[{ "node": "Update Control Panel", "type": "main", "index": 0 }]]
+    },
+    "Notify Owner WhatsApp": {
+      "main": [[{ "node": "Update Control Panel", "type": "main", "index": 0 }]]
+    },
+    "Update Control Panel": {
+      "main": [[{ "node": "Prepare Guest Response (Competing)", "type": "main", "index": 0 }]]
+    },
+    "Prepare Guest Response (Competing)": {
+      "main": [[{ "node": "Save Conversation (Competing)", "type": "main", "index": 0 }]]
+    },
+    "Save Conversation (Competing)": {
+      "main": [[{ "node": "Send Response (Competing)", "type": "main", "index": 0 }]]
+    },
+    "Send Response (Competing)": {
+      "main": [[{ "node": "Return Result (Competing)", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Booking Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Postgres Memory": {
+      "ai_memory": [[{ "node": "AI Booking Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "Check Availability Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Get Property Details Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Calculate Price Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Create Booking Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "AI Booking Agent": {
+      "main": [[{ "node": "Process AI Response", "type": "main", "index": 0 }]]
+    },
+    "Process AI Response": {
+      "main": [[{ "node": "Save Conversation", "type": "main", "index": 0 }]]
+    },
+    "Save Conversation": {
+      "main": [[{ "node": "Send Response", "type": "main", "index": 0 }]]
+    },
+    "Send Response": {
+      "main": [[{ "node": "Return Result", "type": "main", "index": 0 }]]
+    },
+    "Owner Decision Callback": {
+      "main": [[{ "node": "Parse Owner Callback", "type": "main", "index": 0 }]]
+    },
+    "Parse Owner Callback": {
+      "main": [[{ "node": "Route Owner Decision", "type": "main", "index": 0 }]]
+    },
+    "Route Owner Decision": {
+      "main": [
+        [{ "node": "Process Accept Decision", "type": "main", "index": 0 }],
+        [{ "node": "Process Decline All", "type": "main", "index": 0 }],
+        [{ "node": "Process Hold Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Accept Decision": {
+      "main": [[{ "node": "Prepare Decision Notifications", "type": "main", "index": 0 }]]
+    },
+    "Prepare Decision Notifications": {
+      "main": [[{ "node": "Notify Accepted Guest", "type": "main", "index": 0 }]]
+    },
+    "Notify Accepted Guest": {
+      "main": [[{ "node": "Split Declined Offers", "type": "main", "index": 0 }]]
+    },
+    "Split Declined Offers": {
+      "main": [[{ "node": "Notify Declined Guests", "type": "main", "index": 0 }]]
+    },
+    "Notify Declined Guests": {
+      "main": [[{ "node": "Update Conflict Resolved", "type": "main", "index": 0 }]]
+    },
+    "Update Conflict Resolved": {
+      "main": [[{ "node": "Respond Callback (Accept)", "type": "main", "index": 0 }]]
+    },
+    "Process Decline All": {
+      "main": [[{ "node": "Prepare Decline All Notifications", "type": "main", "index": 0 }]]
+    },
+    "Prepare Decline All Notifications": {
+      "main": [[{ "node": "Notify All Declined", "type": "main", "index": 0 }]]
+    },
+    "Notify All Declined": {
+      "main": [[{ "node": "Respond Callback (Decline)", "type": "main", "index": 0 }]]
+    },
+    "Process Hold Request": {
+      "main": [[{ "node": "Respond Callback (Hold)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "AI-powered booking agent with Conflicting Offer detection. When multiple guests want the same dates, notifies owner via Telegram/WhatsApp and Control Panel for decision. Replaces WF5, WF6, WF24 + adds WF2 conflict management."
+  },
+  "tags": ["booking", "ai-agent", "optimized", "conflicting-offers"]
+}

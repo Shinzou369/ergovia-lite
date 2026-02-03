@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Ergovia Premium</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-home"></i>
+                <span>Ergovia</span>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="properties.html" class="nav-item">
+                    <i class="fas fa-building"></i>
+                    <span>Properties</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <div class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount">0</span>
+                </div>
+                <div class="user-profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName">Owner</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Notification Panel (Sidebar) -->
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-header">
+                <h3><i class="fas fa-bell"></i> Notifications</h3>
+                <button class="btn-close" onclick="closeNotifications()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <!-- Notifications will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <h1>Welcome back, <span id="ownerName">Owner</span>! 👋</h1>
+            <p id="welcomeMessage">Your AI assistant is working for you</p>
+        </div>
+
+        <!-- Tasks & Reminders Section (TOP PRIORITY) -->
+        <div class="tasks-section">
+            <div class="section-header">
+                <h2><i class="fas fa-clipboard-check"></i> Tasks & Reminders</h2>
+                <button class="btn-help" data-info="tasks">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </div>
+            <div class="tasks-container" id="tasksContainer">
+                <!-- Tasks will be loaded here -->
+                <div class="task-item urgent">
+                    <div class="task-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div class="task-content">
+                        <h4>Complete Your Setup</h4>
+                        <p>Please finish filling out your property details</p>
+                    </div>
+                    <div class="task-action">
+                        <a href="settings.html" class="btn-primary">Complete Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Section -->
+        <div class="calendar-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt"></i> Booking Calendar</h2>
+                <button class="btn-help" data-info="calendar">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </div>
+
+            <!-- Property Filter -->
+            <div class="property-filter">
+                <label><i class="fas fa-filter"></i> Show bookings for:</label>
+                <select id="propertyFilter" onchange="filterCalendar()">
+                    <option value="all">All Properties</option>
+                    <!-- Properties will be loaded here -->
+                </select>
+            </div>
+
+            <!-- Calendar View -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="btn-calendar-nav" onclick="previousMonth()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3 id="currentMonth">January 2026</h3>
+                    <button class="btn-calendar-nav" onclick="nextMonth()">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- Calendar will be generated here -->
+                </div>
+            </div>
+
+            <!-- Upcoming Bookings List -->
+            <div class="upcoming-bookings">
+                <h3><i class="fas fa-list"></i> Upcoming Check-ins</h3>
+                <div class="booking-list" id="upcomingBookings">
+                    <!-- Bookings will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalBookings">0</h3>
+                    <p>Active Bookings</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalProperties">0</h3>
+                    <p>Properties</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="activeConversations">0</h3>
+                    <p>Active Conversations</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="monthlyRevenue">$0</h3>
+                    <p>This Month</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="modal" id="infoModal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Information</h2>
+            <p id="modalText"></p>
+            <button class="btn-primary" onclick="closeModal()">Got it!</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/calendar.js"></script>
+    <script src="assets/js/notifications.js"></script>
+</body>
+</html>

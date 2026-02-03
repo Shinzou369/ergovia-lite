@@ -1,0 +1,114 @@
+## Workflow 0: Message Router (Master Routing Hub)
+
+Issue saw: Every New Message Entry has to be recorded. Meaning per message is an execution. 
+Yes it receives message, but I think it is not built to respond? 
+
+Says connected to multiple Workflow but there is no existing node connected to each other's workflow.
+
+
+## Workflow 1: Control Panel Hub (Telegram/WhatsApp)
+
+
+For Workflow 1, don't you think this approach could be more conventional? 
+
+{
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -80,
+        784
+      ],
+      "id": "6a92c998-a3b7-4874-abfe-ce3b8a18babe",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "QpIwChxrDiPlUrEl",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/QpIwChxrDiPlUrEl",
+          "cachedResultName": "[AA] WF3: Calendar Manager"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        1008
+      ],
+      "id": "860f36c9-8f01-469e-ba46-bea3269c6ca6",
+      "name": "Call '[AA] WF3: Calendar Manager'"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        1008
+      ],
+      "id": "9af9445f-9914-4e75-b495-d448b5bf4c5a",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "pwtt4kCHyw2J3dSe",
+          "name": "[AA] PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Call '[AA] WF3: Calendar Manager'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c537c4661317102fd1c587a7201cad58d718adf4b8bf36bf12448833e642f67d"
+  }
+}
+
+You can read more here https://n8n.io/integrations/agent/
+
+
+
+Stripe // Confirmation of System from the Client Through Telegram that payment is successful, Can be in control panel or telegram. 
+
+Booking but inquire only, not fully booked, contact yet and weigh, 

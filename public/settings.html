@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Ergovia</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="settings">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+        <a href="/settings.html" class="nav-link active">Settings</a>
+        <a href="/automations.html" class="nav-link">Automations</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Settings</h1>
+        <p class="page-subtitle">Edit your property configuration</p>
+      </div>
+    </div>
+
+    <!-- Owner Settings -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Owner Information</h3>
+        <button class="btn btn-primary btn-sm save-section-btn" data-section="owner">Save</button>
+      </div>
+      <div class="card-body">
+        <form id="owner-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input type="text" name="ownerName" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" name="ownerEmail" class="form-input">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="tel" name="ownerPhone" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Preferred Platform</label>
+              <select name="preferredPlatform" class="form-select">
+                <option value="telegram">Telegram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="sms">SMS</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telegram Chat ID</label>
+            <input type="text" name="telegramChatId" class="form-input">
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Property Settings -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Property Details</h3>
+        <button class="btn btn-primary btn-sm save-section-btn" data-section="property">Save</button>
+      </div>
+      <div class="card-body">
+        <form id="property-form">
+          <div class="form-group">
+            <label class="form-label">Property Name</label>
+            <input type="text" name="propertyName" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <input type="text" name="propertyAddress" class="form-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input type="text" name="propertyCity" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Timezone</label>
+              <select name="timezone" class="form-select">
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="Europe/London">London (GMT)</option>
+                <option value="Europe/Paris">Paris (CET)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Bedrooms</label>
+              <input type="number" name="bedrooms" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Guests</label>
+              <input type="number" name="maxGuests" class="form-input">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Base Price</label>
+              <input type="number" name="basePrice" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minimum Price</label>
+              <input type="number" name="minPrice" class="form-input">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Guest Access Settings -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Guest Access</h3>
+        <button class="btn btn-primary btn-sm save-section-btn" data-section="guestAccess">Save</button>
+      </div>
+      <div class="card-body">
+        <form id="guestAccess-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Check-in Time</label>
+              <input type="time" name="checkInTime" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Check-out Time</label>
+              <input type="time" name="checkOutTime" class="form-input">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Door Code</label>
+              <input type="text" name="doorCode" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">WiFi Network</label>
+              <input type="text" name="wifiNetwork" class="form-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">WiFi Password</label>
+            <input type="text" name="wifiPassword" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Parking Instructions</label>
+            <textarea name="parkingInstructions" class="form-textarea"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">House Rules</label>
+            <textarea name="houseRules" class="form-textarea"></textarea>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Calendar Settings -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Calendar URLs</h3>
+        <button class="btn btn-primary btn-sm save-section-btn" data-section="calendars">Save</button>
+      </div>
+      <div class="card-body">
+        <form id="calendars-form">
+          <div class="form-group">
+            <label class="form-label">Airbnb Calendar URL</label>
+            <input type="url" name="airbnbCalendarUrl" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">VRBO Calendar URL</label>
+            <input type="url" name="vrboCalendarUrl" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Booking.com Calendar URL</label>
+            <input type="url" name="bookingCalendarUrl" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Other Calendar URL</label>
+            <input type="url" name="otherCalendarUrl" class="form-input">
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Integration Settings -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Integrations</h3>
+        <button class="btn btn-primary btn-sm save-section-btn" data-section="integrations">Save</button>
+      </div>
+      <div class="card-body">
+        <form id="integrations-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Twilio Phone Number</label>
+              <input type="tel" name="twilioPhoneNumber" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Twilio WhatsApp Number</label>
+              <input type="tel" name="twilioWhatsAppNumber" class="form-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">OpenAI API Key</label>
+            <input type="password" name="openaiApiKey" class="form-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Manager Name</label>
+              <input type="text" name="managerName" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Manager Platform</label>
+              <select name="managerPlatform" class="form-select">
+                <option value="">Same as owner</option>
+                <option value="telegram">Telegram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="sms">SMS</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Manager Contact</label>
+            <input type="text" name="managerContact" class="form-input">
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

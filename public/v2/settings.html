@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Ergovia Premium</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-home"></i>
+                <span>Ergovia</span>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="settings.html" class="nav-item active">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="properties.html" class="nav-item">
+                    <i class="fas fa-building"></i>
+                    <span>Properties</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <div class="notification-bell" onclick="toggleNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount">0</span>
+                </div>
+                <div class="user-profile">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName">Owner</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Progress Indicator -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">0% Complete</p>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+            <h1><i class="fas fa-cog"></i> Property Manager Settings</h1>
+            <p class="form-subtitle">Complete all sections to activate your AI assistant</p>
+
+            <form id="fillupForm" onsubmit="return handleFormSubmit(event)">
+
+                <!-- SECTION 1: Owner Information -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-user"></i> 1. Owner Information</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('owner')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ownerName">
+                                <i class="fas fa-user"></i> Full Name
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" id="ownerName" name="ownerName" required
+                                   placeholder="John Smith">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ownerEmail">
+                                <i class="fas fa-envelope"></i> Email Address
+                                <span class="required">*</span>
+                            </label>
+                            <input type="email" id="ownerEmail" name="ownerEmail" required
+                                   placeholder="john@example.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ownerPhone">
+                                <i class="fas fa-phone"></i> Phone Number
+                                <span class="required">*</span>
+                            </label>
+                            <input type="tel" id="ownerPhone" name="ownerPhone" required
+                                   placeholder="+1234567890">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="preferredPlatform">
+                                <i class="fas fa-comments"></i> Preferred Contact Platform
+                                <span class="required">*</span>
+                            </label>
+                            <select id="preferredPlatform" name="preferredPlatform" required>
+                                <option value="">Select platform...</option>
+                                <option value="telegram">Telegram</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="sms">SMS</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="telegramChatIdGroup" style="display:none;">
+                            <label for="telegramChatId">
+                                <i class="fab fa-telegram"></i> Telegram Chat ID
+                            </label>
+                            <input type="text" id="telegramChatId" name="telegramChatId"
+                                   placeholder="123456789">
+                            <small class="help-text">
+                                <a href="#" onclick="showTelegramHelp()">How to find my Chat ID?</a>
+                            </small>
+                        </div>
+
+                        <div class="form-group" id="whatsappNumberGroup" style="display:none;">
+                            <label for="whatsappNumber">
+                                <i class="fab fa-whatsapp"></i> WhatsApp Number
+                            </label>
+                            <input type="tel" id="whatsappNumber" name="whatsappNumber"
+                                   placeholder="+1234567890">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('owner')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- SECTION 2: API Credentials -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-key"></i> 2. API Credentials</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('credentials')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <div class="security-notice">
+                        <i class="fas fa-shield-alt"></i>
+                        <strong>Your credentials are secure:</strong> We never store your API keys.
+                        They're encrypted and only used by your private AI assistant.
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="telegramBotToken">
+                                <i class="fab fa-telegram"></i> Telegram Bot Token
+                                <span class="required">*</span>
+                            </label>
+                            <input type="password" id="telegramBotToken" name="telegramBotToken" required
+                                   placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz">
+                            <small class="help-text">
+                                <a href="#" onclick="showCredentialHelp('telegram')">
+                                    <i class="fas fa-question-circle"></i> How to get Telegram Bot Token?
+                                </a>
+                            </small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="whatsappApiKey">
+                                <i class="fab fa-whatsapp"></i> WhatsApp Business API Key
+                            </label>
+                            <input type="password" id="whatsappApiKey" name="whatsappApiKey"
+                                   placeholder="Optional - if you use WhatsApp Business">
+                            <small class="help-text">
+                                <a href="#" onclick="showCredentialHelp('whatsapp')">
+                                    <i class="fas fa-question-circle"></i> How to get WhatsApp API Key?
+                                </a>
+                            </small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="googleServiceAccount">
+                                <i class="fab fa-google"></i> Google Service Account JSON
+                                <span class="required">*</span>
+                            </label>
+                            <textarea id="googleServiceAccount" name="googleServiceAccount" required
+                                      placeholder='{"type": "service_account", "project_id": "..."}'
+                                      rows="4"></textarea>
+                            <small class="help-text">
+                                <a href="#" onclick="showCredentialHelp('google')">
+                                    <i class="fas fa-question-circle"></i> How to create Google Service Account?
+                                </a>
+                            </small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="airbnbCalendarLink">
+                                <i class="fab fa-airbnb"></i> Airbnb Calendar iCal Link
+                            </label>
+                            <input type="url" id="airbnbCalendarLink" name="airbnbCalendarLink"
+                                   placeholder="https://www.airbnb.com/calendar/ical/...">
+                            <small class="help-text">
+                                <a href="#" onclick="showCredentialHelp('airbnb')">
+                                    <i class="fas fa-question-circle"></i> How to get Airbnb iCal Link?
+                                </a>
+                            </small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('credentials')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- SECTION 3: Team & Contacts -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-users"></i> 3. Team & Contacts</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('team')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <p class="section-description">
+                        Add people who help manage your properties. The AI will know who to contact for specific tasks.
+                    </p>
+
+                    <div id="teamMembersContainer">
+                        <!-- Team members will be added here -->
+                    </div>
+
+                    <button type="button" class="btn-add" onclick="addTeamMember()">
+                        <i class="fas fa-plus-circle"></i> Add Team Member
+                    </button>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('team')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- SECTION 4: Property Details -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-building"></i> 4. Property Details</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('properties')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <p class="section-description">
+                        Managed from the <a href="properties.html">Properties page</a>.
+                        Add your properties there to track bookings and manage operations.
+                    </p>
+
+                    <a href="properties.html" class="btn-primary">
+                        <i class="fas fa-building"></i> Go to Properties
+                    </a>
+                </div>
+
+                <!-- SECTION 5: AI Assistant Configuration -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-robot"></i> 5. AI Assistant Notes</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('ai')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <p class="section-description">
+                        Tell your AI assistant anything important it should know about your business,
+                        preferences, or special situations.
+                    </p>
+
+                    <div class="form-group full-width">
+                        <label for="aiNotes">
+                            <i class="fas fa-comment-dots"></i> Special Instructions for AI
+                        </label>
+                        <textarea id="aiNotes" name="aiNotes" rows="6"
+                                  placeholder="Example:
+- Always offer early check-in if available
+- We have a cat, so mention this to guests with allergies
+- Cleaning crew arrives at 10 AM
+- Never discount below $50/night
+- Emergency maintenance contact: John 555-1234"></textarea>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="pricingRules">
+                            <i class="fas fa-dollar-sign"></i> Pricing Rules
+                        </label>
+                        <textarea id="pricingRules" name="pricingRules" rows="4"
+                                  placeholder="Example:
+- Minimum price: $80/night
+- Never go below 20% discount
+- Weekend pricing +30%
+- Monthly stays -15%"></textarea>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('ai')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- SECTION 6: Media & Resources -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-image"></i> 6. Photos & Videos</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('media')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <p class="section-description">
+                        Provide Google Drive links to folders containing photos and videos
+                        that the AI can send to guests when requested.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="propertyPhotosLink">
+                                <i class="fab fa-google-drive"></i> Property Photos Folder
+                            </label>
+                            <input type="url" id="propertyPhotosLink" name="propertyPhotosLink"
+                                   placeholder="https://drive.google.com/drive/folders/...">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="propertyVideosLink">
+                                <i class="fab fa-google-drive"></i> Property Videos Folder
+                            </label>
+                            <input type="url" id="propertyVideosLink" name="propertyVideosLink"
+                                   placeholder="https://drive.google.com/drive/folders/...">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="documentationLink">
+                                <i class="fab fa-google-drive"></i> Guest Guides & Instructions
+                            </label>
+                            <input type="url" id="documentationLink" name="documentationLink"
+                                   placeholder="https://drive.google.com/drive/folders/...">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('media')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- Final Activation Button -->
+                <div class="activation-section">
+                    <div class="activation-notice">
+                        <i class="fas fa-rocket"></i>
+                        <h3>Ready to Activate?</h3>
+                        <p>Once you click "Activate AI Assistant", your workflows will be configured and deployed.
+                           This may take 2-3 minutes.</p>
+                    </div>
+
+                    <button type="submit" class="btn-activate" id="activateBtn" disabled>
+                        <i class="fas fa-power-off"></i> Activate AI Assistant
+                    </button>
+
+                    <p class="completion-requirement" id="completionRequirement">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Please complete all required sections before activating
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal" style="display:none;">
+        <div class="modal-content loading-modal">
+            <div class="spinner"></div>
+            <h2>Activating Your AI Assistant</h2>
+            <p id="activationStatus">Configuring workflows...</p>
+            <div class="progress-bar-loading">
+                <div class="progress-fill-loading" id="activationProgress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/fillup-form.js"></script>
+</body>
+</html>

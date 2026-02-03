@@ -1,0 +1,385 @@
+{
+  "name": "WF1: AI Gateway - Unified Entry Point",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message", "callback_query"],
+        "additionalFields": {}
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [-200, -100],
+      "webhookId": "gateway-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": ["messages"],
+        "options": {}
+      },
+      "id": "whatsapp-trigger",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [-200, 100],
+      "webhookId": "gateway-whatsapp",
+      "credentials": {
+        "whatsAppBusinessCloudApi": {
+          "id": "whatsapp-cred",
+          "name": "WhatsApp Business"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": ["com.twilio.messaging.inbound-message.received"]
+      },
+      "id": "sms-trigger",
+      "name": "SMS Trigger",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [-200, 300],
+      "webhookId": "gateway-sms",
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-cred",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize input from any channel into standard format\nconst input = $input.item.json;\nlet normalized = {\n  channel: 'unknown',\n  sender_id: null,\n  sender_name: null,\n  message_text: '',\n  is_callback: false,\n  callback_data: null\n};\n\n// Telegram message\nif (input.message?.text) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.message.chat.id);\n  normalized.sender_name = input.message.from?.first_name || 'Guest';\n  normalized.message_text = input.message.text;\n}\n// Telegram callback\nelse if (input.callback_query) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.callback_query.message.chat.id);\n  normalized.sender_name = input.callback_query.from?.first_name || 'Guest';\n  normalized.is_callback = true;\n  normalized.callback_data = input.callback_query.data;\n  normalized.message_text = input.callback_query.data;\n}\n// WhatsApp\nelse if (input.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {\n  const msg = input.entry[0].changes[0].value.messages[0];\n  const contact = input.entry[0].changes[0].value.contacts?.[0];\n  normalized.channel = 'whatsapp';\n  normalized.sender_id = msg.from;\n  normalized.sender_name = contact?.profile?.name || 'Guest';\n  normalized.message_text = msg.text?.body || msg.interactive?.button_reply?.title || '';\n  normalized.is_callback = !!msg.interactive;\n  normalized.callback_data = msg.interactive?.button_reply?.id || null;\n}\n// Twilio SMS\nelse if (input.Body && input.From) {\n  normalized.channel = 'sms';\n  normalized.sender_id = input.From;\n  normalized.sender_name = 'Guest';\n  normalized.message_text = input.Body;\n}\n\nnormalized.timestamp = new Date().toISOString();\nreturn normalized;"
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 100]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an intelligent vacation rental assistant. You help guests with bookings, answer property questions, handle payments, report maintenance issues, and manage emergencies.\n\nYou have access to specialized tools:\n- **booking_agent**: For booking inquiries, availability questions, property info, check-in/out instructions\n- **calendar_manager**: To check specific date availability and pricing\n- **payment_processor**: For payment-related questions, creating payment links, handling payment issues\n- **property_operations**: For maintenance reports, property issues, cleaning schedules\n- **emergency_handler**: For urgent safety/security issues (use only for true emergencies)\n- **send_message**: To send the final response back to the guest\n- **get_context**: To retrieve conversation history or property information when needed\n\nGuidelines:\n1. Analyze the user's message to understand their intent\n2. Use the appropriate tool(s) to handle their request\n3. Always use send_message to reply to the guest\n4. Be friendly, professional, and concise\n5. For emergencies, prioritize safety and use emergency_handler immediately"
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [320, 100]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [120, 340],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Normalize Input').item.json.sender_id }}"
+      },
+      "id": "chat-memory",
+      "name": "Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [260, 340],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "booking_agent",
+        "description": "Handle booking inquiries, availability questions, property information requests, check-in/check-out instructions. Use this for general guest questions about staying at properties.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WF2: AI Booking Agent",
+          "mode": "name"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "tool-booking",
+      "name": "Booking Agent Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [400, 340]
+    },
+    {
+      "parameters": {
+        "name": "calendar_manager",
+        "description": "Check property availability for specific dates, get pricing information, detect calendar conflicts. Use when guest asks about specific dates.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WF3: Calendar Manager",
+          "mode": "name"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "tool-calendar",
+      "name": "Calendar Manager Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [540, 340]
+    },
+    {
+      "parameters": {
+        "name": "payment_processor",
+        "description": "Handle payment-related requests: create payment links, check payment status, handle payment issues or questions about pricing and charges.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WF4: Payment Processor",
+          "mode": "name"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "tool-payment",
+      "name": "Payment Processor Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [680, 340]
+    },
+    {
+      "parameters": {
+        "name": "property_operations",
+        "description": "Handle maintenance reports, property issues, cleaning requests, vendor coordination. Use when guest reports a problem or property owner needs operational support.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WF5: Property Operations",
+          "mode": "name"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "tool-operations",
+      "name": "Property Operations Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "name": "emergency_handler",
+        "description": "ONLY for urgent safety or security emergencies: fire, medical emergency, break-in, gas leak, flooding. Do NOT use for general complaints or minor issues.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WF8: Safety & Screening",
+          "mode": "name"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "tool-emergency",
+      "name": "Emergency Handler Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [540, 500]
+    },
+    {
+      "parameters": {
+        "name": "send_message",
+        "description": "Send a message back to the guest. Always use this to reply after processing their request. Include the channel, recipient (sender_id), and the message text.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SUB: Universal Messenger",
+          "mode": "name"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      },
+      "id": "tool-messenger",
+      "name": "Send Message Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "get_context",
+        "toolDescription": "Retrieve relevant property information, conversation history, or booking details. Use when you need context about a property, guest, or previous interactions.",
+        "options": {
+          "topK": 5
+        }
+      },
+      "id": "vector-store",
+      "name": "Context Retrieval (PGVector)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [260, 500],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "embeddings",
+      "name": "OpenAI Embeddings",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [120, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "activity_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "log_id": "={{ $runId }}",
+            "event_type": "message_processed",
+            "contact_id": "={{ $('Normalize Input').item.json.sender_id }}",
+            "channel": "={{ $('Normalize Input').item.json.channel }}",
+            "message": "={{ $('Normalize Input').item.json.message_text }}",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-activity",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [580, 100],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "WhatsApp Trigger": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "SMS Trigger": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "Normalize Input": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [[{ "node": "Log Activity", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Chat Memory": {
+      "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "OpenAI Embeddings": {
+      "ai_embedding": [[{ "node": "Context Retrieval (PGVector)", "type": "ai_embedding", "index": 0 }]]
+    },
+    "Context Retrieval (PGVector)": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Booking Agent Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Calendar Manager Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Payment Processor Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Property Operations Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Emergency Handler Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Send Message Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Unified AI Gateway using Agent v3.1 with tool-based routing. The AI Agent intelligently decides which workflows to invoke based on user intent."
+  },
+  "tags": ["gateway", "ai-agent", "tools", "optimized"]
+}

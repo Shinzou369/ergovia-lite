@@ -1,0 +1,19 @@
+{
+  "name": "ergovia-lite",
+  "version": "1.0.0",
+  "description": "AirBNB Automation Control Panel - ETF Template",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

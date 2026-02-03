@@ -1,0 +1,288 @@
+{
+  "name": "WF8: Safety & Screening",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "workflow-trigger",
+      "name": "When Called by Other Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 100]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtMinute": 15 }]
+        }
+      },
+      "id": "watchdog-trigger",
+      "name": "Watchdog Every 15 Min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize input and determine event type\nconst input = $input.item.json;\n\nlet eventType, eventData;\n\n// From AI Gateway (emergency classification)\nif (input.category === 'EMERGENCY') {\n  eventType = 'emergency';\n  eventData = {\n    source: 'guest_report',\n    message: input.message_text,\n    sender_id: input.sender_id,\n    channel: input.channel,\n    property_id: input.property_id,\n    urgency: 'high'\n  };\n}\n// Screening request\nelse if (input.guest_email || input.booking_id) {\n  eventType = 'screening';\n  eventData = {\n    booking_id: input.booking_id,\n    guest_name: input.guest_name,\n    guest_email: input.guest_email,\n    guest_phone: input.guest_phone,\n    property_id: input.property_id,\n    check_in_date: input.check_in_date\n  };\n}\n// Watchdog check\nelse if (!input.category && !input.guest_email) {\n  eventType = 'watchdog';\n  eventData = { check_time: new Date().toISOString() };\n}\n// Generic safety event\nelse {\n  eventType = input.event_type || 'unknown';\n  eventData = input;\n}\n\nreturn { event_type: eventType, data: eventData };"
+      },
+      "id": "normalize-event",
+      "name": "Normalize Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.event_type }}", "rightValue": "emergency", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "emergency"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.event_type }}", "rightValue": "screening", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "screening"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.event_type }}", "rightValue": "watchdog", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "watchdog"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-event",
+      "name": "Route Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [440, 200]
+    },
+    {
+      "parameters": {
+        "agent": "toolsAgent",
+        "promptType": "define",
+        "text": "You are an emergency response coordinator. A guest has reported an urgent issue:\n\nMessage: {{ $json.data.message }}\nProperty ID: {{ $json.data.property_id }}\nChannel: {{ $json.data.channel }}\n\nAnalyze the emergency and determine:\n1. Type of emergency (fire, medical, security, utility, natural disaster, other)\n2. Severity level (critical, high, medium)\n3. Required responders (911, owner, maintenance, security)\n4. Immediate actions needed\n\nProvide a calm, reassuring response to the guest with clear instructions.",
+        "hasOutputParser": false,
+        "options": { "maxIterations": 3 }
+      },
+      "id": "ai-emergency",
+      "name": "AI Emergency Handler",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, -100]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": { "temperature": 0.2 }
+      },
+      "id": "emergency-model",
+      "name": "Emergency Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [660, 100],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI" } }
+    },
+    {
+      "parameters": {
+        "name": "escalate_emergency",
+        "description": "Escalate emergency to appropriate responders",
+        "code": "const { type, severity, property_id, responders } = $input.item.json;\n\n// Log emergency\nconst emergencyId = `EMG${Date.now()}`;\n\n// Determine contacts to notify\nconst notifications = [];\nif (responders?.includes('911')) {\n  notifications.push({ type: 'critical', message: 'Guest instructed to call 911' });\n}\nif (responders?.includes('owner')) {\n  notifications.push({ type: 'owner_alert', priority: 'high' });\n}\nif (responders?.includes('security')) {\n  notifications.push({ type: 'security_dispatch', priority: 'immediate' });\n}\n\nreturn {\n  emergency_id: emergencyId,\n  type: type,\n  severity: severity,\n  property_id: property_id,\n  notifications: notifications,\n  logged_at: new Date().toISOString()\n};"
+      },
+      "id": "tool-escalate",
+      "name": "Escalate Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [800, 100]
+    },
+    {
+      "parameters": {
+        "agent": "toolsAgent",
+        "promptType": "define",
+        "text": "You are a guest screening specialist. Review this booking request:\n\nGuest Name: {{ $json.data.guest_name }}\nEmail: {{ $json.data.guest_email }}\nPhone: {{ $json.data.guest_phone }}\nCheck-in Date: {{ $json.data.check_in_date }}\nProperty: {{ $json.data.property_id }}\n\nPerform a risk assessment considering:\n1. Contact information validity\n2. Booking timing (same-day, advance booking)\n3. Any red flags\n\nProvide a screening decision: APPROVE, FLAG_FOR_REVIEW, or REJECT with reasoning.",
+        "hasOutputParser": false,
+        "options": { "maxIterations": 2 }
+      },
+      "id": "ai-screening",
+      "name": "AI Screening Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, 200]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": { "temperature": 0.1 }
+      },
+      "id": "screening-model",
+      "name": "Screening Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [660, 400],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  'stale_bookings' as check_type,\n  COUNT(*) as count\nFROM bookings\nWHERE booking_status = 'pending_payment'\n  AND created_at < NOW() - INTERVAL '24 hours'\nUNION ALL\nSELECT \n  'stuck_conversations' as check_type,\n  COUNT(*) as count\nFROM conversations\nWHERE conversation_stage NOT IN ('completed', 'cancelled')\n  AND updated_at < NOW() - INTERVAL '4 hours'\nUNION ALL\nSELECT \n  'unresponded_maintenance' as check_type,\n  COUNT(*) as count\nFROM maintenance_tickets\nWHERE status = 'new'\n  AND created_at < NOW() - INTERVAL '2 hours'\n  AND urgency IN ('high', 'emergency')",
+        "options": {}
+      },
+      "id": "watchdog-checks",
+      "name": "Run Watchdog Checks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 500],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Analyze watchdog results and generate alerts\nconst checks = $input.all().map(i => i.json);\nconst alerts = [];\n\nfor (const check of checks) {\n  if (check.count > 0) {\n    alerts.push({\n      type: check.check_type,\n      count: check.count,\n      severity: check.check_type.includes('emergency') ? 'high' : 'medium',\n      message: `${check.count} ${check.check_type.replace(/_/g, ' ')} detected`\n    });\n  }\n}\n\nreturn {\n  alerts: alerts,\n  total_issues: alerts.reduce((sum, a) => sum + a.count, 0),\n  check_time: new Date().toISOString(),\n  status: alerts.length > 0 ? 'issues_found' : 'healthy'\n};"
+      },
+      "id": "analyze-watchdog",
+      "name": "Analyze Watchdog Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "has-issues", "leftValue": "={{ $json.total_issues }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-issues",
+      "name": "Has Issues?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 500]
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "name", "value": "SUB: Universal Messenger" },
+        "options": {}
+      },
+      "id": "send-alerts",
+      "name": "Send Alerts",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "security_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "log_id": "={{ 'sec_' + $now.toMillis() }}",
+            "event_type": "={{ $('Normalize Event').item.json.event_type }}",
+            "severity": "={{ $json.severity || 'info' }}",
+            "details": "={{ JSON.stringify($json) }}",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-event",
+      "name": "Log Security Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1320, 200],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Return result to calling workflow\nreturn {\n  success: true,\n  event_type: $('Normalize Event').item.json.event_type,\n  processed: true,\n  result: $input.item.json\n};"
+      },
+      "id": "return-result",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 200]
+    }
+  ],
+  "connections": {
+    "When Called by Other Workflow": {
+      "main": [[{ "node": "Normalize Event", "type": "main", "index": 0 }]]
+    },
+    "Watchdog Every 15 Min": {
+      "main": [[{ "node": "Normalize Event", "type": "main", "index": 0 }]]
+    },
+    "Normalize Event": {
+      "main": [[{ "node": "Route Event Type", "type": "main", "index": 0 }]]
+    },
+    "Route Event Type": {
+      "main": [
+        [{ "node": "AI Emergency Handler", "type": "main", "index": 0 }],
+        [{ "node": "AI Screening Agent", "type": "main", "index": 0 }],
+        [{ "node": "Run Watchdog Checks", "type": "main", "index": 0 }]
+      ]
+    },
+    "Emergency Model": {
+      "ai_languageModel": [[{ "node": "AI Emergency Handler", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Escalate Tool": {
+      "ai_tool": [[{ "node": "AI Emergency Handler", "type": "ai_tool", "index": 0 }]]
+    },
+    "AI Emergency Handler": {
+      "main": [[{ "node": "Send Alerts", "type": "main", "index": 0 }]]
+    },
+    "Screening Model": {
+      "ai_languageModel": [[{ "node": "AI Screening Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "AI Screening Agent": {
+      "main": [[{ "node": "Log Security Event", "type": "main", "index": 0 }]]
+    },
+    "Run Watchdog Checks": {
+      "main": [[{ "node": "Analyze Watchdog Results", "type": "main", "index": 0 }]]
+    },
+    "Analyze Watchdog Results": {
+      "main": [[{ "node": "Has Issues?", "type": "main", "index": 0 }]]
+    },
+    "Has Issues?": {
+      "main": [
+        [{ "node": "Send Alerts", "type": "main", "index": 0 }],
+        [{ "node": "Log Security Event", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Alerts": {
+      "main": [[{ "node": "Log Security Event", "type": "main", "index": 0 }]]
+    },
+    "Log Security Event": {
+      "main": [[{ "node": "Return Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Unified safety & screening: emergency handling, guest screening, system watchdog. Replaces WF4, WF17, WF19, WF23."
+  },
+  "tags": ["safety", "screening", "emergency", "watchdog", "optimized"]
+}

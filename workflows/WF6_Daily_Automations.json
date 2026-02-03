@@ -1,0 +1,289 @@
+{
+  "name": "WF6: Daily Automations",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 9 }]
+        }
+      },
+      "id": "morning-trigger",
+      "name": "Morning 9 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 18 }]
+        }
+      },
+      "id": "evening-trigger",
+      "name": "Evening 6 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 10 * * 1" }]
+        }
+      },
+      "id": "weekly-trigger",
+      "name": "Weekly Monday 10 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\n\nlet automationType;\nif (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
+      },
+      "id": "determine-type",
+      "name": "Determine Automation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.automation_type }}", "rightValue": "morning_check", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "morning"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.automation_type }}", "rightValue": "evening_check", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "evening"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.automation_type }}", "rightValue": "weekly_report", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "weekly"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-automation",
+      "name": "Route Automation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [440, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform,\n  COUNT(CASE WHEN b.check_in_date = CURRENT_DATE THEN 1 END) as checkins_today,\n  COUNT(CASE WHEN b.check_out_date = CURRENT_DATE THEN 1 END) as checkouts_today,\n  COUNT(CASE WHEN mt.status IN ('new', 'in_progress') THEN 1 END) as open_tickets\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id \n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.preferred_platform",
+        "options": {}
+      },
+      "id": "morning-data",
+      "name": "Get Morning Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 0],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
+        "options": {}
+      },
+      "id": "evening-data",
+      "name": "Get Evening Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 200],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.preferred_platform",
+        "options": {}
+      },
+      "id": "weekly-data",
+      "name": "Get Weekly Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 400],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a brief, friendly morning briefing for property owner {{ $json.owner_name }}:\n\nProperty: {{ $json.property_name }}\nCheck-ins Today: {{ $json.checkins_today }}\nCheck-outs Today: {{ $json.checkouts_today }}\nOpen Maintenance Tickets: {{ $json.open_tickets }}\n\nCreate a concise message (under 100 words) with:\n1. Good morning greeting\n2. Summary of today's activity\n3. Any action items if needed\n\nUse appropriate emojis.",
+        "hasOutputParser": false,
+        "options": {}
+      },
+      "id": "generate-morning",
+      "name": "Generate Morning Brief",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate an evening status update for property manager:\n\nProperty: {{ $json.property_name }}\nGuest: {{ $json.guest_name }} checking in today\nCleaning Status: {{ $json.cleaning_status || 'Not scheduled' }}\nCleaning Completed: {{ $json.cleaning_completed || 'Pending' }}\n\nCreate a brief message confirming readiness for guest arrival or flagging any issues.",
+        "hasOutputParser": false,
+        "options": {}
+      },
+      "id": "generate-evening",
+      "name": "Generate Evening Update",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [880, 200]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $json.property_name }}\nTotal Bookings (30 days): {{ $json.total_bookings }}\nTotal Revenue: ${{ $json.total_revenue || 0 }}\nNew Bookings This Week: {{ $json.new_bookings_week }}\nAverage Stay Length: {{ $json.avg_stay_length || 0 }} nights\n\nCreate a concise executive summary (under 150 words) highlighting:\n1. Performance overview\n2. Trends\n3. Any recommendations\n\nFormat professionally with bullet points.",
+        "hasOutputParser": false,
+        "options": {}
+      },
+      "id": "generate-weekly",
+      "name": "Generate Weekly Report",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": { "temperature": 0.7 }
+      },
+      "id": "report-model",
+      "name": "Report Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [880, 600],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI" } }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-outputs",
+      "name": "Merge Outputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "name", "value": "SUB: Universal Messenger" },
+        "options": {}
+      },
+      "id": "send-reports",
+      "name": "Send Reports",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1320, 200]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "automation_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "log_id": "={{ 'auto_' + $now.toMillis() }}",
+            "automation_type": "={{ $('Determine Automation').item.json.automation_type }}",
+            "executed_at": "={{ $now.toISO() }}",
+            "properties_processed": "={{ $json.length || 1 }}",
+            "status": "completed"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-execution",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1540, 200],
+      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+    }
+  ],
+  "connections": {
+    "Morning 9 AM": {
+      "main": [[{ "node": "Determine Automation", "type": "main", "index": 0 }]]
+    },
+    "Evening 6 PM": {
+      "main": [[{ "node": "Determine Automation", "type": "main", "index": 0 }]]
+    },
+    "Weekly Monday 10 AM": {
+      "main": [[{ "node": "Determine Automation", "type": "main", "index": 0 }]]
+    },
+    "Determine Automation": {
+      "main": [[{ "node": "Route Automation", "type": "main", "index": 0 }]]
+    },
+    "Route Automation": {
+      "main": [
+        [{ "node": "Get Morning Data", "type": "main", "index": 0 }],
+        [{ "node": "Get Evening Data", "type": "main", "index": 0 }],
+        [{ "node": "Get Weekly Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Morning Data": {
+      "main": [[{ "node": "Generate Morning Brief", "type": "main", "index": 0 }]]
+    },
+    "Get Evening Data": {
+      "main": [[{ "node": "Generate Evening Update", "type": "main", "index": 0 }]]
+    },
+    "Get Weekly Data": {
+      "main": [[{ "node": "Generate Weekly Report", "type": "main", "index": 0 }]]
+    },
+    "Report Model": {
+      "ai_languageModel": [
+        [{ "node": "Generate Morning Brief", "type": "ai_languageModel", "index": 0 }],
+        [{ "node": "Generate Evening Update", "type": "ai_languageModel", "index": 0 }],
+        [{ "node": "Generate Weekly Report", "type": "ai_languageModel", "index": 0 }]
+      ]
+    },
+    "Generate Morning Brief": {
+      "main": [[{ "node": "Merge Outputs", "type": "main", "index": 0 }]]
+    },
+    "Generate Evening Update": {
+      "main": [[{ "node": "Merge Outputs", "type": "main", "index": 0 }]]
+    },
+    "Generate Weekly Report": {
+      "main": [[{ "node": "Merge Outputs", "type": "main", "index": 0 }]]
+    },
+    "Merge Outputs": {
+      "main": [[{ "node": "Send Reports", "type": "main", "index": 0 }]]
+    },
+    "Send Reports": {
+      "main": [[{ "node": "Log Execution", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Unified daily automations: morning briefs, evening checks, weekly reports. Replaces WF11, WF12, WF21."
+  },
+  "tags": ["automation", "scheduled", "reports", "optimized"]
+}

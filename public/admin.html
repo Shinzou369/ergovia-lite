@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - API Bank</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="admin">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+        <a href="/settings.html" class="nav-link">Settings</a>
+        <a href="/automations.html" class="nav-link">Automations</a>
+        <a href="/admin.html" class="nav-link active">Admin</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Developer Settings</h1>
+        <p class="page-subtitle">Configure credentials and API keys for automations</p>
+      </div>
+    </div>
+
+    <div class="alert alert-info mb-3">
+      <strong>Developer Only:</strong> This page is for developers to configure credentials. Clients should not access this page.
+    </div>
+
+    <!-- PostgreSQL Setup Section -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">PostgreSQL Setup (Required)</h3>
+        <span class="badge badge-danger">Developer Setup</span>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">Create a PostgreSQL credential in your n8n instance with the following details:</p>
+        <div style="background: var(--gray-100); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 14px;">
+          <div><strong>Host:</strong> dpg-d5o5r224d50c73c2rm70-a.oregon-postgres.render.com</div>
+          <div><strong>Port:</strong> 5432</div>
+          <div><strong>Database:</strong> ergovia_db</div>
+          <div><strong>Username:</strong> ergovia_db_user</div>
+          <div><strong>Password:</strong> (set in n8n credential)</div>
+          <div><strong>SSL:</strong> Required (use "Allow" mode)</div>
+        </div>
+        <div class="alert alert-warning mt-3">
+          <strong>Steps:</strong><br>
+          1. Go to your n8n instance → Credentials → Add Credential → PostgreSQL<br>
+          2. Fill in the details above and save<br>
+          3. Copy the credential ID from the URL (e.g., <code>/credentials/abc123</code>)<br>
+          4. Set <code>N8N_POSTGRES_CREDENTIAL_ID=abc123</code> in your environment
+        </div>
+      </div>
+    </div>
+
+    <!-- Credential Responsibility Section -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">Credential Ownership</h3>
+        <span id="cred-status" class="badge badge-warning">Configure in n8n</span>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">Credentials are split between Developer (you) and Client responsibility:</p>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border);">
+              <th style="text-align: left; padding: 8px;">Credential</th>
+              <th style="text-align: left; padding: 8px;">Provider</th>
+              <th style="text-align: left; padding: 8px;">How It Works</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border); background: var(--gray-50);">
+              <td style="padding: 8px;"><strong>PostgreSQL</strong></td>
+              <td style="padding: 8px;"><span class="badge badge-info">Developer</span></td>
+              <td style="padding: 8px;">Created once in n8n, ID stored in environment</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border); background: var(--gray-50);">
+              <td style="padding: 8px;"><strong>OpenAI API</strong></td>
+              <td style="padding: 8px;"><span class="badge badge-info">Developer</span></td>
+              <td style="padding: 8px;">Added to API Bank below, assigned to clients</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border); background: var(--gray-50);">
+              <td style="padding: 8px;"><strong>Email (SMTP)</strong></td>
+              <td style="padding: 8px;"><span class="badge badge-info">Developer</span></td>
+              <td style="padding: 8px;">Created once in n8n (optional)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 8px;"><strong>Telegram Bot</strong></td>
+              <td style="padding: 8px;"><span class="badge badge-success">Client</span></td>
+              <td style="padding: 8px;">Client provides token in onboarding, auto-created</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 8px;"><strong>WhatsApp Business</strong></td>
+              <td style="padding: 8px;"><span class="badge badge-success">Client</span></td>
+              <td style="padding: 8px;">Client provides tokens in onboarding, auto-created</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 8px;"><strong>Twilio SMS</strong></td>
+              <td style="padding: 8px;"><span class="badge badge-success">Client</span></td>
+              <td style="padding: 8px;">Client provides tokens in onboarding, auto-created</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-info mt-3">
+          <strong>Auto-Creation:</strong> Client credentials (Telegram, WhatsApp, Twilio) are automatically created in n8n during deployment using the tokens they provide in onboarding Step 5.
+        </div>
+      </div>
+    </div>
+
+    <!-- Environment Variables Section -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">Environment Variables</h3>
+      </div>
+      <div class="card-body">
+        <p class="mb-3">Set these in your Replit Secrets or .env file:</p>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border);">
+              <th style="text-align: left; padding: 8px;">Variable</th>
+              <th style="text-align: left; padding: 8px;">Description</th>
+              <th style="text-align: left; padding: 8px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="env-status">
+            <tr><td colspan="3" style="padding: 8px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add New Key -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Add New API Key</h3>
+      </div>
+      <div class="card-body">
+        <form id="add-key-form">
+          <div class="form-group">
+            <label class="form-label">OpenAI API Key</label>
+            <input type="password" id="api-key-input" class="form-input" placeholder="sk-..." required>
+            <p class="form-hint">Enter a valid OpenAI API key starting with "sk-"</p>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Key to Bank</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- API Key List -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">API Key Bank</h3>
+        <span id="key-stats" class="badge badge-info">Loading...</span>
+      </div>
+      <div class="card-body">
+        <div id="key-list">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">How API Bank Works</h3>
+      </div>
+      <div class="card-body">
+        <ul style="padding-left: 20px; line-height: 2;">
+          <li><strong>Add keys</strong> - Each key should be a unique OpenAI API key</li>
+          <li><strong>Auto-assignment</strong> - When a client deploys, an available key is automatically assigned</li>
+          <li><strong>One key per client</strong> - Each client gets their own dedicated API key</li>
+          <li><strong>Key release</strong> - When client data is reset, their key returns to the pool</li>
+          <li><strong>Secure</strong> - Keys are stored securely and never shown in full to clients</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load API keys
+    async function loadKeys() {
+      try {
+        const res = await fetch('/api/admin/apibank');
+        const data = await res.json();
+
+        const stats = document.getElementById('key-stats');
+        const list = document.getElementById('key-list');
+
+        if (data.success) {
+          stats.textContent = `${data.available} available / ${data.total} total`;
+
+          if (data.keys.length === 0) {
+            list.innerHTML = '<p class="text-muted">No API keys in bank. Add one above.</p>';
+          } else {
+            list.innerHTML = data.keys.map(k => `
+              <div class="service-item">
+                <div class="service-info">
+                  <h4 class="service-name">${k.keyPreview}</h4>
+                  <p class="service-desc">${k.assigned ? `Assigned to: ${k.clientName}` : 'Available'}</p>
+                </div>
+                <div class="service-status">
+                  <span class="badge ${k.assigned ? 'badge-warning' : 'badge-success'}">
+                    ${k.assigned ? 'In Use' : 'Available'}
+                  </span>
+                </div>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load keys:', error);
+      }
+    }
+
+    // Add new key
+    document.getElementById('add-key-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const input = document.getElementById('api-key-input');
+      const apiKey = input.value.trim();
+
+      if (!apiKey.startsWith('sk-')) {
+        alert('API key must start with "sk-"');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/apibank', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          input.value = '';
+          alert('API key added successfully!');
+          loadKeys();
+        } else {
+          alert(data.error || 'Failed to add key');
+        }
+      } catch (error) {
+        alert('Error adding key: ' + error.message);
+      }
+    });
+
+    // Load environment config status
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/admin/config');
+        const data = await res.json();
+
+        if (data.success) {
+          const envStatus = document.getElementById('env-status');
+          envStatus.innerHTML = Object.entries(data.config).map(([key, info]) => `
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 8px;"><code>${key}</code></td>
+              <td style="padding: 8px;">${info.description}</td>
+              <td style="padding: 8px;">
+                <span class="badge ${info.set ? 'badge-success' : 'badge-danger'}">
+                  ${info.set ? 'Set' : 'Not Set'}
+                </span>
+              </td>
+            </tr>
+          `).join('');
+
+          // Update credential status badge
+          const credStatus = document.getElementById('cred-status');
+          const allSet = Object.values(data.config).every(c => c.set);
+          if (allSet) {
+            credStatus.textContent = 'All Configured';
+            credStatus.className = 'badge badge-success';
+          } else {
+            credStatus.textContent = 'Missing Config';
+            credStatus.className = 'badge badge-danger';
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load config:', error);
+      }
+    }
+
+    // Load on page load
+    loadKeys();
+    loadConfig();
+  </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automations - Ergovia</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="automations">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+        <a href="/settings.html" class="nav-link">Settings</a>
+        <a href="/automations.html" class="nav-link active">Automations</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Automation Services</h1>
+        <p class="page-subtitle">View and manage your property automations</p>
+      </div>
+      <div class="page-actions">
+        <button id="create-credentials-btn" class="btn btn-outline">Create Credentials</button>
+        <button id="deploy-all-btn" class="btn btn-primary">Deploy All Automations</button>
+        <button id="undeploy-btn" class="btn btn-outline text-danger" style="display: none;">Remove All Automations</button>
+      </div>
+    </div>
+
+    <!-- Credentials Status Card -->
+    <div id="credentials-container" class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">n8n Credentials Status</h3>
+        <span id="credentials-count" class="badge badge-info">Loading...</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">Credentials are automatically created in your n8n instance. Platform credentials (Telegram, WhatsApp, Twilio) are based on your onboarding selections. PostgreSQL and OpenAI credentials are auto-created from environment variables.</p>
+        <div id="credentials-list">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deployment Status Card -->
+    <div id="deployment-container" class="card mb-3">
+      <div class="card-header">
+        <h3 class="card-title">Deployment Status</h3>
+        <span id="workflow-count" class="badge badge-info">0 / 25</span>
+      </div>
+      <div class="card-body">
+        <p id="deploy-status-text" class="text-muted mb-3">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Workflow List -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Deployed Automations</h3>
+      </div>
+      <div class="card-body">
+        <div id="workflow-list">
+          <div class="loading">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title">About Automation Types</h3>
+      </div>
+      <div class="card-body">
+        <div class="grid grid-2">
+          <div>
+            <h4 class="mb-2"><span class="badge badge-info">Webhook</span></h4>
+            <p class="text-muted mb-3">Triggered by external events like incoming messages, booking notifications, or API calls. These automations respond instantly to events.</p>
+
+            <h4 class="mb-2"><span class="badge badge-warning">Scheduled</span></h4>
+            <p class="text-muted mb-3">Run on a schedule (daily, hourly, etc.) to check calendars, monitor inventory, generate reports, and perform routine tasks.</p>
+          </div>
+          <div>
+            <h4 class="mb-2"><span class="badge badge-primary">Message-Trigger</span></h4>
+            <p class="text-muted mb-3">Activated when you or guests send messages. Handles commands, inquiries, and conversation management.</p>
+
+            <h4 class="mb-2"><span class="badge badge-success">Event-Based</span></h4>
+            <p class="text-muted mb-3">Triggered by booking events like check-ins, check-outs, new reservations, and guest journey milestones.</p>
+
+            <h4 class="mb-2"><span class="badge badge-gray">Utility</span></h4>
+            <p class="text-muted mb-3">Helper workflows that support other automations with shared functions and data processing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title">How It Works</h3>
+      </div>
+      <div class="card-body">
+        <ul style="padding-left: 20px; line-height: 2;">
+          <li><strong>All 25 automations</strong> are deployed together as a complete system</li>
+          <li><strong>Personalized</strong> with your property details from onboarding</li>
+          <li><strong>Automatically updated</strong> when you change settings</li>
+          <li><strong>Always running</strong> - no manual activation needed per workflow</li>
+          <li><strong>Coordinated</strong> - workflows communicate with each other for seamless automation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
