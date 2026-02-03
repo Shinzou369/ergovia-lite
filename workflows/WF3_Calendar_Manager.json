@@ -177,8 +177,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "SUB: Universal Messenger",
-          "mode": "name"
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",

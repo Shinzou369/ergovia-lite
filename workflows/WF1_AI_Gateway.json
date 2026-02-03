@@ -119,8 +119,9 @@
         "description": "Handle booking inquiries, availability questions, property information requests, check-in/check-out instructions. Use this for general guest questions about staying at properties.",
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "WF2: AI Booking Agent",
-          "mode": "name"
+          "cachedResultName": "WF2: AI Booking Agent"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -143,8 +144,9 @@
         "description": "Check property availability for specific dates, get pricing information, detect calendar conflicts. Use when guest asks about specific dates.",
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "WF3: Calendar Manager",
-          "mode": "name"
+          "cachedResultName": "WF3: Calendar Manager"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -167,8 +169,9 @@
         "description": "Handle payment-related requests: create payment links, check payment status, handle payment issues or questions about pricing and charges.",
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "WF4: Payment Processor",
-          "mode": "name"
+          "cachedResultName": "WF4: Payment Processor"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -191,8 +194,9 @@
         "description": "Handle maintenance reports, property issues, cleaning requests, vendor coordination. Use when guest reports a problem or property owner needs operational support.",
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "WF5: Property Operations",
-          "mode": "name"
+          "cachedResultName": "WF5: Property Operations"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -215,8 +219,9 @@
         "description": "ONLY for urgent safety or security emergencies: fire, medical emergency, break-in, gas leak, flooding. Do NOT use for general complaints or minor issues.",
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "WF8: Safety & Screening",
-          "mode": "name"
+          "cachedResultName": "WF8: Safety & Screening"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -239,8 +244,9 @@
         "description": "Send a message back to the guest. Always use this to reply after processing their request. Include the channel, recipient (sender_id), and the message text.",
         "workflowId": {
           "__rl": true,
+          "mode": "list",
           "value": "SUB: Universal Messenger",
-          "mode": "name"
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",

@@ -260,8 +260,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "options": {}
       },
@@ -316,8 +317,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "options": {}
       },

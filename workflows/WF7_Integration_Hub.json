@@ -131,7 +131,7 @@
     },
     {
       "parameters": {
-        "workflowId": { "__rl": true, "mode": "name", "value": "WF3: Calendar Manager" },
+        "workflowId": { "__rl": true, "mode": "list", "value": "WF3: Calendar Manager", "cachedResultName": "WF3: Calendar Manager" },
         "options": {}
       },
       "id": "check-conflicts",

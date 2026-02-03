@@ -193,7 +193,7 @@
     },
     {
       "parameters": {
-        "workflowId": { "__rl": true, "mode": "name", "value": "SUB: Universal Messenger" },
+        "workflowId": { "__rl": true, "mode": "list", "value": "SUB: Universal Messenger", "cachedResultName": "SUB: Universal Messenger" },
         "options": {}
       },
       "id": "send-reports",

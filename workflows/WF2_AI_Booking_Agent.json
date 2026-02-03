@@ -328,8 +328,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "options": {}
       },
@@ -410,8 +411,9 @@
         "description": "Check if a property is available for specific dates. Returns available dates and pricing.",
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "WF3: Calendar Manager"
+          "mode": "list",
+          "value": "WF3: Calendar Manager",
+          "cachedResultName": "WF3: Calendar Manager"
         },
         "responsePropertyName": "availability_result",
         "fields": {
@@ -434,8 +436,9 @@
         "description": "Get detailed information about a specific property including amenities, rules, and photos.",
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "WF5: Property Operations"
+          "mode": "list",
+          "value": "WF5: Property Operations",
+          "cachedResultName": "WF5: Property Operations"
         },
         "responsePropertyName": "property_details",
         "fields": {
@@ -469,8 +472,9 @@
         "description": "Create a temporary booking hold and generate a payment link. Use when guest confirms they want to book.",
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "WF4: Payment Processor"
+          "mode": "list",
+          "value": "WF4: Payment Processor",
+          "cachedResultName": "WF4: Payment Processor"
         },
         "responsePropertyName": "booking_result",
         "fields": {
@@ -538,8 +542,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "options": {}
       },
@@ -654,8 +659,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -688,8 +694,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -776,8 +783,9 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "name",
-          "value": "SUB: Universal Messenger"
+          "mode": "list",
+          "value": "SUB: Universal Messenger",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
