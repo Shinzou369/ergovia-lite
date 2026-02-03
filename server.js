@@ -307,10 +307,14 @@ app.post('/api/deploy', async (req, res) => {
 
     // ============================================
     // STEP 2: Deploy all workflows with credentials
+    // Uses ordered deployment with ID resolution
     // ============================================
-    console.log('\n--- Deploying workflows ---');
-    const result = await n8nService.deployAllWorkflows(clientData, apiKey.api_key, clientCredentials, developerCredentials);
+    console.log('\n--- Deploying workflows (ordered with ID resolution) ---');
+    const result = await n8nService.deployAllWorkflowsWithIdResolution(clientData, apiKey.api_key, clientCredentials, developerCredentials);
     console.log('Deployment result:', { success: result.success, deployed: result.deployed, failed: result.failed });
+    if (result.workflowIdMap) {
+      console.log('Workflow ID Map:', result.workflowIdMap);
+    }
 
     if (result.success || result.deployed > 0) {
       // Save deployed workflows to database

@@ -668,13 +668,13 @@ class N8NService {
         );
       }
 
-      return { success: true, workflowId, name: prefixedName, originalName };
+      return { success: true, workflowId, name: workflowName };
     } catch (error) {
       console.error('Deploy workflow error:', error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.message || error.message,
-        originalName
+        name: workflowName
       };
     }
   }
@@ -961,6 +961,241 @@ class N8NService {
     return {
       success: results.every(r => r.success),
       deleted: results.filter(r => r.success).length,
+      results
+    };
+  }
+
+  // ============================================
+  // ORDERED DEPLOYMENT WITH ID RESOLUTION
+  // ============================================
+
+  // Define workflow deployment order based on dependencies
+  // Each workflow lists the workflows it references (dependencies)
+  getWorkflowDependencyOrder() {
+    return [
+      // Layer 1: No dependencies - deploy first
+      { filename: 'SUB_Universal_Messenger.json', name: 'SUB: Universal Messenger', dependencies: [] },
+
+      // Layer 2: Only depends on SUB
+      { filename: 'WF3_Calendar_Manager.json', name: 'WF3: Calendar Manager', dependencies: ['SUB: Universal Messenger'] },
+      { filename: 'WF4_Payment_Processor.json', name: 'WF4: Payment Processor', dependencies: ['SUB: Universal Messenger'] },
+      { filename: 'WF5_Property_Operations.json', name: 'WF5: Property Operations', dependencies: ['SUB: Universal Messenger'] },
+      { filename: 'WF6_Daily_Automations.json', name: 'WF6: Daily Automations', dependencies: ['SUB: Universal Messenger'] },
+      { filename: 'WF8_Safety_Screening.json', name: 'WF8: Safety & Screening', dependencies: ['SUB: Universal Messenger'] },
+
+      // Layer 3: Depends on WF3
+      { filename: 'WF7_Integration_Hub.json', name: 'WF7: Integration Hub', dependencies: ['WF3: Calendar Manager'] },
+
+      // Layer 4: Depends on multiple workflows
+      { filename: 'WF2_AI_Booking_Agent.json', name: 'WF2: AI Booking Agent', dependencies: ['SUB: Universal Messenger', 'WF3: Calendar Manager', 'WF4: Payment Processor'] },
+
+      // Layer 5: Gateway depends on all specialized workflows
+      { filename: 'WF1_AI_Gateway.json', name: 'WF1: AI Gateway - Unified Entry Point', dependencies: ['SUB: Universal Messenger', 'WF2: AI Booking Agent', 'WF3: Calendar Manager', 'WF4: Payment Processor', 'WF5: Property Operations', 'WF8: Safety & Screening'] }
+    ];
+  }
+
+  // Inject actual workflow IDs into workflow references
+  // Replaces workflow name values with actual n8n workflow IDs
+  injectWorkflowIds(workflow, workflowIdMap) {
+    if (!workflow.nodes) return workflow;
+
+    let injectedCount = 0;
+
+    workflow.nodes = workflow.nodes.map(node => {
+      // Check for executeWorkflow nodes (both regular and tool versions)
+      if (node.type === 'n8n-nodes-base.executeWorkflow' ||
+          node.type === '@n8n/n8n-nodes-langchain.toolWorkflow') {
+
+        if (node.parameters?.workflowId) {
+          const workflowRef = node.parameters.workflowId;
+
+          // Check if using "list" mode with workflow name as value
+          if (workflowRef.__rl && workflowRef.mode === 'list' && workflowRef.value) {
+            const referencedWorkflowName = workflowRef.value;
+            const actualId = workflowIdMap[referencedWorkflowName];
+
+            if (actualId) {
+              // Update to use actual workflow ID
+              node.parameters.workflowId = {
+                __rl: true,
+                mode: 'list',
+                value: actualId,
+                cachedResultName: referencedWorkflowName,
+                cachedResultUrl: `/workflow/${actualId}`
+              };
+              injectedCount++;
+              console.log(`      Injected workflow ID: "${referencedWorkflowName}" -> ${actualId} in node "${node.name}"`);
+            } else {
+              console.log(`      WARNING: No ID found for workflow "${referencedWorkflowName}" in node "${node.name}"`);
+            }
+          }
+        }
+      }
+      return node;
+    });
+
+    if (injectedCount > 0) {
+      console.log(`    Injected ${injectedCount} workflow IDs`);
+    }
+
+    return workflow;
+  }
+
+  // Deploy all workflows in dependency order with ID resolution
+  // This creates workflows in the correct order, capturing IDs as we go
+  // and injecting them into subsequent workflows that reference them
+  async deployAllWorkflowsWithIdResolution(clientData, assignedApiKey, clientCredentials = {}, developerCredentials = {}) {
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: 'n8n not configured. Check N8N_URL and N8N_API_KEY.',
+        deployed: 0,
+        failed: 0,
+        total: 0,
+        workflows: [],
+        results: []
+      };
+    }
+
+    // Test connection first
+    console.log('\n=== Testing n8n connection before ordered deployment ===');
+    const testResult = await this.testConnection();
+    if (!testResult.success) {
+      console.error('n8n connection test FAILED:', testResult.error);
+      return {
+        success: false,
+        error: `n8n connection failed: ${testResult.error}`,
+        deployed: 0,
+        failed: 0,
+        total: 0,
+        workflows: [],
+        results: []
+      };
+    }
+    console.log('n8n connection OK. Existing workflows:', testResult.workflowCount);
+
+    const clientName = clientData.property?.propertyName || clientData.owner?.ownerName || 'Client';
+    const enabledPlatforms = clientData.owner?.enabledPlatforms || ['telegram', 'whatsapp', 'sms'];
+
+    const deploymentOrder = this.getWorkflowDependencyOrder();
+    const results = [];
+    const deployedWorkflows = [];
+
+    // Map to track workflow name -> actual n8n ID
+    const workflowIdMap = {};
+
+    console.log(`\n=== ORDERED DEPLOYMENT: ${deploymentOrder.length} workflows for: ${clientName} ===`);
+    console.log(`Enabled platforms: ${enabledPlatforms.join(', ')}`);
+    console.log('Deployment order:');
+    deploymentOrder.forEach((wf, i) => console.log(`  ${i + 1}. ${wf.name}`));
+    console.log('');
+
+    const DEPLOYMENT_DELAY = 2000; // 2 seconds between deployments
+
+    for (let i = 0; i < deploymentOrder.length; i++) {
+      const workflowDef = deploymentOrder[i];
+      const filename = workflowDef.filename;
+
+      // Add delay between deployments (skip first)
+      if (i > 0) {
+        console.log(`  Waiting ${DEPLOYMENT_DELAY/1000}s...`);
+        await this.sleep(DEPLOYMENT_DELAY);
+      }
+
+      try {
+        console.log(`\n--- [${i + 1}/${deploymentOrder.length}] ${filename} ---`);
+        console.log(`  Dependencies: ${workflowDef.dependencies.length > 0 ? workflowDef.dependencies.join(', ') : 'none'}`);
+
+        // Check if all dependencies have been deployed
+        const missingDeps = workflowDef.dependencies.filter(dep => !workflowIdMap[dep]);
+        if (missingDeps.length > 0) {
+          console.error(`  ERROR: Missing dependencies: ${missingDeps.join(', ')}`);
+          results.push({ filename, success: false, error: `Missing dependencies: ${missingDeps.join(', ')}` });
+          continue;
+        }
+
+        // Load template
+        const template = this.loadWorkflowTemplate(filename);
+        console.log(`  Loaded: ${template.name}`);
+
+        // Get trigger tag
+        const triggerTag = this.getTriggerTag(filename);
+
+        // Personalize with client data
+        let personalized = this.personalizeWorkflow(template, clientData, assignedApiKey);
+
+        // Disable unused platform nodes
+        personalized = this.disableUnusedPlatformNodes(personalized, enabledPlatforms);
+
+        // Inject credential IDs (postgres, openai, telegram, etc.)
+        personalized = this.injectCredentialIds(personalized, clientCredentials, developerCredentials);
+
+        // IMPORTANT: Inject actual workflow IDs for references
+        personalized = this.injectWorkflowIds(personalized, workflowIdMap);
+
+        // Deploy to n8n
+        const result = await this.deployWorkflow(personalized, clientName, triggerTag);
+
+        if (result.success) {
+          console.log(`  Created: ID=${result.workflowId}`);
+
+          // Store the mapping: workflow name -> actual ID
+          workflowIdMap[workflowDef.name] = result.workflowId;
+          console.log(`  Registered: "${workflowDef.name}" -> ${result.workflowId}`);
+
+          // Activate workflow
+          const activateResult = await this.activateWorkflow(result.workflowId);
+          console.log(`  Activated: ${activateResult.success ? 'YES' : 'NO - ' + activateResult.error}`);
+
+          deployedWorkflows.push({
+            filename,
+            workflowId: result.workflowId,
+            name: result.name,
+            originalName: workflowDef.name,
+            triggerTag,
+            active: activateResult.success
+          });
+
+          results.push({
+            filename,
+            success: true,
+            workflowId: result.workflowId,
+            active: activateResult.success,
+            name: workflowDef.name
+          });
+        } else {
+          console.error(`  FAILED: ${result.error}`);
+          results.push({ filename, success: false, error: result.error });
+        }
+      } catch (error) {
+        console.error(`  EXCEPTION: ${error.message}`);
+        results.push({ filename, success: false, error: error.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+
+    console.log(`\n=== ORDERED DEPLOYMENT SUMMARY ===`);
+    console.log(`Succeeded: ${successCount} / ${deploymentOrder.length}`);
+    console.log(`Failed: ${failCount}`);
+    console.log('\nWorkflow ID Map:');
+    for (const [name, id] of Object.entries(workflowIdMap)) {
+      console.log(`  "${name}" -> ${id}`);
+    }
+    if (failCount > 0) {
+      console.log('\nFailed workflows:');
+      results.filter(r => !r.success).forEach(r => console.log(`  - ${r.filename}: ${r.error}`));
+    }
+    console.log('==================================\n');
+
+    return {
+      success: failCount === 0,
+      deployed: successCount,
+      failed: failCount,
+      total: deploymentOrder.length,
+      workflows: deployedWorkflows,
+      workflowIdMap,
       results
     };
   }
