@@ -611,9 +611,8 @@ class N8NService {
       throw new Error('n8n not configured');
     }
 
-    // Prefix workflow name with client name
-    const originalName = workflow.name;
-    const prefixedName = `[${clientName}] ${originalName}`;
+    // Use original workflow name (no client prefix)
+    const workflowName = workflow.name;
 
     // Clean nodes - remove webhookIds and other properties n8n doesn't accept on creation
     const cleanedNodes = (workflow.nodes || []).map(node => {
@@ -624,7 +623,7 @@ class N8NService {
 
     // Build clean workflow object with only the fields n8n API accepts
     const cleanWorkflow = {
-      name: prefixedName,
+      name: workflowName,
       nodes: cleanedNodes,
       connections: workflow.connections || {},
       settings: workflow.settings || {}
