@@ -235,7 +235,7 @@
       }
 
       try {
-        const res = await fetch(`/api/admin/apibank/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/admin/apibank/delete/${id}`, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           loadKeys();
@@ -252,7 +252,7 @@
       if (!confirm('Delete ALL API keys from the bank? This cannot be undone.')) return;
 
       try {
-        const res = await fetch('/api/admin/apibank', { method: 'DELETE' });
+        const res = await fetch('/api/admin/apibank/deleteall', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           loadKeys();

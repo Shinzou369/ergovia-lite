@@ -667,8 +667,8 @@ app.post('/api/admin/apibank', (req, res) => {
   }
 });
 
-// Delete a specific API key from bank
-app.delete('/api/admin/apibank/:id', (req, res) => {
+// Delete a specific API key from bank (POST for proxy compatibility)
+app.post('/api/admin/apibank/delete/:id', (req, res) => {
   try {
     const result = db.deleteApiKey(parseInt(req.params.id));
     if (result.success) {
@@ -682,8 +682,8 @@ app.delete('/api/admin/apibank/:id', (req, res) => {
   }
 });
 
-// Delete ALL API keys from bank
-app.delete('/api/admin/apibank', (req, res) => {
+// Delete ALL API keys from bank (POST for proxy compatibility)
+app.post('/api/admin/apibank/deleteall', (req, res) => {
   try {
     const result = db.deleteAllApiKeys();
     db.logActivity('apikey_bank_cleared', 'All API keys removed from bank');
