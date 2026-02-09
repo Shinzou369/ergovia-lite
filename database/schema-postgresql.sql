@@ -92,6 +92,10 @@ CREATE TABLE IF NOT EXISTS deals (
     id SERIAL PRIMARY KEY,
     deal_id VARCHAR(255) UNIQUE NOT NULL,
     inquiry_id VARCHAR(255),
+    contact_id VARCHAR(255),
+    guest_name VARCHAR(255),
+    guest_phone VARCHAR(50),
+    guest_email VARCHAR(255),
     client_name VARCHAR(255),
     client_phone VARCHAR(50),
     client_email VARCHAR(255),
@@ -100,15 +104,21 @@ CREATE TABLE IF NOT EXISTS deals (
     check_in_date DATE,
     check_out_date DATE,
     guests INTEGER,
+    num_guests INTEGER,
+    total_amount DECIMAL(10,2),
     status VARCHAR(50), -- negotiation, pending_conflict, needs_owner_decision, pending_payment_confirmation, ai_conversation, confirmed, rejected, expired
+    deal_status VARCHAR(50), -- alias for status, used by WF2
     deal_type VARCHAR(50), -- normal, conflict, party, negotiation
     price_quoted DECIMAL(10,2),
     price_final DECIMAL(10,2),
+    channel VARCHAR(50),
     channel_type VARCHAR(50),
     conversation_history JSONB,
     conflict_priority INTEGER,
     conflict_reason TEXT,
+    priority_score INTEGER,
     owner_notes TEXT,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP,
@@ -117,7 +127,9 @@ CREATE TABLE IF NOT EXISTS deals (
 );
 
 CREATE INDEX idx_deals_phone_status ON deals(client_phone, status);
+CREATE INDEX idx_deals_contact ON deals(contact_id);
 CREATE INDEX idx_deals_status ON deals(status);
+CREATE INDEX idx_deals_deal_status ON deals(deal_status);
 CREATE INDEX idx_deals_property_dates ON deals(property_id, check_in_date, check_out_date);
 CREATE INDEX idx_deals_inquiry ON deals(inquiry_id);
 
@@ -185,6 +197,15 @@ CREATE TABLE IF NOT EXISTS property_configurations (
 
     -- Status
     property_status VARCHAR(50) DEFAULT 'active', -- active, inactive, maintenance
+
+    -- Property details (used by WF2 Booking Agent)
+    property_type VARCHAR(100), -- apartment, house, villa, studio, etc.
+    amenities TEXT,
+    house_rules TEXT,
+    check_in_time VARCHAR(10) DEFAULT '15:00',
+    check_out_time VARCHAR(10) DEFAULT '11:00',
+    location_description TEXT,
+    preferred_platform VARCHAR(50) DEFAULT 'telegram',
 
     -- Flexible settings JSON
     settings JSONB DEFAULT '{}',
@@ -837,16 +858,45 @@ CREATE TRIGGER update_deal_conflicts_updated_at BEFORE UPDATE ON deal_conflicts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
+-- TABLE: conversations
+-- Used by: WF2 (AI Booking Agent) - tracks guest conversation state
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS conversations (
+    id SERIAL PRIMARY KEY,
+    conversation_id VARCHAR(255) UNIQUE NOT NULL,
+    contact_id VARCHAR(255) NOT NULL,
+    property_id VARCHAR(255),
+    conversation_stage VARCHAR(100) DEFAULT 'greeting',
+    conversation_history JSONB DEFAULT '[]',
+    collected_data JSONB DEFAULT '{}',
+    channel VARCHAR(50),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_conversations_contact ON conversations(contact_id);
+CREATE INDEX idx_conversations_property ON conversations(property_id);
+CREATE INDEX idx_conversations_stage ON conversations(conversation_stage);
+CREATE INDEX idx_conversations_active ON conversations(is_active) WHERE is_active = true;
+
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
 -- TABLE: activity_log
 -- Used by: WF1 (AI Gateway), WF6 (Daily Automations), others
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS activity_log (
     id SERIAL PRIMARY KEY,
     log_id VARCHAR(255),
+    event_type VARCHAR(100),
     automation_type VARCHAR(100),
     channel VARCHAR(50),
+    contact_id VARCHAR(255),
     sender_id VARCHAR(255),
     sender_name VARCHAR(255),
+    message TEXT,
     action TEXT,
     details JSONB,
     status VARCHAR(50) DEFAULT 'completed',
@@ -856,6 +906,8 @@ CREATE TABLE IF NOT EXISTS activity_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_activity_log_type ON activity_log(automation_type);
+CREATE INDEX IF NOT EXISTS idx_activity_log_event_type ON activity_log(event_type);
+CREATE INDEX IF NOT EXISTS idx_activity_log_contact ON activity_log(contact_id);
 CREATE INDEX IF NOT EXISTS idx_activity_log_date ON activity_log(created_at);
 
 -- ============================================================================
