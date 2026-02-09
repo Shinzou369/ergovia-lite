@@ -70,50 +70,50 @@
         </form>
 
         <p style="text-align: center; margin-top: 20px; color: var(--gray);">
-            Don't have an account? <a href="/contact.html" style="color: var(--primary);">Contact us</a>
+            Don't have an account? <a href="register.html" style="color: var(--primary);">Create one</a>
         </p>
     </div>
 
     <script>
         const API_BASE = '/api/backend';
 
+        // Check if already logged in
         (async () => {
-            const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' }).catch(() => null);
-            if (authCheck && authCheck.ok) {
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
                 window.location.href = 'dashboard.html';
             }
         })();
 
         async function handleLogin(event) {
             event.preventDefault();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const alertBox = document.getElementById('alertBox');
 
             try {
-                const response = await fetch(`${API_BASE}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ email, password })
-                });
+                // Local authentication
+                const accounts = JSON.parse(localStorage.getItem('localAccounts') || '[]');
+                const account = accounts.find(acc => acc.email === email && acc.password === password);
 
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Login failed');
+                if (!account) {
+                    throw new Error('Invalid email or password');
                 }
 
-                localStorage.setItem('prismity_client', JSON.stringify(data.client));
+                // Set current user
+                localStorage.setItem('currentUser', JSON.stringify({
+                    email: account.email,
+                    name: account.name,
+                    createdAt: account.createdAt
+                }));
 
                 alertBox.className = 'alert alert-success';
                 alertBox.innerHTML = '<i class="fas fa-check"></i> Login successful! Redirecting...';
                 alertBox.style.display = 'flex';
 
-                const redirectTo = data.onboarding?.needsOnboarding ? 'onboarding.html' : 'dashboard.html';
                 setTimeout(() => {
-                    window.location.href = redirectTo;
+                    window.location.href = 'dashboard.html';
                 }, 1000);
 
             } catch (error) {

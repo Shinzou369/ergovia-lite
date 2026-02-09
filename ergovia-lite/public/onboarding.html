@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding - Ergovia</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="onboarding">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Property Setup</h1>
+        <p class="page-subtitle">Let's get your property automation configured</p>
+      </div>
+    </div>
+
+    <!-- Step Indicators -->
+    <div class="steps">
+      <div class="step" data-step="1">
+        <div class="step-number">1</div>
+        <span class="step-label">Owner Info</span>
+      </div>
+      <div class="step" data-step="2">
+        <div class="step-number">2</div>
+        <span class="step-label">Property</span>
+      </div>
+      <div class="step" data-step="3">
+        <div class="step-number">3</div>
+        <span class="step-label">Guest Access</span>
+      </div>
+      <div class="step" data-step="4">
+        <div class="step-number">4</div>
+        <span class="step-label">Calendars</span>
+      </div>
+      <div class="step" data-step="5">
+        <div class="step-number">5</div>
+        <span class="step-label">Integrations</span>
+      </div>
+    </div>
+
+    <!-- Step 1: Owner Info -->
+    <div class="step-content" data-step="1">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Owner Information</h3>
+        </div>
+        <div class="card-body">
+          <form id="step1-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Your Name *</label>
+                <input type="text" name="ownerName" class="form-input" required placeholder="John Smith">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address *</label>
+                <input type="email" name="ownerEmail" class="form-input" required placeholder="john@example.com">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Phone Number *</label>
+              <input type="tel" name="ownerPhone" class="form-input" required placeholder="+1 555-123-4567">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Which messaging platforms do you have? *</label>
+              <p class="form-hint mb-2">Select all platforms you have configured and can receive messages on.</p>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="hasTelegram" value="telegram" checked>
+                  <span>Telegram</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="hasWhatsapp" value="whatsapp">
+                  <span>WhatsApp</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" name="hasSms" value="sms">
+                  <span>SMS (Twilio)</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Primary Platform (for notifications) *</label>
+              <select name="primaryPlatform" id="primaryPlatform" class="form-select" required>
+                <option value="telegram">Telegram</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="sms">SMS</option>
+              </select>
+              <p class="form-hint">This will be used for owner notifications and as fallback for routing.</p>
+            </div>
+
+            <div id="telegram-field" class="form-group">
+              <label class="form-label">Telegram Chat ID</label>
+              <input type="text" name="telegramChatId" class="form-input" placeholder="123456789">
+              <p class="form-hint">Your Telegram numeric chat ID. Send /start to @userinfobot to find it.</p>
+            </div>
+
+            <div id="whatsapp-field" class="form-group hidden">
+              <label class="form-label">WhatsApp Number</label>
+              <input type="text" name="whatsappNumber" class="form-input" placeholder="+1 555-123-4567">
+              <p class="form-hint">Include country code, e.g., +1 for US</p>
+            </div>
+          </form>
+        </div>
+        <div class="step-actions">
+          <div></div>
+          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Property Details -->
+    <div class="step-content" data-step="2">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Property Details</h3>
+        </div>
+        <div class="card-body">
+          <form id="step2-form">
+            <div class="form-group">
+              <label class="form-label">Property Name *</label>
+              <input type="text" name="propertyName" class="form-input" required placeholder="Beach House Paradise">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Property Address *</label>
+              <input type="text" name="propertyAddress" class="form-input" required placeholder="123 Ocean Drive">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">City *</label>
+                <input type="text" name="propertyCity" class="form-input" required placeholder="Miami Beach">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Timezone</label>
+                <select name="timezone" class="form-select">
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="Europe/London">London (GMT)</option>
+                  <option value="Europe/Paris">Paris (CET)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Bedrooms</label>
+                <input type="number" name="bedrooms" class="form-input" value="2" min="1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Guests</label>
+                <input type="number" name="maxGuests" class="form-input" value="4" min="1">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Base Price (per night)</label>
+                <input type="number" name="basePrice" class="form-input" value="150" min="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Minimum Price</label>
+                <input type="number" name="minPrice" class="form-input" value="100" min="0">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Guest Access -->
+    <div class="step-content" data-step="3">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Guest Access Information</h3>
+        </div>
+        <div class="card-body">
+          <form id="step3-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Check-in Time</label>
+                <input type="time" name="checkInTime" class="form-input" value="15:00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Check-out Time</label>
+                <input type="time" name="checkOutTime" class="form-input" value="11:00">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Door Code / Lock Code</label>
+                <input type="text" name="doorCode" class="form-input" placeholder="1234">
+              </div>
+              <div class="form-group">
+                <label class="form-label">WiFi Network Name</label>
+                <input type="text" name="wifiNetwork" class="form-input" placeholder="BeachHouse_WiFi">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">WiFi Password</label>
+              <input type="text" name="wifiPassword" class="form-input" placeholder="password123">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Parking Instructions</label>
+              <textarea name="parkingInstructions" class="form-textarea" placeholder="Park in the driveway or use street parking..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">House Rules</label>
+              <textarea name="houseRules" class="form-textarea" placeholder="No smoking, no parties, quiet hours after 10 PM..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Local Recommendations</label>
+              <textarea name="localRecommendations" class="form-textarea" placeholder="Best restaurants, beaches, attractions nearby..."></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Calendars -->
+    <div class="step-content" data-step="4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Calendar Integration</h3>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info mb-3">
+            Enter your iCal URLs to sync bookings from different platforms. These are usually found in your platform's settings under "Calendar" or "Sync".
+          </div>
+          <form id="step4-form">
+            <div class="form-group">
+              <label class="form-label">Airbnb Calendar URL</label>
+              <input type="url" name="airbnbCalendarUrl" class="form-input" placeholder="https://www.airbnb.com/calendar/ical/...">
+              <p class="form-hint">Found in Airbnb > Calendar > Availability > Import/Export</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">VRBO Calendar URL</label>
+              <input type="url" name="vrboCalendarUrl" class="form-input" placeholder="https://www.vrbo.com/icalendar/...">
+              <p class="form-hint">Found in VRBO > Calendar > iCal Settings</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Booking.com Calendar URL</label>
+              <input type="url" name="bookingCalendarUrl" class="form-input" placeholder="https://admin.booking.com/...">
+              <p class="form-hint">Found in Booking.com > Calendar > Sync</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Other Calendar URL (optional)</label>
+              <input type="url" name="otherCalendarUrl" class="form-input" placeholder="https://...">
+            </div>
+          </form>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Integrations & Team -->
+    <div class="step-content" data-step="5">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Integrations & Credentials</h3>
+        </div>
+        <div class="card-body">
+          <form id="step5-form">
+            <div class="alert alert-info mb-3">
+              Enter your API credentials for the messaging platforms you selected. These are required to send messages to guests.
+            </div>
+
+            <!-- Telegram Credentials (conditional) -->
+            <div id="telegram-credentials" class="credential-section hidden">
+              <h4 class="mb-2">Telegram Bot Credentials</h4>
+              <div class="form-group">
+                <label class="form-label">Telegram Bot Token *</label>
+                <input type="password" name="telegramBotToken" class="form-input" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                <p class="form-hint">Get from <a href="https://t.me/BotFather" target="_blank">@BotFather</a> on Telegram. Send /newbot to create one.</p>
+              </div>
+            </div>
+
+            <!-- WhatsApp Credentials (conditional) -->
+            <div id="whatsapp-credentials" class="credential-section hidden">
+              <h4 class="mb-2">WhatsApp Business Credentials</h4>
+              <div class="form-group">
+                <label class="form-label">WhatsApp Phone Number ID *</label>
+                <input type="text" name="whatsappPhoneNumberId" class="form-input" placeholder="1234567890123456">
+                <p class="form-hint">Found in Meta Business Suite > WhatsApp > Phone Numbers</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">WhatsApp Access Token *</label>
+                <input type="password" name="whatsappAccessToken" class="form-input" placeholder="EAAxxxxxxx...">
+                <p class="form-hint">Generate in Meta Business Suite > WhatsApp > API Setup</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">WhatsApp Business Account ID</label>
+                <input type="text" name="whatsappBusinessAccountId" class="form-input" placeholder="123456789012345">
+                <p class="form-hint">Optional - Found in Meta Business Suite settings</p>
+              </div>
+            </div>
+
+            <!-- Twilio/SMS Credentials (conditional) -->
+            <div id="twilio-credentials" class="credential-section hidden">
+              <h4 class="mb-2">Twilio SMS Credentials</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Twilio Account SID *</label>
+                  <input type="text" name="twilioAccountSid" class="form-input" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                  <p class="form-hint">Found in Twilio Console dashboard</p>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Twilio Auth Token *</label>
+                  <input type="password" name="twilioAuthToken" class="form-input" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                  <p class="form-hint">Found in Twilio Console dashboard</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Twilio Phone Number *</label>
+                <input type="tel" name="twilioPhoneNumber" class="form-input" placeholder="+1 555-123-4567">
+                <p class="form-hint">Your Twilio phone number for sending SMS</p>
+              </div>
+            </div>
+
+            <!-- No platforms selected message -->
+            <div id="no-platforms-message" class="alert alert-warning">
+              No messaging platforms selected. Go back to Step 1 to select at least one platform (Telegram, WhatsApp, or SMS).
+            </div>
+
+            <h4 class="mt-4 mb-2">Manager/Team Lead (Optional)</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Manager Name</label>
+                <input type="text" name="managerName" class="form-input" placeholder="Jane Doe">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Manager Platform</label>
+                <select name="managerPlatform" class="form-select">
+                  <option value="">Same as owner</option>
+                  <option value="telegram">Telegram</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="sms">SMS</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Manager Contact</label>
+              <input type="text" name="managerContact" class="form-input" placeholder="Phone or Chat ID">
+            </div>
+          </form>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
+          <button type="button" class="btn btn-success btn-lg btn-complete">Complete Setup</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -148,4 +148,101 @@ router.get('/status/:jobId/stream', async (req, res) => {
   });
 });
 
+// ─── Callback endpoint for automated deployment script ───
+// Called by scripts/deploy-n8n.js when a new n8n server is ready
+router.post('/callback',
+  async (req, res) => {
+    try {
+      const provisioningSecret = req.headers['x-provisioning-secret'];
+
+      // Verify the request is from our deployment script
+      if (provisioningSecret !== process.env.PROVISIONING_SECRET) {
+        logger.warn('Invalid provisioning callback attempt', {
+          ip: req.ip
+        });
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const { clientId, status, serverData } = req.body;
+
+      if (!clientId || !serverData) {
+        return res.status(400).json({ error: 'Missing clientId or serverData' });
+      }
+
+      logger.info('Received provisioning callback', {
+        clientId,
+        status,
+        n8nUrl: serverData.n8nUrl
+      });
+
+      // Save the n8n credentials to the database
+      await orchestrator.updateClientServer(clientId, {
+        serverId: serverData.serverId,
+        serverIp: serverData.serverIp,
+        n8nUrl: serverData.n8nUrl,
+        n8nApiKey: serverData.n8nApiKey,
+        n8nAdminUser: serverData.adminUser,
+        n8nAdminPassword: serverData.adminPassword,
+        status: status,
+      });
+
+      logger.info('Client server credentials saved', { clientId });
+
+      // Optionally trigger workflow deployment now that n8n is ready
+      if (status === 'completed' && serverData.n8nApiKey) {
+        logger.info('n8n ready with API key, can deploy workflows', { clientId });
+        // orchestrator.deployClientWorkflows(clientId) could be called here
+      }
+
+      res.json({
+        success: true,
+        message: 'Callback received and processed',
+        clientId
+      });
+
+    } catch (error) {
+      logger.error('Callback processing failed', { error: error.message });
+      res.status(500).json({ error: 'Callback processing failed' });
+    }
+  }
+);
+
+// ─── Manual trigger for deploying n8n to a new server ───
+router.post('/deploy-n8n',
+  rateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 1000 }),
+  sanitizeInput,
+  validateRequired(['clientId', 'subdomain']),
+  async (req, res) => {
+    try {
+      const { clientId, subdomain, clientName } = req.body;
+
+      logger.info('Manual n8n deployment requested', { clientId, subdomain });
+
+      // Dynamically import and run the deployment
+      const { deployN8NForClient } = require('../../../scripts/deploy-n8n');
+
+      // Run async - don't wait for completion
+      deployN8NForClient({ clientId, subdomain, clientName: clientName || subdomain })
+        .then(result => {
+          logger.info('Manual deployment completed', { clientId, n8nUrl: result.n8nUrl });
+        })
+        .catch(error => {
+          logger.error('Manual deployment failed', { clientId, error: error.message });
+        });
+
+      res.status(202).json({
+        success: true,
+        message: 'Deployment started',
+        clientId,
+        subdomain,
+        estimatedTime: '5-10 minutes',
+      });
+
+    } catch (error) {
+      logger.error('Failed to start deployment', { error: error.message });
+      res.status(500).json({ error: 'Failed to start deployment' });
+    }
+  }
+);
+
 module.exports = router;

@@ -1035,6 +1035,9 @@
                     <h1 class="page-title">Dashboard</h1>
                 </div>
                 <div class="header-right">
+                    <button class="header-btn" onclick="resetOnboarding()" title="Reset Onboarding">
+                        <i class="fas fa-redo"></i>
+                    </button>
                     <button class="header-btn" onclick="toggleTheme()" title="Toggle Theme">
                         <i class="fas fa-moon" id="themeIcon"></i>
                     </button>
@@ -1227,26 +1230,40 @@
 
         async function init() {
             setTimeGreeting();
-            try {
-                const authCheck = await fetch(`${API_BASE}/auth/me`, { credentials: 'include' });
-                if (!authCheck.ok) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-                clientData = await authCheck.json();
 
-                if (clientData.onboarding?.needsOnboarding) {
-                    window.location.href = 'onboarding.html';
-                    return;
-                }
+            // Check if user is logged in
+            const currentUser = localStorage.getItem('currentUser');
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
 
-                await loadDashboard();
+            const user = JSON.parse(currentUser);
 
-                if (localStorage.getItem('showTutorial') !== 'false' && !clientData.onboarding?.tutorialCompleted) {
-                    setTimeout(() => startTutorial(), 1000);
+            // Check if onboarding has been completed
+            const onboardingComplete = localStorage.getItem('onboardingComplete') === 'true';
+
+            clientData = {
+                client: {
+                    ownerName: user.name,
+                    email: user.email
+                },
+                onboarding: {
+                    needsOnboarding: !onboardingComplete,
+                    tutorialCompleted: false
                 }
-            } catch (error) {
-                console.error('Init failed:', error);
+            };
+
+            // Redirect to onboarding if not completed
+            if (!onboardingComplete) {
+                window.location.href = 'onboarding.html';
+                return;
+            }
+
+            await loadDashboard();
+
+            if (localStorage.getItem('showTutorial') !== 'false') {
+                setTimeout(() => startTutorial(), 1000);
             }
         }
 
@@ -1259,23 +1276,50 @@
         }
 
         async function loadDashboard() {
-            try {
-                const data = await apiRequest('/control-panel/dashboard');
-                const name = data.owner?.name || clientData?.client?.ownerName || 'Owner';
-                document.getElementById('ownerName').textContent = name;
-                document.getElementById('userName').textContent = name;
-                document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+            // Get onboarding data from localStorage
+            const onboardingData = JSON.parse(localStorage.getItem('onboardingData') || '{}');
 
-                document.getElementById('activeBookings').textContent = data.stats?.activeBookings || 0;
-                document.getElementById('pendingTasks').textContent = data.stats?.pendingTasks || 0;
-                document.getElementById('messagesHandled').textContent = data.stats?.messagesHandled || 0;
-                document.getElementById('monthlyRevenue').textContent = formatCurrency(data.stats?.monthlyRevenue || 0);
+            // Using mock data for testing (no API calls)
+            const mockData = {
+                owner: { name: clientData.client.ownerName },
+                stats: {
+                    activeBookings: 3,
+                    pendingTasks: 5,
+                    messagesHandled: 12,
+                    monthlyRevenue: 4500
+                },
+                alerts: [],
+                activity: [
+                    {
+                        message: 'New booking received for Beach House',
+                        status: 'success',
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        message: 'Cleaning scheduled for tomorrow',
+                        status: 'pending',
+                        timestamp: new Date(Date.now() - 3600000).toISOString()
+                    },
+                    {
+                        message: 'Guest check-in confirmed',
+                        status: 'info',
+                        timestamp: new Date(Date.now() - 7200000).toISOString()
+                    }
+                ]
+            };
 
-                renderSetupBanner(data.alerts || []);
-                renderActivity(data.activity || []);
-            } catch (error) {
-                console.error('Dashboard load failed:', error);
-            }
+            const name = mockData.owner?.name || clientData?.client?.ownerName || 'Owner';
+            document.getElementById('ownerName').textContent = name;
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+
+            document.getElementById('activeBookings').textContent = mockData.stats?.activeBookings || 0;
+            document.getElementById('pendingTasks').textContent = mockData.stats?.pendingTasks || 0;
+            document.getElementById('messagesHandled').textContent = mockData.stats?.messagesHandled || 0;
+            document.getElementById('monthlyRevenue').textContent = formatCurrency(mockData.stats?.monthlyRevenue || 0);
+
+            renderSetupBanner(mockData.alerts || []);
+            renderActivity(mockData.activity || []);
         }
 
         function renderSetupBanner(alerts) {
@@ -1639,9 +1683,8 @@
         }
 
         async function logout() {
-            try {
-                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
-            } catch (e) {}
+            // Clear local session
+            localStorage.removeItem('currentUser');
             window.location.href = 'login.html';
         }
 
@@ -1649,6 +1692,18 @@
         function sendMessage() { alert('Message sent!'); closeModal(); }
         function submitMaintenance() { alert('Maintenance ticket created!'); closeModal(); }
         function savePricing() { alert('Pricing saved!'); closeModal(); }
+
+        function resetOnboarding() {
+            if (confirm('This will reset your onboarding and you\'ll go through the setup wizard again. Continue?')) {
+                // Keep user account but clear onboarding
+                const currentUser = localStorage.getItem('currentUser');
+                const localAccounts = localStorage.getItem('localAccounts');
+                localStorage.clear();
+                if (currentUser) localStorage.setItem('currentUser', currentUser);
+                if (localAccounts) localStorage.setItem('localAccounts', localAccounts);
+                window.location.href = 'onboarding.html';
+            }
+        }
 
         init();
     </script>

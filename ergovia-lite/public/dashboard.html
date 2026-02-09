@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Ergovia</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body data-page="dashboard">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="nav-link active">Dashboard</a>
+        <a href="/settings.html" class="nav-link">Settings</a>
+        <a href="/automations.html" class="nav-link">Automations</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Manage your property automation</p>
+      </div>
+      <button id="reset-btn" class="btn btn-outline btn-sm">Reset Data</button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-3 mb-4">
+      <div class="stat-card">
+        <p class="stat-value"><span id="active-workflows">0</span>/<span id="total-workflows">25</span></p>
+        <p class="stat-label">Active Automations</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-badges">
+          <p class="stat-label mb-2">System Status</p>
+          <span id="automation-status" class="badge badge-gray">Loading...</span>
+          <span id="deployment-status" class="badge badge-gray">Loading...</span>
+        </div>
+      </div>
+      <div class="stat-card text-center">
+        <button id="deploy-btn" class="btn btn-primary btn-lg" disabled>Deploy Automations</button>
+        <button id="delete-workflows-btn" class="btn btn-danger btn-lg mt-2" style="display: none;">Delete All Workflows</button>
+        <p class="text-muted mt-2" style="font-size: 12px;">Deploys all 25 workflows</p>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-2">
+      <!-- Quick Actions Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Quick Actions</h3>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-2" style="gap: 12px;">
+            <a href="/settings.html" class="btn btn-secondary">Edit Settings</a>
+            <a href="/automations.html" class="btn btn-secondary">View Automations</a>
+            <a href="/onboarding.html" class="btn btn-outline">Re-run Onboarding</a>
+            <a href="/setup-check.html" class="btn btn-outline">Setup Check</a>
+            <a href="/admin.html" class="btn btn-outline">API Bank</a>
+            <button id="reset-btn-2" class="btn btn-outline text-danger">Reset All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Recent Activity</h3>
+        </div>
+        <div class="card-body">
+          <ul id="activity-list" class="activity-list">
+            <li class="activity-item">
+              <div class="loading">
+                <div class="spinner"></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Getting Started -->
+    <div class="card mt-3">
+      <div class="card-header">
+        <h3 class="card-title">Getting Started</h3>
+      </div>
+      <div class="card-body">
+        <ol style="padding-left: 20px; line-height: 2;">
+          <li>Complete the <a href="/onboarding.html">onboarding wizard</a> with your property details</li>
+          <li>Review your settings in the <a href="/settings.html">Settings</a> page</li>
+          <li>Click "Deploy Automations" to activate all 25 automation workflows</li>
+          <li>Your automations will start running automatically!</li>
+          <li>Edit settings anytime - changes automatically update all workflows</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // Also bind the second reset button
+    document.getElementById('reset-btn-2')?.addEventListener('click', async () => {
+      if (confirm('Are you sure you want to reset all data? This will also remove all deployed automations.')) {
+        await API.resetClient();
+        showAlert('Data reset successfully', 'success');
+        setTimeout(() => location.reload(), 1000);
+      }
+    });
+  </script>
+</body>
+</html>

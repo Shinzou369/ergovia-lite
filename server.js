@@ -6306,6 +6306,7 @@ app.use('/api/backend/admin', backendAdminRoutes);
 // Control Panel clean URL routes (without .html extension)
 app.get('/control-panel', (req, res) => res.redirect('/control-panel/login'));
 app.get('/control-panel/login', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/login.html')));
+app.get('/control-panel/register', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/register.html')));
 app.get('/control-panel/onboarding', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/onboarding.html')));
 app.get('/control-panel/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/dashboard.html')));
 app.get('/control-panel/settings', (req, res) => res.sendFile(path.join(__dirname, 'public/control-panel/settings.html')));
