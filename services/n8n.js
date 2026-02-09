@@ -172,7 +172,7 @@ class N8NService {
       console.log('  Creating Telegram credential...');
       const result = await this.createCredential(
         'telegramApi',
-        `[${clientName}] Telegram Bot`,
+        `Telegram Bot - ${clientName}`,
         { accessToken: integrations.telegramBotToken }
       );
       if (result.success) {
@@ -188,7 +188,7 @@ class N8NService {
       console.log('  Creating WhatsApp credential...');
       const result = await this.createCredential(
         'whatsAppBusinessCloudApi',
-        `[${clientName}] WhatsApp Business`,
+        `WhatsApp Business - ${clientName}`,
         {
           accessToken: integrations.whatsappAccessToken,
           phoneNumberId: integrations.whatsappPhoneNumberId || '',
@@ -208,7 +208,7 @@ class N8NService {
       console.log('  Creating Twilio credential...');
       const result = await this.createCredential(
         'twilioApi',
-        `[${clientName}] Twilio SMS`,
+        `Twilio SMS - ${clientName}`,
         {
           accountSid: integrations.twilioAccountSid,
           authToken: integrations.twilioAuthToken
@@ -259,7 +259,7 @@ class N8NService {
     console.log('  Creating openAiApi with header:false');
     const result = await this.createCredential(
       'openAiApi',
-      `[${clientName}] OpenAI`,
+      `OpenAI - ${clientName}`,
       {
         apiKey: apiKey,
         header: false
@@ -299,7 +299,7 @@ class N8NService {
     console.log('  Creating postgres with sshTunnel:false and allowUnauthorizedCerts:false');
     const result = await this.createCredential(
       'postgres',
-      `[${clientName}] PostgreSQL`,
+      `PostgreSQL - ${clientName}`,
       {
         host: connectionDetails.host,
         database: connectionDetails.database,
@@ -997,9 +997,15 @@ class N8NService {
   // Inject actual workflow IDs into workflow references
   // Replaces workflow name values with actual n8n workflow IDs
   injectWorkflowIds(workflow, workflowIdMap) {
-    if (!workflow.nodes) return workflow;
+    if (!workflow.nodes) {
+      console.log('    WARNING: No nodes in workflow, skipping ID injection');
+      return workflow;
+    }
+
+    console.log(`    Injecting workflow IDs. Map has ${Object.keys(workflowIdMap).length} entries:`, Object.keys(workflowIdMap));
 
     let injectedCount = 0;
+    let warningCount = 0;
 
     workflow.nodes = workflow.nodes.map(node => {
       // Check for executeWorkflow nodes (both regular and tool versions)
@@ -1012,21 +1018,29 @@ class N8NService {
           // Check if using "list" mode with workflow name as value
           if (workflowRef.__rl && workflowRef.mode === 'list' && workflowRef.value) {
             const referencedWorkflowName = workflowRef.value;
+
+            // Skip if already an ID (not a name) - IDs don't contain colons or spaces
+            if (!referencedWorkflowName.includes(':') && !referencedWorkflowName.includes(' ')) {
+              console.log(`      Skipping "${referencedWorkflowName}" - already looks like an ID`);
+              return node;
+            }
+
             const actualId = workflowIdMap[referencedWorkflowName];
 
             if (actualId) {
               // Update to use actual workflow ID
+              // IMPORTANT: mode must be 'id' (not 'list') when using actual workflow ID
               node.parameters.workflowId = {
                 __rl: true,
-                mode: 'list',
-                value: actualId,
-                cachedResultName: referencedWorkflowName,
-                cachedResultUrl: `/workflow/${actualId}`
+                mode: 'id',
+                value: actualId
               };
               injectedCount++;
-              console.log(`      Injected workflow ID: "${referencedWorkflowName}" -> ${actualId} in node "${node.name}"`);
+              console.log(`      ✓ Injected: "${referencedWorkflowName}" -> ${actualId} (mode: id) in node "${node.name}"`);
             } else {
-              console.log(`      WARNING: No ID found for workflow "${referencedWorkflowName}" in node "${node.name}"`);
+              warningCount++;
+              console.log(`      ✗ WARNING: No ID found for "${referencedWorkflowName}" in node "${node.name}"`);
+              console.log(`        Available in map: ${JSON.stringify(Object.keys(workflowIdMap))}`);
             }
           }
         }
@@ -1034,9 +1048,7 @@ class N8NService {
       return node;
     });
 
-    if (injectedCount > 0) {
-      console.log(`    Injected ${injectedCount} workflow IDs`);
-    }
+    console.log(`    Injection complete: ${injectedCount} injected, ${warningCount} warnings`);
 
     return workflow;
   }
@@ -1146,6 +1158,13 @@ class N8NService {
           // Activate workflow
           const activateResult = await this.activateWorkflow(result.workflowId);
           console.log(`  Activated: ${activateResult.success ? 'YES' : 'NO - ' + activateResult.error}`);
+
+          // For SUB workflows, add extra delay to ensure n8n registers them as published
+          // before dependent workflows try to reference them
+          if (filename.startsWith('SUB')) {
+            console.log(`  Waiting 3s for SUB workflow to be fully registered...`);
+            await this.sleep(3000);
+          }
 
           deployedWorkflows.push({
             filename,

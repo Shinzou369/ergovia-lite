@@ -3,7 +3,8 @@
   "nodes": [
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"channel\": \"telegram\",\n  \"recipient\": \"123456789\",\n  \"message\": \"Hello, this is a test message\"\n}"
       },
       "id": "b19b5b03-fbcb-469e-9f23-7087a82c155a",
       "name": "When Executed by Another Workflow",

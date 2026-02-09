@@ -3,7 +3,8 @@
   "nodes": [
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"category\": \"EMERGENCY\",\n  \"message_text\": \"There is a gas leak in the kitchen\",\n  \"sender_id\": \"123456789\",\n  \"channel\": \"telegram\",\n  \"property_id\": \"PROP001\"\n}"
       },
       "id": "workflow-trigger",
       "name": "When Called by Other Workflow",
@@ -183,6 +184,14 @@
     {
       "parameters": {
         "workflowId": { "__rl": true, "mode": "list", "value": "SUB: Universal Messenger", "cachedResultName": "SUB: Universal Messenger" },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $('Normalize Event').item.json.data.channel || 'telegram' }}",
+            "recipient": "={{ $('Normalize Event').item.json.data.sender_id }}",
+            "message": "={{ $json.output || $json.text || 'Your safety alert has been processed and logged.' }}"
+          }
+        },
         "options": {}
       },
       "id": "send-alerts",

@@ -15,7 +15,8 @@
     },
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"property_id\": \"PROP001\",\n  \"check_in_date\": \"2026-03-01\",\n  \"check_out_date\": \"2026-03-05\"\n}"
       },
       "id": "workflow-trigger",
       "name": "When Called by Other Workflow",
@@ -183,9 +184,17 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "channel": "telegram",
+            "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
+            "message": "={{ $json.text || $json.output || 'Calendar conflict detected - check your dashboard' }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "channel", "displayName": "channel", "type": "string", "required": true },
+            { "id": "recipient", "displayName": "recipient", "type": "string", "required": true },
+            { "id": "message", "displayName": "message", "type": "string", "required": true }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },

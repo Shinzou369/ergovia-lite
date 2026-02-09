@@ -125,9 +125,19 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "query": "={{ $fromAI('query', 'The guest booking question or request') }}",
+            "sender_id": "={{ $fromAI('sender_id', 'The guest sender ID or chat ID') }}",
+            "sender_name": "={{ $fromAI('sender_name', 'The guest name') }}",
+            "channel": "={{ $fromAI('channel', 'The messaging channel: telegram, whatsapp, or sms') }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "query", "displayName": "query", "type": "string", "required": true },
+            { "id": "sender_id", "displayName": "sender_id", "type": "string", "required": true },
+            { "id": "sender_name", "displayName": "sender_name", "type": "string", "required": false },
+            { "id": "channel", "displayName": "channel", "type": "string", "required": true }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         }
@@ -150,9 +160,17 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "property_id": "={{ $fromAI('property_id', 'The property ID to check availability for, or empty for all') }}",
+            "check_in_date": "={{ $fromAI('check_in_date', 'Desired check-in date in YYYY-MM-DD format') }}",
+            "check_out_date": "={{ $fromAI('check_out_date', 'Desired check-out date in YYYY-MM-DD format') }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "property_id", "displayName": "property_id", "type": "string", "required": false },
+            { "id": "check_in_date", "displayName": "check_in_date", "type": "string", "required": false },
+            { "id": "check_out_date", "displayName": "check_out_date", "type": "string", "required": false }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         }
@@ -175,9 +193,31 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "property_id": "={{ $fromAI('property_id', 'The property ID for the payment') }}",
+            "booking_id": "={{ $fromAI('booking_id', 'The booking ID if available') }}",
+            "guest_name": "={{ $fromAI('guest_name', 'The guest full name') }}",
+            "guest_email": "={{ $fromAI('guest_email', 'The guest email address') }}",
+            "guest_phone": "={{ $fromAI('guest_phone', 'The guest phone number') }}",
+            "check_in_date": "={{ $fromAI('check_in_date', 'Check-in date YYYY-MM-DD') }}",
+            "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date YYYY-MM-DD') }}",
+            "num_guests": "={{ $fromAI('num_guests', 'Number of guests') }}",
+            "total_amount": "={{ $fromAI('total_amount', 'Total payment amount') }}",
+            "currency": "={{ $fromAI('currency', 'Currency code like USD, EUR. Default USD') }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "property_id", "displayName": "property_id", "type": "string", "required": false },
+            { "id": "booking_id", "displayName": "booking_id", "type": "string", "required": false },
+            { "id": "guest_name", "displayName": "guest_name", "type": "string", "required": false },
+            { "id": "guest_email", "displayName": "guest_email", "type": "string", "required": false },
+            { "id": "guest_phone", "displayName": "guest_phone", "type": "string", "required": false },
+            { "id": "check_in_date", "displayName": "check_in_date", "type": "string", "required": false },
+            { "id": "check_out_date", "displayName": "check_out_date", "type": "string", "required": false },
+            { "id": "num_guests", "displayName": "num_guests", "type": "string", "required": false },
+            { "id": "total_amount", "displayName": "total_amount", "type": "string", "required": false },
+            { "id": "currency", "displayName": "currency", "type": "string", "required": false }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         }
@@ -200,9 +240,21 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "issue_description": "={{ $fromAI('issue_description', 'Description of the maintenance issue or operational request') }}",
+            "property_id": "={{ $fromAI('property_id', 'The property ID where the issue is') }}",
+            "sender_id": "={{ $fromAI('sender_id', 'The guest sender ID or chat ID who reported the issue') }}",
+            "channel": "={{ $fromAI('channel', 'The messaging channel: telegram, whatsapp, or sms') }}",
+            "priority": "={{ $fromAI('priority', 'Issue priority: low, medium, high, or urgent') }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "issue_description", "displayName": "issue_description", "type": "string", "required": true },
+            { "id": "property_id", "displayName": "property_id", "type": "string", "required": false },
+            { "id": "sender_id", "displayName": "sender_id", "type": "string", "required": false },
+            { "id": "channel", "displayName": "channel", "type": "string", "required": false },
+            { "id": "priority", "displayName": "priority", "type": "string", "required": false }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         }
@@ -225,9 +277,21 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "category": "={{ $fromAI('category', 'Always set to EMERGENCY') }}",
+            "message_text": "={{ $fromAI('message_text', 'Description of the emergency situation') }}",
+            "sender_id": "={{ $fromAI('sender_id', 'The guest sender ID or chat ID') }}",
+            "channel": "={{ $fromAI('channel', 'The messaging channel: telegram, whatsapp, or sms') }}",
+            "property_id": "={{ $fromAI('property_id', 'The property ID where the emergency is') }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "category", "displayName": "category", "type": "string", "required": true },
+            { "id": "message_text", "displayName": "message_text", "type": "string", "required": true },
+            { "id": "sender_id", "displayName": "sender_id", "type": "string", "required": true },
+            { "id": "channel", "displayName": "channel", "type": "string", "required": true },
+            { "id": "property_id", "displayName": "property_id", "type": "string", "required": false }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         }
@@ -241,7 +305,7 @@
     {
       "parameters": {
         "name": "send_message",
-        "description": "Send a message back to the guest. Always use this to reply after processing their request. Include the channel, recipient (sender_id), and the message text.",
+        "description": "Send a message back to the guest. Always use this to reply after processing their request. You MUST provide: channel (telegram/whatsapp/sms), recipient (the sender_id or chat_id), and message (the reply text).",
         "workflowId": {
           "__rl": true,
           "mode": "list",
@@ -250,9 +314,17 @@
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
-          "value": {},
+          "value": {
+            "channel": "={{ $fromAI('channel', 'The messaging channel: telegram, whatsapp, or sms') }}",
+            "recipient": "={{ $fromAI('recipient', 'The recipient chat ID or phone number (use the sender_id from the conversation)') }}",
+            "message": "={{ $fromAI('message', 'The message text to send to the guest') }}"
+          },
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            { "id": "channel", "displayName": "channel", "type": "string", "required": true },
+            { "id": "recipient", "displayName": "recipient", "type": "string", "required": true },
+            { "id": "message", "displayName": "message", "type": "string", "required": true }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         }

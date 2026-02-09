@@ -156,7 +156,10 @@
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">API Key Bank</h3>
-        <span id="key-stats" class="badge badge-info">Loading...</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="key-stats" class="badge badge-info">Loading...</span>
+          <button id="clear-all-keys" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px; display: none;" onclick="clearAllKeys()">Clear All</button>
+        </div>
       </div>
       <div class="card-body">
         <div id="key-list">
@@ -193,23 +196,26 @@
 
         const stats = document.getElementById('key-stats');
         const list = document.getElementById('key-list');
+        const clearBtn = document.getElementById('clear-all-keys');
 
         if (data.success) {
           stats.textContent = `${data.available} available / ${data.total} total`;
+          clearBtn.style.display = data.total > 0 ? 'inline-block' : 'none';
 
           if (data.keys.length === 0) {
             list.innerHTML = '<p class="text-muted">No API keys in bank. Add one above.</p>';
           } else {
             list.innerHTML = data.keys.map(k => `
-              <div class="service-item">
+              <div class="service-item" style="display: flex; align-items: center; justify-content: space-between;">
                 <div class="service-info">
                   <h4 class="service-name">${k.keyPreview}</h4>
-                  <p class="service-desc">${k.assigned ? `Assigned to: ${k.clientName}` : 'Available'}</p>
+                  <p class="service-desc">${k.assigned ? `Assigned to: ${k.clientName}` : 'Available'}${k.createdAt ? ` | Added: ${new Date(k.createdAt).toLocaleDateString()}` : ''}</p>
                 </div>
-                <div class="service-status">
+                <div style="display: flex; align-items: center; gap: 8px;">
                   <span class="badge ${k.assigned ? 'badge-warning' : 'badge-success'}">
                     ${k.assigned ? 'In Use' : 'Available'}
                   </span>
+                  <button class="btn btn-danger" style="font-size: 11px; padding: 2px 8px;" onclick="deleteKey(${k.id}, ${k.assigned})">&times;</button>
                 </div>
               </div>
             `).join('');
@@ -217,6 +223,44 @@
         }
       } catch (error) {
         console.error('Failed to load keys:', error);
+      }
+    }
+
+    // Delete a single key
+    async function deleteKey(id, isAssigned) {
+      if (isAssigned) {
+        if (!confirm('This key is currently assigned to a client. Deleting it will remove it from the bank. Are you sure?')) return;
+      } else {
+        if (!confirm('Delete this API key from the bank?')) return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/apibank/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadKeys();
+        } else {
+          alert(data.error || 'Failed to delete key');
+        }
+      } catch (error) {
+        alert('Error deleting key: ' + error.message);
+      }
+    }
+
+    // Clear all keys
+    async function clearAllKeys() {
+      if (!confirm('Delete ALL API keys from the bank? This cannot be undone.')) return;
+
+      try {
+        const res = await fetch('/api/admin/apibank', { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadKeys();
+        } else {
+          alert(data.error || 'Failed to clear keys');
+        }
+      } catch (error) {
+        alert('Error clearing keys: ' + error.message);
       }
     }
 

@@ -837,6 +837,28 @@ CREATE TRIGGER update_deal_conflicts_updated_at BEFORE UPDATE ON deal_conflicts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
+-- TABLE: activity_log
+-- Used by: WF1 (AI Gateway), WF6 (Daily Automations), others
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS activity_log (
+    id SERIAL PRIMARY KEY,
+    log_id VARCHAR(255),
+    automation_type VARCHAR(100),
+    channel VARCHAR(50),
+    sender_id VARCHAR(255),
+    sender_name VARCHAR(255),
+    action TEXT,
+    details JSONB,
+    status VARCHAR(50) DEFAULT 'completed',
+    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    properties_processed INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_log_type ON activity_log(automation_type);
+CREATE INDEX IF NOT EXISTS idx_activity_log_date ON activity_log(created_at);
+
+-- ============================================================================
 -- HELPFUL VIEWS
 -- ============================================================================
 

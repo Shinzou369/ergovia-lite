@@ -3,7 +3,8 @@
   "nodes": [
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"property_id\": \"PROP001\",\n  \"booking_id\": \"BK123\",\n  \"guest_name\": \"John Doe\",\n  \"guest_email\": \"john@example.com\",\n  \"guest_phone\": \"+1234567890\",\n  \"check_in_date\": \"2026-03-01\",\n  \"check_out_date\": \"2026-03-05\",\n  \"num_guests\": \"2\",\n  \"total_amount\": \"600\",\n  \"currency\": \"USD\"\n}"
       },
       "id": "workflow-trigger",
       "name": "When Called by Other Workflow",
@@ -264,6 +265,14 @@
           "value": "SUB: Universal Messenger",
           "cachedResultName": "SUB: Universal Messenger"
         },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "telegram",
+            "recipient": "={{ $('Confirm Booking').item.json.guest_phone }}",
+            "message": "={{ $json.text || $json.output || 'Your booking has been confirmed!' }}"
+          }
+        },
         "options": {}
       },
       "id": "send-guest-confirm",
@@ -320,6 +329,14 @@
           "mode": "list",
           "value": "SUB: Universal Messenger",
           "cachedResultName": "SUB: Universal Messenger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "telegram",
+            "recipient": "={{ $json.guest_phone }}",
+            "message": "={{ 'Your booking ' + $json.booking_id + ' has been cancelled. If you have questions, please reach out to us.' }}"
+          }
         },
         "options": {}
       },

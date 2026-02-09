@@ -3,7 +3,8 @@
   "nodes": [
     {
       "parameters": {
-        "inputSource": "passthrough"
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"query\": \"I want to book a room for next weekend\",\n  \"sender_id\": \"123456789\",\n  \"sender_name\": \"Guest\",\n  \"channel\": \"telegram\"\n}"
       },
       "id": "entry-webhook",
       "name": "When Called by Other Workflow",
@@ -332,6 +333,14 @@
           "value": "SUB: Universal Messenger",
           "cachedResultName": "SUB: Universal Messenger"
         },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $('Prepare Guest Response (Competing)').item.json.channel }}",
+            "recipient": "={{ $('Prepare Guest Response (Competing)').item.json.recipient }}",
+            "message": "={{ $('Prepare Guest Response (Competing)').item.json.response_text }}"
+          }
+        },
         "options": {}
       },
       "id": "send-response-competing",
@@ -545,6 +554,14 @@
           "mode": "list",
           "value": "SUB: Universal Messenger",
           "cachedResultName": "SUB: Universal Messenger"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $('Process AI Response').item.json.channel }}",
+            "recipient": "={{ $('Process AI Response').item.json.recipient }}",
+            "message": "={{ $('Process AI Response').item.json.response_text }}"
+          }
         },
         "options": {}
       },

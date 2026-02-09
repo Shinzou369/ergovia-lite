@@ -152,6 +152,20 @@ function getAllApiKeys() {
   return db.prepare('SELECT id, assigned_to_client, client_name, created_at, assigned_at FROM api_bank').all();
 }
 
+function deleteApiKey(apiKeyId) {
+  const key = db.prepare('SELECT * FROM api_bank WHERE id = ?').get(apiKeyId);
+  if (!key) return { success: false, error: 'Key not found' };
+  if (key.assigned_to_client) return { success: false, error: 'Cannot delete assigned key. Release it first.' };
+  db.prepare('DELETE FROM api_bank WHERE id = ?').run(apiKeyId);
+  return { success: true };
+}
+
+function deleteAllApiKeys() {
+  const assigned = db.prepare('SELECT COUNT(*) as count FROM api_bank WHERE assigned_to_client = 1').get();
+  db.exec('DELETE FROM api_bank');
+  return { success: true, deleted: 'all', hadAssigned: assigned.count > 0 };
+}
+
 // ============================================
 // DEPLOYED WORKFLOWS
 // ============================================
@@ -234,7 +248,7 @@ function saveClientCredentials(credentials, clientName) {
   const insertMany = db.transaction((items) => {
     for (const [type, cred] of Object.entries(items)) {
       if (cred && cred.id) {
-        insert.run(type, cred.id, cred.name || `[${clientName}] ${type}`, clientName);
+        insert.run(type, cred.id, cred.name || `${type} - ${clientName}`, clientName);
       }
     }
   });
@@ -269,6 +283,8 @@ module.exports = {
   getAssignedApiKey,
   releaseApiKey,
   getAllApiKeys,
+  deleteApiKey,
+  deleteAllApiKeys,
   // Deployed workflows
   saveDeployedWorkflow,
   saveDeployedWorkflows,

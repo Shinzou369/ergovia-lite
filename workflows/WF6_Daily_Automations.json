@@ -194,6 +194,14 @@
     {
       "parameters": {
         "workflowId": { "__rl": true, "mode": "list", "value": "SUB: Universal Messenger", "cachedResultName": "SUB: Universal Messenger" },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $json.preferred_platform || 'telegram' }}",
+            "recipient": "={{ $json.owner_contact }}",
+            "message": "={{ $json.text || $json.output || 'Your daily report is ready.' }}"
+          }
+        },
         "options": {}
       },
       "id": "send-reports",

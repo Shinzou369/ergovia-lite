@@ -22,7 +22,7 @@ function getPostgresConfig() {
     database: process.env.POSTGRES_DATABASE,
     user: process.env.POSTGRES_USER,
     password: process.env.POSTGRES_PASSWORD,
-    ssl: process.env.POSTGRES_SSL || 'allow'
+    ssl: process.env.POSTGRES_SSL || 'disable'
   };
 
   // Check if required fields are present
@@ -287,7 +287,7 @@ app.post('/api/deploy', async (req, res) => {
     db.clearClientCredentials();
     for (const [type, credId] of Object.entries(clientCredentials)) {
       if (credId) {
-        db.saveClientCredential(type, credId, `[${clientName}] ${type}`, clientName);
+        db.saveClientCredential(type, credId, `${clientName} - ${type}`, clientName);
       }
     }
     if (Object.keys(clientCredentials).length > 0) {
@@ -517,7 +517,7 @@ app.post('/api/credentials/create', async (req, res) => {
     db.clearClientCredentials();
     for (const [type, credId] of Object.entries(clientCredentials)) {
       if (credId) {
-        db.saveClientCredential(type, credId, `[${clientName}] ${type}`, clientName);
+        db.saveClientCredential(type, credId, `${clientName} - ${type}`, clientName);
       }
     }
     if (Object.keys(clientCredentials).length > 0) {
@@ -634,8 +634,9 @@ app.get('/api/admin/apibank', (req, res) => {
         id: k.id,
         keyPreview: `sk-...${k.api_key ? k.api_key.slice(-4) : '****'}`,
         assigned: !!k.assigned_to_client,
-        clientName: k.client_name,
-        assignedAt: k.assigned_at
+        clientName: k.client_name || null,
+        assignedAt: k.assigned_at || null,
+        createdAt: k.created_at
       })),
       available: keys.filter(k => !k.assigned_to_client).length,
       total: keys.length
@@ -661,6 +662,32 @@ app.post('/api/admin/apibank', (req, res) => {
     } else {
       res.status(400).json({ success: false, error: 'API key already exists' });
     }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete a specific API key from bank
+app.delete('/api/admin/apibank/:id', (req, res) => {
+  try {
+    const result = db.deleteApiKey(parseInt(req.params.id));
+    if (result.success) {
+      db.logActivity('apikey_deleted', `API key #${req.params.id} removed from bank`);
+      res.json({ success: true, message: 'API key deleted' });
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete ALL API keys from bank
+app.delete('/api/admin/apibank', (req, res) => {
+  try {
+    const result = db.deleteAllApiKeys();
+    db.logActivity('apikey_bank_cleared', 'All API keys removed from bank');
+    res.json({ success: true, message: 'All API keys deleted', ...result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
