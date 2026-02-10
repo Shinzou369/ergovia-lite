@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS property_configurations (
     id SERIAL PRIMARY KEY,
     property_id VARCHAR(255) UNIQUE NOT NULL,
     property_name VARCHAR(255) UNIQUE NOT NULL,
+    customer_id VARCHAR(255),
     address TEXT,
     max_guests INTEGER,
     bedrooms INTEGER,
@@ -909,6 +910,125 @@ CREATE INDEX IF NOT EXISTS idx_activity_log_type ON activity_log(automation_type
 CREATE INDEX IF NOT EXISTS idx_activity_log_event_type ON activity_log(event_type);
 CREATE INDEX IF NOT EXISTS idx_activity_log_contact ON activity_log(contact_id);
 CREATE INDEX IF NOT EXISTS idx_activity_log_date ON activity_log(created_at);
+
+-- ============================================================================
+-- TABLE: api_usage_budget
+-- Used by: WF1 (AI Gateway) - tracks API usage costs per customer
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS api_usage_budget (
+    id SERIAL PRIMARY KEY,
+    customer_id VARCHAR(255) NOT NULL,
+    monthly_budget DECIMAL(10,2) DEFAULT 50.00,
+    used_amount DECIMAL(10,2) DEFAULT 0.00,
+    budget_period VARCHAR(7) NOT NULL, -- YYYY-MM format
+    last_reset_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(customer_id, budget_period)
+);
+
+CREATE INDEX idx_api_usage_budget_customer ON api_usage_budget(customer_id);
+CREATE INDEX idx_api_usage_budget_period ON api_usage_budget(budget_period);
+
+CREATE TRIGGER update_api_usage_budget_updated_at BEFORE UPDATE ON api_usage_budget
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- TABLE: api_budget_alerts
+-- Used by: WF1 (AI Gateway) - budget threshold alerts (50%, 80%, 100%)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS api_budget_alerts (
+    id SERIAL PRIMARY KEY,
+    customer_id VARCHAR(255) NOT NULL,
+    alert_type VARCHAR(50) NOT NULL, -- warning_50, warning_80, exhausted_100
+    budget_period VARCHAR(7) NOT NULL, -- YYYY-MM format
+    used_amount DECIMAL(10,2),
+    monthly_budget DECIMAL(10,2),
+    usage_percentage DECIMAL(5,2),
+    message TEXT,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_api_budget_alerts_customer ON api_budget_alerts(customer_id);
+CREATE INDEX idx_api_budget_alerts_period ON api_budget_alerts(budget_period);
+CREATE INDEX idx_api_budget_alerts_type ON api_budget_alerts(alert_type);
+
+-- ============================================================================
+-- FUNCTION: check_budget_available
+-- Used by: WF1 (AI Gateway) - checks if customer has remaining API budget
+-- Returns: budget_available (boolean), remaining_budget, used_amount, monthly_budget
+-- ============================================================================
+CREATE OR REPLACE FUNCTION check_budget_available(p_customer_id VARCHAR)
+RETURNS TABLE (
+    budget_available BOOLEAN,
+    remaining_budget DECIMAL(10,2),
+    used_amount DECIMAL(10,2),
+    monthly_budget DECIMAL(10,2),
+    usage_percentage DECIMAL(5,2)
+) AS $$
+DECLARE
+    v_period VARCHAR(7);
+    v_used DECIMAL(10,2);
+    v_budget DECIMAL(10,2);
+BEGIN
+    v_period := TO_CHAR(CURRENT_DATE, 'YYYY-MM');
+
+    -- Get or create budget record for current period
+    INSERT INTO api_usage_budget (customer_id, budget_period, monthly_budget, used_amount)
+    VALUES (p_customer_id, v_period, 50.00, 0.00)
+    ON CONFLICT (customer_id, budget_period) DO NOTHING;
+
+    SELECT b.used_amount, b.monthly_budget
+    INTO v_used, v_budget
+    FROM api_usage_budget b
+    WHERE b.customer_id = p_customer_id AND b.budget_period = v_period;
+
+    RETURN QUERY SELECT
+        (v_used < v_budget) AS budget_available,
+        (v_budget - v_used) AS remaining_budget,
+        v_used AS used_amount,
+        v_budget AS monthly_budget,
+        CASE WHEN v_budget > 0 THEN ROUND((v_used / v_budget) * 100, 2) ELSE 0 END AS usage_percentage;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- FUNCTION: log_api_usage
+-- Used by: WF1 (AI Gateway) - logs API cost after each AI call
+-- ============================================================================
+CREATE OR REPLACE FUNCTION log_api_usage(p_customer_id VARCHAR, p_cost DECIMAL)
+RETURNS TABLE (
+    new_used_amount DECIMAL(10,2),
+    monthly_budget DECIMAL(10,2),
+    usage_percentage DECIMAL(5,2)
+) AS $$
+DECLARE
+    v_period VARCHAR(7);
+    v_used DECIMAL(10,2);
+    v_budget DECIMAL(10,2);
+BEGIN
+    v_period := TO_CHAR(CURRENT_DATE, 'YYYY-MM');
+
+    -- Upsert: create budget record if not exists, then add cost
+    INSERT INTO api_usage_budget (customer_id, budget_period, monthly_budget, used_amount)
+    VALUES (p_customer_id, v_period, 50.00, p_cost)
+    ON CONFLICT (customer_id, budget_period)
+    DO UPDATE SET used_amount = api_usage_budget.used_amount + p_cost,
+                  updated_at = CURRENT_TIMESTAMP;
+
+    SELECT b.used_amount, b.monthly_budget
+    INTO v_used, v_budget
+    FROM api_usage_budget b
+    WHERE b.customer_id = p_customer_id AND b.budget_period = v_period;
+
+    RETURN QUERY SELECT
+        v_used AS new_used_amount,
+        v_budget AS monthly_budget,
+        CASE WHEN v_budget > 0 THEN ROUND((v_used / v_budget) * 100, 2) ELSE 0 END AS usage_percentage;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- HELPFUL VIEWS
