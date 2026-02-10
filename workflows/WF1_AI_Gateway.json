@@ -1,11 +1,5 @@
 {
-  "updatedAt": "2026-02-10T07:53:59.925Z",
-  "createdAt": "2026-02-09T10:16:32.316Z",
-  "id": "LP7YknAVPiQsidWq",
   "name": "WF1: AI Gateway - Unified Entry Point",
-  "description": null,
-  "active": false,
-  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -26,8 +20,8 @@
       "webhookId": "c2f7c25b-4e8f-4755-81b3-bd2ffb072819",
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
-          "name": "[Client] Telegram Bot"
+          "id": "telegram-cred",
+          "name": "Telegram Bot"
         }
       }
     },
@@ -103,8 +97,8 @@
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
@@ -138,8 +132,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
@@ -209,8 +203,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
-          "name": "[Client] OpenAI"
+          "id": "openai-cred",
+          "name": "OpenAI"
         }
       }
     },
@@ -229,14 +223,19 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
     {
       "parameters": {
         "description": "Handle booking inquiries, availability questions, property information requests, check-in/check-out instructions. Use this for general guest questions about staying at properties.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "WF2: AI Booking Agent"
+        },
         "source": "parameter"
       },
       "id": "tool-booking",
@@ -253,9 +252,8 @@
         "description": "Check property availability for specific dates, get pricing information, detect calendar conflicts. Use when guest asks about specific dates.",
         "workflowId": {
           "__rl": true,
-          "value": "Dy8U5M0OkarS5Pj2",
-          "mode": "id",
-          "cachedResultUrl": "/workflow/Dy8U5M0OkarS5Pj2"
+          "mode": "list",
+          "value": "WF3: Calendar Manager"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -280,8 +278,8 @@
         "description": "Handle payment-related requests: create payment links, check payment status, handle payment issues or questions about pricing and charges.",
         "workflowId": {
           "__rl": true,
-          "mode": "id",
-          "value": "Ku5DBasVYC4PlTbI"
+          "mode": "list",
+          "value": "WF4: Payment Processor"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -378,8 +376,8 @@
         "description": "Handle maintenance reports, property issues, cleaning requests, vendor coordination. Use when guest reports a problem or property owner needs operational support.",
         "workflowId": {
           "__rl": true,
-          "mode": "id",
-          "value": "Kk8NKtJiYBzpOofK"
+          "mode": "list",
+          "value": "WF5: Property Operations"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -441,8 +439,8 @@
         "description": "ONLY for urgent safety or security emergencies: fire, medical emergency, break-in, gas leak, flooding. Do NOT use for general complaints or minor issues.",
         "workflowId": {
           "__rl": true,
-          "mode": "id",
-          "value": "W3LPoTAoqaL3lIQL"
+          "mode": "list",
+          "value": "WF8: Safety & Screening"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -504,8 +502,8 @@
         "description": "Send a message back to the guest. Always use this to reply after processing their request. You MUST provide: channel (telegram/whatsapp/sms), recipient (the sender_id or chat_id), and message (the reply text).",
         "workflowId": {
           "__rl": true,
-          "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "mode": "list",
+          "value": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -564,8 +562,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
@@ -584,8 +582,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
-          "name": "[Client] OpenAI"
+          "id": "openai-cred",
+          "name": "OpenAI"
         }
       }
     },
@@ -619,8 +617,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
@@ -686,8 +684,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
@@ -695,8 +693,8 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "mode": "list",
+          "value": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -793,8 +791,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
         }
       }
     },
@@ -816,8 +814,8 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "mode": "list",
+          "value": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -1164,81 +1162,14 @@
       ]
     }
   },
+  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": false
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "staticData": null,
-  "meta": null,
-  "pinData": {},
-  "versionId": "235b0528-a105-4a13-8a8d-a9e2df3d0198",
-  "activeVersionId": null,
-  "versionCounter": 66,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-09T10:16:32.319Z",
-      "createdAt": "2026-02-09T10:16:32.319Z",
-      "role": "workflow:owner",
-      "workflowId": "LP7YknAVPiQsidWq",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-10T05:02:12.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-10",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T04:47:30.869Z",
-      "createdAt": "2026-02-03T04:47:30.869Z",
-      "id": "5KF1N8X34HFV1sVH",
-      "name": "AI-Gateway"
-    },
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    }
-  ],
-  "activeVersion": null
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "description": "LangChain AI Agent entry point with budget tracking. Uses tool workflows to handle bookings, payments, maintenance, and emergencies."
+  },
+  "tags": ["AI-Gateway", "ai-powered", "optimized"]
 }
