@@ -8,6 +8,7 @@ let teamMembers = [];
 let sectionsCompleted = {
     owner: false,
     credentials: false,
+    budget: false,
     team: false,
     properties: false,
     ai: false,
@@ -64,14 +65,21 @@ function populateForm(data) {
         if (data.credentials.telegramBotToken) {
             document.getElementById('telegramBotToken').value = data.credentials.telegramBotToken;
         }
-        if (data.credentials.whatsappApiKey) {
-            document.getElementById('whatsappApiKey').value = data.credentials.whatsappApiKey;
+        if (data.credentials.twilioAccountSid) {
+            document.getElementById('twilioAccountSid').value = data.credentials.twilioAccountSid;
         }
-        if (data.credentials.googleServiceAccount) {
-            document.getElementById('googleServiceAccount').value = data.credentials.googleServiceAccount;
+        if (data.credentials.twilioAuthToken) {
+            document.getElementById('twilioAuthToken').value = data.credentials.twilioAuthToken;
         }
-        if (data.credentials.airbnbCalendarLink) {
-            document.getElementById('airbnbCalendarLink').value = data.credentials.airbnbCalendarLink;
+        if (data.credentials.twilioPhoneNumber) {
+            document.getElementById('twilioPhoneNumber').value = data.credentials.twilioPhoneNumber;
+        }
+    }
+
+    // Budget
+    if (data.budget) {
+        if (data.budget.monthlyBudget) {
+            document.getElementById('monthlyBudget').value = data.budget.monthlyBudget;
         }
     }
 
@@ -207,9 +215,14 @@ function getSectionData(sectionName) {
         case 'credentials':
             return {
                 telegramBotToken: document.getElementById('telegramBotToken').value,
-                whatsappApiKey: document.getElementById('whatsappApiKey').value,
-                googleServiceAccount: document.getElementById('googleServiceAccount').value,
-                airbnbCalendarLink: document.getElementById('airbnbCalendarLink').value,
+                twilioAccountSid: document.getElementById('twilioAccountSid').value,
+                twilioAuthToken: document.getElementById('twilioAuthToken').value,
+                twilioPhoneNumber: document.getElementById('twilioPhoneNumber').value,
+            };
+
+        case 'budget':
+            return {
+                monthlyBudget: parseFloat(document.getElementById('monthlyBudget').value) || 50,
             };
 
         case 'team':
@@ -242,6 +255,7 @@ function getSectionTitle(sectionName) {
     const titles = {
         owner: 'Owner Information',
         credentials: 'API Credentials',
+        budget: 'Monthly AI Budget',
         team: 'Team & Contacts',
         properties: 'Property Details',
         ai: 'AI Assistant Notes',
@@ -261,10 +275,12 @@ function checkSectionsCompletion() {
         document.getElementById('ownerPhone').value &&
         document.getElementById('preferredPlatform').value;
 
-    // Credentials section
+    // Credentials section (only Telegram Bot Token is required)
     sectionsCompleted.credentials =
-        document.getElementById('telegramBotToken').value &&
-        document.getElementById('googleServiceAccount').value;
+        !!document.getElementById('telegramBotToken').value;
+
+    // Budget section (always considered complete since it has a default)
+    sectionsCompleted.budget = true;
 
     // Team section (optional, so mark as complete if at least attempted)
     sectionsCompleted.team = true;
@@ -346,6 +362,7 @@ async function handleFormSubmit(event) {
         const allData = {
             owner: getSectionData('owner'),
             credentials: getSectionData('credentials'),
+            budget: getSectionData('budget'),
             team: getSectionData('team'),
             ai: getSectionData('ai'),
             media: getSectionData('media'),
@@ -540,7 +557,8 @@ function updateTeamMember(memberId, field, value) {
 function showHelp(section) {
     const helpTexts = {
         owner: 'Enter your contact information. This is how the AI will reach you with important updates and questions.',
-        credentials: 'These API keys allow your AI assistant to connect to various services. Follow the links for step-by-step instructions on how to obtain each credential.',
+        credentials: 'These API keys allow your AI assistant to connect to messaging platforms. Telegram Bot Token is required. Twilio credentials are needed for WhatsApp and SMS.',
+        budget: 'Set a monthly spending cap for AI API calls. The system will alert you at 50% and 80% usage, and send a polite fallback message when the budget is exhausted.',
         team: 'Add people who help manage your properties. The AI will know who to contact for specific tasks like cleaning or maintenance.',
         properties: 'Add details about your properties on the Properties page. The AI needs this information to manage bookings and answer guest questions.',
         ai: 'Share any special rules, preferences, or information that your AI assistant should know. This helps it make better decisions on your behalf.',
@@ -553,9 +571,7 @@ function showHelp(section) {
 function showCredentialHelp(service) {
     const helpUrls = {
         telegram: 'https://core.telegram.org/bots#how-do-i-create-a-bot',
-        whatsapp: 'https://developers.facebook.com/docs/whatsapp',
-        google: 'https://cloud.google.com/iam/docs/creating-managing-service-accounts',
-        airbnb: 'https://www.airbnb.com/help/article/99',
+        twilio: 'https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account',
     };
 
     if (helpUrls[service]) {

@@ -164,19 +164,86 @@
                 <input type="number" name="bedrooms" class="form-input" value="2" min="1">
               </div>
               <div class="form-group">
-                <label class="form-label">Max Guests</label>
-                <input type="number" name="maxGuests" class="form-input" value="4" min="1">
+                <label class="form-label">Bathrooms</label>
+                <input type="number" name="bathrooms" class="form-input" value="1" min="0" step="0.5">
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Base Price (per night)</label>
-                <input type="number" name="basePrice" class="form-input" value="150" min="0">
+                <label class="form-label">Max Guests</label>
+                <input type="number" name="maxGuests" class="form-input" value="4" min="1">
               </div>
               <div class="form-group">
-                <label class="form-label">Minimum Price</label>
-                <input type="number" name="minPrice" class="form-input" value="100" min="0">
+                <label class="form-label">Property Type</label>
+                <select name="propertyType" class="form-select">
+                  <option value="apartment">Apartment</option>
+                  <option value="house">House</option>
+                  <option value="condo">Condo</option>
+                  <option value="villa">Villa</option>
+                  <option value="cabin">Cabin</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Base Price (per night) *</label>
+                <input type="number" name="basePrice" class="form-input" value="150" min="0" step="0.01">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Weekend Price (per night)</label>
+                <input type="number" name="weekendPrice" class="form-input" placeholder="180" min="0" step="0.01">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Holiday Price (per night)</label>
+                <input type="number" name="holidayPrice" class="form-input" placeholder="200" min="0" step="0.01">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cleaning Fee *</label>
+                <input type="number" name="cleaningFee" class="form-input" placeholder="75" min="0" step="0.01">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Min Stay (nights)</label>
+                <input type="number" name="minStayNights" class="form-input" value="1" min="1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Stay (nights)</label>
+                <input type="number" name="maxStayNights" class="form-input" value="30" min="1">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Owner Contact (Chat ID) *</label>
+                <input type="text" name="ownerContact" class="form-input" placeholder="Auto-filled from Step 1">
+                <p class="form-hint">Used for workflow notifications. Defaults to your Telegram Chat ID.</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Owner Telegram</label>
+                <input type="text" name="ownerTelegram" class="form-input" placeholder="Fallback contact">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="autoApproveBookings" value="1">
+                  <span>Auto-approve Bookings</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" name="requireScreening" value="1" checked>
+                  <span>Require Guest Screening</span>
+                </label>
               </div>
             </div>
           </form>
@@ -279,6 +346,14 @@
               <label class="form-label">Other Calendar URL (optional)</label>
               <input type="url" name="otherCalendarUrl" class="form-input" placeholder="https://...">
             </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="calendarSyncEnabled" value="1" checked>
+                <span>Enable Calendar Sync</span>
+              </label>
+              <p class="form-hint">Automatically sync bookings from calendar URLs</p>
+            </div>
           </form>
         </div>
         <div class="step-actions">
@@ -332,7 +407,7 @@
 
             <!-- Twilio/SMS Credentials (conditional) -->
             <div id="twilio-credentials" class="credential-section hidden">
-              <h4 class="mb-2">Twilio SMS Credentials</h4>
+              <h4 class="mb-2">Twilio Credentials (SMS &amp; WhatsApp)</h4>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Twilio Account SID *</label>
@@ -348,13 +423,22 @@
               <div class="form-group">
                 <label class="form-label">Twilio Phone Number *</label>
                 <input type="tel" name="twilioPhoneNumber" class="form-input" placeholder="+1 555-123-4567">
-                <p class="form-hint">Your Twilio phone number for sending SMS</p>
+                <p class="form-hint">Your Twilio phone number for sending SMS and WhatsApp</p>
               </div>
             </div>
 
             <!-- No platforms selected message -->
             <div id="no-platforms-message" class="alert alert-warning">
               No messaging platforms selected. Go back to Step 1 to select at least one platform (Telegram, WhatsApp, or SMS).
+            </div>
+
+            <h4 class="mt-4 mb-2">Monthly AI Budget</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Monthly Budget (USD)</label>
+                <input type="number" name="monthlyBudget" class="form-input" value="50" min="5" max="500" step="5">
+                <p class="form-hint">Default: $50/month. Alerts at 50%, 80%, and 100% usage.</p>
+              </div>
             </div>
 
             <h4 class="mt-4 mb-2">Manager/Team Lead (Optional)</h4>

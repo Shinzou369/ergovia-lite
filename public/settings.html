@@ -106,18 +106,79 @@
               <input type="number" name="bedrooms" class="form-input">
             </div>
             <div class="form-group">
-              <label class="form-label">Max Guests</label>
-              <input type="number" name="maxGuests" class="form-input">
+              <label class="form-label">Bathrooms</label>
+              <input type="number" name="bathrooms" class="form-input" min="0" step="0.5">
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Base Price</label>
-              <input type="number" name="basePrice" class="form-input">
+              <label class="form-label">Max Guests</label>
+              <input type="number" name="maxGuests" class="form-input">
             </div>
             <div class="form-group">
-              <label class="form-label">Minimum Price</label>
-              <input type="number" name="minPrice" class="form-input">
+              <label class="form-label">Property Type</label>
+              <select name="propertyType" class="form-select">
+                <option value="apartment">Apartment</option>
+                <option value="house">House</option>
+                <option value="condo">Condo</option>
+                <option value="villa">Villa</option>
+                <option value="cabin">Cabin</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Base Price (per night)</label>
+              <input type="number" name="basePrice" class="form-input" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Weekend Price (per night)</label>
+              <input type="number" name="weekendPrice" class="form-input" step="0.01">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Holiday Price (per night)</label>
+              <input type="number" name="holidayPrice" class="form-input" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cleaning Fee</label>
+              <input type="number" name="cleaningFee" class="form-input" step="0.01">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Min Stay (nights)</label>
+              <input type="number" name="minStayNights" class="form-input" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Stay (nights)</label>
+              <input type="number" name="maxStayNights" class="form-input" value="30" min="1">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Owner Contact (Chat ID)</label>
+              <input type="text" name="ownerContact" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Owner Telegram</label>
+              <input type="text" name="ownerTelegram" class="form-input">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="autoApproveBookings" value="1">
+                <span>Auto-approve Bookings</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="requireScreening" value="1" checked>
+                <span>Require Guest Screening</span>
+              </label>
             </div>
           </div>
         </form>
@@ -192,6 +253,12 @@
             <label class="form-label">Other Calendar URL</label>
             <input type="url" name="otherCalendarUrl" class="form-input">
           </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" name="calendarSyncEnabled" value="1" checked>
+              <span>Enable Calendar Sync</span>
+            </label>
+          </div>
         </form>
       </div>
     </div>
@@ -206,17 +273,23 @@
         <form id="integrations-form">
           <div class="form-row">
             <div class="form-group">
+              <label class="form-label">Twilio Account SID</label>
+              <input type="text" name="twilioAccountSid" class="form-input" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Twilio Auth Token</label>
+              <input type="password" name="twilioAuthToken" class="form-input">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
               <label class="form-label">Twilio Phone Number</label>
               <input type="tel" name="twilioPhoneNumber" class="form-input">
             </div>
             <div class="form-group">
-              <label class="form-label">Twilio WhatsApp Number</label>
-              <input type="tel" name="twilioWhatsAppNumber" class="form-input">
+              <label class="form-label">Monthly AI Budget (USD)</label>
+              <input type="number" name="monthlyBudget" class="form-input" value="50" min="5" max="500" step="5">
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">OpenAI API Key</label>
-            <input type="password" name="openaiApiKey" class="form-input">
           </div>
           <div class="form-row">
             <div class="form-group">

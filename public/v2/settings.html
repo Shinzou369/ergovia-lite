@@ -164,49 +164,69 @@
                             </small>
                         </div>
 
-                        <div class="form-group full-width">
-                            <label for="whatsappApiKey">
-                                <i class="fab fa-whatsapp"></i> WhatsApp Business API Key
+                        <div class="form-group full-width" style="margin-bottom: 4px;">
+                            <label>
+                                <i class="fab fa-whatsapp"></i> Twilio Credentials
+                                <small style="font-weight:normal; color: var(--text-gray);">(for WhatsApp &amp; SMS)</small>
                             </label>
-                            <input type="password" id="whatsappApiKey" name="whatsappApiKey"
-                                   placeholder="Optional - if you use WhatsApp Business">
-                            <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('whatsapp')">
-                                    <i class="fas fa-question-circle"></i> How to get WhatsApp API Key?
-                                </a>
-                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="twilioAccountSid">Account SID</label>
+                            <input type="password" id="twilioAccountSid" name="twilioAccountSid"
+                                   placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="twilioAuthToken">Auth Token</label>
+                            <input type="password" id="twilioAuthToken" name="twilioAuthToken"
+                                   placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
                         </div>
 
                         <div class="form-group full-width">
-                            <label for="googleServiceAccount">
-                                <i class="fab fa-google"></i> Google Service Account JSON
-                                <span class="required">*</span>
-                            </label>
-                            <textarea id="googleServiceAccount" name="googleServiceAccount" required
-                                      placeholder='{"type": "service_account", "project_id": "..."}'
-                                      rows="4"></textarea>
+                            <label for="twilioPhoneNumber">Twilio Phone Number</label>
+                            <input type="tel" id="twilioPhoneNumber" name="twilioPhoneNumber"
+                                   placeholder="+1234567890">
                             <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('google')">
-                                    <i class="fas fa-question-circle"></i> How to create Google Service Account?
-                                </a>
-                            </small>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="airbnbCalendarLink">
-                                <i class="fab fa-airbnb"></i> Airbnb Calendar iCal Link
-                            </label>
-                            <input type="url" id="airbnbCalendarLink" name="airbnbCalendarLink"
-                                   placeholder="https://www.airbnb.com/calendar/ical/...">
-                            <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('airbnb')">
-                                    <i class="fas fa-question-circle"></i> How to get Airbnb iCal Link?
+                                <a href="#" onclick="showCredentialHelp('twilio')">
+                                    <i class="fas fa-question-circle"></i> How to get Twilio credentials?
                                 </a>
                             </small>
                         </div>
                     </div>
 
                     <button type="button" class="btn-save-section" onclick="saveSection('credentials')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- SECTION 2B: AI Budget -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-wallet"></i> Monthly AI Budget</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('budget')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <p class="section-description">
+                        Set the monthly spending limit for AI API calls. When the budget is reached,
+                        the AI will send a polite fallback message instead of using paid API calls.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="monthlyBudget">
+                                <i class="fas fa-dollar-sign"></i> Monthly Budget (USD)
+                            </label>
+                            <input type="number" id="monthlyBudget" name="monthlyBudget"
+                                   min="5" max="500" step="5" value="50"
+                                   placeholder="50">
+                            <small class="help-text">Default: $50/month. Alerts at 50%, 80%, and 100%.</small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('budget')">
                         <i class="fas fa-save"></i> Save Section
                     </button>
                 </div>

@@ -1,52 +1,103 @@
 {
+  "updatedAt": "2026-02-11T07:51:44.516Z",
+  "createdAt": "2026-02-06T08:45:22.437Z",
+  "id": "ccEOaNnIwY6eeJOn",
   "name": "WF6: Daily Automations",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
         "rule": {
-          "interval": [{ "triggerAtHour": 9 }]
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
         }
       },
       "id": "morning-trigger",
       "name": "Morning 9 AM",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        512
+      ]
     },
     {
       "parameters": {
         "rule": {
-          "interval": [{ "triggerAtHour": 18 }]
+          "interval": [
+            {
+              "triggerAtHour": 18
+            }
+          ]
         }
       },
       "id": "evening-trigger",
       "name": "Evening 6 PM",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 200]
+      "position": [
+        0,
+        704
+      ]
     },
     {
       "parameters": {
         "rule": {
-          "interval": [{ "field": "cronExpression", "expression": "0 10 * * 1" }]
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * 1"
+            }
+          ]
         }
       },
       "id": "weekly-trigger",
       "name": "Weekly Monday 10 AM",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 400]
+      "position": [
+        0,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "monthly-trigger",
+      "name": "Monthly 1st Midnight",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1088
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\n\nlet automationType;\nif (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
+        "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\nconst dayOfMonth = now.getDate();\n\nlet automationType;\nif (dayOfMonth === 1 && hour === 0) {\n  automationType = 'monthly_reset';\n} else if (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
       },
       "id": "determine-type",
       "name": "Determine Automation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 200]
+      "position": [
+        224,
+        800
+      ]
     },
     {
       "parameters": {
@@ -54,8 +105,21 @@
           "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
-                "conditions": [{ "leftValue": "={{ $json.automation_type }}", "rightValue": "morning_check", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.automation_type }}",
+                    "rightValue": "morning_check",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -63,8 +127,21 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
-                "conditions": [{ "leftValue": "={{ $json.automation_type }}", "rightValue": "evening_check", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.automation_type }}",
+                    "rightValue": "evening_check",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -72,12 +149,47 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
-                "conditions": [{ "leftValue": "={{ $json.automation_type }}", "rightValue": "weekly_report", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.automation_type }}",
+                    "rightValue": "weekly_report",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
               "renameOutput": true,
               "outputKey": "weekly"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.automation_type }}",
+                    "rightValue": "monthly_reset",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "monthly"
             }
           ]
         },
@@ -87,97 +199,393 @@
       "name": "Route Automation",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [440, 200]
+      "position": [
+        448,
+        768
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform,\n  COUNT(CASE WHEN b.check_in_date = CURRENT_DATE THEN 1 END) as checkins_today,\n  COUNT(CASE WHEN b.check_out_date = CURRENT_DATE THEN 1 END) as checkouts_today,\n  COUNT(CASE WHEN mt.status IN ('new', 'in_progress') THEN 1 END) as open_tickets\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id \n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.preferred_platform",
+        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(CASE WHEN b.check_in_date = CURRENT_DATE THEN 1 END) as checkins_today,\n  COUNT(CASE WHEN b.check_out_date = CURRENT_DATE THEN 1 END) as checkouts_today,\n  COUNT(CASE WHEN mt.status IN ('new', 'in_progress') THEN 1 END) as open_tickets\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id \n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.preferred_platform, p.customer_id",
         "options": {}
       },
       "id": "morning-data",
       "name": "Get Morning Data",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [660, 0],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        672,
+        172
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
+        "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
+        "options": {}
+      },
+      "id": "check-budget-morning",
+      "name": "Check Budget (Morning)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        896,
+        172
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "budget-morning",
+              "leftValue": "={{ $json.can_proceed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "budget-gate-morning",
+      "name": "Budget OK (Morning)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        172
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
         "options": {}
       },
       "id": "evening-data",
       "name": "Get Evening Data",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [660, 200],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        672,
+        608
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.preferred_platform",
+        "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
+        "options": {}
+      },
+      "id": "check-budget-evening",
+      "name": "Check Budget (Evening)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        896,
+        608
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "budget-evening",
+              "leftValue": "={{ $json.can_proceed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "budget-gate-evening",
+      "name": "Budget OK (Evening)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.preferred_platform, p.customer_id",
         "options": {}
       },
       "id": "weekly-data",
       "name": "Get Weekly Data",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [660, 400],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        672,
+        992
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
+        "options": {}
+      },
+      "id": "check-budget-weekly",
+      "name": "Check Budget (Weekly)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        896,
+        992
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "budget-weekly",
+              "leftValue": "={{ $json.can_proceed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "budget-gate-weekly",
+      "name": "Budget OK (Weekly)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM reset_monthly_budgets()",
+        "options": {}
+      },
+      "id": "reset-budgets",
+      "name": "Reset Monthly Budgets",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        1280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.id as customer_id,\n  c.name as customer_name,\n  pc.owner_contact,\n  pc.preferred_platform,\n  b.used_amount as last_month_usage,\n  b.monthly_budget\nFROM customers c\nJOIN property_configurations pc ON c.id = pc.customer_id\nJOIN api_usage_budget b ON c.id = b.customer_id\nWHERE b.month_year = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')\nGROUP BY c.id, c.name, pc.owner_contact, pc.preferred_platform, b.used_amount, b.monthly_budget",
+        "options": {}
+      },
+      "id": "get-last-month",
+      "name": "Get Last Month Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1408,
+        1280
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prepare monthly reset notification\nconst data = $input.item.json;\nconst lastMonthUsage = data.last_month_usage || 0;\nconst budget = data.monthly_budget || 30;\nconst usagePercent = ((lastMonthUsage / budget) * 100).toFixed(1);\n\nconst now = new Date();\nconst currentMonth = now.toLocaleString('default', { month: 'long', year: 'numeric' });\nconst lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)\n  .toLocaleString('default', { month: 'long', year: 'numeric' });\n\nlet usageEmoji = '✅';\nif (usagePercent > 80) usageEmoji = '🔶';\nif (usagePercent >= 100) usageEmoji = '🔴';\n\nconst message = `🗓️ *Monthly API Budget Reset*\\n\\n` +\n  `Hi ${data.customer_name}! Your API budget for *${currentMonth}* has been reset.\\n\\n` +\n  `📊 *${lastMonth} Summary:*\\n` +\n  `${usageEmoji} Used: $${lastMonthUsage.toFixed(2)} of $${budget.toFixed(2)}\\n` +\n  `📈 Usage: ${usagePercent}%\\n\\n` +\n  `💳 *New Month Budget:*\\n` +\n  `💰 Available: $${budget.toFixed(2)}\\n\\n` +\n  `Your AI assistant is ready for another month of service! 🤖`;\n\nreturn {\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact,\n  message: message,\n  customer_id: data.customer_id\n};"
+      },
+      "id": "prepare-reset-msg",
+      "name": "Prepare Reset Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        1280
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "Generate a brief, friendly morning briefing for property owner {{ $json.owner_name }}:\n\nProperty: {{ $json.property_name }}\nCheck-ins Today: {{ $json.checkins_today }}\nCheck-outs Today: {{ $json.checkouts_today }}\nOpen Maintenance Tickets: {{ $json.open_tickets }}\n\nCreate a concise message (under 100 words) with:\n1. Good morning greeting\n2. Summary of today's activity\n3. Any action items if needed\n\nUse appropriate emojis.",
-        "hasOutputParser": false,
-        "options": {}
+        "text": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').item.json.property_name }}\nCheck-ins Today: {{ $('Get Morning Data').item.json.checkins_today }}\nCheck-outs Today: {{ $('Get Morning Data').item.json.checkouts_today }}\nOpen Maintenance Tickets: {{ $('Get Morning Data').item.json.open_tickets }}\n\nCreate a concise message (under 100 words) with:\n1. Good morning greeting\n2. Summary of today's activity\n3. Any action items if needed\n\nUse appropriate emojis."
       },
       "id": "generate-morning",
       "name": "Generate Morning Brief",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
-      "position": [880, 0]
+      "position": [
+        1344,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Template morning message when budget exhausted\nconst data = $('Get Morning Data').item.json;\nconst checkins = data.checkins_today || 0;\nconst checkouts = data.checkouts_today || 0;\nconst tickets = data.open_tickets || 0;\n\nlet message = `☀️ Good morning!\\n\\n`;\nmessage += `📊 *${data.property_name}* Daily Summary:\\n`;\nmessage += `• Check-ins today: ${checkins}\\n`;\nmessage += `• Check-outs today: ${checkouts}\\n`;\nmessage += `• Open tickets: ${tickets}\\n\\n`;\n\nif (checkins > 0 || checkouts > 0) {\n  message += `Have a productive day! ����`;\n} else {\n  message += `Quiet day ahead. Enjoy! ☕`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+      },
+      "id": "template-morning",
+      "name": "Template Morning",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        320
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "Generate an evening status update for property manager:\n\nProperty: {{ $json.property_name }}\nGuest: {{ $json.guest_name }} checking in today\nCleaning Status: {{ $json.cleaning_status || 'Not scheduled' }}\nCleaning Completed: {{ $json.cleaning_completed || 'Pending' }}\n\nCreate a brief message confirming readiness for guest arrival or flagging any issues.",
-        "hasOutputParser": false,
-        "options": {}
+        "text": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data').item.json.guest_name }} checking in today\nCleaning Status: {{ $('Get Evening Data').item.json.cleaning_status || 'Not scheduled' }}\nCleaning Completed: {{ $('Get Evening Data').item.json.cleaning_completed || 'Pending' }}\n\nCreate a brief message confirming readiness for guest arrival or flagging any issues."
       },
       "id": "generate-evening",
       "name": "Generate Evening Update",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
-      "position": [880, 200]
+      "position": [
+        1344,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Template evening message when budget exhausted\nconst data = $('Get Evening Data').item.json;\n\nlet message = `🌙 Evening Check-in Update\\n\\n`;\nmessage += `🏠 *${data.property_name}*\\n`;\nmessage += `👤 Guest: ${data.guest_name || 'N/A'}\\n`;\nmessage += `🧹 Cleaning: ${data.cleaning_status || 'Check status'}\\n\\n`;\n\nif (data.cleaning_completed) {\n  message += `✅ Property is ready for guest arrival!`;\n} else {\n  message += `⚠️ Please verify cleaning is complete before check-in.`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+      },
+      "id": "template-evening",
+      "name": "Template Evening",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        704
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $json.property_name }}\nTotal Bookings (30 days): {{ $json.total_bookings }}\nTotal Revenue: ${{ $json.total_revenue || 0 }}\nNew Bookings This Week: {{ $json.new_bookings_week }}\nAverage Stay Length: {{ $json.avg_stay_length || 0 }} nights\n\nCreate a concise executive summary (under 150 words) highlighting:\n1. Performance overview\n2. Trends\n3. Any recommendations\n\nFormat professionally with bullet points.",
-        "hasOutputParser": false,
-        "options": {}
+        "text": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 days): {{ $('Get Weekly Data').item.json.total_bookings }}\nTotal Revenue: ${{ $('Get Weekly Data').item.json.total_revenue || 0 }}\nNew Bookings This Week: {{ $('Get Weekly Data').item.json.new_bookings_week }}\nAverage Stay Length: {{ $('Get Weekly Data').item.json.avg_stay_length || 0 }} nights\n\nCreate a concise executive summary (under 150 words) highlighting:\n1. Performance overview\n2. Trends\n3. Any recommendations\n\nFormat professionally with bullet points."
       },
       "id": "generate-weekly",
       "name": "Generate Weekly Report",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
-      "position": [880, 400]
+      "position": [
+        1344,
+        896
+      ]
     },
     {
       "parameters": {
-        "model": "gpt-4o-mini",
-        "options": { "temperature": 0.7 }
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Template weekly report when budget exhausted\nconst data = $('Get Weekly Data').item.json;\nconst revenue = data.total_revenue || 0;\nconst bookings = data.total_bookings || 0;\nconst avgStay = data.avg_stay_length || 0;\n\nlet message = `📊 *Weekly Performance Report*\\n\\n`;\nmessage += `🏠 *${data.property_name}*\\n\\n`;\nmessage += `*30-Day Metrics:*\\n`;\nmessage += `• Total Bookings: ${bookings}\\n`;\nmessage += `• Revenue: $${parseFloat(revenue).toFixed(2)}\\n`;\nmessage += `• Avg Stay: ${parseFloat(avgStay).toFixed(1)} nights\\n`;\nmessage += `• New This Week: ${data.new_bookings_week || 0}\\n\\n`;\n\nif (bookings > 0) {\n  message += `Keep up the great work! 🎉`;\n} else {\n  message += `Consider promotional activities to boost bookings.`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+      },
+      "id": "template-weekly",
+      "name": "Template Weekly",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
       },
       "id": "report-model",
       "name": "Report Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
-      "position": [880, 600],
-      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI" } }
+      "position": [
+        1416,
+        144
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "slpbr7aUaU6fqTfw",
+          "name": "[Client] OpenAI"
+        }
+      }
     },
     {
       "parameters": {
@@ -189,18 +597,45 @@
       "name": "Merge Outputs",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1100, 200]
+      "position": [
+        1696,
+        608
+      ]
     },
     {
       "parameters": {
-        "workflowId": { "__rl": true, "mode": "list", "value": "SUB: Universal Messenger", "cachedResultName": "SUB: Universal Messenger" },
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "UZMWfhnV6JmuwJXC"
+        },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
             "channel": "={{ $json.preferred_platform || 'telegram' }}",
             "recipient": "={{ $json.owner_contact }}",
-            "message": "={{ $json.text || $json.output || 'Your daily report is ready.' }}"
-          }
+            "message": "={{ $json.report_text || $json.text }}"
+          },
+          "schema": [
+            {
+              "id": "channel",
+              "displayName": "Channel",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "Recipient",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "message",
+              "displayName": "Message",
+              "type": "string",
+              "required": true
+            }
+          ]
         },
         "options": {}
       },
@@ -208,11 +643,18 @@
       "name": "Send Reports",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [1320, 200]
+      "position": [
+        1920,
+        896
+      ]
     },
     {
       "parameters": {
-        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
         "table": "automation_log",
         "columns": {
           "mappingMode": "defineBelow",
@@ -230,68 +672,1516 @@
       "name": "Log Execution",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1540, 200],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        2144,
+        896
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
     }
   ],
   "connections": {
     "Morning 9 AM": {
-      "main": [[{ "node": "Determine Automation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Determine Automation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Evening 6 PM": {
-      "main": [[{ "node": "Determine Automation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Determine Automation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Weekly Monday 10 AM": {
-      "main": [[{ "node": "Determine Automation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Determine Automation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly 1st Midnight": {
+      "main": [
+        [
+          {
+            "node": "Determine Automation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Determine Automation": {
-      "main": [[{ "node": "Route Automation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Route Automation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Route Automation": {
       "main": [
-        [{ "node": "Get Morning Data", "type": "main", "index": 0 }],
-        [{ "node": "Get Evening Data", "type": "main", "index": 0 }],
-        [{ "node": "Get Weekly Data", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Morning Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Evening Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Weekly Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reset Monthly Budgets",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Morning Data": {
-      "main": [[{ "node": "Generate Morning Brief", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check Budget (Morning)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Budget (Morning)": {
+      "main": [
+        [
+          {
+            "node": "Budget OK (Morning)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget OK (Morning)?": {
+      "main": [
+        [
+          {
+            "node": "Generate Morning Brief",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Template Morning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Evening Data": {
-      "main": [[{ "node": "Generate Evening Update", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check Budget (Evening)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Budget (Evening)": {
+      "main": [
+        [
+          {
+            "node": "Budget OK (Evening)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget OK (Evening)?": {
+      "main": [
+        [
+          {
+            "node": "Generate Evening Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Template Evening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Weekly Data": {
-      "main": [[{ "node": "Generate Weekly Report", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check Budget (Weekly)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Budget (Weekly)": {
+      "main": [
+        [
+          {
+            "node": "Budget OK (Weekly)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Budget OK (Weekly)?": {
+      "main": [
+        [
+          {
+            "node": "Generate Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Template Weekly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset Monthly Budgets": {
+      "main": [
+        [
+          {
+            "node": "Get Last Month Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Last Month Summary": {
+      "main": [
+        [
+          {
+            "node": "Prepare Reset Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Report Model": {
       "ai_languageModel": [
-        [{ "node": "Generate Morning Brief", "type": "ai_languageModel", "index": 0 }],
-        [{ "node": "Generate Evening Update", "type": "ai_languageModel", "index": 0 }],
-        [{ "node": "Generate Weekly Report", "type": "ai_languageModel", "index": 0 }]
+        [
+          {
+            "node": "Generate Morning Brief",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Evening Update",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Weekly Report",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
       ]
     },
     "Generate Morning Brief": {
-      "main": [[{ "node": "Merge Outputs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Morning": {
+      "main": [
+        [
+          {
+            "node": "Merge Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Generate Evening Update": {
-      "main": [[{ "node": "Merge Outputs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Evening": {
+      "main": [
+        [
+          {
+            "node": "Merge Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Generate Weekly Report": {
-      "main": [[{ "node": "Merge Outputs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Merge Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Weekly": {
+      "main": [
+        [
+          {
+            "node": "Merge Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Reset Message": {
+      "main": [
+        [
+          {
+            "node": "Send Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Merge Outputs": {
-      "main": [[{ "node": "Send Reports", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Reports": {
-      "main": [[{ "node": "Log Execution", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Log Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
-  "settings": { "executionOrder": "v1" },
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "optimized-v2",
-    "description": "Unified daily automations: morning briefs, evening checks, weekly reports. Replaces WF11, WF12, WF21."
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "tags": ["automation", "scheduled", "reports", "optimized"]
+  "staticData": {
+    "node:Morning 9 AM": {
+      "recurrenceRules": []
+    },
+    "node:Evening 6 PM": {
+      "recurrenceRules": []
+    },
+    "node:Weekly Monday 10 AM": {
+      "recurrenceRules": []
+    },
+    "node:Monthly 1st Midnight": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "464b7a89-08b1-483b-a131-09fcc5193553",
+  "activeVersionId": "c90a1847-263f-455d-bd03-dd06bae3bb29",
+  "versionCounter": 30,
+  "triggerCount": 4,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T08:45:22.439Z",
+      "createdAt": "2026-02-06T08:45:22.439Z",
+      "role": "workflow:owner",
+      "workflowId": "ccEOaNnIwY6eeJOn",
+      "projectId": "JX3CVPOuNBbCCU8b",
+      "project": {
+        "updatedAt": "2026-02-02T07:09:35.792Z",
+        "createdAt": "2026-02-02T06:27:43.829Z",
+        "id": "JX3CVPOuNBbCCU8b",
+        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-02-02T06:27:43.829Z",
+            "createdAt": "2026-02-02T06:27:43.829Z",
+            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+            "projectId": "JX3CVPOuNBbCCU8b",
+            "user": {
+              "updatedAt": "2026-02-11T05:04:49.000Z",
+              "createdAt": "2026-02-02T06:27:43.413Z",
+              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+              "email": "gabrielmarius2077@gmail.com",
+              "firstName": "Gabriel",
+              "lastName": "Erna",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
+                "personalization_survey_n8n_version": "2.4.8"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
+                "userActivatedAt": 1770621057501
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-11",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2026-02-03T05:39:35.942Z",
+      "createdAt": "2026-02-03T05:39:35.942Z",
+      "id": "OKLSzMJzAZ0oQPQn",
+      "name": "Client"
+    },
+    {
+      "updatedAt": "2026-02-03T04:47:35.753Z",
+      "createdAt": "2026-02-03T04:47:35.753Z",
+      "id": "xXzewijfO4PNYRXd",
+      "name": "Scheduled"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-11T03:56:46.313Z",
+    "createdAt": "2026-02-11T03:56:46.313Z",
+    "versionId": "c90a1847-263f-455d-bd03-dd06bae3bb29",
+    "workflowId": "ccEOaNnIwY6eeJOn",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 9
+              }
+            ]
+          }
+        },
+        "id": "morning-trigger",
+        "name": "Morning 9 AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 18
+              }
+            ]
+          }
+        },
+        "id": "evening-trigger",
+        "name": "Evening 6 PM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 10 * * 1"
+              }
+            ]
+          }
+        },
+        "id": "weekly-trigger",
+        "name": "Weekly Monday 10 AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          400
+        ]
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 0 1 * *"
+              }
+            ]
+          }
+        },
+        "id": "monthly-trigger",
+        "name": "Monthly 1st Midnight",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          600
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\nconst dayOfMonth = now.getDate();\n\nlet automationType;\nif (dayOfMonth === 1 && hour === 0) {\n  automationType = 'monthly_reset';\n} else if (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
+        },
+        "id": "determine-type",
+        "name": "Determine Automation",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.automation_type }}",
+                      "rightValue": "morning_check",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "morning"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.automation_type }}",
+                      "rightValue": "evening_check",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "evening"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.automation_type }}",
+                      "rightValue": "weekly_report",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "weekly"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.automation_type }}",
+                      "rightValue": "monthly_reset",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "monthly"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "route-automation",
+        "name": "Route Automation",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          440,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(CASE WHEN b.check_in_date = CURRENT_DATE THEN 1 END) as checkins_today,\n  COUNT(CASE WHEN b.check_out_date = CURRENT_DATE THEN 1 END) as checkouts_today,\n  COUNT(CASE WHEN mt.status IN ('new', 'in_progress') THEN 1 END) as open_tickets\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id \n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.preferred_platform, p.customer_id",
+          "options": {}
+        },
+        "id": "morning-data",
+        "name": "Get Morning Data",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          660,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
+          "options": {}
+        },
+        "id": "check-budget-morning",
+        "name": "Check Budget (Morning)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          880,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "budget-morning",
+                "leftValue": "={{ $json.can_proceed }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "budget-gate-morning",
+        "name": "Budget OK (Morning)?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
+          "options": {}
+        },
+        "id": "evening-data",
+        "name": "Get Evening Data",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          660,
+          200
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
+          "options": {}
+        },
+        "id": "check-budget-evening",
+        "name": "Check Budget (Evening)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          880,
+          200
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "budget-evening",
+                "leftValue": "={{ $json.can_proceed }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "budget-gate-evening",
+        "name": "Budget OK (Evening)?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.preferred_platform, p.customer_id",
+          "options": {}
+        },
+        "id": "weekly-data",
+        "name": "Get Weekly Data",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          660,
+          400
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
+          "options": {}
+        },
+        "id": "check-budget-weekly",
+        "name": "Check Budget (Weekly)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          880,
+          400
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "budget-weekly",
+                "leftValue": "={{ $json.can_proceed }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "budget-gate-weekly",
+        "name": "Budget OK (Weekly)?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          400
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT * FROM reset_monthly_budgets()",
+          "options": {}
+        },
+        "id": "reset-budgets",
+        "name": "Reset Monthly Budgets",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          660,
+          600
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT \n  c.id as customer_id,\n  c.name as customer_name,\n  pc.owner_contact,\n  pc.preferred_platform,\n  b.used_amount as last_month_usage,\n  b.monthly_budget\nFROM customers c\nJOIN property_configurations pc ON c.id = pc.customer_id\nJOIN api_usage_budget b ON c.id = b.customer_id\nWHERE b.month_year = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')\nGROUP BY c.id, c.name, pc.owner_contact, pc.preferred_platform, b.used_amount, b.monthly_budget",
+          "options": {}
+        },
+        "id": "get-last-month",
+        "name": "Get Last Month Summary",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          880,
+          600
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Prepare monthly reset notification\nconst data = $input.item.json;\nconst lastMonthUsage = data.last_month_usage || 0;\nconst budget = data.monthly_budget || 30;\nconst usagePercent = ((lastMonthUsage / budget) * 100).toFixed(1);\n\nconst now = new Date();\nconst currentMonth = now.toLocaleString('default', { month: 'long', year: 'numeric' });\nconst lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)\n  .toLocaleString('default', { month: 'long', year: 'numeric' });\n\nlet usageEmoji = '✅';\nif (usagePercent > 80) usageEmoji = '🔶';\nif (usagePercent >= 100) usageEmoji = '🔴';\n\nconst message = `🗓️ *Monthly API Budget Reset*\\n\\n` +\n  `Hi ${data.customer_name}! Your API budget for *${currentMonth}* has been reset.\\n\\n` +\n  `📊 *${lastMonth} Summary:*\\n` +\n  `${usageEmoji} Used: $${lastMonthUsage.toFixed(2)} of $${budget.toFixed(2)}\\n` +\n  `📈 Usage: ${usagePercent}%\\n\\n` +\n  `💳 *New Month Budget:*\\n` +\n  `💰 Available: $${budget.toFixed(2)}\\n\\n` +\n  `Your AI assistant is ready for another month of service! 🤖`;\n\nreturn {\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact,\n  message: message,\n  customer_id: data.customer_id\n};"
+        },
+        "id": "prepare-reset-msg",
+        "name": "Prepare Reset Message",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          600
+        ]
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').item.json.property_name }}\nCheck-ins Today: {{ $('Get Morning Data').item.json.checkins_today }}\nCheck-outs Today: {{ $('Get Morning Data').item.json.checkouts_today }}\nOpen Maintenance Tickets: {{ $('Get Morning Data').item.json.open_tickets }}\n\nCreate a concise message (under 100 words) with:\n1. Good morning greeting\n2. Summary of today's activity\n3. Any action items if needed\n\nUse appropriate emojis.",
+          "hasOutputParser": false,
+          "options": {}
+        },
+        "id": "generate-morning",
+        "name": "Generate Morning Brief",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.4,
+        "position": [
+          1320,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Template morning message when budget exhausted\nconst data = $('Get Morning Data').item.json;\nconst checkins = data.checkins_today || 0;\nconst checkouts = data.checkouts_today || 0;\nconst tickets = data.open_tickets || 0;\n\nlet message = `☀️ Good morning!\\n\\n`;\nmessage += `📊 *${data.property_name}* Daily Summary:\\n`;\nmessage += `• Check-ins today: ${checkins}\\n`;\nmessage += `• Check-outs today: ${checkouts}\\n`;\nmessage += `• Open tickets: ${tickets}\\n\\n`;\n\nif (checkins > 0 || checkouts > 0) {\n  message += `Have a productive day! 💪`;\n} else {\n  message += `Quiet day ahead. Enjoy! ☕`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+        },
+        "id": "template-morning",
+        "name": "Template Morning",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          80
+        ]
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data').item.json.guest_name }} checking in today\nCleaning Status: {{ $('Get Evening Data').item.json.cleaning_status || 'Not scheduled' }}\nCleaning Completed: {{ $('Get Evening Data').item.json.cleaning_completed || 'Pending' }}\n\nCreate a brief message confirming readiness for guest arrival or flagging any issues.",
+          "hasOutputParser": false,
+          "options": {}
+        },
+        "id": "generate-evening",
+        "name": "Generate Evening Update",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.4,
+        "position": [
+          1320,
+          120
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Template evening message when budget exhausted\nconst data = $('Get Evening Data').item.json;\n\nlet message = `🌙 Evening Check-in Update\\n\\n`;\nmessage += `🏠 *${data.property_name}*\\n`;\nmessage += `👤 Guest: ${data.guest_name || 'N/A'}\\n`;\nmessage += `🧹 Cleaning: ${data.cleaning_status || 'Check status'}\\n\\n`;\n\nif (data.cleaning_completed) {\n  message += `✅ Property is ready for guest arrival!`;\n} else {\n  message += `⚠️ Please verify cleaning is complete before check-in.`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+        },
+        "id": "template-evening",
+        "name": "Template Evening",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          280
+        ]
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 days): {{ $('Get Weekly Data').item.json.total_bookings }}\nTotal Revenue: ${{ $('Get Weekly Data').item.json.total_revenue || 0 }}\nNew Bookings This Week: {{ $('Get Weekly Data').item.json.new_bookings_week }}\nAverage Stay Length: {{ $('Get Weekly Data').item.json.avg_stay_length || 0 }} nights\n\nCreate a concise executive summary (under 150 words) highlighting:\n1. Performance overview\n2. Trends\n3. Any recommendations\n\nFormat professionally with bullet points.",
+          "hasOutputParser": false,
+          "options": {}
+        },
+        "id": "generate-weekly",
+        "name": "Generate Weekly Report",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.4,
+        "position": [
+          1320,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Template weekly report when budget exhausted\nconst data = $('Get Weekly Data').item.json;\nconst revenue = data.total_revenue || 0;\nconst bookings = data.total_bookings || 0;\nconst avgStay = data.avg_stay_length || 0;\n\nlet message = `📊 *Weekly Performance Report*\\n\\n`;\nmessage += `🏠 *${data.property_name}*\\n\\n`;\nmessage += `*30-Day Metrics:*\\n`;\nmessage += `• Total Bookings: ${bookings}\\n`;\nmessage += `• Revenue: $${parseFloat(revenue).toFixed(2)}\\n`;\nmessage += `• Avg Stay: ${parseFloat(avgStay).toFixed(1)} nights\\n`;\nmessage += `• New This Week: ${data.new_bookings_week || 0}\\n\\n`;\n\nif (bookings > 0) {\n  message += `Keep up the great work! 🎉`;\n} else {\n  message += `Consider promotional activities to boost bookings.`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+        },
+        "id": "template-weekly",
+        "name": "Template Weekly",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          480
+        ]
+      },
+      {
+        "parameters": {
+          "model": "gpt-4o-mini",
+          "options": {
+            "temperature": 0.7
+          }
+        },
+        "id": "report-model",
+        "name": "Report Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1,
+        "position": [
+          1320,
+          700
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "slpbr7aUaU6fqTfw",
+            "name": "[Client] OpenAI"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineAll",
+          "options": {}
+        },
+        "id": "merge-outputs",
+        "name": "Merge Outputs",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          1540,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "mode": "id",
+            "value": "UZMWfhnV6JmuwJXC"
+          },
+          "options": {},
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "channel": "={{ $json.preferred_platform || 'telegram' }}",
+              "recipient": "={{ $json.owner_contact }}",
+              "message": "={{ $json.report_text || $json.text }}"
+            },
+            "schema": [
+              {
+                "id": "channel",
+                "displayName": "Channel",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "recipient",
+                "displayName": "Recipient",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "message",
+                "displayName": "Message",
+                "type": "string",
+                "required": true
+              }
+            ]
+          }
+        },
+        "id": "send-reports",
+        "name": "Send Reports",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          1760,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "insert",
+          "table": "automation_log",
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "log_id": "={{ 'auto_' + $now.toMillis() }}",
+              "automation_type": "={{ $('Determine Automation').item.json.automation_type }}",
+              "executed_at": "={{ $now.toISO() }}",
+              "properties_processed": "={{ $json.length || 1 }}",
+              "status": "completed"
+            }
+          },
+          "options": {}
+        },
+        "id": "log-execution",
+        "name": "Log Execution",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1980,
+          300
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Morning 9 AM": {
+        "main": [
+          [
+            {
+              "node": "Determine Automation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Evening 6 PM": {
+        "main": [
+          [
+            {
+              "node": "Determine Automation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Weekly Monday 10 AM": {
+        "main": [
+          [
+            {
+              "node": "Determine Automation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Monthly 1st Midnight": {
+        "main": [
+          [
+            {
+              "node": "Determine Automation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Determine Automation": {
+        "main": [
+          [
+            {
+              "node": "Route Automation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Automation": {
+        "main": [
+          [
+            {
+              "node": "Get Morning Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get Evening Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get Weekly Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Reset Monthly Budgets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Morning Data": {
+        "main": [
+          [
+            {
+              "node": "Check Budget (Morning)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Budget (Morning)": {
+        "main": [
+          [
+            {
+              "node": "Budget OK (Morning)?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Budget OK (Morning)?": {
+        "main": [
+          [
+            {
+              "node": "Generate Morning Brief",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Template Morning",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Evening Data": {
+        "main": [
+          [
+            {
+              "node": "Check Budget (Evening)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Budget (Evening)": {
+        "main": [
+          [
+            {
+              "node": "Budget OK (Evening)?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Budget OK (Evening)?": {
+        "main": [
+          [
+            {
+              "node": "Generate Evening Update",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Template Evening",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Weekly Data": {
+        "main": [
+          [
+            {
+              "node": "Check Budget (Weekly)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Budget (Weekly)": {
+        "main": [
+          [
+            {
+              "node": "Budget OK (Weekly)?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Budget OK (Weekly)?": {
+        "main": [
+          [
+            {
+              "node": "Generate Weekly Report",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Template Weekly",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reset Monthly Budgets": {
+        "main": [
+          [
+            {
+              "node": "Get Last Month Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Last Month Summary": {
+        "main": [
+          [
+            {
+              "node": "Prepare Reset Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Report Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Morning Brief",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Generate Evening Update",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Generate Weekly Report",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Morning Brief": {
+        "main": [
+          [
+            {
+              "node": "Merge Outputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Template Morning": {
+        "main": [
+          [
+            {
+              "node": "Merge Outputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Evening Update": {
+        "main": [
+          [
+            {
+              "node": "Merge Outputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Template Evening": {
+        "main": [
+          [
+            {
+              "node": "Merge Outputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Weekly Report": {
+        "main": [
+          [
+            {
+              "node": "Merge Outputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Template Weekly": {
+        "main": [
+          [
+            {
+              "node": "Merge Outputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Reset Message": {
+        "main": [
+          [
+            {
+              "node": "Send Reports",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Outputs": {
+        "main": [
+          [
+            {
+              "node": "Send Reports",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Reports": {
+        "main": [
+          [
+            {
+              "node": "Log Execution",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Gabriel Erna",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-11T03:56:46.403Z",
+        "id": 172,
+        "workflowId": "ccEOaNnIwY6eeJOn",
+        "versionId": "c90a1847-263f-455d-bd03-dd06bae3bb29",
+        "event": "activated",
+        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
+      }
+    ]
+  }
 }

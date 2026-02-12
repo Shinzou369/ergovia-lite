@@ -99,15 +99,24 @@ const SchemaMapper = {
     credentials: {
         toBackend: (data) => ({
             telegram_bot_token: data.telegramBotToken,
-            whatsapp_api_key: data.whatsappApiKey,
-            google_service_account: data.googleServiceAccount,
-            airbnb_calendar_link: data.airbnbCalendarLink,
+            twilio_account_sid: data.twilioAccountSid,
+            twilio_auth_token: data.twilioAuthToken,
+            twilio_phone_number: data.twilioPhoneNumber,
         }),
         toFrontend: (data) => ({
             telegramBotToken: data.telegram_bot_token ? '********' : '',
-            whatsappApiKey: data.whatsapp_api_key ? '********' : '',
-            googleServiceAccount: data.google_service_account ? '********' : '',
-            airbnbCalendarLink: data.airbnb_calendar_link || '',
+            twilioAccountSid: data.twilio_account_sid ? '********' : '',
+            twilioAuthToken: data.twilio_auth_token ? '********' : '',
+            twilioPhoneNumber: data.twilio_phone_number || '',
+        }),
+    },
+
+    budget: {
+        toBackend: (data) => ({
+            monthly_budget: data.monthlyBudget,
+        }),
+        toFrontend: (data) => ({
+            monthlyBudget: data.monthly_budget || data.monthlyBudget || 50,
         }),
     },
 
@@ -120,15 +129,43 @@ const SchemaMapper = {
             bedrooms: data.bedrooms,
             bathrooms: data.bathrooms,
             max_guests: data.maxGuests,
+
+            // Pricing & Stay Rules
+            base_price: data.basePrice,
+            weekend_price: data.weekendPrice,
+            holiday_price: data.holidayPrice,
+            cleaning_fee: data.cleaningFee,
+            min_stay_nights: data.minStayNights,
+            max_stay_nights: data.maxStayNights,
+            check_in_time: data.checkInTime,
+            check_out_time: data.checkOutTime,
+
+            // Calendar & Automation
+            calendar_url: data.calendarUrl,
+            timezone: data.timezone,
+            calendar_sync_enabled: data.calendarSyncEnabled,
+            auto_approve_bookings: data.autoApproveBookings,
+            require_screening: data.requireScreening,
+
+            // Listing platforms
             airbnb_url: data.airbnbUrl,
             booking_com_url: data.bookingComUrl,
             vrbo_url: data.vrboUrl,
+
+            // Access
             door_code: data.doorCode,
             access_instructions: data.accessInstructions,
+
+            // Owner contact per property
+            owner_contact: data.ownerContact,
+            owner_telegram: data.ownerTelegram,
+
+            // Team contacts
             cleaner_name: data.cleanerName,
             cleaner_phone: data.cleanerPhone,
             maintenance_name: data.maintenanceName,
             maintenance_phone: data.maintenancePhone,
+
             amenities: data.amenities,
             notes: data.notes,
         }),
@@ -140,15 +177,43 @@ const SchemaMapper = {
             bedrooms: data.bedrooms || 1,
             bathrooms: data.bathrooms || 1,
             maxGuests: data.max_guests || data.maxGuests || 2,
+
+            // Pricing & Stay Rules
+            basePrice: data.base_price || data.basePrice || null,
+            weekendPrice: data.weekend_price || data.weekendPrice || null,
+            holidayPrice: data.holiday_price || data.holidayPrice || null,
+            cleaningFee: data.cleaning_fee || data.cleaningFee || null,
+            minStayNights: data.min_stay_nights || data.minStayNights || 1,
+            maxStayNights: data.max_stay_nights || data.maxStayNights || 30,
+            checkInTime: data.check_in_time || data.checkInTime || '15:00',
+            checkOutTime: data.check_out_time || data.checkOutTime || '11:00',
+
+            // Calendar & Automation
+            calendarUrl: data.calendar_url || data.calendarUrl || '',
+            timezone: data.timezone || 'UTC',
+            calendarSyncEnabled: data.calendar_sync_enabled !== undefined ? data.calendar_sync_enabled : (data.calendarSyncEnabled !== false),
+            autoApproveBookings: data.auto_approve_bookings || data.autoApproveBookings || false,
+            requireScreening: data.require_screening !== undefined ? data.require_screening : (data.requireScreening !== false),
+
+            // Listing platforms
             airbnbUrl: data.airbnb_url || data.airbnbUrl || '',
             bookingComUrl: data.booking_com_url || data.bookingComUrl || '',
             vrboUrl: data.vrbo_url || data.vrboUrl || '',
+
+            // Access
             doorCode: data.door_code || data.doorCode || '',
             accessInstructions: data.access_instructions || data.accessInstructions || '',
+
+            // Owner contact
+            ownerContact: data.owner_contact || data.ownerContact || '',
+            ownerTelegram: data.owner_telegram || data.ownerTelegram || '',
+
+            // Team contacts
             cleanerName: data.cleaner_name || data.cleanerName || '',
             cleanerPhone: data.cleaner_phone || data.cleanerPhone || '',
             maintenanceName: data.maintenance_name || data.maintenanceName || '',
             maintenancePhone: data.maintenance_phone || data.maintenancePhone || '',
+
             amenities: data.amenities || [],
             notes: data.notes || '',
             color: data.color || CONFIG.PROPERTY_COLORS[0],

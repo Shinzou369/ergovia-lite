@@ -164,6 +164,133 @@
                     </div>
                 </div>
 
+                <!-- Pricing & Stay Rules -->
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-dollar-sign"></i> Pricing & Stay Rules</h3>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="basePrice">
+                                <i class="fas fa-tag"></i> Base Price / Night
+                                <span class="required">*</span>
+                            </label>
+                            <input type="number" id="basePrice" name="basePrice" required min="0" step="0.01"
+                                   placeholder="150.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="weekendPrice">
+                                <i class="fas fa-calendar-week"></i> Weekend Price / Night
+                            </label>
+                            <input type="number" id="weekendPrice" name="weekendPrice" min="0" step="0.01"
+                                   placeholder="180.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="holidayPrice">
+                                <i class="fas fa-gift"></i> Holiday Price / Night
+                            </label>
+                            <input type="number" id="holidayPrice" name="holidayPrice" min="0" step="0.01"
+                                   placeholder="200.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cleaningFee">
+                                <i class="fas fa-broom"></i> Cleaning Fee
+                                <span class="required">*</span>
+                            </label>
+                            <input type="number" id="cleaningFee" name="cleaningFee" required min="0" step="0.01"
+                                   placeholder="75.00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="minStayNights">
+                                <i class="fas fa-moon"></i> Min Stay (nights)
+                            </label>
+                            <input type="number" id="minStayNights" name="minStayNights" min="1" value="1"
+                                   placeholder="1">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxStayNights">
+                                <i class="fas fa-moon"></i> Max Stay (nights)
+                            </label>
+                            <input type="number" id="maxStayNights" name="maxStayNights" min="1" value="30"
+                                   placeholder="30">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="checkInTime">
+                                <i class="fas fa-sign-in-alt"></i> Check-in Time
+                            </label>
+                            <input type="time" id="checkInTime" name="checkInTime" value="15:00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="checkOutTime">
+                                <i class="fas fa-sign-out-alt"></i> Check-out Time
+                            </label>
+                            <input type="time" id="checkOutTime" name="checkOutTime" value="11:00">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar & Automation -->
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-calendar-alt"></i> Calendar & Automation</h3>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="calendarUrl">
+                                <i class="fab fa-airbnb"></i> Calendar iCal URL
+                            </label>
+                            <input type="url" id="calendarUrl" name="calendarUrl"
+                                   placeholder="https://www.airbnb.com/calendar/ical/...">
+                            <small class="help-text">Found in Airbnb &gt; Calendar &gt; Availability &gt; Import/Export</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="timezone">
+                                <i class="fas fa-globe-americas"></i> Timezone
+                            </label>
+                            <select id="timezone" name="timezone">
+                                <option value="America/New_York">Eastern Time (ET)</option>
+                                <option value="America/Chicago">Central Time (CT)</option>
+                                <option value="America/Denver">Mountain Time (MT)</option>
+                                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                                <option value="Europe/London">London (GMT)</option>
+                                <option value="Europe/Paris">Paris (CET)</option>
+                                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                                <option value="Asia/Manila">Manila (PHT)</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label" style="margin-top: 28px;">
+                                <input type="checkbox" id="calendarSyncEnabled" name="calendarSyncEnabled" value="1" checked>
+                                <i class="fas fa-sync"></i> Enable Calendar Sync
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoApproveBookings" name="autoApproveBookings" value="1">
+                                <i class="fas fa-check-circle"></i> Auto-approve Bookings
+                            </label>
+                            <small class="help-text">Skip manual confirmation for new bookings</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="requireScreening" name="requireScreening" value="1" checked>
+                                <i class="fas fa-shield-alt"></i> Require Guest Screening
+                            </label>
+                            <small class="help-text">AI screens guests before accepting bookings</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Listing Platforms -->
                 <div class="form-section-modal">
                     <h3><i class="fas fa-globe"></i> Listing Platforms</h3>
@@ -238,6 +365,24 @@
                     <p class="section-description-small">Who handles specific tasks for this property?</p>
 
                     <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ownerContact">
+                                <i class="fas fa-user-shield"></i> Owner Contact (Chat ID)
+                                <span class="required">*</span>
+                            </label>
+                            <input type="text" id="ownerContact" name="ownerContact"
+                                   placeholder="Auto-filled from Owner Info">
+                            <small class="help-text">Used for workflow notifications. Defaults to your Telegram Chat ID.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ownerTelegram">
+                                <i class="fab fa-telegram"></i> Owner Telegram
+                            </label>
+                            <input type="text" id="ownerTelegram" name="ownerTelegram"
+                                   placeholder="Fallback contact">
+                        </div>
+
                         <div class="form-group">
                             <label for="cleanerName">
                                 <i class="fas fa-broom"></i> Cleaner Name

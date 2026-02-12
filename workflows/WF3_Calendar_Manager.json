@@ -1,28 +1,43 @@
 {
+  "updatedAt": "2026-02-12T06:41:59.537Z",
+  "createdAt": "2026-02-06T08:45:15.955Z",
+  "id": "pEn69kwNtCEQ21y9",
   "name": "WF3: Calendar Manager",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
         "rule": {
-          "interval": [{ "triggerAtHour": 6 }]
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
         }
       },
       "id": "daily-trigger",
       "name": "Daily 6 AM Sync",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        168
+      ]
     },
     {
       "parameters": {
-        "inputSource": "jsonExample",
-        "jsonExample": "{\n  \"property_id\": \"PROP001\",\n  \"check_in_date\": \"2026-03-01\",\n  \"check_out_date\": \"2026-03-05\"\n}"
+        "inputSource": "passthrough"
       },
       "id": "workflow-trigger",
       "name": "When Called by Other Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [0, 200]
+      "position": [
+        0,
+        360
+      ]
     },
     {
       "parameters": {
@@ -33,78 +48,98 @@
       "name": "Prepare Parameters",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [260, 100]
+      "position": [
+        224,
+        264
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.ical_import_urls,\n  p.airbnb_calendar_url,\n  p.vrbo_calendar_url,\n  p.owner_contact,\n  p.preferred_platform\nFROM property_configurations p\nWHERE p.property_status = 'active'\n  AND (p.property_id = $1 OR $1 IS NULL)\nORDER BY p.property_name",
-        "additionalFields": {
-          "queryParameters": "={{ { \"parameters\": [$json.property_id] } }}"
-        },
+        "query": "=SELECT p.property_id, p.property_name, p.address, p.base_price, p.weekend_price, p.cleaning_fee, p.max_guests, p.bedrooms, p.bathrooms, p.owner_contact, p.owner_name, p.owner_phone, p.owner_telegram, p.calendar_url, p.calendar_sync_enabled, p.min_stay_nights, p.max_stay_nights, p.settings FROM property_configurations p WHERE p.property_status = 'active' AND (p.property_id = '{{ $json.property_id }}' OR '{{ $json.property_id }}' = '' OR '{{ $json.property_id }}' = 'null') ORDER BY p.property_name",
         "options": {}
       },
       "id": "get-properties",
       "name": "Get Properties",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [480, 100],
+      "position": [
+        448,
+        264
+      ],
       "credentials": {
         "postgres": {
-          "id": "postgres-cred",
-          "name": "PostgreSQL"
+          "id": "BWlLUMKn64aZsHi8",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
       "id": "loop-properties",
       "name": "Loop Properties",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [700, 100]
+      "position": [
+        672,
+        264
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  booking_id,\n  guest_name,\n  check_in_date,\n  check_out_date,\n  booking_status,\n  booking_type,\n  external_platform,\n  external_booking_id\nFROM bookings\nWHERE property_id = $1\n  AND booking_status IN ('confirmed', 'pending')\n  AND check_out_date >= $2\n  AND check_in_date <= $3\nORDER BY check_in_date",
-        "additionalFields": {
-          "queryParameters": "={{ { \"parameters\": [$json.property_id, $('Prepare Parameters').item.json.date_range_start, $('Prepare Parameters').item.json.date_range_end] } }}"
-        },
+        "query": "=SELECT booking_id, guest_name, guest_phone, guest_email, property_name, check_in_date, check_out_date, booking_status, guests, total_amount, platform, channel_type FROM bookings WHERE property_id = '{{ $json.property_id }}' AND booking_status IN ('confirmed', 'pending') AND check_out_date >= '{{ $('Prepare Parameters').item.json.date_range_start }}'::date AND check_in_date <= '{{ $('Prepare Parameters').item.json.date_range_end }}'::date ORDER BY check_in_date",
         "options": {}
       },
       "id": "get-bookings",
       "name": "Get Property Bookings",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [920, 0],
+      "position": [
+        896,
+        0
+      ],
       "credentials": {
         "postgres": {
-          "id": "postgres-cred",
-          "name": "PostgreSQL"
+          "id": "BWlLUMKn64aZsHi8",
+          "name": "[Client] PostgreSQL"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Detect conflicts in bookings\nconst bookings = $input.all().map(i => i.json);\nconst property = $('Loop Properties').item.json;\nconst params = $('Prepare Parameters').item.json;\n\nconst conflicts = [];\nconst blockedDates = new Set();\n\n// Build set of all blocked dates\nfor (const booking of bookings) {\n  const start = new Date(booking.check_in_date);\n  const end = new Date(booking.check_out_date);\n  \n  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {\n    const dateStr = d.toISOString().split('T')[0];\n    \n    if (blockedDates.has(dateStr)) {\n      // Find the conflicting booking\n      const existing = bookings.find(b => {\n        const bStart = new Date(b.check_in_date);\n        const bEnd = new Date(b.check_out_date);\n        return d >= bStart && d < bEnd && b.booking_id !== booking.booking_id;\n      });\n      \n      if (existing) {\n        conflicts.push({\n          date: dateStr,\n          booking1: {\n            id: booking.booking_id,\n            guest: booking.guest_name,\n            platform: booking.external_platform || 'direct'\n          },\n          booking2: {\n            id: existing.booking_id,\n            guest: existing.guest_name,\n            platform: existing.external_platform || 'direct'\n          }\n        });\n      }\n    }\n    blockedDates.add(dateStr);\n  }\n}\n\n// Check specific date availability if requested\nlet isAvailable = true;\nlet availabilityDetails = null;\n\nif (params.is_availability_check && params.check_in_date) {\n  const reqStart = new Date(params.check_in_date);\n  const reqEnd = new Date(params.check_out_date);\n  \n  for (let d = new Date(reqStart); d < reqEnd; d.setDate(d.getDate() + 1)) {\n    if (blockedDates.has(d.toISOString().split('T')[0])) {\n      isAvailable = false;\n      break;\n    }\n  }\n  \n  availabilityDetails = {\n    property_id: property.property_id,\n    property_name: property.property_name,\n    check_in: params.check_in_date,\n    check_out: params.check_out_date,\n    available: isAvailable,\n    conflicts_found: conflicts.length\n  };\n}\n\nreturn [{\n  json: {\n    property_id: property.property_id,\n    property_name: property.property_name,\n    total_bookings: bookings.length,\n    conflicts: conflicts,\n    has_conflicts: conflicts.length > 0,\n    availability_check: availabilityDetails,\n    sync_timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Detect conflicts in bookings\nconst bookings = $input.all().map(i => i.json);\nconst property = $('Loop Properties').item.json;\nconst params = $('Prepare Parameters').item.json;\n\nconst conflicts = [];\nconst blockedDates = new Set();\n\n// Build set of all blocked dates\nfor (const booking of bookings) {\n  const start = new Date(booking.check_in_date);\n  const end = new Date(booking.check_out_date);\n  \n  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {\n    const dateStr = d.toISOString().split('T')[0];\n    \n    if (blockedDates.has(dateStr)) {\n      // Find the conflicting booking\n      const existing = bookings.find(b => {\n        const bStart = new Date(b.check_in_date);\n        const bEnd = new Date(b.check_out_date);\n        return d >= bStart && d < bEnd && b.booking_id !== booking.booking_id;\n      });\n      \n      if (existing) {\n        conflicts.push({\n          date: dateStr,\n          booking1: {\n            id: booking.booking_id,\n            guest: booking.guest_name,\n            platform: booking.platform || 'direct'\n          },\n          booking2: {\n            id: existing.booking_id,\n            guest: existing.guest_name,\n            platform: existing.platform || 'direct'\n          }\n        });\n      }\n    }\n    blockedDates.add(dateStr);\n  }\n}\n\n// Check specific date availability if requested\nlet isAvailable = true;\nlet availabilityDetails = null;\n\nif (params.is_availability_check && params.check_in_date) {\n  const reqStart = new Date(params.check_in_date);\n  const reqEnd = new Date(params.check_out_date);\n  \n  for (let d = new Date(reqStart); d < reqEnd; d.setDate(d.getDate() + 1)) {\n    if (blockedDates.has(d.toISOString().split('T')[0])) {\n      isAvailable = false;\n      break;\n    }\n  }\n  \n  availabilityDetails = {\n    property_id: property.property_id,\n    property_name: property.property_name,\n    check_in: params.check_in_date,\n    check_out: params.check_out_date,\n    available: isAvailable,\n    conflicts_found: conflicts.length\n  };\n}\n\nreturn [{\n  json: {\n    property_id: property.property_id,\n    property_name: property.property_name,\n    total_bookings: bookings.length,\n    conflicts: conflicts,\n    has_conflicts: conflicts.length > 0,\n    availability_check: availabilityDetails,\n    sync_timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "detect-conflicts",
       "name": "Detect Conflicts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1140, 0]
+      "position": [
+        1120,
+        0
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
-            { "id": "conflict-check", "leftValue": "={{ $json.has_conflicts }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+            {
+              "id": "conflict-check",
+              "leftValue": "={{ $json.has_conflicts }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -114,11 +149,18 @@
       "name": "Has Conflicts?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1360, 0]
+      "position": [
+        1344,
+        0
+      ]
     },
     {
       "parameters": {
-        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
         "table": "calendar_conflicts",
         "columns": {
           "mappingMode": "defineBelow",
@@ -136,41 +178,49 @@
       "name": "Log Conflicts",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1580, -100],
+      "position": [
+        1568,
+        -96
+      ],
       "credentials": {
         "postgres": {
-          "id": "postgres-cred",
-          "name": "PostgreSQL"
+          "id": "BWlLUMKn64aZsHi8",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.conflicts, null, 2) }}\n\nWrite a concise message (under 100 words) that:\n1. States the urgency\n2. Lists the conflicting dates\n3. Asks owner to resolve immediately\n\nUse emojis for visual urgency.",
-        "hasOutputParser": false,
-        "options": {}
+        "text": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.conflicts, null, 2) }}\n\nWrite a concise message (under 100 words) that:\n1. States the urgency\n2. Lists the conflicting dates\n3. Asks owner to resolve immediately\n\nUse emojis for visual urgency."
       },
       "id": "generate-alert",
       "name": "Generate Alert",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
-      "position": [1800, -100]
+      "position": [
+        1792,
+        -96
+      ]
     },
     {
       "parameters": {
-        "model": "gpt-4o-mini",
-        "options": { "temperature": 0.5 }
+        "options": {
+          "temperature": 0.5
+        }
       },
       "id": "alert-model",
       "name": "Alert Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
-      "position": [1800, 100],
+      "position": [
+        1864,
+        128
+      ],
       "credentials": {
         "openAiApi": {
-          "id": "openai-cred",
-          "name": "OpenAI"
+          "id": "slpbr7aUaU6fqTfw",
+          "name": "[Client] OpenAI"
         }
       }
     },
@@ -179,24 +229,37 @@
         "workflowId": {
           "__rl": true,
           "mode": "list",
-          "value": "SUB: Universal Messenger",
-          "cachedResultName": "SUB: Universal Messenger"
+          "value": "UZMWfhnV6JmuwJXC",
+          "cachedResultName": "SUB: Universal Messenger",
+          "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "channel": "telegram",
+            "channel": "={{ $('Loop Properties').item.json.preferred_platform || 'telegram' }}",
             "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
-            "message": "={{ $json.text || $json.output || 'Calendar conflict detected - check your dashboard' }}"
+            "message": "={{ $('Generate Alert').item.json.text }}"
           },
-          "matchingColumns": [],
           "schema": [
-            { "id": "channel", "displayName": "channel", "type": "string", "required": true },
-            { "id": "recipient", "displayName": "recipient", "type": "string", "required": true },
-            { "id": "message", "displayName": "message", "type": "string", "required": true }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
+            {
+              "id": "channel",
+              "displayName": "Channel",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "Recipient",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "message",
+              "displayName": "Message",
+              "type": "string",
+              "required": true
+            }
+          ]
         },
         "options": {}
       },
@@ -204,7 +267,10 @@
       "name": "Send Alert",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [2020, -100]
+      "position": [
+        2144,
+        168
+      ]
     },
     {
       "parameters": {},
@@ -212,7 +278,10 @@
       "name": "Continue Loop",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1580, 100]
+      "position": [
+        1568,
+        96
+      ]
     },
     {
       "parameters": {
@@ -224,62 +293,731 @@
       "name": "Merge Results",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [2240, 100]
+      "position": [
+        896,
+        192
+      ]
     }
   ],
   "connections": {
     "Daily 6 AM Sync": {
-      "main": [[{ "node": "Prepare Parameters", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "When Called by Other Workflow": {
-      "main": [[{ "node": "Prepare Parameters", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Parameters": {
-      "main": [[{ "node": "Get Properties", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Properties": {
-      "main": [[{ "node": "Loop Properties", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Properties": {
       "main": [
-        [{ "node": "Get Property Bookings", "type": "main", "index": 0 }],
-        [{ "node": "Merge Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Property Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Property Bookings": {
-      "main": [[{ "node": "Detect Conflicts", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Detect Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Detect Conflicts": {
-      "main": [[{ "node": "Has Conflicts?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Conflicts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Conflicts?": {
       "main": [
-        [{ "node": "Log Conflicts", "type": "main", "index": 0 }],
-        [{ "node": "Continue Loop", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Continue Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Log Conflicts": {
-      "main": [[{ "node": "Generate Alert", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Generate Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Alert Model": {
-      "ai_languageModel": [[{ "node": "Generate Alert", "type": "ai_languageModel", "index": 0 }]]
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Alert",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Generate Alert": {
-      "main": [[{ "node": "Send Alert", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Alert": {
-      "main": [[{ "node": "Loop Properties", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Continue Loop": {
-      "main": [[{ "node": "Loop Properties", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
-  "settings": { "executionOrder": "v1" },
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "optimized-v2",
-    "description": "Unified calendar management: availability checks, conflict detection, iCal sync. Replaces WF2, WF3."
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "tags": ["calendar", "availability", "optimized"]
+  "staticData": {
+    "node:Daily 6 AM Sync": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {
+    "When Called by Other Workflow": [
+      {
+        "json": {
+          "property_id": null,
+          "check_in_date": "2026-02-14",
+          "check_out_date": "2026-02-15"
+        }
+      }
+    ]
+  },
+  "versionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
+  "activeVersionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
+  "versionCounter": 25,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T08:45:15.957Z",
+      "createdAt": "2026-02-06T08:45:15.957Z",
+      "role": "workflow:owner",
+      "workflowId": "pEn69kwNtCEQ21y9",
+      "projectId": "JX3CVPOuNBbCCU8b",
+      "project": {
+        "updatedAt": "2026-02-02T07:09:35.792Z",
+        "createdAt": "2026-02-02T06:27:43.829Z",
+        "id": "JX3CVPOuNBbCCU8b",
+        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-02-02T06:27:43.829Z",
+            "createdAt": "2026-02-02T06:27:43.829Z",
+            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+            "projectId": "JX3CVPOuNBbCCU8b",
+            "user": {
+              "updatedAt": "2026-02-12T06:08:15.000Z",
+              "createdAt": "2026-02-02T06:27:43.413Z",
+              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+              "email": "gabrielmarius2077@gmail.com",
+              "firstName": "Gabriel",
+              "lastName": "Erna",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
+                "personalization_survey_n8n_version": "2.4.8"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
+                "userActivatedAt": 1770621057501
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-12",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2026-02-03T05:39:35.942Z",
+      "createdAt": "2026-02-03T05:39:35.942Z",
+      "id": "OKLSzMJzAZ0oQPQn",
+      "name": "Client"
+    },
+    {
+      "updatedAt": "2026-02-03T04:47:35.753Z",
+      "createdAt": "2026-02-03T04:47:35.753Z",
+      "id": "xXzewijfO4PNYRXd",
+      "name": "Scheduled"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-12T06:41:59.539Z",
+    "createdAt": "2026-02-12T06:41:59.539Z",
+    "versionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
+    "workflowId": "pEn69kwNtCEQ21y9",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 6
+              }
+            ]
+          }
+        },
+        "id": "daily-trigger",
+        "name": "Daily 6 AM Sync",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          168
+        ]
+      },
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "id": "workflow-trigger",
+        "name": "When Called by Other Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          360
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Determine if this is a full sync or specific property check\nconst input = $input.item.json;\n\nconst today = new Date();\nconst futureDate = new Date();\nfutureDate.setDate(today.getDate() + 90);\n\nreturn {\n  property_id: input.property_id || null,\n  check_in_date: input.check_in_date || null,\n  check_out_date: input.check_out_date || null,\n  sync_type: input.property_id ? 'specific' : 'full',\n  date_range_start: today.toISOString().split('T')[0],\n  date_range_end: futureDate.toISOString().split('T')[0],\n  is_availability_check: !!input.check_in_date\n};"
+        },
+        "id": "prepare-params",
+        "name": "Prepare Parameters",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          264
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT p.property_id, p.property_name, p.address, p.base_price, p.weekend_price, p.cleaning_fee, p.max_guests, p.bedrooms, p.bathrooms, p.owner_contact, p.owner_name, p.owner_phone, p.owner_telegram, p.calendar_url, p.calendar_sync_enabled, p.min_stay_nights, p.max_stay_nights, p.settings FROM property_configurations p WHERE p.property_status = 'active' AND (p.property_id = '{{ $json.property_id }}' OR '{{ $json.property_id }}' = '' OR '{{ $json.property_id }}' = 'null') ORDER BY p.property_name",
+          "options": {}
+        },
+        "id": "get-properties",
+        "name": "Get Properties",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          448,
+          264
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "BWlLUMKn64aZsHi8",
+            "name": "[Client] PostgreSQL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "loop-properties",
+        "name": "Loop Properties",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          672,
+          264
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT booking_id, guest_name, guest_phone, guest_email, property_name, check_in_date, check_out_date, booking_status, guests, total_amount, platform, channel_type FROM bookings WHERE property_id = '{{ $json.property_id }}' AND booking_status IN ('confirmed', 'pending') AND check_out_date >= '{{ $('Prepare Parameters').item.json.date_range_start }}'::date AND check_in_date <= '{{ $('Prepare Parameters').item.json.date_range_end }}'::date ORDER BY check_in_date",
+          "options": {}
+        },
+        "id": "get-bookings",
+        "name": "Get Property Bookings",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          896,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "BWlLUMKn64aZsHi8",
+            "name": "[Client] PostgreSQL"
+          }
+        },
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// Detect conflicts in bookings\nconst bookings = $input.all().map(i => i.json);\nconst property = $('Loop Properties').item.json;\nconst params = $('Prepare Parameters').item.json;\n\nconst conflicts = [];\nconst blockedDates = new Set();\n\n// Build set of all blocked dates\nfor (const booking of bookings) {\n  const start = new Date(booking.check_in_date);\n  const end = new Date(booking.check_out_date);\n  \n  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {\n    const dateStr = d.toISOString().split('T')[0];\n    \n    if (blockedDates.has(dateStr)) {\n      // Find the conflicting booking\n      const existing = bookings.find(b => {\n        const bStart = new Date(b.check_in_date);\n        const bEnd = new Date(b.check_out_date);\n        return d >= bStart && d < bEnd && b.booking_id !== booking.booking_id;\n      });\n      \n      if (existing) {\n        conflicts.push({\n          date: dateStr,\n          booking1: {\n            id: booking.booking_id,\n            guest: booking.guest_name,\n            platform: booking.platform || 'direct'\n          },\n          booking2: {\n            id: existing.booking_id,\n            guest: existing.guest_name,\n            platform: existing.platform || 'direct'\n          }\n        });\n      }\n    }\n    blockedDates.add(dateStr);\n  }\n}\n\n// Check specific date availability if requested\nlet isAvailable = true;\nlet availabilityDetails = null;\n\nif (params.is_availability_check && params.check_in_date) {\n  const reqStart = new Date(params.check_in_date);\n  const reqEnd = new Date(params.check_out_date);\n  \n  for (let d = new Date(reqStart); d < reqEnd; d.setDate(d.getDate() + 1)) {\n    if (blockedDates.has(d.toISOString().split('T')[0])) {\n      isAvailable = false;\n      break;\n    }\n  }\n  \n  availabilityDetails = {\n    property_id: property.property_id,\n    property_name: property.property_name,\n    check_in: params.check_in_date,\n    check_out: params.check_out_date,\n    available: isAvailable,\n    conflicts_found: conflicts.length\n  };\n}\n\nreturn [{\n  json: {\n    property_id: property.property_id,\n    property_name: property.property_name,\n    total_bookings: bookings.length,\n    conflicts: conflicts,\n    has_conflicts: conflicts.length > 0,\n    availability_check: availabilityDetails,\n    sync_timestamp: new Date().toISOString()\n  }\n}];"
+        },
+        "id": "detect-conflicts",
+        "name": "Detect Conflicts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "conflict-check",
+                "leftValue": "={{ $json.has_conflicts }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "has-conflicts",
+        "name": "Has Conflicts?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1344,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "schema": {
+            "__rl": true,
+            "mode": "list",
+            "value": "public"
+          },
+          "table": "calendar_conflicts",
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "conflict_id": "={{ 'conflict_' + $now.toMillis() }}",
+              "property_id": "={{ $json.property_id }}",
+              "conflicts": "={{ JSON.stringify($json.conflicts) }}",
+              "detected_at": "={{ $now.toISO() }}",
+              "status": "pending"
+            }
+          },
+          "options": {}
+        },
+        "id": "log-conflicts",
+        "name": "Log Conflicts",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1568,
+          -96
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "BWlLUMKn64aZsHi8",
+            "name": "[Client] PostgreSQL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.conflicts, null, 2) }}\n\nWrite a concise message (under 100 words) that:\n1. States the urgency\n2. Lists the conflicting dates\n3. Asks owner to resolve immediately\n\nUse emojis for visual urgency."
+        },
+        "id": "generate-alert",
+        "name": "Generate Alert",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.4,
+        "position": [
+          1792,
+          -96
+        ]
+      },
+      {
+        "parameters": {
+          "options": {
+            "temperature": 0.5
+          }
+        },
+        "id": "alert-model",
+        "name": "Alert Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1,
+        "position": [
+          1864,
+          128
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "slpbr7aUaU6fqTfw",
+            "name": "[Client] OpenAI"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "UZMWfhnV6JmuwJXC",
+            "cachedResultName": "SUB: Universal Messenger",
+            "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "channel": "={{ $('Loop Properties').item.json.preferred_platform || 'telegram' }}",
+              "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
+              "message": "={{ $('Generate Alert').item.json.text }}"
+            },
+            "schema": [
+              {
+                "id": "channel",
+                "displayName": "Channel",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "recipient",
+                "displayName": "Recipient",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "message",
+                "displayName": "Message",
+                "type": "string",
+                "required": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "send-alert",
+        "name": "Send Alert",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          2144,
+          168
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "continue-loop",
+        "name": "Continue Loop",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1568,
+          96
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineAll",
+          "options": {}
+        },
+        "id": "merge-results",
+        "name": "Merge Results",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          896,
+          192
+        ]
+      }
+    ],
+    "connections": {
+      "Daily 6 AM Sync": {
+        "main": [
+          [
+            {
+              "node": "Prepare Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "When Called by Other Workflow": {
+        "main": [
+          [
+            {
+              "node": "Prepare Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Parameters": {
+        "main": [
+          [
+            {
+              "node": "Get Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Properties": {
+        "main": [
+          [
+            {
+              "node": "Loop Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Properties": {
+        "main": [
+          [
+            {
+              "node": "Get Property Bookings",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Property Bookings": {
+        "main": [
+          [
+            {
+              "node": "Detect Conflicts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect Conflicts": {
+        "main": [
+          [
+            {
+              "node": "Has Conflicts?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Conflicts?": {
+        "main": [
+          [
+            {
+              "node": "Log Conflicts",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Continue Loop",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Conflicts": {
+        "main": [
+          [
+            {
+              "node": "Generate Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Alert Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Generate Alert",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Alert": {
+        "main": [
+          [
+            {
+              "node": "Send Alert",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Alert": {
+        "main": [
+          [
+            {
+              "node": "Loop Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Continue Loop": {
+        "main": [
+          [
+            {
+              "node": "Loop Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Gabriel Erna",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-12T06:42:00.844Z",
+        "id": 217,
+        "workflowId": "pEn69kwNtCEQ21y9",
+        "versionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
+        "event": "activated",
+        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
+      }
+    ]
+  }
 }

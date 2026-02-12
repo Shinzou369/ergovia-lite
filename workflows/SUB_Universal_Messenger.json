@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-02-10T07:21:51.590Z",
+  "updatedAt": "2026-02-11T07:49:11.136Z",
   "createdAt": "2026-02-06T08:45:13.801Z",
   "id": "UZMWfhnV6JmuwJXC",
   "name": "SUB: Universal Messenger",
@@ -32,7 +32,7 @@
       "typeVersion": 1.1,
       "position": [
         0,
-        168
+        176
       ],
       "retryOnFail": false
     },
@@ -47,7 +47,7 @@
       "typeVersion": 2,
       "position": [
         224,
-        168
+        176
       ]
     },
     {
@@ -132,7 +132,7 @@
       "typeVersion": 3.2,
       "position": [
         448,
-        136
+        144
       ]
     },
     {
@@ -146,7 +146,9 @@
         },
         "replyKeyboardOptions": {},
         "replyKeyboardRemove": {},
-        "additionalFields": {}
+        "additionalFields": {
+          "appendAttribution": true
+        }
       },
       "id": "cd6ad434-671e-4367-b85e-59fed4642cba",
       "name": "Send Telegram",
@@ -318,8 +320,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "BWlLUMKn64aZsHi8",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -334,7 +336,7 @@
       "typeVersion": 2,
       "position": [
         1792,
-        168
+        176
       ]
     }
   ],
@@ -508,9 +510,9 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "39c00a1d-09cb-43bd-96f4-bd08c3f4959a",
-  "activeVersionId": "39c00a1d-09cb-43bd-96f4-bd08c3f4959a",
-  "versionCounter": 51,
+  "versionId": "09813081-3a8a-4ee2-a2d7-950c27aa5d07",
+  "activeVersionId": "09813081-3a8a-4ee2-a2d7-950c27aa5d07",
+  "versionCounter": 59,
   "triggerCount": 0,
   "shared": [
     {
@@ -535,7 +537,7 @@
             "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
             "projectId": "JX3CVPOuNBbCCU8b",
             "user": {
-              "updatedAt": "2026-02-10T05:02:12.000Z",
+              "updatedAt": "2026-02-11T05:04:49.000Z",
               "createdAt": "2026-02-02T06:27:43.413Z",
               "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
               "email": "gabrielmarius2077@gmail.com",
@@ -554,7 +556,7 @@
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2026-02-10",
+              "lastActiveAt": "2026-02-11",
               "isPending": false
             }
           }
@@ -577,9 +579,9 @@
     }
   ],
   "activeVersion": {
-    "updatedAt": "2026-02-10T07:21:51.592Z",
-    "createdAt": "2026-02-10T07:21:51.592Z",
-    "versionId": "39c00a1d-09cb-43bd-96f4-bd08c3f4959a",
+    "updatedAt": "2026-02-11T07:49:11.137Z",
+    "createdAt": "2026-02-11T07:49:11.137Z",
+    "versionId": "09813081-3a8a-4ee2-a2d7-950c27aa5d07",
     "workflowId": "UZMWfhnV6JmuwJXC",
     "nodes": [
       {
@@ -607,7 +609,7 @@
         "typeVersion": 1.1,
         "position": [
           0,
-          168
+          176
         ],
         "retryOnFail": false
       },
@@ -622,7 +624,7 @@
         "typeVersion": 2,
         "position": [
           224,
-          168
+          176
         ]
       },
       {
@@ -707,7 +709,7 @@
         "typeVersion": 3.2,
         "position": [
           448,
-          136
+          144
         ]
       },
       {
@@ -721,7 +723,9 @@
           },
           "replyKeyboardOptions": {},
           "replyKeyboardRemove": {},
-          "additionalFields": {}
+          "additionalFields": {
+            "appendAttribution": true
+          }
         },
         "id": "cd6ad434-671e-4367-b85e-59fed4642cba",
         "name": "Send Telegram",
@@ -893,8 +897,8 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "BWlLUMKn64aZsHi8",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -909,7 +913,7 @@
         "typeVersion": 2,
         "position": [
           1792,
-          168
+          176
         ]
       }
     ],
@@ -1081,10 +1085,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-10T07:21:53.111Z",
-        "id": 118,
+        "createdAt": "2026-02-11T07:49:12.423Z",
+        "id": 197,
         "workflowId": "UZMWfhnV6JmuwJXC",
-        "versionId": "39c00a1d-09cb-43bd-96f4-bd08c3f4959a",
+        "versionId": "09813081-3a8a-4ee2-a2d7-950c27aa5d07",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }

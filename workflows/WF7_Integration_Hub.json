@@ -1,17 +1,30 @@
 {
+  "updatedAt": "2026-02-11T07:54:26.336Z",
+  "createdAt": "2026-02-06T08:45:26.643Z",
+  "id": "Ay5QOyGAHG2l40s7",
   "name": "WF7: Integration Hub",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
         "rule": {
-          "interval": [{ "triggerAtHour": 3 }]
+          "interval": [
+            {
+              "triggerAtHour": 3
+            }
+          ]
         }
       },
       "id": "sync-trigger",
       "name": "Daily 3 AM Sync",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -24,8 +37,11 @@
       "name": "Manual Sync Request",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 200],
-      "webhookId": "integration-sync"
+      "position": [
+        0,
+        208
+      ],
+      "webhookId": "29e45eca-3f33-4c2f-a1f2-f55f7a2e1f77"
     },
     {
       "parameters": {
@@ -37,19 +53,29 @@
       "name": "Get Properties with Integrations",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [220, 100],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        224,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
       "id": "loop-properties",
       "name": "Loop Properties",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [440, 100]
+      "position": [
+        448,
+        112
+      ]
     },
     {
       "parameters": {
@@ -60,7 +86,10 @@
       "name": "Prepare Calendar URLs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 100]
+      "position": [
+        672,
+        112
+      ]
     },
     {
       "parameters": {
@@ -73,7 +102,10 @@
       "name": "Fetch iCal",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 100]
+      "position": [
+        880,
+        112
+      ]
     },
     {
       "parameters": {
@@ -84,72 +116,98 @@
       "name": "Parse iCal Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 100]
+      "position": [
+        1104,
+        112
+      ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Upsert external bookings into database\nconst allItems = $input.all();\nconst upserts = [];\n\nfor (const item of allItems) {\n  const data = item.json;\n  for (const event of (data.events || [])) {\n    upserts.push({\n      property_id: event.property_id,\n      external_platform: event.platform,\n      external_booking_id: event.external_id,\n      guest_name: event.summary,\n      check_in_date: event.check_in,\n      check_out_date: event.check_out,\n      booking_status: 'confirmed',\n      booking_type: 'external',\n      notes: event.description,\n      synced_at: new Date().toISOString()\n    });\n  }\n}\n\nreturn { upserts: upserts, total: upserts.length };"
       },
       "id": "prepare-upserts",
       "name": "Prepare Upserts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 100]
+      "position": [
+        1328,
+        112
+      ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO bookings (\n  booking_id, property_id, external_platform, external_booking_id,\n  guest_name, check_in_date, check_out_date, booking_status, booking_type, notes\n)\nSELECT \n  'ext_' || md5(property_id || external_booking_id),\n  property_id::uuid, external_platform, external_booking_id,\n  guest_name, check_in_date::date, check_out_date::date, \n  booking_status, booking_type, notes\nFROM jsonb_to_recordset($1::jsonb) AS x(\n  property_id text, external_platform text, external_booking_id text,\n  guest_name text, check_in_date text, check_out_date text,\n  booking_status text, booking_type text, notes text\n)\nON CONFLICT (property_id, external_platform, external_booking_id) \nDO UPDATE SET\n  guest_name = EXCLUDED.guest_name,\n  check_in_date = EXCLUDED.check_in_date,\n  check_out_date = EXCLUDED.check_out_date,\n  updated_at = CURRENT_TIMESTAMP\nRETURNING booking_id",
-        "additionalFields": {
-          "queryParameters": "={{ { \"parameters\": [JSON.stringify($json.upserts)] } }}"
-        },
         "options": {}
       },
       "id": "upsert-bookings",
       "name": "Upsert External Bookings",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1540, 100],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        1552,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE property_configurations\nSET last_sync_at = CURRENT_TIMESTAMP\nWHERE property_id = $1",
-        "additionalFields": {
-          "queryParameters": "={{ { \"parameters\": [$('Loop Properties').item.json.property_id] } }}"
-        },
         "options": {}
       },
       "id": "update-sync-time",
       "name": "Update Sync Time",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1760, 100],
-      "credentials": { "postgres": { "id": "postgres-cred", "name": "PostgreSQL" } }
+      "position": [
+        1760,
+        112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
     },
     {
       "parameters": {
-        "workflowId": { "__rl": true, "mode": "list", "value": "WF3: Calendar Manager", "cachedResultName": "WF3: Calendar Manager" },
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "pEn69kwNtCEQ21y9",
+          "cachedResultName": "WF3: Calendar Manager",
+          "cachedResultUrl": "/workflow/pEn69kwNtCEQ21y9"
+        },
         "options": {}
       },
       "id": "check-conflicts",
       "name": "Check for Conflicts",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [1980, 100]
+      "position": [
+        1984,
+        112
+      ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Generate iCal export for our bookings\nconst items = $input.all();\n\nlet ical = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//PropertyManager//EN\\n';\n\nfor (const item of items) {\n  const b = item.json;\n  if (b.booking_id && b.check_in_date && b.check_out_date) {\n    const startDate = b.check_in_date.replace(/-/g, '');\n    const endDate = b.check_out_date.replace(/-/g, '');\n    \n    ical += 'BEGIN:VEVENT\\n';\n    ical += `UID:${b.booking_id}@propertymanager\\n`;\n    ical += `DTSTART;VALUE=DATE:${startDate}\\n`;\n    ical += `DTEND;VALUE=DATE:${endDate}\\n`;\n    ical += `SUMMARY:${b.guest_name || 'Booked'}\\n`;\n    ical += `DESCRIPTION:Booking ID: ${b.booking_id}\\n`;\n    ical += 'END:VEVENT\\n';\n  }\n}\n\nical += 'END:VCALENDAR';\n\nreturn { ical_content: ical, events_exported: items.length };"
       },
       "id": "generate-ical",
       "name": "Generate iCal Export",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 300]
+      "position": [
+        688,
+        320
+      ]
     },
     {
       "parameters": {
@@ -161,53 +219,613 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2200, 100]
+      "position": [
+        2208,
+        112
+      ]
     }
   ],
   "connections": {
     "Daily 3 AM Sync": {
-      "main": [[{ "node": "Get Properties with Integrations", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Properties with Integrations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Manual Sync Request": {
-      "main": [[{ "node": "Get Properties with Integrations", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Properties with Integrations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Properties with Integrations": {
-      "main": [[{ "node": "Loop Properties", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Properties": {
       "main": [
-        [{ "node": "Prepare Calendar URLs", "type": "main", "index": 0 }],
-        [{ "node": "Respond", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Calendar URLs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Calendar URLs": {
-      "main": [[{ "node": "Fetch iCal", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch iCal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch iCal": {
-      "main": [[{ "node": "Parse iCal Data", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse iCal Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse iCal Data": {
-      "main": [[{ "node": "Prepare Upserts", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Upserts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Upserts": {
-      "main": [[{ "node": "Upsert External Bookings", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Upsert External Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Upsert External Bookings": {
-      "main": [[{ "node": "Update Sync Time", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Update Sync Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Update Sync Time": {
-      "main": [[{ "node": "Check for Conflicts", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check for Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Check for Conflicts": {
-      "main": [[{ "node": "Loop Properties", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
-  "settings": { "executionOrder": "v1" },
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "optimized-v2",
-    "description": "Unified integration hub: iCal sync, channel management, external platform sync. Replaces WF13, WF16, WF22."
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "tags": ["integration", "ical", "sync", "optimized"]
+  "staticData": {
+    "node:Daily 3 AM Sync": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "d89e7637-ce3b-464c-bc52-6badd1037485",
+  "activeVersionId": "8c7ccdf8-6d58-46dd-9f7f-2ab74170ad99",
+  "versionCounter": 17,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T08:45:26.646Z",
+      "createdAt": "2026-02-06T08:45:26.646Z",
+      "role": "workflow:owner",
+      "workflowId": "Ay5QOyGAHG2l40s7",
+      "projectId": "JX3CVPOuNBbCCU8b",
+      "project": {
+        "updatedAt": "2026-02-02T07:09:35.792Z",
+        "createdAt": "2026-02-02T06:27:43.829Z",
+        "id": "JX3CVPOuNBbCCU8b",
+        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-02-02T06:27:43.829Z",
+            "createdAt": "2026-02-02T06:27:43.829Z",
+            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+            "projectId": "JX3CVPOuNBbCCU8b",
+            "user": {
+              "updatedAt": "2026-02-11T05:04:49.000Z",
+              "createdAt": "2026-02-02T06:27:43.413Z",
+              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+              "email": "gabrielmarius2077@gmail.com",
+              "firstName": "Gabriel",
+              "lastName": "Erna",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
+                "personalization_survey_n8n_version": "2.4.8"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
+                "userActivatedAt": 1770621057501
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-02-11",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2026-02-03T05:39:35.942Z",
+      "createdAt": "2026-02-03T05:39:35.942Z",
+      "id": "OKLSzMJzAZ0oQPQn",
+      "name": "Client"
+    },
+    {
+      "updatedAt": "2026-02-03T04:47:35.753Z",
+      "createdAt": "2026-02-03T04:47:35.753Z",
+      "id": "xXzewijfO4PNYRXd",
+      "name": "Scheduled"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-10T06:45:09.741Z",
+    "createdAt": "2026-02-10T06:45:09.741Z",
+    "versionId": "8c7ccdf8-6d58-46dd-9f7f-2ab74170ad99",
+    "workflowId": "Ay5QOyGAHG2l40s7",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 3
+              }
+            ]
+          }
+        },
+        "id": "sync-trigger",
+        "name": "Daily 3 AM Sync",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "integration-sync",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "manual-trigger",
+        "name": "Manual Sync Request",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          200
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT \n  property_id,\n  property_name,\n  airbnb_calendar_url,\n  vrbo_calendar_url,\n  booking_com_calendar_url,\n  google_calendar_id,\n  ical_export_url,\n  last_sync_at,\n  owner_contact,\n  preferred_platform\nFROM property_configurations\nWHERE property_status = 'active'\n  AND (airbnb_calendar_url IS NOT NULL \n       OR vrbo_calendar_url IS NOT NULL \n       OR booking_com_calendar_url IS NOT NULL)",
+          "options": {}
+        },
+        "id": "get-properties",
+        "name": "Get Properties with Integrations",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          220,
+          100
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        },
+        "id": "loop-properties",
+        "name": "Loop Properties",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          440,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Prepare calendar URLs for fetching\nconst property = $input.item.json;\nconst calendars = [];\n\nif (property.airbnb_calendar_url) {\n  calendars.push({\n    platform: 'airbnb',\n    url: property.airbnb_calendar_url,\n    property_id: property.property_id\n  });\n}\nif (property.vrbo_calendar_url) {\n  calendars.push({\n    platform: 'vrbo',\n    url: property.vrbo_calendar_url,\n    property_id: property.property_id\n  });\n}\nif (property.booking_com_calendar_url) {\n  calendars.push({\n    platform: 'booking_com',\n    url: property.booking_com_calendar_url,\n    property_id: property.property_id\n  });\n}\n\nreturn calendars.map(c => ({ json: c }));"
+        },
+        "id": "prepare-urls",
+        "name": "Prepare Calendar URLs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          660,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.url }}",
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "id": "fetch-ical",
+        "name": "Fetch iCal",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          880,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Parse iCal data and extract events\nconst input = $input.item.json;\nconst icalData = typeof input === 'string' ? input : input.data || '';\nconst property_id = $('Prepare Calendar URLs').item.json.property_id;\nconst platform = $('Prepare Calendar URLs').item.json.platform;\n\nconst events = [];\n\n// Simple iCal parser\nconst lines = icalData.split(/\\r?\\n/);\nlet currentEvent = null;\n\nfor (const line of lines) {\n  if (line.startsWith('BEGIN:VEVENT')) {\n    currentEvent = {};\n  } else if (line.startsWith('END:VEVENT') && currentEvent) {\n    if (currentEvent.dtstart && currentEvent.dtend) {\n      events.push({\n        property_id: property_id,\n        platform: platform,\n        external_id: currentEvent.uid || `${platform}_${Date.now()}`,\n        summary: currentEvent.summary || 'Blocked',\n        check_in: currentEvent.dtstart,\n        check_out: currentEvent.dtend,\n        description: currentEvent.description || ''\n      });\n    }\n    currentEvent = null;\n  } else if (currentEvent) {\n    const [key, ...valueParts] = line.split(':');\n    const value = valueParts.join(':');\n    \n    if (key.startsWith('DTSTART')) {\n      currentEvent.dtstart = value.replace(/T.*/, '');\n    } else if (key.startsWith('DTEND')) {\n      currentEvent.dtend = value.replace(/T.*/, '');\n    } else if (key === 'UID') {\n      currentEvent.uid = value;\n    } else if (key === 'SUMMARY') {\n      currentEvent.summary = value;\n    } else if (key === 'DESCRIPTION') {\n      currentEvent.description = value;\n    }\n  }\n}\n\nreturn {\n  property_id: property_id,\n  platform: platform,\n  events_count: events.length,\n  events: events,\n  synced_at: new Date().toISOString()\n};"
+        },
+        "id": "parse-ical",
+        "name": "Parse iCal Data",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "// Upsert external bookings into database\nconst allItems = $input.all();\nconst upserts = [];\n\nfor (const item of allItems) {\n  const data = item.json;\n  for (const event of (data.events || [])) {\n    upserts.push({\n      property_id: event.property_id,\n      external_platform: event.platform,\n      external_booking_id: event.external_id,\n      guest_name: event.summary,\n      check_in_date: event.check_in,\n      check_out_date: event.check_out,\n      booking_status: 'confirmed',\n      booking_type: 'external',\n      notes: event.description,\n      synced_at: new Date().toISOString()\n    });\n  }\n}\n\nreturn { upserts: upserts, total: upserts.length };"
+        },
+        "id": "prepare-upserts",
+        "name": "Prepare Upserts",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1320,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO bookings (\n  booking_id, property_id, external_platform, external_booking_id,\n  guest_name, check_in_date, check_out_date, booking_status, booking_type, notes\n)\nSELECT \n  'ext_' || md5(property_id || external_booking_id),\n  property_id::uuid, external_platform, external_booking_id,\n  guest_name, check_in_date::date, check_out_date::date, \n  booking_status, booking_type, notes\nFROM jsonb_to_recordset($1::jsonb) AS x(\n  property_id text, external_platform text, external_booking_id text,\n  guest_name text, check_in_date text, check_out_date text,\n  booking_status text, booking_type text, notes text\n)\nON CONFLICT (property_id, external_platform, external_booking_id) \nDO UPDATE SET\n  guest_name = EXCLUDED.guest_name,\n  check_in_date = EXCLUDED.check_in_date,\n  check_out_date = EXCLUDED.check_out_date,\n  updated_at = CURRENT_TIMESTAMP\nRETURNING booking_id",
+          "additionalFields": {
+            "queryParameters": "={{ { \"parameters\": [JSON.stringify($json.upserts)] } }}"
+          },
+          "options": {}
+        },
+        "id": "upsert-bookings",
+        "name": "Upsert External Bookings",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1540,
+          100
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE property_configurations\nSET last_sync_at = CURRENT_TIMESTAMP\nWHERE property_id = $1",
+          "additionalFields": {
+            "queryParameters": "={{ { \"parameters\": [$('Loop Properties').item.json.property_id] } }}"
+          },
+          "options": {}
+        },
+        "id": "update-sync-time",
+        "name": "Update Sync Time",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1760,
+          100
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "pEn69kwNtCEQ21y9",
+            "cachedResultName": "WF3: Calendar Manager",
+            "cachedResultUrl": "/workflow/pEn69kwNtCEQ21y9"
+          },
+          "options": {}
+        },
+        "id": "check-conflicts",
+        "name": "Check for Conflicts",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          1980,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "// Generate iCal export for our bookings\nconst items = $input.all();\n\nlet ical = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//PropertyManager//EN\\n';\n\nfor (const item of items) {\n  const b = item.json;\n  if (b.booking_id && b.check_in_date && b.check_out_date) {\n    const startDate = b.check_in_date.replace(/-/g, '');\n    const endDate = b.check_out_date.replace(/-/g, '');\n    \n    ical += 'BEGIN:VEVENT\\n';\n    ical += `UID:${b.booking_id}@propertymanager\\n`;\n    ical += `DTSTART;VALUE=DATE:${startDate}\\n`;\n    ical += `DTEND;VALUE=DATE:${endDate}\\n`;\n    ical += `SUMMARY:${b.guest_name || 'Booked'}\\n`;\n    ical += `DESCRIPTION:Booking ID: ${b.booking_id}\\n`;\n    ical += 'END:VEVENT\\n';\n  }\n}\n\nical += 'END:VCALENDAR';\n\nreturn { ical_content: ical, events_exported: items.length };"
+        },
+        "id": "generate-ical",
+        "name": "Generate iCal Export",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          660,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, properties_synced: $('Get Properties with Integrations').all().length, timestamp: $now.toISO() } }}",
+          "options": {}
+        },
+        "id": "respond",
+        "name": "Respond",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          2200,
+          100
+        ]
+      }
+    ],
+    "connections": {
+      "Daily 3 AM Sync": {
+        "main": [
+          [
+            {
+              "node": "Get Properties with Integrations",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Manual Sync Request": {
+        "main": [
+          [
+            {
+              "node": "Get Properties with Integrations",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Properties with Integrations": {
+        "main": [
+          [
+            {
+              "node": "Loop Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Properties": {
+        "main": [
+          [
+            {
+              "node": "Prepare Calendar URLs",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Calendar URLs": {
+        "main": [
+          [
+            {
+              "node": "Fetch iCal",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch iCal": {
+        "main": [
+          [
+            {
+              "node": "Parse iCal Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse iCal Data": {
+        "main": [
+          [
+            {
+              "node": "Prepare Upserts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Upserts": {
+        "main": [
+          [
+            {
+              "node": "Upsert External Bookings",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upsert External Bookings": {
+        "main": [
+          [
+            {
+              "node": "Update Sync Time",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Sync Time": {
+        "main": [
+          [
+            {
+              "node": "Check for Conflicts",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check for Conflicts": {
+        "main": [
+          [
+            {
+              "node": "Loop Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Gabriel Erna",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-10T06:45:11.043Z",
+        "id": 97,
+        "workflowId": "Ay5QOyGAHG2l40s7",
+        "versionId": "8c7ccdf8-6d58-46dd-9f7f-2ab74170ad99",
+        "event": "activated",
+        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
+      },
+      {
+        "createdAt": "2026-02-10T15:20:26.340Z",
+        "id": 163,
+        "workflowId": "Ay5QOyGAHG2l40s7",
+        "versionId": "8c7ccdf8-6d58-46dd-9f7f-2ab74170ad99",
+        "event": "activated",
+        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
+      },
+      {
+        "createdAt": "2026-02-10T14:39:09.983Z",
+        "id": 142,
+        "workflowId": "Ay5QOyGAHG2l40s7",
+        "versionId": "8c7ccdf8-6d58-46dd-9f7f-2ab74170ad99",
+        "event": "deactivated",
+        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
+      }
+    ]
+  }
 }

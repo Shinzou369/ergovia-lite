@@ -996,6 +996,10 @@ class N8NService {
 
   // Inject actual workflow IDs into workflow references
   // Replaces workflow name values with actual n8n workflow IDs
+  // Handles three modes:
+  //   - "list" or "name": value is a workflow name like "WF2: AI Booking Agent"
+  //   - "id": value is a stale/incorrect ID that needs replacement
+  //   - missing workflowId: node has no workflowId param, matched by node name
   injectWorkflowIds(workflow, workflowIdMap) {
     if (!workflow.nodes) {
       console.log('    WARNING: No nodes in workflow, skipping ID injection');
@@ -1006,42 +1010,85 @@ class N8NService {
 
     let injectedCount = 0;
     let warningCount = 0;
+    const knownIds = Object.values(workflowIdMap);
 
     workflow.nodes = workflow.nodes.map(node => {
       // Check for executeWorkflow nodes (both regular and tool versions)
       if (node.type === 'n8n-nodes-base.executeWorkflow' ||
           node.type === '@n8n/n8n-nodes-langchain.toolWorkflow') {
 
-        if (node.parameters?.workflowId) {
-          const workflowRef = node.parameters.workflowId;
+        const workflowRef = node.parameters?.workflowId;
 
-          // Check if using "list" mode with workflow name as value
-          if (workflowRef.__rl && workflowRef.mode === 'list' && workflowRef.value) {
-            const referencedWorkflowName = workflowRef.value;
+        // Case 1: No workflowId parameter at all - match by node name
+        if (!workflowRef) {
+          const matchedName = this._matchNodeToWorkflowName(node.name, workflowIdMap);
+          if (matchedName) {
+            const actualId = workflowIdMap[matchedName];
+            node.parameters = node.parameters || {};
+            node.parameters.workflowId = {
+              __rl: true,
+              mode: 'id',
+              value: actualId
+            };
+            injectedCount++;
+            console.log(`      ✓ Injected (missing ref): "${matchedName}" -> ${actualId} in node "${node.name}"`);
+          } else {
+            warningCount++;
+            console.log(`      ✗ WARNING: No workflowId and could not match node "${node.name}"`);
+          }
+          return node;
+        }
 
-            // Skip if already an ID (not a name) - IDs don't contain colons or spaces
-            if (!referencedWorkflowName.includes(':') && !referencedWorkflowName.includes(' ')) {
-              console.log(`      Skipping "${referencedWorkflowName}" - already looks like an ID`);
-              return node;
-            }
+        if (!workflowRef.__rl) return node;
 
-            const actualId = workflowIdMap[referencedWorkflowName];
+        // Case 2: mode is "list" or "name" with a workflow name as value
+        if ((workflowRef.mode === 'list' || workflowRef.mode === 'name') && workflowRef.value) {
+          const referencedWorkflowName = workflowRef.value;
 
-            if (actualId) {
-              // Update to use actual workflow ID
-              // IMPORTANT: mode must be 'id' (not 'list') when using actual workflow ID
+          // Skip if already an ID (not a name) - IDs don't contain colons or spaces
+          if (!referencedWorkflowName.includes(':') && !referencedWorkflowName.includes(' ')) {
+            console.log(`      Skipping "${referencedWorkflowName}" - already looks like an ID`);
+            return node;
+          }
+
+          const actualId = workflowIdMap[referencedWorkflowName];
+
+          if (actualId) {
+            // Update to use actual workflow ID
+            // IMPORTANT: mode must be 'id' (not 'list') when using actual workflow ID
+            node.parameters.workflowId = {
+              __rl: true,
+              mode: 'id',
+              value: actualId
+            };
+            injectedCount++;
+            console.log(`      ✓ Injected: "${referencedWorkflowName}" -> ${actualId} (mode: id) in node "${node.name}"`);
+          } else {
+            warningCount++;
+            console.log(`      ✗ WARNING: No ID found for "${referencedWorkflowName}" in node "${node.name}"`);
+            console.log(`        Available in map: ${JSON.stringify(Object.keys(workflowIdMap))}`);
+          }
+        }
+        // Case 3: mode is "id" with a stale/unknown ID - replace if not a known deployed ID
+        else if (workflowRef.mode === 'id' && workflowRef.value) {
+          if (!knownIds.includes(workflowRef.value)) {
+            // This ID doesn't match any workflow we just deployed - it's stale
+            const matchedName = this._matchNodeToWorkflowName(node.name, workflowIdMap);
+            if (matchedName) {
+              const actualId = workflowIdMap[matchedName];
               node.parameters.workflowId = {
                 __rl: true,
                 mode: 'id',
                 value: actualId
               };
               injectedCount++;
-              console.log(`      ✓ Injected: "${referencedWorkflowName}" -> ${actualId} (mode: id) in node "${node.name}"`);
+              console.log(`      ✓ Replaced stale ID: "${workflowRef.value}" -> ${actualId} (matched "${matchedName}") in node "${node.name}"`);
             } else {
               warningCount++;
-              console.log(`      ✗ WARNING: No ID found for "${referencedWorkflowName}" in node "${node.name}"`);
-              console.log(`        Available in map: ${JSON.stringify(Object.keys(workflowIdMap))}`);
+              console.log(`      ✗ WARNING: Stale ID "${workflowRef.value}" in node "${node.name}" - could not match to deployed workflow`);
             }
+          } else {
+            console.log(`      ○ ID "${workflowRef.value}" already correct in node "${node.name}"`);
           }
         }
       }
@@ -1051,6 +1098,36 @@ class N8NService {
     console.log(`    Injection complete: ${injectedCount} injected, ${warningCount} warnings`);
 
     return workflow;
+  }
+
+  // Match a tool/execute node name to a workflow name in the deployed ID map
+  // Uses keyword matching from common node naming patterns
+  _matchNodeToWorkflowName(nodeName, workflowIdMap) {
+    const nodeNameKeywords = {
+      'booking': 'WF2: AI Booking Agent',
+      'calendar': 'WF3: Calendar Manager',
+      'payment': 'WF4: Payment Processor',
+      'property': 'WF5: Property Operations',
+      'operations': 'WF5: Property Operations',
+      'maintenance': 'WF5: Property Operations',
+      'emergency': 'WF8: Safety & Screening',
+      'safety': 'WF8: Safety & Screening',
+      'screening': 'WF8: Safety & Screening',
+      'messenger': 'SUB: Universal Messenger',
+      'send message': 'SUB: Universal Messenger',
+      'send fallback': 'SUB: Universal Messenger',
+      'call sub': 'SUB: Universal Messenger',
+      'daily': 'WF6: Daily Automations',
+      'integration': 'WF7: Integration Hub'
+    };
+
+    const lowerName = nodeName.toLowerCase();
+    for (const [keyword, workflowName] of Object.entries(nodeNameKeywords)) {
+      if (lowerName.includes(keyword) && workflowIdMap[workflowName]) {
+        return workflowName;
+      }
+    }
+    return null;
   }
 
   // Deploy all workflows in dependency order with ID resolution
