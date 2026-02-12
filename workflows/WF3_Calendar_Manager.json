@@ -237,7 +237,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "channel": "={{ $('Loop Properties').item.json.preferred_platform || 'telegram' }}",
-            "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
+            "recipient": "={{ $('Loop Properties').item.json.owner_contact || $('Loop Properties').item.json.owner_telegram || $('Loop Properties').item.json.owner_phone || '' }}",
             "message": "={{ $('Generate Alert').item.json.text }}"
           },
           "schema": [
@@ -784,7 +784,7 @@
             "mappingMode": "defineBelow",
             "value": {
               "channel": "={{ $('Loop Properties').item.json.preferred_platform || 'telegram' }}",
-              "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
+              "recipient": "={{ $('Loop Properties').item.json.owner_contact || $('Loop Properties').item.json.owner_telegram || $('Loop Properties').item.json.owner_phone || '' }}",
               "message": "={{ $('Generate Alert').item.json.text }}"
             },
             "schema": [
