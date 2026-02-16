@@ -27,6 +27,11 @@
       </div>
     </div>
 
+    <!-- Sync Banner -->
+    <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#2563eb,#60a5fa);color:#fff;border-radius:8px;font-size:14px;">
+    </div>
+    <div style="text-align:right;font-size:12px;margin-bottom:8px;color:#888;" id="syncLastStatus"></div>
+
     <!-- Owner Settings -->
     <div class="card">
       <div class="card-header">
@@ -313,8 +318,105 @@
         </form>
       </div>
     </div>
+    <!-- AI System Prompt (Live Workflow Editor) -->
+    <div class="card" style="border-left:3px solid #2563eb;">
+      <div class="card-header">
+        <h3 class="card-title">AI System Prompt (Live)</h3>
+        <span style="background:#2563eb;color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">Syncs to n8n</span>
+      </div>
+      <div class="card-body">
+        <p style="color:#666;font-size:13px;margin-bottom:12px;">
+          This is the core instruction set for your AI concierge. Changes here are pushed
+          directly to the live WF1 AI Gateway workflow.
+        </p>
+        <div class="form-group">
+          <label class="form-label">System Prompt</label>
+          <textarea id="systemPromptEditor" class="form-input" rows="12"
+                    style="font-family:monospace;font-size:13px;line-height:1.5;"
+                    placeholder="The AI system prompt will appear here after first deployment."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Custom Pricing Rules (appended to prompt)</label>
+          <textarea id="pricingRulesEditor" class="form-input" rows="4"
+                    style="font-family:monospace;font-size:13px;"
+                    placeholder="Example: Last-minute bookings get 10% discount..."></textarea>
+        </div>
+        <button id="saveSystemPromptBtn" class="btn btn-primary"
+                style="background:#2563eb;">
+          Save & Sync to AI
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="/js/app.js"></script>
+  <script>
+    // Minimal sync module for original settings page
+    const CONFIG = { API: { BASE_URL: '/api/v2', SYNC_STATUS: '/sync/status', SYNC_WORKFLOWS: '/sync/workflows', SYNC_SYSTEM_PROMPT: '/sync/system-prompt', SYNC_CREDENTIALS: '/sync/credentials' } };
+
+    const WorkflowSync = {
+      needsSync: false, syncCategories: new Set(), isSyncing: false,
+      init() { this.loadSyncStatus(); this.setupSystemPromptEditor(); },
+      async loadSyncStatus() {
+        try {
+          const res = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_STATUS}`);
+          const r = await res.json();
+          if (r.success) {
+            if (r.systemPrompt) {
+              const p = document.getElementById('systemPromptEditor');
+              const pr = document.getElementById('pricingRulesEditor');
+              if (p && !p.value) p.value = r.systemPrompt.systemPrompt || '';
+              if (pr && !pr.value) pr.value = r.systemPrompt.pricingRules || '';
+            }
+            const el = document.getElementById('syncLastStatus');
+            if (el && r.lastSync) {
+              const ago = Math.floor((Date.now() - new Date(r.lastSync.at)) / 60000);
+              el.textContent = `Last synced ${ago < 60 ? ago + 'm ago' : Math.floor(ago/60) + 'h ago'} (${r.deployedCount} workflows)`;
+            }
+          }
+        } catch (e) { console.error('[sync]', e); }
+      },
+      markNeedsSync(cat) {
+        this.needsSync = true; this.syncCategories.add(cat);
+        const b = document.getElementById('syncBanner');
+        if (b) {
+          b.style.display = 'flex';
+          b.innerHTML = `<div style="flex:1"><strong>Unsaved workflow changes</strong> <span style="opacity:.8">(${Array.from(this.syncCategories).join(', ')})</span></div><button onclick="WorkflowSync.syncAll()" style="background:#fff;color:#2563eb;border:0;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;">Sync to Workflows</button>`;
+        }
+      },
+      async syncAll() {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+        try {
+          await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_WORKFLOWS}`, { method: 'POST', headers: {'Content-Type':'application/json'} });
+          this.needsSync = false; this.syncCategories.clear();
+          const b = document.getElementById('syncBanner'); if (b) b.style.display = 'none';
+          alert('Workflows synced!');
+          this.loadSyncStatus();
+        } catch (e) { alert('Sync failed: ' + e.message); }
+        this.isSyncing = false;
+      },
+      setupSystemPromptEditor() {
+        const btn = document.getElementById('saveSystemPromptBtn');
+        if (btn) btn.addEventListener('click', async () => {
+          const p = document.getElementById('systemPromptEditor');
+          const pr = document.getElementById('pricingRulesEditor');
+          if (!p || !p.value.trim()) return alert('System prompt is empty');
+          btn.disabled = true; btn.textContent = 'Syncing...';
+          try {
+            const res = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_SYSTEM_PROMPT}`, {
+              method: 'POST', headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({ systemPrompt: p.value.trim(), pricingRules: pr ? pr.value.trim() : '' })
+            });
+            const r = await res.json();
+            if (r.success) { alert('AI system prompt synced!'); this.loadSyncStatus(); }
+            else alert('Failed: ' + (r.error || 'Unknown error'));
+          } catch (e) { alert('Failed: ' + e.message); }
+          btn.disabled = false; btn.textContent = 'Save & Sync to AI';
+        });
+      }
+    };
+    document.addEventListener('DOMContentLoaded', () => WorkflowSync.init());
+  </script>
 </body>
 </html>

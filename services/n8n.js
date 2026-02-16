@@ -1295,6 +1295,183 @@ class N8NService {
       results
     };
   }
+  // ============================================
+  // LIVE WORKFLOW SYNC (patch running workflows)
+  // ============================================
+
+  // Fetch a workflow from n8n by ID
+  async getWorkflow(workflowId) {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'n8n not configured' };
+    }
+
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v1/workflows/${workflowId}`,
+        {
+          headers: { 'X-N8N-API-KEY': this.apiKey },
+          timeout: 15000
+        }
+      );
+      return { success: true, workflow: response.data };
+    } catch (error) {
+      console.error(`Failed to get workflow ${workflowId}:`, error.response?.data || error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Patch specific nodes in a live workflow
+  // patches: [{ nodeId: 'ai-agent', path: 'parameters.options.systemMessage', value: '...' }]
+  async patchWorkflowNodes(workflowId, patches) {
+    const getResult = await this.getWorkflow(workflowId);
+    if (!getResult.success) return getResult;
+
+    const workflow = getResult.workflow;
+    let patchCount = 0;
+
+    for (const patch of patches) {
+      const node = workflow.nodes.find(n => n.id === patch.nodeId || n.name === patch.nodeId);
+      if (!node) {
+        console.warn(`  Node "${patch.nodeId}" not found in workflow ${workflowId}`);
+        continue;
+      }
+
+      // Navigate to nested path and set value
+      const parts = patch.path.split('.');
+      let target = node;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!target[parts[i]]) target[parts[i]] = {};
+        target = target[parts[i]];
+      }
+      target[parts[parts.length - 1]] = patch.value;
+      patchCount++;
+    }
+
+    if (patchCount === 0) {
+      return { success: true, message: 'No patches applied (nodes not found)' };
+    }
+
+    const updateResult = await this.updateWorkflow(workflowId, workflow);
+    return {
+      ...updateResult,
+      patchedNodes: patchCount
+    };
+  }
+
+  // Update an n8n credential (delete old + create new, since n8n API doesn't support PATCH on credentials)
+  async replaceCredential(oldCredentialId, type, name, data) {
+    console.log(`  Replacing credential ${oldCredentialId} (${type})...`);
+
+    // Create the new credential first
+    const createResult = await this.createCredential(type, name, data);
+    if (!createResult.success) {
+      return { success: false, error: `Failed to create new credential: ${createResult.error}` };
+    }
+
+    // Delete old credential
+    if (oldCredentialId) {
+      await this.deleteCredential(oldCredentialId);
+    }
+
+    console.log(`  Credential replaced: ${oldCredentialId} -> ${createResult.credentialId}`);
+    return {
+      success: true,
+      oldCredentialId,
+      newCredentialId: createResult.credentialId,
+      name: createResult.name
+    };
+  }
+
+  // Sync all workflow variables to live n8n workflows
+  // Uses deployed workflow IDs from SQLite, re-personalizes, and PUTs back
+  async syncAllWorkflowVariables(clientData, assignedApiKey, deployedWorkflows) {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'n8n not configured' };
+    }
+
+    const results = [];
+    console.log('\n==== SYNC WORKFLOW VARIABLES ====');
+    console.log(`Syncing ${deployedWorkflows.length} workflows...`);
+
+    for (const deployed of deployedWorkflows) {
+      const { workflow_id, workflow_name, filename } = deployed;
+      console.log(`\n  Syncing: ${workflow_name} (${workflow_id})`);
+
+      try {
+        // 1. Get current live workflow from n8n
+        const getResult = await this.getWorkflow(workflow_id);
+        if (!getResult.success) {
+          results.push({ workflow: workflow_name, success: false, error: getResult.error });
+          continue;
+        }
+
+        const liveWorkflow = getResult.workflow;
+
+        // 2. Re-personalize: replace placeholders in the live workflow
+        const personalized = this.personalizeWorkflow(liveWorkflow, clientData, assignedApiKey);
+
+        // 3. PUT updated workflow back
+        const updateResult = await this.updateWorkflow(workflow_id, personalized);
+        results.push({ workflow: workflow_name, success: updateResult.success, error: updateResult.error });
+
+        if (updateResult.success) {
+          console.log(`  ✓ ${workflow_name} synced`);
+        } else {
+          console.log(`  ✗ ${workflow_name} failed: ${updateResult.error}`);
+        }
+
+        // Rate limiting
+        await this.sleep(1500);
+      } catch (error) {
+        console.error(`  Error syncing ${workflow_name}:`, error.message);
+        results.push({ workflow: workflow_name, success: false, error: error.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+
+    console.log(`\n==== SYNC COMPLETE: ${successCount} OK, ${failCount} FAILED ====\n`);
+
+    return {
+      success: failCount === 0,
+      synced: successCount,
+      failed: failCount,
+      total: deployedWorkflows.length,
+      results
+    };
+  }
+
+  // Update credentials in all deployed workflows that reference an old credential ID
+  async syncCredentialAcrossWorkflows(oldCredentialId, newCredentialId, credentialType, deployedWorkflows) {
+    const results = [];
+
+    for (const deployed of deployedWorkflows) {
+      const getResult = await this.getWorkflow(deployed.workflow_id);
+      if (!getResult.success) continue;
+
+      const workflow = getResult.workflow;
+      let updated = false;
+
+      for (const node of workflow.nodes) {
+        if (!node.credentials) continue;
+        for (const [key, cred] of Object.entries(node.credentials)) {
+          if (cred.id === oldCredentialId) {
+            node.credentials[key] = { ...cred, id: newCredentialId };
+            updated = true;
+          }
+        }
+      }
+
+      if (updated) {
+        const updateResult = await this.updateWorkflow(deployed.workflow_id, workflow);
+        results.push({ workflow: deployed.workflow_name, success: updateResult.success });
+        await this.sleep(1500);
+      }
+    }
+
+    return results;
+  }
 }
 
 module.exports = new N8NService();

@@ -57,6 +57,15 @@ function initDb() {
       client_name TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS sync_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sync_type TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      workflows_updated TEXT,
+      error_details TEXT,
+      synced_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Seed initial deployment status
@@ -268,6 +277,25 @@ function clearClientCredentials() {
   db.exec('DELETE FROM client_credentials');
 }
 
+// ============================================
+// SYNC LOG
+// ============================================
+
+function logSync(syncType, status, workflowsUpdated, errorDetails) {
+  db.prepare(`
+    INSERT INTO sync_log (sync_type, status, workflows_updated, error_details)
+    VALUES (?, ?, ?, ?)
+  `).run(syncType, status, JSON.stringify(workflowsUpdated), errorDetails || null);
+}
+
+function getLastSync() {
+  return db.prepare('SELECT * FROM sync_log WHERE status = ? ORDER BY synced_at DESC LIMIT 1').get('success');
+}
+
+function getRecentSyncs(limit = 10) {
+  return db.prepare('SELECT * FROM sync_log ORDER BY synced_at DESC LIMIT ?').all(limit);
+}
+
 module.exports = {
   initDb,
   // Client data
@@ -301,5 +329,9 @@ module.exports = {
   saveClientCredentials,
   getClientCredentials,
   getClientCredentialsByType,
-  clearClientCredentials
+  clearClientCredentials,
+  // Sync log
+  logSync,
+  getLastSync,
+  getRecentSyncs
 };

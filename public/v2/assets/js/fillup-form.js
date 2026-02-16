@@ -182,7 +182,7 @@ async function saveSection(sectionName) {
     try {
         const sectionData = getSectionData(sectionName);
 
-        await Utils.apiCall(CONFIG.API.SAVE_SETTINGS, {
+        const result = await Utils.apiCall(CONFIG.API.SAVE_SETTINGS, {
             section: sectionName,
             data: sectionData
         });
@@ -190,6 +190,11 @@ async function saveSection(sectionName) {
         Utils.showToast(`${getSectionTitle(sectionName)} saved!`, 'success');
         sectionsCompleted[sectionName] = true;
         updateProgress();
+
+        // Trigger sync banner if this change affects live workflows
+        if (result && result.needsSync && typeof WorkflowSync !== 'undefined') {
+            WorkflowSync.markNeedsSync(result.syncCategory);
+        }
 
     } catch (error) {
         console.error('Failed to save section:', error);

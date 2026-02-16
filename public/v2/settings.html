@@ -52,6 +52,13 @@
             <p class="progress-text" id="progressText">0% Complete</p>
         </div>
 
+        <!-- Sync Banner (hidden by default) -->
+        <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#1877f2,#42a5f5);color:#fff;border-radius:10px;font-size:14px;box-shadow:0 2px 8px rgba(24,119,242,0.3);">
+        </div>
+
+        <!-- Sync Status -->
+        <div style="text-align:right;font-size:12px;margin-bottom:8px;padding:0 4px;" id="syncLastStatus"></div>
+
         <!-- Form Container -->
         <div class="form-container">
             <h1><i class="fas fa-cog"></i> Property Manager Settings</h1>
@@ -320,6 +327,44 @@
                     </button>
                 </div>
 
+                <!-- SECTION 5B: AI System Prompt (Live Workflow Editor) -->
+                <div class="form-section" style="border-left: 3px solid #1877f2;">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-brain"></i> AI System Prompt (Live)</h2>
+                        <span style="background:#1877f2;color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">Syncs to n8n</span>
+                    </div>
+
+                    <p class="section-description">
+                        This is the core instruction set for your AI concierge. Changes here are pushed
+                        directly to the live WF1 AI Gateway workflow. Edit how your AI behaves, responds,
+                        and handles the booking flow.
+                    </p>
+
+                    <div class="form-group full-width">
+                        <label for="systemPromptEditor">
+                            <i class="fas fa-terminal"></i> System Prompt
+                        </label>
+                        <textarea id="systemPromptEditor" rows="12" style="font-family:monospace;font-size:13px;line-height:1.5;"
+                                  placeholder="The AI concierge system prompt will appear here after first deployment. You can edit it to change how your AI assistant behaves."></textarea>
+                        <small style="color:#8b8d91;">This controls the personality, rules, and booking flow of your AI assistant.</small>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="pricingRulesEditor">
+                            <i class="fas fa-tags"></i> Custom Pricing Rules (appended to prompt)
+                        </label>
+                        <textarea id="pricingRulesEditor" rows="4" style="font-family:monospace;font-size:13px;"
+                                  placeholder="Example:
+- Last-minute bookings (within 48h) get 10% discount
+- Stays over 7 nights get 15% off
+- Holiday weekends are non-negotiable pricing"></textarea>
+                    </div>
+
+                    <button type="button" id="saveSystemPromptBtn" class="btn-save-section" style="background:#1877f2;color:#fff;">
+                        <i class="fas fa-cloud-upload-alt"></i> Save & Sync to AI
+                    </button>
+                </div>
+
                 <!-- SECTION 6: Media & Resources -->
                 <div class="form-section">
                     <div class="section-header-form">
@@ -402,5 +447,6 @@
     <!-- Scripts -->
     <script src="assets/js/config.js"></script>
     <script src="assets/js/fillup-form.js"></script>
+    <script src="assets/js/sync.js"></script>
 </body>
 </html>

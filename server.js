@@ -993,9 +993,9 @@ app.get('/api/admin/config', (req, res) => {
 const v2Data = require('./services/v2-data');
 
 // Dashboard data (all-in-one endpoint)
-app.get('/api/v2/dashboard', (req, res) => {
+app.get('/api/v2/dashboard', async (req, res) => {
   try {
-    const data = v2Data.getDashboardData();
+    const data = await v2Data.getDashboardData();
     res.json({ success: true, ...data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1003,9 +1003,9 @@ app.get('/api/v2/dashboard', (req, res) => {
 });
 
 // Stats only
-app.get('/api/v2/stats', (req, res) => {
+app.get('/api/v2/stats', async (req, res) => {
   try {
-    const stats = v2Data.getStats();
+    const stats = await v2Data.getStats();
     res.json({ success: true, stats });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1013,10 +1013,10 @@ app.get('/api/v2/stats', (req, res) => {
 });
 
 // Settings - GET all or specific section
-app.get('/api/v2/settings', (req, res) => {
+app.get('/api/v2/settings', async (req, res) => {
   try {
     const section = req.query.section || null;
-    const data = v2Data.getSettings(section);
+    const data = await v2Data.getSettings(section);
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1024,14 +1024,20 @@ app.get('/api/v2/settings', (req, res) => {
 });
 
 // Settings - POST save section
-app.post('/api/v2/settings', (req, res) => {
+app.post('/api/v2/settings', async (req, res) => {
   try {
     const { section, data } = req.body;
     if (!section) {
       return res.status(400).json({ success: false, error: 'Section is required' });
     }
-    const result = v2Data.saveSettings(section, data);
-    res.json(result);
+    const result = await v2Data.saveSettings(section, data);
+
+    // Determine if this change needs a workflow sync
+    const syncSections = { credentials: 'credentials', ai: 'system-prompt', owner: 'workflows' };
+    const needsSync = !!syncSections[section];
+    const syncCategory = syncSections[section] || null;
+
+    res.json({ ...result, needsSync, syncCategory });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1048,9 +1054,9 @@ app.post('/api/v2/activate', async (req, res) => {
 });
 
 // Properties - GET all
-app.get('/api/v2/properties', (req, res) => {
+app.get('/api/v2/properties', async (req, res) => {
   try {
-    const properties = v2Data.getProperties();
+    const properties = await v2Data.getProperties();
     res.json({ success: true, properties });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1058,9 +1064,9 @@ app.get('/api/v2/properties', (req, res) => {
 });
 
 // Properties - GET single
-app.get('/api/v2/properties/:id', (req, res) => {
+app.get('/api/v2/properties/:id', async (req, res) => {
   try {
-    const property = v2Data.getProperty(req.params.id);
+    const property = await v2Data.getProperty(req.params.id);
     if (!property) {
       return res.status(404).json({ success: false, error: 'Property not found' });
     }
@@ -1071,9 +1077,9 @@ app.get('/api/v2/properties/:id', (req, res) => {
 });
 
 // Properties - POST create/update
-app.post('/api/v2/properties', (req, res) => {
+app.post('/api/v2/properties', async (req, res) => {
   try {
-    const result = v2Data.saveProperty(req.body);
+    const result = await v2Data.saveProperty(req.body);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1081,9 +1087,9 @@ app.post('/api/v2/properties', (req, res) => {
 });
 
 // Properties - DELETE
-app.delete('/api/v2/properties/:id', (req, res) => {
+app.delete('/api/v2/properties/:id', async (req, res) => {
   try {
-    const result = v2Data.deleteProperty(req.params.id);
+    const result = await v2Data.deleteProperty(req.params.id);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1091,10 +1097,10 @@ app.delete('/api/v2/properties/:id', (req, res) => {
 });
 
 // Bookings - GET
-app.get('/api/v2/bookings', (req, res) => {
+app.get('/api/v2/bookings', async (req, res) => {
   try {
     const { propertyId, startDate, endDate } = req.query;
-    const bookings = v2Data.getBookings(propertyId, startDate, endDate);
+    const bookings = await v2Data.getBookings(propertyId, startDate, endDate);
     res.json({ success: true, bookings });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1102,10 +1108,10 @@ app.get('/api/v2/bookings', (req, res) => {
 });
 
 // Tasks - GET
-app.get('/api/v2/tasks', (req, res) => {
+app.get('/api/v2/tasks', async (req, res) => {
   try {
     const status = req.query.status || null;
-    const tasks = v2Data.getTasks(status);
+    const tasks = await v2Data.getTasks(status);
     res.json({ success: true, tasks });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1113,13 +1119,13 @@ app.get('/api/v2/tasks', (req, res) => {
 });
 
 // Tasks - Complete
-app.post('/api/v2/tasks/complete', (req, res) => {
+app.post('/api/v2/tasks/complete', async (req, res) => {
   try {
     const { taskId } = req.body;
     if (!taskId) {
       return res.status(400).json({ success: false, error: 'Task ID is required' });
     }
-    const result = v2Data.completeTask(taskId);
+    const result = await v2Data.completeTask(taskId);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1157,10 +1163,177 @@ app.post('/api/v2/notifications/read', (req, res) => {
 });
 
 // Reset to demo data (for testing)
-app.post('/api/v2/reset-demo', (req, res) => {
+app.post('/api/v2/reset-demo', async (req, res) => {
   try {
-    const result = v2Data.resetToDemo();
+    const result = await v2Data.resetToDemo();
     res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// WORKFLOW SYNC ROUTES
+// ============================================
+
+// Sync all workflow variables to live n8n
+app.post('/api/v2/sync/workflows', async (req, res) => {
+  try {
+    if (!n8nService.isConfigured()) {
+      return res.status(400).json({ success: false, error: 'n8n not configured' });
+    }
+
+    const deployedWorkflows = db.getDeployedWorkflows();
+    if (deployedWorkflows.length === 0) {
+      return res.status(400).json({ success: false, error: 'No deployed workflows found' });
+    }
+
+    // Gather current client data from all sources
+    const clientData = db.getAllClientData();
+    const assignedKey = db.getAssignedApiKey();
+    const apiKey = assignedKey ? assignedKey.api_key : '';
+
+    const result = await n8nService.syncAllWorkflowVariables(clientData, apiKey, deployedWorkflows);
+
+    // Log the sync
+    const updatedNames = result.results.filter(r => r.success).map(r => r.workflow);
+    db.logSync('full', result.success ? 'success' : 'partial', updatedNames,
+      result.success ? null : result.results.filter(r => !r.success).map(r => `${r.workflow}: ${r.error}`).join('; ')
+    );
+    db.logActivity('sync_workflows', `Synced ${result.synced}/${result.total} workflows`);
+
+    res.json(result);
+  } catch (error) {
+    db.logSync('full', 'failed', [], error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Sync just the AI system prompt in WF1
+app.post('/api/v2/sync/system-prompt', async (req, res) => {
+  try {
+    const { systemPrompt, pricingRules } = req.body;
+    if (!systemPrompt) {
+      return res.status(400).json({ success: false, error: 'systemPrompt is required' });
+    }
+
+    // Find WF1 in deployed workflows
+    const deployedWorkflows = db.getDeployedWorkflows();
+    const wf1 = deployedWorkflows.find(w => w.workflow_name.includes('AI Gateway') || w.filename.includes('WF1'));
+    if (!wf1) {
+      return res.status(400).json({ success: false, error: 'WF1 AI Gateway not found in deployed workflows' });
+    }
+
+    // Build the full system prompt with date prefix
+    let fullPrompt = systemPrompt;
+
+    // Append pricing rules if provided
+    if (pricingRules) {
+      fullPrompt += `\n\n## Custom Pricing Rules\n${pricingRules}`;
+    }
+
+    // Patch the AI Agent node in WF1
+    const result = await n8nService.patchWorkflowNodes(wf1.workflow_id, [
+      { nodeId: 'ai-agent', path: 'parameters.options.systemMessage', value: fullPrompt }
+    ]);
+
+    // Save the prompt locally for future reference
+    db.saveClientData('systemPrompt', { systemPrompt, pricingRules, lastSynced: new Date().toISOString() });
+    db.logSync('system-prompt', result.success ? 'success' : 'failed', ['WF1: AI Gateway'], result.error || null);
+    db.logActivity('sync_system_prompt', 'Updated AI system prompt');
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update a specific n8n credential and sync across workflows
+app.post('/api/v2/sync/credentials', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    if (!type || !data) {
+      return res.status(400).json({ success: false, error: 'type and data are required' });
+    }
+
+    // Map credential types to n8n types and data format
+    const credMap = {
+      telegram: { n8nType: 'telegramApi', format: (d) => ({ accessToken: d.botToken || d.accessToken }) },
+      openai: { n8nType: 'openAiApi', format: (d) => ({ apiKey: d.apiKey, header: false }) },
+      twilio: { n8nType: 'twilioApi', format: (d) => ({ accountSid: d.accountSid, authToken: d.authToken }) },
+    };
+
+    const mapping = credMap[type];
+    if (!mapping) {
+      return res.status(400).json({ success: false, error: `Unknown credential type: ${type}. Supported: ${Object.keys(credMap).join(', ')}` });
+    }
+
+    // Get old credential ID from SQLite
+    const existingCred = db.getClientCredentialsByType(type);
+    const oldCredId = existingCred ? existingCred.n8n_credential_id : null;
+
+    // Replace credential in n8n
+    const replaceResult = await n8nService.replaceCredential(
+      oldCredId,
+      mapping.n8nType,
+      `${type.charAt(0).toUpperCase() + type.slice(1)} - Client`,
+      mapping.format(data)
+    );
+
+    if (!replaceResult.success) {
+      return res.status(500).json(replaceResult);
+    }
+
+    // Update SQLite with new credential ID
+    if (existingCred) {
+      const dbInst = require('better-sqlite3')(path.join(__dirname, 'data.db'));
+      dbInst.prepare('UPDATE client_credentials SET n8n_credential_id = ? WHERE credential_type = ?')
+        .run(replaceResult.newCredentialId, type);
+      dbInst.close();
+    } else {
+      db.saveClientCredential(type, replaceResult.newCredentialId, replaceResult.name, 'Client');
+    }
+
+    // Sync new credential ID across all deployed workflows
+    const deployedWorkflows = db.getDeployedWorkflows();
+    if (oldCredId && deployedWorkflows.length > 0) {
+      await n8nService.syncCredentialAcrossWorkflows(oldCredId, replaceResult.newCredentialId, type, deployedWorkflows);
+    }
+
+    db.logSync('credentials', 'success', [`${type} credential`], null);
+    db.logActivity('sync_credential', `Updated ${type} credential in n8n`);
+
+    res.json({ success: true, credentialId: replaceResult.newCredentialId, type });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get sync status
+app.get('/api/v2/sync/status', async (req, res) => {
+  try {
+    const lastSync = db.getLastSync();
+    const recentSyncs = db.getRecentSyncs(5);
+    const deployedWorkflows = db.getDeployedWorkflows();
+    const savedPrompt = db.getClientData('systemPrompt');
+
+    res.json({
+      success: true,
+      lastSync: lastSync ? {
+        type: lastSync.sync_type,
+        at: lastSync.synced_at,
+        workflows: JSON.parse(lastSync.workflows_updated || '[]')
+      } : null,
+      recentSyncs: recentSyncs.map(s => ({
+        type: s.sync_type,
+        status: s.status,
+        at: s.synced_at,
+        error: s.error_details
+      })),
+      deployedCount: deployedWorkflows.length,
+      systemPrompt: savedPrompt || null,
+      n8nConfigured: n8nService.isConfigured()
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

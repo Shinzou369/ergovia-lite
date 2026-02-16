@@ -37,6 +37,12 @@ const CONFIG = {
         // Notifications endpoints
         GET_NOTIFICATIONS: '/notifications',
         MARK_NOTIFICATION_READ: '/notifications/read',
+
+        // Workflow sync endpoints
+        SYNC_WORKFLOWS: '/sync/workflows',
+        SYNC_SYSTEM_PROMPT: '/sync/system-prompt',
+        SYNC_CREDENTIALS: '/sync/credentials',
+        SYNC_STATUS: '/sync/status',
     },
 
     // Local storage keys
