@@ -29,6 +29,7 @@ const CONFIG = {
 
         // Bookings/Calendar endpoints
         GET_BOOKINGS: '/bookings',
+        CREATE_BOOKING: '/bookings',
 
         // Tasks endpoints
         GET_TASKS: '/tasks',

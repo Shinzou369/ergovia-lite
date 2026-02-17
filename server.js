@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const db = require('./db');
 const n8nService = require('./services/n8n');
+const v2Data = require('./services/v2-data');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -109,12 +110,45 @@ app.post('/api/client/:section', async (req, res) => {
 });
 
 // Save all client data (from onboarding)
-app.post('/api/client', (req, res) => {
+app.post('/api/client', async (req, res) => {
   try {
+    // 1. Save to SQLite (local state)
     for (const [section, data] of Object.entries(req.body)) {
       db.saveClientData(section, data);
     }
     db.logActivity('onboarding_completed', 'All sections saved');
+
+    // 2. Bridge to PostgreSQL (so n8n workflows can read contact data)
+    const ownerData = req.body.owner;
+    const propertyData = req.body.property;
+
+    if (ownerData) {
+      try {
+        await v2Data.saveOwner(ownerData);
+        console.log('[onboarding] Owner saved to PostgreSQL');
+      } catch (pgErr) {
+        console.error('[onboarding] PostgreSQL saveOwner failed (non-fatal):', pgErr.message);
+      }
+    }
+
+    if (propertyData) {
+      const propertyId = propertyData.propertyId || propertyData.property_id;
+      if (propertyId) {
+        try {
+          await v2Data.savePropertyContacts(propertyId, {
+            owner_telegram: (ownerData && ownerData.telegramChatId) || propertyData.ownerTelegram || '',
+            owner_phone: (ownerData && ownerData.ownerPhone) || '',
+            owner_email: (ownerData && ownerData.ownerEmail) || '',
+            owner_name: (ownerData && ownerData.ownerName) || '',
+            preferred_platform: (ownerData && ownerData.primaryPlatform) || 'telegram',
+          });
+          console.log('[onboarding] Property contacts saved to PostgreSQL for', propertyId);
+        } catch (pgErr) {
+          console.error('[onboarding] PostgreSQL savePropertyContacts failed (non-fatal):', pgErr.message);
+        }
+      }
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -990,7 +1024,7 @@ app.get('/api/admin/config', (req, res) => {
 // V2 API - PREMIUM DASHBOARD
 // ============================================
 
-const v2Data = require('./services/v2-data');
+// v2Data already required at top of file
 
 // Dashboard data (all-in-one endpoint)
 app.get('/api/v2/dashboard', async (req, res) => {
@@ -1102,6 +1136,16 @@ app.get('/api/v2/bookings', async (req, res) => {
     const { propertyId, startDate, endDate } = req.query;
     const bookings = await v2Data.getBookings(propertyId, startDate, endDate);
     res.json({ success: true, bookings });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Bookings - POST (create new booking)
+app.post('/api/v2/bookings', async (req, res) => {
+  try {
+    const result = await v2Data.createBooking(req.body);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
