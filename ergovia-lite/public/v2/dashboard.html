@@ -92,9 +92,14 @@
         <div class="calendar-section">
             <div class="section-header">
                 <h2><i class="fas fa-calendar-alt"></i> Booking Calendar</h2>
-                <button class="btn-help" data-info="calendar">
-                    <i class="fas fa-info-circle"></i>
-                </button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn-add" onclick="openNewBookingModal()">
+                        <i class="fas fa-plus"></i> New Booking
+                    </button>
+                    <button class="btn-help" data-info="calendar">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
             </div>
 
             <!-- Property Filter -->
@@ -182,10 +187,108 @@
         </div>
     </div>
 
+    <!-- New Booking Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content modal-large" style="max-width: 780px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-calendar-plus"></i> <span id="bookingModalTitle">New Booking</span></h2>
+                <span class="modal-close" onclick="closeBookingModal()">&times;</span>
+            </div>
+
+            <!-- Step 1: Date Selection (2-month calendar) -->
+            <div id="bookingStep1">
+                <p style="color: var(--text-gray); margin-bottom: 16px;">Select check-in and check-out dates</p>
+                <div class="booking-calendar-nav">
+                    <button class="btn-calendar-nav" onclick="bookingPrevMonth()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div id="bookingCalendarMonths" style="display: flex; gap: 4px; font-weight: 700; font-size: 16px;"></div>
+                    <button class="btn-calendar-nav" onclick="bookingNextMonth()">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="booking-two-month-grid">
+                    <div>
+                        <div class="booking-calendar-grid" id="bookingCalMonth1"></div>
+                    </div>
+                    <div>
+                        <div class="booking-calendar-grid" id="bookingCalMonth2"></div>
+                    </div>
+                </div>
+                <div id="bookingDateSummary" style="text-align: center; padding: 12px; color: var(--text-gray); font-size: 14px;">
+                    Click a date to select check-in
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeBookingModal()">Cancel</button>
+                    <button class="btn-primary" id="bookingStep1Next" onclick="goToBookingStep2()" disabled>
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Property & Guest Details -->
+            <div id="bookingStep2" style="display: none;">
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-building"></i> Select Property</h3>
+                    <div id="bookingPropertyList" class="booking-property-list"></div>
+                </div>
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-user"></i> Guest Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Guest Name <span class="required">*</span></label>
+                            <input type="text" id="bookingGuestName" placeholder="Guest full name">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Phone</label>
+                            <input type="tel" id="bookingGuestPhone" placeholder="+1234567890">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> Email</label>
+                            <input type="email" id="bookingGuestEmail" placeholder="guest@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-users"></i> Number of Guests</label>
+                            <input type="number" id="bookingGuestCount" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-tag"></i> Platform</label>
+                            <select id="bookingPlatform">
+                                <option value="direct">Direct Booking</option>
+                                <option value="airbnb">Airbnb</option>
+                                <option value="booking.com">Booking.com</option>
+                                <option value="vrbo">VRBO</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-dollar-sign"></i> Total Amount</label>
+                            <input type="number" id="bookingTotalAmount" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group full-width">
+                            <label><i class="fas fa-sticky-note"></i> Notes</label>
+                            <textarea id="bookingNotes" rows="2" placeholder="Special requests, notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div id="bookingReviewSummary" style="background: var(--bg-gray); padding: 16px; border-radius: 8px; margin-bottom: 16px;"></div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="goToBookingStep1()">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button class="btn-primary" id="bookingSubmitBtn" onclick="submitBooking()">
+                        <i class="fas fa-check"></i> Create Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="assets/js/config.js"></script>
     <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/calendar.js"></script>
+    <script src="assets/js/booking.js"></script>
     <script src="assets/js/notifications.js"></script>
 </body>
 </html>
