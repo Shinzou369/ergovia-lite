@@ -31,6 +31,9 @@ const CONFIG = {
         GET_BOOKINGS: '/bookings',
         CREATE_BOOKING: '/bookings',
 
+        // Seed demo data
+        SEED_DATA: '/seed',
+
         // Tasks endpoints
         GET_TASKS: '/tasks',
         MARK_TASK_COMPLETE: '/tasks/complete',

@@ -1216,6 +1216,16 @@ app.post('/api/v2/reset-demo', async (req, res) => {
   }
 });
 
+// Seed demo data (properties + bookings)
+app.post('/api/v2/seed', async (req, res) => {
+  try {
+    const result = await v2Data.seedDemoData();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ============================================
 // WORKFLOW SYNC ROUTES
 // ============================================

@@ -238,6 +238,29 @@ function closeModal() {
     if (modal) modal.style.display = 'none';
 }
 
+/**
+ * Seed demo data (properties + bookings)
+ */
+async function seedDemoData() {
+    try {
+        Utils.showToast('Loading demo data...', 'info');
+        const response = await Utils.post('/seed', {});
+        if (response.success) {
+            Utils.showToast(`Loaded ${response.properties} properties & ${response.bookings} bookings!`, 'success');
+            await loadDashboard();
+            await loadCalendarData();
+            renderCalendar();
+            renderUpcomingBookings();
+            renderPropertyLegend();
+        } else {
+            Utils.showToast(response.error || 'Failed to seed data', 'error');
+        }
+    } catch (error) {
+        console.error('[Dashboard] Seed error:', error);
+        Utils.showToast('Failed to load demo data', 'error');
+    }
+}
+
 // Help button info texts
 const helpTexts = {
     tasks: 'This section shows your pending tasks and reminders. Complete them to keep your property management running smoothly.',

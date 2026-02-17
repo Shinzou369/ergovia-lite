@@ -401,9 +401,10 @@ body {
     align-items: center;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
     background-color: var(--bg-gray);
     border-radius: var(--radius-md);
+    flex-wrap: wrap;
 }
 
 .property-filter label {
@@ -411,14 +412,64 @@ body {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    font-size: 14px;
+    white-space: nowrap;
 }
 
 .property-filter select {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 6px var(--spacing-md);
     border: 1px solid var(--border-gray);
     border-radius: var(--radius-sm);
-    font-size: 15px;
-    min-width: 200px;
+    font-size: 14px;
+    min-width: 160px;
+    background: var(--white);
+}
+
+.property-legend {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    flex: 1;
+    margin-left: var(--spacing-sm);
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-gray);
+    white-space: nowrap;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.btn-seed {
+    padding: 6px 12px;
+    border: 1px solid var(--border-gray);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--text-gray);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.btn-seed:hover {
+    background: var(--primary-blue-light);
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
 }
 
 .calendar-container {
@@ -455,67 +506,188 @@ body {
     color: var(--white);
 }
 
+/* ===== GANTT CALENDAR GRID ===== */
 .calendar-grid {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-gray);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.cal-header-row {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--spacing-sm);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid var(--border-gray);
 }
 
-.calendar-day-header {
-    padding: var(--spacing-md);
+.cal-header-cell {
     text-align: center;
     font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: var(--text-gray);
-    font-size: 14px;
+    padding: 10px 4px;
 }
 
-.calendar-day {
-    aspect-ratio: 1;
-    padding: var(--spacing-sm);
-    border: 1px solid var(--border-gray);
-    border-radius: var(--radius-sm);
+.cal-header-cell:first-child,
+.cal-header-cell:last-child {
+    color: var(--danger-red);
+    opacity: 0.7;
+}
+
+.cal-week-row {
+    border-bottom: 1px solid #eee;
+}
+
+.cal-week-row:last-child {
+    border-bottom: none;
+}
+
+.cal-day-cells {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-day-cell {
+    padding: 6px 8px;
+    min-height: 38px;
+    border-right: 1px solid #f0f0f0;
     cursor: pointer;
+    transition: background-color 0.15s;
     position: relative;
-    transition: all 0.2s;
-    background-color: var(--white);
 }
 
-.calendar-day:hover {
+.cal-day-cell:last-child {
+    border-right: none;
+}
+
+.cal-day-cell:hover:not(.other-month) {
     background-color: var(--primary-blue-light);
-    border-color: var(--primary-blue);
 }
 
-.calendar-day.other-month {
-    opacity: 0.3;
+.cal-day-cell.other-month {
+    opacity: 0.25;
+    cursor: default;
 }
 
-.calendar-day.today {
-    border: 2px solid var(--primary-blue);
+.cal-day-cell.past {
+    background-color: #fafafa;
+    color: #bbb;
+}
+
+.cal-day-cell.past .cal-day-num {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.cal-day-cell.weekend {
+    background-color: #fafcff;
+}
+
+.cal-day-cell.today {
+    background-color: #e3f2fd;
+}
+
+.cal-day-cell.today .cal-day-num {
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 700;
 }
 
-.calendar-day.has-booking {
-    background-color: #e8f5e9;
-    border-color: var(--success-green);
+.cal-today-badge {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 9px;
+    color: var(--primary-blue);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.calendar-day-number {
-    font-size: 14px;
-    font-weight: 600;
+.cal-day-num {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dark);
+    line-height: 1;
 }
 
-.calendar-day-dots {
+/* Booking Bars */
+.cal-bars-area {
+    position: relative;
+    padding: 2px 0;
+    overflow: hidden;
+    transition: min-height 0.2s;
+}
+
+.cal-booking-bar {
+    position: absolute;
+    height: 22px;
     display: flex;
-    gap: 2px;
-    justify-content: center;
-    margin-top: 4px;
+    align-items: center;
+    padding: 0 6px;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.15s;
+    z-index: 1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.booking-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: var(--success-green);
+.cal-booking-bar:hover {
+    filter: brightness(1.1);
+    transform: scaleY(1.15);
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.cal-booking-bar.pending {
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 3px,
+        rgba(255,255,255,0.2) 3px,
+        rgba(255,255,255,0.2) 6px
+    ) !important;
+}
+
+.cal-bar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    line-height: 1;
+}
+
+/* Upcoming bookings urgency */
+.booking-item.today-checkin {
+    background-color: #fff3e0 !important;
+    border-left-color: var(--danger-red) !important;
+    animation: pulse-urgent 2s infinite;
+}
+
+.booking-item.tomorrow-checkin {
+    background-color: #fff8e1 !important;
+    border-left-color: var(--warning-orange) !important;
+}
+
+.booking-item.soon-checkin {
+    background-color: #e8f5e9 !important;
+}
+
+@keyframes pulse-urgent {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(244,67,54,0.2); }
+    50% { box-shadow: 0 0 0 4px rgba(244,67,54,0.1); }
 }
 
 /* ===== STATS CARDS ===== */

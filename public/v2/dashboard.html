@@ -102,13 +102,16 @@
                 </div>
             </div>
 
-            <!-- Property Filter -->
+            <!-- Property Filter & Legend -->
             <div class="property-filter">
-                <label><i class="fas fa-filter"></i> Show bookings for:</label>
+                <label><i class="fas fa-filter"></i> Show:</label>
                 <select id="propertyFilter" onchange="filterCalendar()">
                     <option value="all">All Properties</option>
-                    <!-- Properties will be loaded here -->
                 </select>
+                <div id="propertyLegend" class="property-legend"></div>
+                <button class="btn-seed" onclick="seedDemoData()" title="Load sample properties & bookings">
+                    <i class="fas fa-database"></i> Demo Data
+                </button>
             </div>
 
             <!-- Calendar View -->

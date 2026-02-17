@@ -97,7 +97,44 @@ function propertyFromDb(row) {
     notes: s.notes || '',
     status: row.property_status || 'active',
     settings: s,
-    color: '#1877f2',
+    color: s.color || '#1877f2',
+  };
+}
+
+function propertyToDb(property) {
+  const id = property.id || 'prop-' + Date.now();
+  return {
+    property_id: id,
+    property_name: property.name || '',
+    address: property.address || '',
+    bedrooms: property.bedrooms || 0,
+    bathrooms: property.bathrooms || 0,
+    max_guests: property.maxGuests || 0,
+    base_price: property.basePrice || 0,
+    weekend_price: property.weekendPrice || 0,
+    holiday_price: property.holidayPrice || 0,
+    cleaning_fee: property.cleaningFee || 0,
+    min_stay_nights: property.minStayNights || 1,
+    max_stay_nights: property.maxStayNights || 30,
+    calendar_url: property.calendarUrl || '',
+    calendar_sync_enabled: property.calendarSyncEnabled || false,
+    timezone: property.timezone || 'UTC',
+    auto_approve_bookings: property.autoApproveBookings || false,
+    require_screening: property.requireScreening !== false,
+    owner_contact: property.ownerContact || '',
+    owner_telegram: property.ownerTelegram || '',
+    owner_name: property.ownerName || '',
+    owner_phone: property.ownerPhone || '',
+    owner_email: property.ownerEmail || '',
+    property_status: property.status || 'active',
+    settings: {
+      property_type: property.type || 'apartment',
+      check_in_time: property.checkInTime || '15:00',
+      check_out_time: property.checkOutTime || '11:00',
+      amenities: property.amenities || [],
+      house_rules: property.houseRules || '',
+      notes: property.notes || '',
+    },
   };
 }
 
@@ -116,7 +153,6 @@ function bookingFromDb(row) {
     totalPrice: parseFloat(row.total_amount || 0),
     platform: row.platform || '',
     notes: row.notes || '',
-    color: '#1877f2',
   };
 }
 
@@ -616,6 +652,106 @@ const V2DataService = {
       },
     ];
     return { success: true, message: 'Local data reset. PostgreSQL data unchanged.' };
+  },
+
+  async seedDemoData() {
+    const COLORS = ['#1877f2','#42b72a','#f44336','#ff9800','#9c27b0','#00bcd4','#e91e63','#795548','#607d8b'];
+    const properties = [
+      { id: 'prop-oceanview', name: 'Ocean View Villa', address: '123 Beachfront Rd, Miami FL', type: 'villa', bedrooms: 4, bathrooms: 3, maxGuests: 8, basePrice: 350, cleaningFee: 120 },
+      { id: 'prop-downtown', name: 'Downtown Loft', address: '456 Main St, New York NY', type: 'apartment', bedrooms: 2, bathrooms: 1, maxGuests: 4, basePrice: 220, cleaningFee: 80 },
+      { id: 'prop-mountain', name: 'Mountain Retreat', address: '789 Pine Trail, Aspen CO', type: 'cabin', bedrooms: 3, bathrooms: 2, maxGuests: 6, basePrice: 280, cleaningFee: 100 },
+      { id: 'prop-lakehouse', name: 'Lakeside Cottage', address: '101 Lakeview Dr, Lake Tahoe CA', type: 'cottage', bedrooms: 2, bathrooms: 1, maxGuests: 4, basePrice: 190, cleaningFee: 70 },
+      { id: 'prop-penthouse', name: 'City Penthouse', address: '200 Sky Tower, Los Angeles CA', type: 'penthouse', bedrooms: 3, bathrooms: 2, maxGuests: 6, basePrice: 450, cleaningFee: 150 },
+      { id: 'prop-beachcondo', name: 'Sunset Beach Condo', address: '55 Coastal Hwy, San Diego CA', type: 'condo', bedrooms: 2, bathrooms: 2, maxGuests: 4, basePrice: 175, cleaningFee: 60 },
+      { id: 'prop-farmhouse', name: 'Countryside Farmhouse', address: '320 Old Mill Rd, Nashville TN', type: 'farmhouse', bedrooms: 5, bathrooms: 3, maxGuests: 10, basePrice: 260, cleaningFee: 110 },
+      { id: 'prop-studio', name: 'Urban Studio', address: '88 Arts District, Portland OR', type: 'studio', bedrooms: 1, bathrooms: 1, maxGuests: 2, basePrice: 95, cleaningFee: 40 },
+      { id: 'prop-treehouse', name: 'Tropical Treehouse', address: '42 Rainforest Ln, Maui HI', type: 'treehouse', bedrooms: 1, bathrooms: 1, maxGuests: 2, basePrice: 310, cleaningFee: 90 },
+    ];
+
+    let propsCreated = 0;
+    for (let i = 0; i < properties.length; i++) {
+      const p = properties[i];
+      try {
+        await pool.query(`
+          INSERT INTO property_configurations (
+            property_id, property_name, address, bedrooms, bathrooms, max_guests,
+            base_price, cleaning_fee, property_status, settings, timezone
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9::jsonb,'America/New_York')
+          ON CONFLICT (property_id) DO UPDATE SET
+            property_name = EXCLUDED.property_name,
+            address = EXCLUDED.address,
+            bedrooms = EXCLUDED.bedrooms,
+            bathrooms = EXCLUDED.bathrooms,
+            max_guests = EXCLUDED.max_guests,
+            base_price = EXCLUDED.base_price,
+            cleaning_fee = EXCLUDED.cleaning_fee,
+            settings = EXCLUDED.settings
+        `, [
+          p.id, p.name, p.address, p.bedrooms, p.bathrooms, p.maxGuests,
+          p.basePrice, p.cleaningFee,
+          JSON.stringify({ property_type: p.type, check_in_time: '15:00', check_out_time: '11:00', amenities: ['WiFi','Kitchen','AC'], color: COLORS[i] }),
+        ]);
+        propsCreated++;
+      } catch (err) {
+        console.error('[seed] property error:', p.id, err.message);
+      }
+    }
+
+    // Seed bookings (spread across current month and next month)
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const bookings = [
+      { propIdx: 0, guest: 'Alex Wearing', dStart: 3, dEnd: 7, platform: 'airbnb', amount: 1400, status: 'confirmed' },
+      { propIdx: 1, guest: 'Maria Santos', dStart: 5, dEnd: 9, platform: 'booking.com', amount: 880, status: 'confirmed' },
+      { propIdx: 2, guest: 'James Chen', dStart: 10, dEnd: 14, platform: 'direct', amount: 1120, status: 'confirmed' },
+      { propIdx: 3, guest: 'Sophie Laurent', dStart: 12, dEnd: 15, platform: 'vrbo', amount: 570, status: 'confirmed' },
+      { propIdx: 4, guest: 'Robert Kim', dStart: 18, dEnd: 23, platform: 'airbnb', amount: 2250, status: 'confirmed' },
+      { propIdx: 0, guest: 'Emma Thompson', dStart: 15, dEnd: 20, platform: 'direct', amount: 1750, status: 'confirmed' },
+      { propIdx: 5, guest: 'David Martinez', dStart: 20, dEnd: 25, platform: 'airbnb', amount: 875, status: 'pending' },
+      { propIdx: 6, guest: 'Lisa Anderson', dStart: 22, dEnd: 28, platform: 'booking.com', amount: 1560, status: 'confirmed' },
+      { propIdx: 7, guest: 'Tom Wilson', dStart: 8, dEnd: 11, platform: 'direct', amount: 285, status: 'confirmed' },
+      { propIdx: 8, guest: 'Nina Patel', dStart: 14, dEnd: 19, platform: 'airbnb', amount: 1550, status: 'confirmed' },
+      // Next month bookings
+      { propIdx: 0, guest: 'Carlos Ruiz', dStart: 33, dEnd: 38, platform: 'vrbo', amount: 1750, status: 'confirmed' },
+      { propIdx: 2, guest: 'Amy Foster', dStart: 35, dEnd: 40, platform: 'airbnb', amount: 1400, status: 'pending' },
+      { propIdx: 1, guest: 'Kevin O\'Brien', dStart: 30, dEnd: 34, platform: 'direct', amount: 880, status: 'confirmed' },
+    ];
+
+    let bookingsCreated = 0;
+    for (const b of bookings) {
+      const prop = properties[b.propIdx];
+      const checkIn = new Date(y, m, b.dStart);
+      const checkOut = new Date(y, m, b.dEnd);
+      const bookingId = 'demo-' + prop.id + '-' + b.dStart;
+      try {
+        await pool.query(`
+          INSERT INTO bookings (
+            booking_id, property_id, property_name,
+            guest_name, check_in_date, check_out_date,
+            guests, booking_status, total_amount, platform, channel_type, payment_status
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'manual','pending')
+          ON CONFLICT (booking_id) DO UPDATE SET
+            property_name = EXCLUDED.property_name,
+            guest_name = EXCLUDED.guest_name,
+            check_in_date = EXCLUDED.check_in_date,
+            check_out_date = EXCLUDED.check_out_date,
+            booking_status = EXCLUDED.booking_status,
+            total_amount = EXCLUDED.total_amount,
+            platform = EXCLUDED.platform
+        `, [
+          bookingId, prop.id, prop.name,
+          b.guest, checkIn.toISOString().split('T')[0], checkOut.toISOString().split('T')[0],
+          Math.floor(Math.random() * 4) + 1, b.status, b.amount, b.platform,
+        ]);
+        bookingsCreated++;
+      } catch (err) {
+        console.error('[seed] booking error:', bookingId, err.message);
+      }
+    }
+
+    console.log(`[seed] Created ${propsCreated} properties and ${bookingsCreated} bookings`);
+    return { success: true, properties: propsCreated, bookings: bookingsCreated };
   },
 };
 
