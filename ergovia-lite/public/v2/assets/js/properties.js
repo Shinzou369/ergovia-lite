@@ -142,6 +142,27 @@ function editProperty(propertyId) {
     document.getElementById('maxGuests').value = property.maxGuests || '';
     document.getElementById('squareFeet').value = property.squareFeet || '';
 
+    // Pricing & Stay Rules
+    document.getElementById('basePrice').value = property.basePrice || '';
+    document.getElementById('weekendPrice').value = property.weekendPrice || '';
+    document.getElementById('holidayPrice').value = property.holidayPrice || '';
+    document.getElementById('cleaningFee').value = property.cleaningFee || '';
+    document.getElementById('minStayNights').value = property.minStayNights || 1;
+    document.getElementById('maxStayNights').value = property.maxStayNights || 30;
+    document.getElementById('checkInTime').value = property.checkInTime || '15:00';
+    document.getElementById('checkOutTime').value = property.checkOutTime || '11:00';
+
+    // Calendar & Automation
+    document.getElementById('calendarUrl').value = property.calendarUrl || '';
+    document.getElementById('timezone').value = property.timezone || 'UTC';
+    document.getElementById('calendarSyncEnabled').checked = property.calendarSyncEnabled !== false;
+    document.getElementById('autoApproveBookings').checked = !!property.autoApproveBookings;
+    document.getElementById('requireScreening').checked = property.requireScreening !== false;
+
+    // Payment settings
+    document.getElementById('paymentLink').value = property.paymentLink || '';
+    document.getElementById('paymentInstructions').value = property.paymentInstructions || '';
+
     // Listing platforms
     document.getElementById('airbnbListingUrl').value = property.airbnbUrl || '';
     document.getElementById('bookingComUrl').value = property.bookingComUrl || '';
@@ -151,6 +172,10 @@ function editProperty(propertyId) {
     document.getElementById('lockType').value = property.lockType || '';
     document.getElementById('doorCode').value = property.doorCode || '';
     document.getElementById('accessInstructions').value = property.accessInstructions || '';
+
+    // Owner Contact
+    document.getElementById('ownerContact').value = property.ownerContact || '';
+    document.getElementById('ownerTelegram').value = property.ownerTelegram || '';
 
     // Contacts
     document.getElementById('cleanerName').value = property.cleanerName || '';
@@ -229,6 +254,27 @@ async function handlePropertySubmit(event) {
         maxGuests: parseInt(formData.get('maxGuests')),
         squareFeet: parseInt(formData.get('squareFeet')) || null,
 
+        // Pricing & Stay Rules
+        basePrice: parseFloat(formData.get('basePrice')) || null,
+        weekendPrice: parseFloat(formData.get('weekendPrice')) || null,
+        holidayPrice: parseFloat(formData.get('holidayPrice')) || null,
+        cleaningFee: parseFloat(formData.get('cleaningFee')) || null,
+        minStayNights: parseInt(formData.get('minStayNights')) || 1,
+        maxStayNights: parseInt(formData.get('maxStayNights')) || 30,
+        checkInTime: formData.get('checkInTime') || '15:00',
+        checkOutTime: formData.get('checkOutTime') || '11:00',
+
+        // Calendar & Automation
+        calendarUrl: formData.get('calendarUrl'),
+        timezone: formData.get('timezone') || 'UTC',
+        calendarSyncEnabled: !!formData.get('calendarSyncEnabled'),
+        autoApproveBookings: !!formData.get('autoApproveBookings'),
+        requireScreening: !!formData.get('requireScreening'),
+
+        // Payment settings
+        paymentLink: formData.get('paymentLink'),
+        paymentInstructions: formData.get('paymentInstructions'),
+
         // Listing platforms
         airbnbUrl: formData.get('airbnbListingUrl'),
         bookingComUrl: formData.get('bookingComUrl'),
@@ -238,6 +284,10 @@ async function handlePropertySubmit(event) {
         lockType: formData.get('lockType'),
         doorCode: formData.get('doorCode'),
         accessInstructions: formData.get('accessInstructions'),
+
+        // Owner Contact (per property)
+        ownerContact: formData.get('ownerContact'),
+        ownerTelegram: formData.get('ownerTelegram'),
 
         // Contacts
         cleanerName: formData.get('cleanerName'),
@@ -266,6 +316,11 @@ async function handlePropertySubmit(event) {
             currentPropertyId ? 'Property updated!' : 'Property added!',
             'success'
         );
+
+        // Trigger workflow sync banner if editing existing property
+        if (currentPropertyId && response.needsSync && typeof WorkflowSync !== 'undefined') {
+            WorkflowSync.markNeedsSync(response.syncCategory || 'workflows');
+        }
 
         // Close modal
         closePropertyModal();
