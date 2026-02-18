@@ -1,0 +1,707 @@
+{
+  "updatedAt": "2026-02-17T06:38:50.224Z",
+  "createdAt": "2026-02-16T13:20:55.362Z",
+  "id": "__WF_ID:WF8: Safety & Screening__",
+  "name": "WF8: Safety & Screening",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"event_type\": \"emergency\",\n  \"channel\": \"telegram\",\n  \"sender_id\": \"123456789\",\n  \"customer_id\": \"uuid-here\",\n  \"property_id\": \"prop-123\",\n  \"message_text\": \"Help! Locked out!\",\n  \"booking_id\": \"\",\n  \"guest_name\": \"\",\n  \"guest_email\": \"\",\n  \"guest_phone\": \"\",\n  \"check_in_date\": \"\",\n  \"category\": \"EMERGENCY\"\n}"
+      },
+      "id": "workflow-trigger",
+      "name": "When Called by Other Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "id": "watchdog-trigger",
+      "name": "Watchdog Every 15 Min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize input from WF1 tool call, watchdog trigger, or webhook\nconst input = $input.item.json;\n\nlet event = {\n  event_type: 'unknown',\n  channel: 'telegram',\n  sender_id: '',\n  customer_id: '',\n  property_id: '',\n  owner_telegram: '',\n  data: {},\n  message: ''\n};\n\n// Emergency — from WF1 tool call\nif (input.event_type === 'emergency' || input.category === 'EMERGENCY') {\n  event.event_type = 'emergency';\n  event.channel = input.channel || 'telegram';\n  event.sender_id = input.sender_id || '';\n  event.customer_id = input.customer_id || '';\n  event.property_id = input.property_id || '';\n  event.message = input.message_text || input.issue_description || '';\n  event.data = {\n    message: event.message,\n    sender_id: input.sender_id,\n    channel: input.channel,\n    property_id: input.property_id,\n    guest_name: input.sender_name || input.guest_name || 'Guest'\n  };\n}\n// Screening — from WF1 or booking flow\nelse if (input.event_type === 'screening' || input.guest_email || input.booking_id) {\n  event.event_type = 'screening';\n  event.channel = input.channel || 'system';\n  event.sender_id = input.sender_id || '';\n  event.customer_id = input.customer_id || '';\n  event.property_id = input.property_id || '';\n  event.data = {\n    guest_name: input.guest_name || '',\n    guest_email: input.guest_email || '',\n    guest_phone: input.guest_phone || '',\n    booking_id: input.booking_id || '',\n    check_in_date: input.check_in_date || '',\n    property_id: input.property_id || ''\n  };\n}\n// Watchdog — scheduled system check\n// Use a known property_id so Owner Notifier can resolve recipient\nelse {\n  event.event_type = 'watchdog';\n  event.channel = 'telegram';\n  event.sender_id = '';\n  event.customer_id = '';\n  event.property_id = 'PROP-TEST-001';  // First active property — Owner Notifier resolves owner from this\n  event.data = { triggered_at: new Date().toISOString() };\n}\n\nreturn event;"
+      },
+      "id": "normalize-event",
+      "name": "Normalize Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "emergency",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "emergency"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "screening",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "screening"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "watchdog",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "watchdog"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route-event",
+      "name": "Route Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are an internal emergency assessment system for a property management company. A guest has reported an issue. Your job is to ASSESS the situation and produce a structured report for the property OWNER — NOT the guest.\n\nREPORTED ISSUE:\n- Guest message: {{ $json.data.message }}\n- Property: {{ $json.property_id }}\n- Channel: {{ $json.channel }}\n- Guest name: {{ $json.data.guest_name || 'Unknown' }}\n\nRULES:\n- NEVER ask for more information. Work with what you have.\n- NEVER address the guest. Your output goes to the property owner/manager.\n- If information is limited, make your best assessment and state your assumptions.\n- Be direct and actionable.\n\nProduce your assessment in EXACTLY this format:\n\nEMERGENCY_TYPE: [fire/medical/security/utility/lockout/noise/natural_disaster/other]\nSEVERITY: [critical/high/medium]\nRESPONDERS: [comma-separated list: 911, owner, maintenance, security, plumber, electrician, locksmith]\nGUEST_INSTRUCTIONS: [one sentence — what the guest should do RIGHT NOW]\nOWNER_ACTIONS: [numbered list of what the owner needs to do]\nSUMMARY: [one sentence describing the situation]",
+        "options": {
+          "maxIterations": 2
+        }
+      },
+      "id": "ai-emergency",
+      "name": "AI Emergency Handler",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1024,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "emergency-model",
+      "name": "Emergency Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1032,
+        128
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "[Client] OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "escalate_emergency",
+        "description": "Escalate emergency to appropriate responders",
+        "jsCode": "// Escalate Emergency Tool\n// This tool escalates emergencies to appropriate responders\n\nconst input = $input.item.json;\n\n// Extract parameters from AI agent call\nconst emergencyType = input.emergency_type || input.type || \"general\";\nconst severity = input.severity || \"high\";\nconst description = input.description || input.message || \"Emergency reported\";\nconst propertyId = input.property_id || $json.property_id;\nconst reportedBy = input.reported_by || input.sender_id || \"guest\";\nconst contactInfo = input.contact_info || input.phone || \"\";\n\n// Generate escalation ID\nconst escalationId = \"ESC-\" + Date.now();\n\n// Determine responders based on emergency type\nlet responders = [];\nif (emergencyType === \"fire\" || emergencyType === \"medical\") {\n  responders = [\"emergency_services\", \"owner\", \"property_manager\"];\n} else if (emergencyType === \"security\" || emergencyType === \"break_in\") {\n  responders = [\"security\", \"owner\", \"police\"];\n} else if (emergencyType === \"lockout\") {\n  responders = [\"property_manager\", \"owner\"];\n} else {\n  responders = [\"owner\", \"property_manager\"];\n}\n\nreturn {\n  escalation_id: escalationId,\n  property_id: propertyId,\n  emergency_type: emergencyType,\n  severity: severity,\n  description: description,\n  reported_by: reportedBy,\n  contact_info: contactInfo,\n  responders: responders,\n  status: \"escalated\",\n  escalated_at: new Date().toISOString(),\n  message: `Emergency escalated (${escalationId}). Type: ${emergencyType}, Severity: ${severity}. Notifying: ${responders.join(\", \")}`\n};"
+      },
+      "id": "tool-escalate",
+      "name": "Escalate Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a guest screening system for a vacation rental property. Assess this booking request and produce a risk evaluation for the property owner.\n\nBOOKING REQUEST:\n- Guest: {{ $json.data.guest_name || 'Not provided' }}\n- Email: {{ $json.data.guest_email || 'Not provided' }}\n- Phone: {{ $json.data.guest_phone || 'Not provided' }}\n- Check-in: {{ $json.data.check_in_date || 'Not provided' }}\n- Property: {{ $json.data.property_id || 'Unknown' }}\n\nRULES:\n- NEVER ask for more information. Assess with what you have.\n- Missing contact info IS a red flag — factor it in.\n- Same-day bookings are higher risk than advance bookings.\n- Your output goes to the property owner, not the guest.\n\nProduce your assessment in EXACTLY this format:\n\nDECISION: [APPROVE/FLAG_FOR_REVIEW/REJECT]\nRISK_LEVEL: [low/medium/high]\nRISK_SCORE: [0-100]\nFLAGS: [comma-separated list of concerns, or \"none\"]\nREASONING: [2-3 sentences explaining your decision]\nOWNER_NOTE: [one sentence recommendation for the owner]",
+        "options": {
+          "maxIterations": 2
+        }
+      },
+      "id": "ai-screening",
+      "name": "AI Screening Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        672,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "screening-model",
+      "name": "Screening Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        744,
+        424
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "[Client] OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  'stale_bookings' as check_type,\n  COUNT(*) as count\nFROM bookings\nWHERE booking_status = 'pending_payment'\n  AND created_at < NOW() - INTERVAL '24 hours'\nUNION ALL\nSELECT\n  'stuck_conversations' as check_type,\n  COUNT(*) as count\nFROM conversations\nWHERE conversation_stage NOT IN ('completed', 'cancelled')\n  AND updated_at < NOW() - INTERVAL '4 hours'\nUNION ALL\nSELECT\n  'unresponded_maintenance' as check_type,\n  COUNT(*) as count\nFROM maintenance_tickets\nWHERE status = 'new'\n  AND created_at < NOW() - INTERVAL '2 hours'\n  AND urgency IN ('high', 'emergency')\nUNION ALL\nSELECT\n  'overdue_cleanings' as check_type,\n  COUNT(*) as count\nFROM cleaning_schedules\nWHERE status = 'scheduled'\n  AND scheduled_date < CURRENT_DATE",
+        "options": {}
+      },
+      "id": "watchdog-checks",
+      "name": "Run Watchdog Checks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        736,
+        600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze watchdog results and generate alerts\nconst checks = $input.all().map(i => i.json);\nconst alerts = [];\n\nfor (const check of checks) {\n  if (parseInt(check.count) > 0) {\n    alerts.push({\n      type: check.check_type,\n      count: parseInt(check.count),\n      severity: check.check_type.includes('emergency') ? 'high' : 'medium',\n      message: check.count + ' ' + check.check_type.replace(/_/g, ' ') + ' detected'\n    });\n  }\n}\n\nconst totalIssues = alerts.reduce((sum, a) => sum + a.count, 0);\n\n// Build alert message for notification\nlet alertMessage = 'Watchdog Report\\n\\n';\nif (alerts.length === 0) {\n  alertMessage += 'All systems healthy. No issues detected.';\n} else {\n  alertMessage += totalIssues + ' issue(s) found:\\n\\n';\n  for (const a of alerts) {\n    const marker = a.severity === 'high' ? '[HIGH]' : '[WARN]';\n    alertMessage += marker + ' ' + a.message + '\\n';\n  }\n  alertMessage += '\\nPlease review your dashboard for details.';\n}\n\nreturn {\n  alerts: alerts,\n  total_issues: totalIssues,\n  alert_message: alertMessage,\n  check_time: new Date().toISOString(),\n  status: alerts.length > 0 ? 'issues_found' : 'healthy',\n  severity: alerts.some(a => a.severity === 'high') ? 'high' : 'medium'\n};"
+      },
+      "id": "analyze-watchdog",
+      "name": "Analyze Watchdog Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-issues",
+              "leftValue": "={{ $json.total_issues }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "id": "has-issues",
+      "name": "Has Issues?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__WF_ID:SUB: Owner & Staff Notifier__"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "property_id": "={{ $('Normalize Event').item.json.property_id || '' }}",
+            "event_type": "={{ $('Normalize Event').item.json.event_type || 'alert' }}",
+            "message": "={{ $json.alert_message || $json.output || $json.message || 'System alert from WF8' }}",
+            "notify": "owner",
+            "recipient_id": "={{ $('Normalize Event').item.json.sender_id || $('Normalize Event').item.json.owner_telegram || '' }}",
+            "customer_id": "={{ $('Normalize Event').item.json.customer_id || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "property_id",
+              "displayName": "property_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "notify",
+              "displayName": "notify",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "recipient_id",
+              "displayName": "recipient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "send-alerts",
+      "name": "Send Alerts",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        104
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log security event — pass through to Return Result\n// Actual logging is captured in n8n execution history\n// This prevents column mismatch errors from blocking the flow\nconst event = $('Normalize Event').item.json;\nconst result = $input.item.json;\n\n// Build log entry for execution history (visible in n8n UI)\nconsole.log('[WF8] Security Event:', JSON.stringify({\n  event_type: event.event_type,\n  channel: event.channel,\n  timestamp: new Date().toISOString(),\n  status: result.status || 'completed'\n}));\n\n// Pass through the input unchanged\nreturn result;"
+      },
+      "id": "log-event",
+      "name": "Log Security Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        404
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Return clear result to WF1 AI Agent\n// Use $input.item.json ONLY — no cross-node $('Name') references\nconst result = $input.item.json;\n\nconst response = {\n  success: true,\n  event_type: result.event_type || 'unknown',\n  timestamp: new Date().toISOString()\n};\n\nif (result.event_type === 'emergency' || result.emergency_type) {\n  response.emergency_type = result.emergency_type || 'unknown';\n  response.severity = result.severity || 'high';\n  response.message = 'Emergency reported and logged. ';\n  if (result.emergency_type) {\n    response.message += 'Type: ' + result.emergency_type + ', Severity: ' + result.severity + '. ';\n  }\n  response.message += 'The property owner has been notified. If life-threatening, call emergency services (911) immediately.';\n} else if (result.event_type === 'screening' || result.screening_result) {\n  response.screening_result = result.screening_result || result.decision || 'PENDING';\n  response.risk_level = result.risk_level || 'unknown';\n  response.flags = result.flags || [];\n  response.message = 'Guest screening complete. Result: ' + response.screening_result + ', Risk: ' + response.risk_level + '.';\n} else if (result.event_type === 'watchdog' || result.total_issues !== undefined) {\n  response.total_issues = Number(result.total_issues || 0);\n  response.alerts = result.alerts || [];\n  response.message = result.alert_message || 'Watchdog check complete — ' + response.total_issues + ' issue(s).';\n} else {\n  response.message = 'Event processed.';\n  response.data = result;\n}\n\nreturn response;"
+      },
+      "id": "return-result",
+      "name": "Return Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        404
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format a clear, actionable emergency alert for the property owner\nconst normalized = $('Normalize Event').item.json;\nconst aiOutput = $json.output || $json.text || '';\n\n// Parse structured fields from AI output\nfunction extract(label) {\n  const match = aiOutput.match(new RegExp(label + ':\\\\s*(.+)', 'i'));\n  return match ? match[1].trim() : '';\n}\n\nconst emergencyType = extract('EMERGENCY_TYPE') || 'unknown';\nconst severity = extract('SEVERITY') || 'high';\nconst responders = extract('RESPONDERS') || 'owner';\nconst guestInstructions = extract('GUEST_INSTRUCTIONS') || '';\nconst ownerActions = extract('OWNER_ACTIONS') || 'Review the situation and contact the guest.';\nconst summary = extract('SUMMARY') || normalized.data.message || 'Emergency reported by guest.';\n\n// Severity emoji\nconst sevEmoji = severity === 'critical' ? '🔴' : severity === 'high' ? '🟠' : '🟡';\n\n// Build owner notification\nlet alert = '🚨 EMERGENCY ALERT\\n\\n';\nalert += '📍 Property: ' + (normalized.property_id || 'Unknown') + '\\n';\nalert += '👤 Guest: ' + (normalized.data.guest_name || 'Unknown') + '\\n';\nalert += '📱 Via: ' + (normalized.channel || 'unknown') + '\\n\\n';\nalert += '💬 Guest reported:\\n\"' + (normalized.data.message || normalized.message || 'No message') + '\"\\n\\n';\nalert += sevEmoji + ' Assessment: ' + emergencyType.toUpperCase() + ' — ' + severity.toUpperCase() + '\\n';\nalert += '📋 Summary: ' + summary + '\\n\\n';\n\nif (ownerActions) {\n  alert += '⚡ Actions needed:\\n' + ownerActions + '\\n\\n';\n}\nif (responders && responders !== 'owner') {\n  alert += '📞 Notify: ' + responders + '\\n\\n';\n}\nif (guestInstructions) {\n  alert += '💡 Guest was advised: ' + guestInstructions + '\\n';\n}\n\nreturn {\n  alert_message: alert,\n  emergency_type: emergencyType,\n  severity: severity,\n  responders: responders,\n  property_id: normalized.property_id,\n  customer_id: normalized.customer_id,\n  event_type: 'emergency',\n  ai_raw: aiOutput\n};"
+      },
+      "id": "format-emergency-alert",
+      "name": "Format Emergency Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        8
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format screening result and decide if owner needs notification\nconst normalized = $('Normalize Event').item.json;\nconst aiOutput = $json.output || $json.text || '';\n\nfunction extract(label) {\n  const match = aiOutput.match(new RegExp(label + ':\\\\s*(.+)', 'i'));\n  return match ? match[1].trim() : '';\n}\n\nconst decision = extract('DECISION') || 'FLAG_FOR_REVIEW';\nconst riskLevel = extract('RISK_LEVEL') || 'medium';\nconst riskScore = parseInt(extract('RISK_SCORE')) || 50;\nconst flags = extract('FLAGS') || 'none';\nconst reasoning = extract('REASONING') || 'Automated screening complete.';\nconst ownerNote = extract('OWNER_NOTE') || 'Please review this booking.';\n\nconst needsOwnerAlert = decision !== 'APPROVE';\n\n// Build owner notification if needed\nlet alert = '';\nif (needsOwnerAlert) {\n  const emoji = decision === 'REJECT' ? '🔴' : '🟡';\n  alert = emoji + ' GUEST SCREENING: ' + decision.replace(/_/g, ' ') + '\\n\\n';\n  alert += '👤 Guest: ' + (normalized.data.guest_name || 'Unknown') + '\\n';\n  alert += '📧 Email: ' + (normalized.data.guest_email || 'N/A') + '\\n';\n  alert += '📱 Phone: ' + (normalized.data.guest_phone || 'N/A') + '\\n';\n  alert += '📅 Check-in: ' + (normalized.data.check_in_date || 'N/A') + '\\n';\n  alert += '📍 Property: ' + (normalized.data.property_id || 'Unknown') + '\\n\\n';\n  alert += '⚠️ Risk: ' + riskLevel.toUpperCase() + ' (' + riskScore + '/100)\\n';\n  if (flags !== 'none') {\n    alert += '🚩 Flags: ' + flags + '\\n';\n  }\n  alert += '\\n📋 ' + reasoning + '\\n';\n  alert += '\\n💡 ' + ownerNote;\n}\n\nreturn {\n  decision: decision,\n  risk_level: riskLevel,\n  risk_score: riskScore,\n  flags: flags,\n  reasoning: reasoning,\n  needs_owner_alert: needsOwnerAlert,\n  alert_message: alert,\n  property_id: normalized.property_id || normalized.data.property_id || '',\n  customer_id: normalized.customer_id || '',\n  event_type: 'screening',\n  severity: riskLevel,\n  ai_raw: aiOutput\n};"
+      },
+      "id": "format-screening-result",
+      "name": "Format Screening Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-alert",
+              "leftValue": "={{ $json.needs_owner_alert }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "needs-owner-alert",
+      "name": "Needs Owner Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "When Called by Other Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Watchdog Every 15 Min": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Event": {
+      "main": [
+        [
+          {
+            "node": "Route Event Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Event Type": {
+      "main": [
+        [
+          {
+            "node": "AI Emergency Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Screening Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run Watchdog Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emergency Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Emergency Handler",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Emergency Handler",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Emergency Handler": {
+      "main": [
+        [
+          {
+            "node": "Format Emergency Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Screening Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Screening Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Screening Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Screening Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Watchdog Checks": {
+      "main": [
+        [
+          {
+            "node": "Analyze Watchdog Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Watchdog Results": {
+      "main": [
+        [
+          {
+            "node": "Has Issues?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Issues?": {
+      "main": [
+        [
+          {
+            "node": "Send Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Security Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alerts": {
+      "main": [
+        [
+          {
+            "node": "Log Security Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Security Event": {
+      "main": [
+        [
+          {
+            "node": "Return Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Emergency Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Screening Result": {
+      "main": [
+        [
+          {
+            "node": "Needs Owner Alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Owner Alert?": {
+      "main": [
+        [
+          {
+            "node": "Send Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Security Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Watchdog Every 15 Min": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "activeVersionId": null,
+  "versionCounter": 8,
+  "activeVersion": null
+}

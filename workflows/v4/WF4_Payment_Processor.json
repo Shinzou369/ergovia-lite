@@ -1,0 +1,786 @@
+{
+  "updatedAt": "2026-02-17T06:39:54.138Z",
+  "createdAt": "2026-02-16T13:21:11.215Z",
+  "id": "__WF_ID:WF4: Payment Processor__",
+  "name": "WF4: Payment Processor",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"action\": \"create_booking\",\n  \"channel\": \"telegram\",\n  \"sender_id\": \"123456789\",\n  \"customer_id\": \"uuid-here\",\n  \"property_id\": \"prop-123\",\n  \"guest_name\": \"John Doe\",\n  \"check_in_date\": \"2026-03-01\",\n  \"check_out_date\": \"2026-03-05\"\n}"
+      },
+      "id": "workflow-trigger",
+      "name": "When Called by Other Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "payment-callback",
+      "name": "Payment Callback Handler",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        392
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "[Client] Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize input from internal request or Telegram callback\nconst input = $input.item.json;\n\n// Telegram callback (Payment Done / Cancel)\nif (input.callback_query) {\n  const callbackData = input.callback_query.data || '';\n  const parts = callbackData.split('_');\n  // Format: payment_confirm_BOOKINGID or payment_cancel_BOOKINGID\n  \n  return {\n    source: 'telegram_callback',\n    event_type: parts[1] === 'confirm' ? 'payment_confirmed' : 'payment_cancelled',\n    booking_id: parts[2],\n    confirmed_by: input.callback_query.from?.username || input.callback_query.from?.first_name,\n    callback_message_id: input.callback_query.message?.message_id,\n    callback_chat_id: input.callback_query.message?.chat?.id\n  };\n}\n\n// Internal create booking request from WF2\nreturn {\n  source: 'internal',\n  event_type: 'create_booking',\n  property_id: input.property_id,\n  booking_id: input.booking_id || `BK${Date.now()}`,\n  guest_name: input.guest_name,\n  guest_email: input.guest_email,\n  guest_phone: input.guest_phone,\n  check_in_date: input.check_in_date,\n  check_out_date: input.check_out_date,\n  num_guests: input.num_guests,\n  amount: input.total_amount,\n  currency: input.currency || 'USD',\n  owner_chat_id: input.owner_chat_id\n};"
+      },
+      "id": "normalize-event",
+      "name": "Normalize Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        296
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "create_booking",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "payment_confirmed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "confirmed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "payment_cancelled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelled"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-event",
+      "name": "Route by Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        264
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": "bookings",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "booking_id": "={{ $json.booking_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "guest_name": "={{ $json.guest_name }}",
+            "guest_email": "={{ $json.guest_email }}",
+            "guest_phone": "={{ $json.guest_phone }}",
+            "check_in_date": "={{ $json.check_in_date }}",
+            "check_out_date": "={{ $json.check_out_date }}",
+            "num_guests": "={{ $json.num_guests }}",
+            "total_amount": "={{ $json.amount }}",
+            "booking_status": "pending_payment",
+            "payment_status": "awaiting",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "create-booking",
+      "name": "Create Pending Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.property_id, p.property_name, p.address, p.customer_id,\n  p.base_price, p.cleaning_fee, p.check_in_time, p.check_out_time,\n  p.owner_name, p.owner_contact, p.owner_email, p.owner_telegram,\n  p.payment_link, p.payment_instructions, p.timezone,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform\nFROM property_configurations p\nWHERE p.property_id = $1",
+        "options": {}
+      },
+      "id": "get-property-owner",
+      "name": "Get Property & Owner",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        896,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prepare owner notification with Payment Done button\nconst booking = $('Normalize Event').item.json;\nconst property = $input.item.json;\n\nconst message = `🏠 *New Booking Request*\n\n📋 *Booking ID:* ${booking.booking_id}\n🏡 *Property:* ${property.property_name || booking.property_id}\n\n👤 *Guest:* ${booking.guest_name}\n📧 *Email:* ${booking.guest_email || 'Not provided'}\n📱 *Phone:* ${booking.guest_phone || 'Not provided'}\n\n📅 *Check-in:* ${booking.check_in_date}\n📅 *Check-out:* ${booking.check_out_date}\n👥 *Guests:* ${booking.num_guests || 'Not specified'}\n\n💰 *Total Amount:* $${booking.amount} ${booking.currency || 'USD'}\n\n${property.payment_link ? '💳 *Payment link sent to guest*' : '⚠️ *No payment link configured* - Please send payment details to guest manually'}\n\n⏳ *Status:* Awaiting Payment\n\nOnce you receive payment, click the button below OR reply \"payment received for ' + booking.booking_id + '\" to confirm.`;\n\nconst inlineKeyboard = [\n  [\n    { text: '✅ Payment Received', callback_data: `payment_confirm_${booking.booking_id}` },\n    { text: '❌ Cancel Booking', callback_data: `payment_cancel_${booking.booking_id}` }\n  ]\n];\n\nreturn {\n  chat_id: property.owner_telegram || property.owner_contact,\n  message: message,\n  inline_keyboard: inlineKeyboard,\n  booking_id: booking.booking_id,\n  parse_mode: 'Markdown',\n  // Pass through for guest notification\n  property_name: property.property_name,\n  payment_link: property.payment_link || null,\n  payment_instructions: property.payment_instructions || null,\n  guest_phone: booking.guest_phone,\n  guest_channel: booking.channel || 'whatsapp',\n  amount: booking.amount,\n  currency: booking.currency || 'USD',\n  check_in_date: booking.check_in_date,\n  check_out_date: booking.check_out_date\n};"
+      },
+      "id": "prepare-owner-notification",
+      "name": "Prepare Owner Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "send-owner-notification",
+      "name": "Send Owner Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "[Client] Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Return result and prepare guest payment message\nconst ownerData = $('Prepare Owner Notification').item.json;\nconst booking = $('Normalize Event').item.json;\n\n// Build guest payment message\nlet guestMessage = '';\n\nif (ownerData.payment_link) {\n  guestMessage = `Great news! Your booking request has been received! 🎉\n\n🏠 *${ownerData.property_name}*\n📅 ${ownerData.check_in_date} → ${ownerData.check_out_date}\n💰 Total: $${ownerData.amount} ${ownerData.currency}\n\nTo secure your booking, please complete payment using the link below:\n\n💳 ${ownerData.payment_link}\n\nOnce payment is complete, you'll receive a confirmation message. If you have any questions, just reply here!`;\n} else if (ownerData.payment_instructions) {\n  guestMessage = `Great news! Your booking request has been received! 🎉\n\n🏠 *${ownerData.property_name}*\n📅 ${ownerData.check_in_date} → ${ownerData.check_out_date}\n💰 Total: $${ownerData.amount} ${ownerData.currency}\n\nTo secure your booking, please send payment using these details:\n\n${ownerData.payment_instructions}\n\nOnce payment is complete, you'll receive a confirmation message. If you have any questions, just reply here!`;\n} else {\n  guestMessage = `Great news! Your booking request has been received! 🎉\n\n🏠 *${ownerData.property_name}*\n📅 ${ownerData.check_in_date} → ${ownerData.check_out_date}\n💰 Total: $${ownerData.amount} ${ownerData.currency}\n\nThe property owner will reach out shortly with payment details. Once payment is complete, you'll receive a confirmation message.\n\nIf you have any questions in the meantime, just reply here!`;\n}\n\nreturn {\n  success: true,\n  booking_id: booking.booking_id,\n  status: 'pending_payment',\n  owner_notified: true,\n  guest_message: guestMessage,\n  guest_channel: ownerData.guest_channel,\n  guest_recipient: ownerData.guest_phone || booking.guest_phone,\n  has_payment_link: !!ownerData.payment_link\n};"
+      },
+      "id": "return-create-result",
+      "name": "Return Create Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE bookings\nSET booking_status = 'confirmed',\n    payment_status = 'paid',\n    payment_confirmed_by = $2,\n    confirmed_at = CURRENT_TIMESTAMP,\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = $1\nRETURNING *",
+        "options": {}
+      },
+      "id": "confirm-booking",
+      "name": "Confirm Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        296
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.* FROM property_configurations p\nJOIN bookings b ON b.property_id = p.property_id\nWHERE b.booking_id = $1",
+        "options": {}
+      },
+      "id": "get-property-for-confirm",
+      "name": "Get Property Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        896,
+        296
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_name }}\nCheck-in: {{ $('Confirm Booking').item.json.check_in_date }} at {{ $json.check_in_time || '3:00 PM' }}\nCheck-out: {{ $('Confirm Booking').item.json.check_out_date }} at {{ $json.check_out_time || '11:00 AM' }}\nTotal Paid: ${{ $('Confirm Booking').item.json.total_amount }}\n\nInclude:\n1. Thank you for booking\n2. Confirmation of dates\n3. Mention they'll receive check-in instructions closer to arrival\n4. Contact info if questions\n\nKeep under 150 words. Use appropriate emojis."
+      },
+      "id": "generate-confirmation",
+      "name": "Generate Confirmation",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        1120,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "confirm-model",
+      "name": "Confirmation Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1192,
+        416
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "[Client] OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger",
+          "cachedResultUrl": "/workflow/MWFSKpUCpYfFzDTr"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $('Normalize Event').item.json.channel || 'telegram' }}",
+            "recipient": "={{ $('Normalize Event').item.json.sender_id }}",
+            "message": "={{ $('Generate Confirmation').item.json.text }}"
+          },
+          "schema": [
+            {
+              "id": "channel",
+              "displayName": "Channel",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "Recipient",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "message",
+              "displayName": "Message",
+              "type": "string",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-guest-confirm",
+      "name": "Send Guest Confirmation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        296
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('Normalize Event').item.json.callback_query?.id }}",
+        "additionalFields": {}
+      },
+      "id": "answer-callback-confirm",
+      "name": "Answer Callback (Confirm)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        296
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "[Client] Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE bookings\nSET booking_status = 'cancelled',\n    payment_status = 'cancelled',\n    cancelled_at = CURRENT_TIMESTAMP,\n    cancelled_by = $2,\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = $1\nRETURNING *",
+        "options": {}
+      },
+      "id": "cancel-booking",
+      "name": "Cancel Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        592
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger",
+          "cachedResultUrl": "/workflow/MWFSKpUCpYfFzDTr"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $('Normalize Event').item.json.channel || 'telegram' }}",
+            "recipient": "={{ $('Normalize Event').item.json.sender_id }}",
+            "message": "={{ 'Your booking has been cancelled. If you have any questions, please contact us.' }}"
+          },
+          "schema": [
+            {
+              "id": "channel",
+              "displayName": "Channel",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "Recipient",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "message",
+              "displayName": "Message",
+              "type": "string",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-cancellation",
+      "name": "Notify Cancellation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('Normalize Event').item.json.callback_query?.id }}",
+        "additionalFields": {}
+      },
+      "id": "answer-callback-cancel",
+      "name": "Answer Callback (Cancel)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        592
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "[Client] Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF_ID:WF7: Integration Hub__",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/3wN9FArGC9GgEcOz",
+          "cachedResultName": "WF7: Integration Hub"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "create_blocking_task",
+            "booking_id": "={{ $(\"Confirm Booking\").item.json.booking_id }}",
+            "property_id": "={{ $(\"Confirm Booking\").item.json.property_id }}",
+            "property_name": "={{ $(\"Get Property Details\").item.json.property_name }}",
+            "guest_name": "={{ $(\"Confirm Booking\").item.json.guest_name }}",
+            "check_in_date": "={{ $(\"Confirm Booking\").item.json.check_in_date }}",
+            "check_out_date": "={{ $(\"Confirm Booking\").item.json.check_out_date }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "create-blocking-task",
+      "name": "Create Blocking Task (WF7)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1696,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__WF_ID:SUB: Universal Messenger__"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channel": "={{ $json.guest_channel }}",
+            "recipient": "={{ $json.guest_recipient }}",
+            "message": "={{ $json.guest_message }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "type": "string"
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-guest-payment-info",
+      "name": "Send Guest Payment Info",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "When Called by Other Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment Callback Handler": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Event": {
+      "main": [
+        [
+          {
+            "node": "Route by Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Event": {
+      "main": [
+        [
+          {
+            "node": "Create Pending Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirm Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancel Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Pending Booking": {
+      "main": [
+        [
+          {
+            "node": "Get Property & Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property & Owner": {
+      "main": [
+        [
+          {
+            "node": "Prepare Owner Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Owner Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Owner Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Owner Notification": {
+      "main": [
+        [
+          {
+            "node": "Return Create Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Booking": {
+      "main": [
+        [
+          {
+            "node": "Get Property Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Details": {
+      "main": [
+        [
+          {
+            "node": "Generate Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Confirmation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Send Guest Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Guest Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Create Blocking Task (WF7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Booking": {
+      "main": [
+        [
+          {
+            "node": "Notify Cancellation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Cancellation": {
+      "main": [
+        [
+          {
+            "node": "Answer Callback (Cancel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Blocking Task (WF7)": {
+      "main": [
+        [
+          {
+            "node": "Answer Callback (Confirm)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Create Result": {
+      "main": [
+        [
+          {
+            "node": "Send Guest Payment Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "activeVersionId": null,
+  "versionCounter": 10,
+  "activeVersion": null
+}

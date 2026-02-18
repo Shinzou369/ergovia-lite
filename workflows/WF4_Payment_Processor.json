@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-11T04:08:09.319Z",
+  "updatedAt": "2026-02-12T07:24:04.254Z",
   "createdAt": "2026-02-06T08:45:18.065Z",
-  "id": "5loDH75zrEDh9x5H",
+  "id": "__WF_ID:WF4: Payment Processor__",
   "name": "WF4: Payment Processor",
   "description": null,
   "active": true,
@@ -38,7 +38,7 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -175,8 +175,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -199,8 +199,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -241,7 +241,7 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -279,8 +279,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -303,8 +303,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -341,7 +341,7 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
+          "id": "openai-cred",
           "name": "[Client] OpenAI"
         }
       }
@@ -351,7 +351,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "list",
-          "value": "UZMWfhnV6JmuwJXC",
+          "value": "__WF_ID:SUB: Universal Messenger__",
           "cachedResultName": "SUB: Universal Messenger",
           "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
         },
@@ -412,7 +412,7 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -436,8 +436,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -446,7 +446,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "list",
-          "value": "UZMWfhnV6JmuwJXC",
+          "value": "__WF_ID:SUB: Universal Messenger__",
           "cachedResultName": "SUB: Universal Messenger",
           "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
         },
@@ -507,7 +507,7 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -702,79 +702,13 @@
   "staticData": null,
   "meta": null,
   "pinData": null,
-  "versionId": "9dcdba62-852a-4aa7-95b6-c6a4e5905c12",
-  "activeVersionId": "9dcdba62-852a-4aa7-95b6-c6a4e5905c12",
-  "versionCounter": 21,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-06T08:45:18.068Z",
-      "createdAt": "2026-02-06T08:45:18.068Z",
-      "role": "workflow:owner",
-      "workflowId": "5loDH75zrEDh9x5H",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-11T05:04:49.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-11",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    },
-    {
-      "updatedAt": "2026-02-03T04:47:37.889Z",
-      "createdAt": "2026-02-03T04:47:37.889Z",
-      "id": "YOaMWcTZaQdS8D4p",
-      "name": "Payment"
-    }
-  ],
+  "activeVersionId": "b8d55d5d-9758-4ed7-a5bf-b05e7a6db2c6",
+  "versionCounter": 25,
   "activeVersion": {
-    "updatedAt": "2026-02-11T04:08:09.322Z",
-    "createdAt": "2026-02-11T04:08:09.322Z",
-    "versionId": "9dcdba62-852a-4aa7-95b6-c6a4e5905c12",
-    "workflowId": "5loDH75zrEDh9x5H",
+    "updatedAt": "2026-02-12T07:24:04.258Z",
+    "createdAt": "2026-02-12T07:24:04.258Z",
+    "versionId": "b8d55d5d-9758-4ed7-a5bf-b05e7a6db2c6",
+    "workflowId": "__WF_ID:WF4: Payment Processor__",
     "nodes": [
       {
         "parameters": {
@@ -807,7 +741,7 @@
         ],
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -944,8 +878,8 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -968,8 +902,8 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1010,7 +944,7 @@
         ],
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -1048,8 +982,8 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1072,8 +1006,8 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1110,7 +1044,7 @@
         ],
         "credentials": {
           "openAiApi": {
-            "id": "slpbr7aUaU6fqTfw",
+            "id": "openai-cred",
             "name": "[Client] OpenAI"
           }
         }
@@ -1120,7 +1054,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "list",
-            "value": "UZMWfhnV6JmuwJXC",
+            "value": "__WF_ID:SUB: Universal Messenger__",
             "cachedResultName": "SUB: Universal Messenger",
             "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
           },
@@ -1181,7 +1115,7 @@
         ],
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -1205,8 +1139,8 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1215,7 +1149,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "list",
-            "value": "UZMWfhnV6JmuwJXC",
+            "value": "__WF_ID:SUB: Universal Messenger__",
             "cachedResultName": "SUB: Universal Messenger",
             "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
           },
@@ -1276,7 +1210,7 @@
         ],
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -1469,10 +1403,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-11T04:08:09.564Z",
-        "id": 174,
-        "workflowId": "5loDH75zrEDh9x5H",
-        "versionId": "9dcdba62-852a-4aa7-95b6-c6a4e5905c12",
+        "createdAt": "2026-02-12T07:24:05.889Z",
+        "id": 230,
+        "workflowId": "__WF_ID:WF4: Payment Processor__",
+        "versionId": "b8d55d5d-9758-4ed7-a5bf-b05e7a6db2c6",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }

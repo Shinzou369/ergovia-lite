@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-11T08:21:34.067Z",
+  "updatedAt": "2026-02-16T06:12:09.538Z",
   "createdAt": "2026-02-06T08:45:20.335Z",
-  "id": "JWEu9Uz2JJ5XZeIX",
+  "id": "__WF_ID:WF5: Property Operations__",
   "name": "WF5: Property Operations",
   "description": null,
   "active": true,
@@ -10,15 +10,15 @@
     {
       "parameters": {
         "inputSource": "jsonExample",
-        "jsonExample": "{\n  \"operation\": \"maintenance\",\n  \"channel\": \"whatsapp\",\n  \"sender_id\": \"+1234567890\",\n  \"customer_id\": \"uuid-here\",\n  \"property_id\": \"prop-123\",\n  \"issue_description\": \"AC not working\"\n}"
+        "jsonExample": "{\n  \"operation_type\": \"maintenance\",\n  \"issue_description\": \"AC not working in the bedroom\",\n  \"property_id\": \"PROP-001\",\n  \"sender_id\": \"123456789\",\n  \"channel\": \"telegram\",\n  \"customer_id\": \"uuid-here\"\n}"
       },
-      "id": "entry-webhook",
+      "id": "c8998ec8-14d7-436d-b4a7-7f2f6c045388",
       "name": "When Called by Other Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        288
+        -608,
+        784
       ]
     },
     {
@@ -28,18 +28,17 @@
         ],
         "additionalFields": {}
       },
-      "id": "callback-trigger",
+      "id": "f6e60d86-3baa-471a-b3bb-c59c27056d20",
       "name": "Callback Handler",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
       "position": [
-        0,
-        480
+        -608,
+        968
       ],
-      "webhookId": "8e76b5cb-998b-4cf1-a8a8-b1d17a71fc71",
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -47,15 +46,15 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Normalize input from webhook or callback\nconst input = $input.item.json;\n\nlet operation = {\n  type: 'unknown',\n  property_id: null,\n  ticket_id: null,\n  vendor_id: null,\n  action: null,\n  data: {}\n};\n\n// From routed message (maintenance report, owner action)\nif (input.category) {\n  operation.type = input.category === 'MAINTENANCE_REPORT' ? 'maintenance' : 'owner_action';\n  operation.property_id = input.property_id;\n  operation.data = {\n    message: input.message_text,\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Direct API call\nelse if (input.operation_type) {\n  operation.type = input.operation_type;\n  operation.property_id = input.property_id;\n  operation.ticket_id = input.ticket_id;\n  operation.vendor_id = input.vendor_id;\n  operation.action = input.action;\n  operation.data = input.data || {};\n}\n// Telegram callback\nelse if (input.callback_query) {\n  const callbackData = input.callback_query.data || '';\n  const parts = callbackData.split('_');\n  operation.type = parts[0]; // e.g., 'complete', 'dispatch', 'schedule'\n  operation.ticket_id = parts[1];\n  operation.action = parts[2] || 'confirm';\n  operation.data.callback_from = input.callback_query.from;\n}\n// Vendor status update (SMS/message)\nelse if (input.ticket_id || input.status) {\n  operation.type = 'vendor_update';\n  operation.ticket_id = input.ticket_id;\n  operation.data = {\n    status: input.status,\n    notes: input.notes,\n    photos: input.photos\n  };\n}\n\nreturn operation;"
+        "jsCode": "// Normalize input from WF1 tool call, webhook, or callback\nconst input = $input.item.json;\n\nlet operation = {\n  type: 'unknown',\n  property_id: null,\n  ticket_id: null,\n  vendor_id: null,\n  action: null,\n  data: {}\n};\n\n// === PRIMARY: WF1 tool call with operation_type ===\nif (input.operation_type) {\n  operation.type = input.operation_type;\n  operation.property_id = input.property_id;\n  operation.data = {\n    issue_description: input.issue_description || '',\n    message: input.issue_description || input.message_text || '',\n    sender_id: input.sender_id,\n    channel: input.channel,\n    customer_id: input.customer_id\n  };\n}\n// From routed message (maintenance report, owner action)\nelse if (input.category) {\n  operation.type = input.category === 'MAINTENANCE_REPORT' ? 'maintenance' : 'owner_action';\n  operation.property_id = input.property_id;\n  operation.data = {\n    message: input.message_text,\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Legacy direct API call with operation field\nelse if (input.operation) {\n  operation.type = input.operation;\n  operation.property_id = input.property_id;\n  operation.data = {\n    issue_description: input.issue_description || '',\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Telegram callback\nelse if (input.callback_query) {\n  const callbackData = input.callback_query.data || '';\n  const parts = callbackData.split('_');\n  operation.type = parts[0];\n  operation.ticket_id = parts[1];\n  operation.action = parts[2] || 'confirm';\n  operation.data.callback_from = input.callback_query.from;\n}\n// Vendor status update\nelse if (input.ticket_id || input.status) {\n  operation.type = 'vendor_update';\n  operation.ticket_id = input.ticket_id;\n  operation.data = {\n    status: input.status,\n    notes: input.notes,\n    photos: input.photos\n  };\n}\n// Cleaning completion report\nelse if (input.cleaning_id || input.schedule_id) {\n  operation.type = 'cleaning_complete';\n  operation.property_id = input.property_id;\n  operation.data = {\n    schedule_id: input.schedule_id || input.cleaning_id,\n    notes: input.notes || '',\n    issues: input.issues || [],\n    completed_by: input.completed_by || input.cleaner_id\n  };\n}\n// Task digest request\nelse if (input.request_type === 'task_digest') {\n  operation.type = 'task_digest';\n  operation.property_id = input.property_id;\n}\n// FALLBACK: if issue_description exists but no type, default to maintenance\nelse if (input.issue_description) {\n  operation.type = 'maintenance';\n  operation.property_id = input.property_id;\n  operation.data = {\n    issue_description: input.issue_description,\n    message: input.issue_description,\n    sender_id: input.sender_id,\n    channel: input.channel,\n    customer_id: input.customer_id\n  };\n}\n\nreturn operation;"
       },
-      "id": "normalize-input",
+      "id": "a10375be-b64d-4294-a32b-4bf89c494bbf",
       "name": "Normalize Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        384
+        -384,
+        872
       ]
     },
     {
@@ -149,6 +148,50 @@
               },
               "renameOutput": true,
               "outputKey": "details"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "cleaning_complete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cleaning_complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "task_digest",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "task_digest"
             }
           ]
         },
@@ -156,13 +199,13 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "route-operation",
+      "id": "b863d7a7-d230-4211-b4a7-681ee9dc4fef",
       "name": "Route Operation",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        448,
-        328
+        -160,
+        792
       ]
     },
     {
@@ -171,16 +214,15 @@
         "text": "You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json.property_id }}\nReporter: {{ $json.data.sender_id }}\n\nDetermine:\n1. Issue category (plumbing, electrical, hvac, appliance, structural, other)\n2. Urgency level (emergency, high, medium, low)\n3. Brief description\n\nUse the create_maintenance_ticket tool to log this issue.",
         "options": {
           "maxIterations": 3
-        },
-        "systemMessage": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and create tickets using your tools\n- Return STRUCTURED DATA — never write customer-facing messages\n- The main concierge will use your data to respond to the guest\n\n## What You Determine\n1. Issue category: plumbing, electrical, hvac, appliance, structural, other\n2. Urgency level: emergency, high, medium, low\n3. Brief technical description\n\n## What You Return\n- \"TICKET_CREATED: #[id], category: [cat], urgency: [level], description: [desc]\"\n- \"ESCALATED: [reason], owner notified: yes/no, ETA: [time]\"\n- Include property_id and reporter info in your response\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json.property_id }}\nReporter: {{ $json.data.sender_id }}\n\nAnalyze and create the maintenance ticket."
+        }
       },
-      "id": "ai-maintenance",
+      "id": "7cf51779-da8c-4150-bdfe-ddfcc0b6b198",
       "name": "AI Maintenance Handler",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        896,
-        -96
+        288,
+        208
       ]
     },
     {
@@ -189,17 +231,17 @@
           "temperature": 0.3
         }
       },
-      "id": "maint-model",
+      "id": "5f24be15-52c3-4758-a062-a9b937edc6b2",
       "name": "Maintenance Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        904,
-        128
+        296,
+        432
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
+          "id": "openai-cred",
           "name": "[Client] OpenAI"
         }
       }
@@ -209,111 +251,98 @@
         "name": "create_maintenance_ticket",
         "description": "Create a maintenance ticket for the property"
       },
-      "id": "tool-create-ticket",
+      "id": "547c7b26-9799-4fea-a479-ddd0c04bb297",
       "name": "Create Ticket Tool",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1032,
-        128
+        424,
+        432
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT b.*, p.cleaning_vendor_id, v.vendor_name, v.vendor_phone, v.vendor_email\nFROM bookings b\nJOIN property_configurations p ON b.property_id = p.property_id\nLEFT JOIN vendors v ON p.cleaning_vendor_id = v.vendor_id\nWHERE b.property_id = $1\n  AND b.check_out_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'",
+        "query": "SELECT\n  b.booking_id, b.guest_name, b.guest_phone, b.guest_email,\n  b.property_id, b.check_in_date, b.check_out_date,\n  b.booking_status, b.guests, b.total_amount, b.notes,\n  p.property_name, p.address, p.owner_name, p.owner_phone,\n  p.owner_email, p.owner_telegram, p.owner_contact,\n  p.cleaning_fee\nFROM bookings b\nJOIN property_configurations p ON b.property_id = p.property_id\nWHERE b.check_out_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nORDER BY b.property_id",
         "options": {}
       },
-      "id": "get-checkout",
+      "id": "378e041e-521c-45d5-a4be-aadf64f4d2e6",
       "name": "Get Today's Checkouts",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        672,
-        304
+        64,
+        608
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
     {
       "parameters": {
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": "cleaning_schedules",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "schedule_id": "={{ 'clean_' + $now.toMillis() }}",
-            "property_id": "={{ $json.property_id }}",
-            "booking_id": "={{ $json.booking_id }}",
-            "vendor_id": "={{ $json.cleaning_vendor_id }}",
-            "scheduled_date": "={{ $now.toFormat('yyyy-MM-dd') }}",
-            "status": "scheduled"
-          }
-        },
+        "operation": "executeQuery",
+        "query": "WITH fix_seq AS (\n  SELECT setval(\n    pg_get_serial_sequence('cleaning_schedules', 'id'),\n    GREATEST(COALESCE((SELECT MAX(id) FROM cleaning_schedules), 0) + 1, 1),\n    false\n  )\n)\nINSERT INTO cleaning_schedules (property_id, scheduled_date, status, notes)\nSELECT\n  '{{ $('Normalize Input').item.json.property_id }}',\n  CURRENT_DATE,\n  'scheduled',\n  '{{ $('Normalize Input').item.json.data.issue_description || \"Cleaning scheduled\" }}'\nFROM fix_seq\nRETURNING *",
         "options": {}
       },
-      "id": "schedule-cleaning",
+      "id": "8cec48fd-dcf3-42c7-961c-a66ef21866c4",
       "name": "Schedule Cleaning",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        960,
-        304
+        352,
+        608
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE maintenance_tickets\nSET status = $2,\n    vendor_notes = COALESCE(vendor_notes, '') || E'\\n' || $3,\n    photos = $4::jsonb,\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1\nRETURNING *",
+        "query": "UPDATE maintenance_tickets\nSET status = '{{ $('Normalize Input').item.json.data.status || \"in_progress\" }}',\n    updated_at = CURRENT_TIMESTAMP,\n    notes = CASE\n      WHEN '{{ $('Normalize Input').item.json.data.notes || \"\" }}' != ''\n      THEN COALESCE(notes, '') || E'\\n' || '{{ $('Normalize Input').item.json.data.notes }}'\n      ELSE notes\n    END\nWHERE ticket_id = '{{ $('Normalize Input').item.json.ticket_id }}'\nRETURNING *",
         "options": {}
       },
-      "id": "update-ticket",
+      "id": "8a825a8f-c9fe-47e9-98b1-482c8185651a",
       "name": "Update Ticket Status",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        960,
-        496
+        352,
+        800
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM property_configurations WHERE property_id = $1",
+        "query": "SELECT\n  property_id, property_name, address,\n  max_guests, bedrooms, bathrooms,\n  base_price, weekend_price, cleaning_fee,\n  owner_name, owner_phone, owner_email, owner_telegram, owner_contact,\n  auto_approve_bookings, require_screening,\n  min_stay_nights, max_stay_nights,\n  timezone, property_status, settings\nFROM property_configurations\nWHERE property_id = '{{ $('Normalize Input').item.json.property_id }}'\n  AND property_status = 'active'",
         "options": {}
       },
-      "id": "get-property",
+      "id": "9caedc8c-39eb-4a8d-8379-8f2e3af3cafa",
       "name": "Get Property Details",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1248,
-        640
+        864,
+        1112
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -322,20 +351,25 @@
         "workflowId": {
           "__rl": true,
           "mode": "list",
-          "value": "UZMWfhnV6JmuwJXC",
-          "cachedResultName": "SUB: Universal Messenger",
-          "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
+          "value": "0L7HOkqENABlbPtT",
+          "cachedResultName": "SUB: Owner & Staff Notifier",
+          "cachedResultUrl": "/workflow/0L7HOkqENABlbPtT"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "channel": "={{ $('Normalize Input').item.json.channel || 'telegram' }}"
+            "property_id": "={{ $json.property_id }}",
+            "event_type": "={{ $json.event_type }}",
+            "message": "={{ $json.message }}",
+            "notify": "={{ $json.notify }}",
+            "recipient_id": "={{ $json.recipient_id }}",
+            "customer_id": "={{ $json.customer_id }}"
           },
           "matchingColumns": [],
           "schema": [
             {
-              "id": "channel",
-              "displayName": "channel",
+              "id": "property_id",
+              "displayName": "property_id",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -343,24 +377,40 @@
               "type": "string"
             },
             {
-              "id": "sender_id",
-              "displayName": "sender_id",
+              "id": "event_type",
+              "displayName": "event_type",
               "required": false,
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
+              "type": "string"
             },
             {
-              "id": "input",
-              "displayName": "input",
+              "id": "message",
+              "displayName": "message",
               "required": false,
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
+              "type": "string"
+            },
+            {
+              "id": "notify",
+              "displayName": "notify",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "recipient_id",
+              "displayName": "recipient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
             },
             {
               "id": "customer_id",
@@ -369,8 +419,7 @@
               "defaultMatch": false,
               "display": true,
               "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
+              "type": "string"
             }
           ],
           "attemptToConvertTypes": false,
@@ -378,27 +427,84 @@
         },
         "options": {}
       },
-      "id": "send-notification",
+      "id": "3ace4048-b149-4300-9b8b-88811da6fa04",
       "name": "Send Notification",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1248,
-        304
-      ]
+        864,
+        784
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Return operation result to calling workflow\nreturn $input.item.json;"
+        "jsCode": "// Return operation result to calling workflow (WF1)\n// For notifiable paths: extract _operation_result from Build Notification\n// For property_details path: pass through directly\ntry {\n  const buildResult = $('Build Notification').item.json;\n  if (buildResult && buildResult._operation_result) {\n    return buildResult._operation_result;\n  }\n} catch(e) {\n  // Build Notification didn't run (property_details path)\n}\nreturn $input.item.json;"
       },
-      "id": "return-result",
+      "id": "3c41f0f9-361a-49ab-a12b-236e4c5bf0d5",
       "name": "Return Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1472,
-        480
+        1088,
+        1112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE cleaning_schedules\nSET status = 'completed',\n    completed_at = CURRENT_TIMESTAMP,\n    notes = COALESCE(notes, '') || E'\\n' || '{{ $('Normalize Input').item.json.data.notes || \"Completed\" }}'\nWHERE property_id = '{{ $('Normalize Input').item.json.property_id }}'\n  AND scheduled_date = CURRENT_DATE\n  AND status = 'scheduled'\nRETURNING *",
+        "options": {}
+      },
+      "id": "5ba7bd8d-dca8-4ed3-ad33-1e22fa5f5602",
+      "name": "Complete Cleaning Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        944
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  mt.ticket_id, mt.property_id, mt.property_name,\n  mt.issue_description, mt.category, mt.urgency,\n  mt.status, mt.vendor_id, mt.assigned_vendor,\n  mt.created_at, mt.updated_at,\n  p.owner_name, p.owner_phone, p.owner_email,\n  p.owner_telegram, p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  v.name AS vendor_name, v.phone AS vendor_phone,\n  v.email AS vendor_email, v.telegram_id AS vendor_telegram\nFROM maintenance_tickets mt\nJOIN property_configurations p ON mt.property_id = p.property_id\nLEFT JOIN vendors v ON mt.vendor_id = v.vendor_id\nWHERE mt.status IN ('pending', 'dispatched', 'in_progress')\n  AND mt.property_id = COALESCE(NULLIF('{{ $('Normalize Input').item.json.property_id }}', ''), mt.property_id)\nORDER BY\n  CASE mt.urgency WHEN 'emergency' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,\n  mt.created_at ASC",
+        "options": {}
+      },
+      "id": "e49bc626-8acf-4baa-8e8a-6618a84462dc",
+      "name": "Get Pending Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        864,
+        1304
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Build notification message for owner\n// SUB: Owner & Staff Notifier resolves the contact info from DB\nconst normalizeData = $('Normalize Input').item.json;\nconst opType = normalizeData.type;\n\n// Get the operation result from whichever operation node ran\nlet operationResult = {};\ntry {\n  if (opType === 'maintenance') operationResult = $('AI Maintenance Handler').item.json;\n  else if (opType === 'cleaning') operationResult = $('Schedule Cleaning').item.json;\n  else if (opType === 'vendor_update') operationResult = $('Update Ticket Status').item.json;\n} catch(e) { operationResult = {}; }\n\n// Build human-readable notification message\nlet message = '';\nif (opType === 'maintenance') {\n  const aiOutput = operationResult.output || operationResult.text || JSON.stringify(operationResult).substring(0, 200);\n  message = '\\u{1F527} Maintenance alert: ' + aiOutput;\n} else if (opType === 'cleaning') {\n  const date = operationResult.scheduled_date || new Date().toISOString().split('T')[0];\n  const time = operationResult.scheduled_time || '14:00';\n  message = '\\u{1F9F9} Cleaning scheduled for ' + date + ' at ' + time;\n} else if (opType === 'vendor_update') {\n  const ticketId = operationResult.ticket_id || normalizeData.ticket_id || 'N/A';\n  const newStatus = operationResult.status || 'updated';\n  message = '\\u{1F4CB} Ticket ' + ticketId + ': status changed to ' + newStatus;\n}\n\nreturn {\n  property_id: normalizeData.property_id || '',\n  event_type: opType,\n  message: message,\n  notify: 'owner',\n  recipient_id: '',\n  customer_id: normalizeData.customer_id || '',\n  _operation_result: operationResult\n};"
+      },
+      "id": "build-notif-mlorwrnr",
+      "name": "Build Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        608
       ]
     }
   ],
@@ -465,6 +571,31 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Complete Cleaning Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Maintenance Handler": {
+      "main": [
+        [
+          {
+            "node": "Build Notification",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -490,17 +621,6 @@
         ]
       ]
     },
-    "AI Maintenance Handler": {
-      "main": [
-        [
-          {
-            "node": "Send Notification",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Get Today's Checkouts": {
       "main": [
         [
@@ -516,7 +636,7 @@
       "main": [
         [
           {
-            "node": "Send Notification",
+            "node": "Build Notification",
             "type": "main",
             "index": 0
           }
@@ -527,7 +647,7 @@
       "main": [
         [
           {
-            "node": "Send Notification",
+            "node": "Build Notification",
             "type": "main",
             "index": 0
           }
@@ -555,6 +675,39 @@
           }
         ]
       ]
+    },
+    "Complete Cleaning Task": {
+      "main": [
+        [
+          {
+            "node": "Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Tasks": {
+      "main": [
+        [
+          {
+            "node": "Return Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -564,93 +717,40 @@
   },
   "staticData": null,
   "meta": null,
-  "pinData": {},
-  "versionId": "f40d364c-c6a7-4ac8-bd6b-4d4e69165ccd",
-  "activeVersionId": "f40d364c-c6a7-4ac8-bd6b-4d4e69165ccd",
-  "versionCounter": 31,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-06T08:45:20.338Z",
-      "createdAt": "2026-02-06T08:45:20.338Z",
-      "role": "workflow:owner",
-      "workflowId": "JWEu9Uz2JJ5XZeIX",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-11T05:04:49.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-11",
-              "isPending": false
-            }
-          }
-        ]
+  "pinData": {
+    "When Called by Other Workflow": [
+      {
+        "json": {
+          "operation_type": "cleaning",
+          "issue_description": "Request for an extra towel in the room.",
+          "property_id": "PROP-TEST-001",
+          "sender_id": "6573358279",
+          "channel": "telegram",
+          "customer_id": "00000000-0000-0000-0000-000000000001"
+        }
       }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    },
-    {
-      "updatedAt": "2026-02-03T04:47:40.030Z",
-      "createdAt": "2026-02-03T04:47:40.030Z",
-      "id": "uWbPwfH2cLQWg8rK",
-      "name": "Operations"
-    }
-  ],
+    ]
+  },
+  "activeVersionId": "f560e3e7-22ef-4c3e-a281-bbf7036a0938",
+  "versionCounter": 109,
   "activeVersion": {
-    "updatedAt": "2026-02-11T08:21:34.068Z",
-    "createdAt": "2026-02-11T08:21:34.068Z",
-    "versionId": "f40d364c-c6a7-4ac8-bd6b-4d4e69165ccd",
-    "workflowId": "JWEu9Uz2JJ5XZeIX",
+    "updatedAt": "2026-02-16T06:08:25.159Z",
+    "createdAt": "2026-02-16T06:08:25.159Z",
+    "versionId": "f560e3e7-22ef-4c3e-a281-bbf7036a0938",
+    "workflowId": "__WF_ID:WF5: Property Operations__",
     "nodes": [
       {
         "parameters": {
           "inputSource": "jsonExample",
-          "jsonExample": "{\n  \"operation\": \"maintenance\",\n  \"channel\": \"whatsapp\",\n  \"sender_id\": \"+1234567890\",\n  \"customer_id\": \"uuid-here\",\n  \"property_id\": \"prop-123\",\n  \"issue_description\": \"AC not working\"\n}"
+          "jsonExample": "{\n  \"operation_type\": \"maintenance\",\n  \"issue_description\": \"AC not working in the bedroom\",\n  \"property_id\": \"PROP-001\",\n  \"sender_id\": \"123456789\",\n  \"channel\": \"telegram\",\n  \"customer_id\": \"uuid-here\"\n}"
         },
-        "id": "entry-webhook",
+        "id": "c8998ec8-14d7-436d-b4a7-7f2f6c045388",
         "name": "When Called by Other Workflow",
         "type": "n8n-nodes-base.executeWorkflowTrigger",
         "typeVersion": 1.1,
         "position": [
-          0,
-          288
+          -608,
+          784
         ]
       },
       {
@@ -660,18 +760,18 @@
           ],
           "additionalFields": {}
         },
-        "id": "callback-trigger",
+        "id": "f6e60d86-3baa-471a-b3bb-c59c27056d20",
         "name": "Callback Handler",
         "type": "n8n-nodes-base.telegramTrigger",
         "typeVersion": 1.2,
         "position": [
-          0,
-          480
+          -608,
+          976
         ],
         "webhookId": "8e76b5cb-998b-4cf1-a8a8-b1d17a71fc71",
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -679,15 +779,15 @@
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "// Normalize input from webhook or callback\nconst input = $input.item.json;\n\nlet operation = {\n  type: 'unknown',\n  property_id: null,\n  ticket_id: null,\n  vendor_id: null,\n  action: null,\n  data: {}\n};\n\n// From routed message (maintenance report, owner action)\nif (input.category) {\n  operation.type = input.category === 'MAINTENANCE_REPORT' ? 'maintenance' : 'owner_action';\n  operation.property_id = input.property_id;\n  operation.data = {\n    message: input.message_text,\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Direct API call\nelse if (input.operation_type) {\n  operation.type = input.operation_type;\n  operation.property_id = input.property_id;\n  operation.ticket_id = input.ticket_id;\n  operation.vendor_id = input.vendor_id;\n  operation.action = input.action;\n  operation.data = input.data || {};\n}\n// Telegram callback\nelse if (input.callback_query) {\n  const callbackData = input.callback_query.data || '';\n  const parts = callbackData.split('_');\n  operation.type = parts[0]; // e.g., 'complete', 'dispatch', 'schedule'\n  operation.ticket_id = parts[1];\n  operation.action = parts[2] || 'confirm';\n  operation.data.callback_from = input.callback_query.from;\n}\n// Vendor status update (SMS/message)\nelse if (input.ticket_id || input.status) {\n  operation.type = 'vendor_update';\n  operation.ticket_id = input.ticket_id;\n  operation.data = {\n    status: input.status,\n    notes: input.notes,\n    photos: input.photos\n  };\n}\n\nreturn operation;"
+          "jsCode": "// Normalize input from WF1 tool call, webhook, or callback\nconst input = $input.item.json;\n\nlet operation = {\n  type: 'unknown',\n  property_id: null,\n  ticket_id: null,\n  vendor_id: null,\n  action: null,\n  data: {}\n};\n\n// === PRIMARY: WF1 tool call with operation_type ===\nif (input.operation_type) {\n  operation.type = input.operation_type;\n  operation.property_id = input.property_id;\n  operation.data = {\n    issue_description: input.issue_description || '',\n    message: input.issue_description || input.message_text || '',\n    sender_id: input.sender_id,\n    channel: input.channel,\n    customer_id: input.customer_id\n  };\n}\n// From routed message (maintenance report, owner action)\nelse if (input.category) {\n  operation.type = input.category === 'MAINTENANCE_REPORT' ? 'maintenance' : 'owner_action';\n  operation.property_id = input.property_id;\n  operation.data = {\n    message: input.message_text,\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Legacy direct API call with operation field\nelse if (input.operation) {\n  operation.type = input.operation;\n  operation.property_id = input.property_id;\n  operation.data = {\n    issue_description: input.issue_description || '',\n    sender_id: input.sender_id,\n    channel: input.channel\n  };\n}\n// Telegram callback\nelse if (input.callback_query) {\n  const callbackData = input.callback_query.data || '';\n  const parts = callbackData.split('_');\n  operation.type = parts[0];\n  operation.ticket_id = parts[1];\n  operation.action = parts[2] || 'confirm';\n  operation.data.callback_from = input.callback_query.from;\n}\n// Vendor status update\nelse if (input.ticket_id || input.status) {\n  operation.type = 'vendor_update';\n  operation.ticket_id = input.ticket_id;\n  operation.data = {\n    status: input.status,\n    notes: input.notes,\n    photos: input.photos\n  };\n}\n// Cleaning completion report\nelse if (input.cleaning_id || input.schedule_id) {\n  operation.type = 'cleaning_complete';\n  operation.property_id = input.property_id;\n  operation.data = {\n    schedule_id: input.schedule_id || input.cleaning_id,\n    notes: input.notes || '',\n    issues: input.issues || [],\n    completed_by: input.completed_by || input.cleaner_id\n  };\n}\n// Task digest request\nelse if (input.request_type === 'task_digest') {\n  operation.type = 'task_digest';\n  operation.property_id = input.property_id;\n}\n// FALLBACK: if issue_description exists but no type, default to maintenance\nelse if (input.issue_description) {\n  operation.type = 'maintenance';\n  operation.property_id = input.property_id;\n  operation.data = {\n    issue_description: input.issue_description,\n    message: input.issue_description,\n    sender_id: input.sender_id,\n    channel: input.channel,\n    customer_id: input.customer_id\n  };\n}\n\nreturn operation;"
         },
-        "id": "normalize-input",
+        "id": "a10375be-b64d-4294-a32b-4bf89c494bbf",
         "name": "Normalize Input",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          224,
-          384
+          -384,
+          880
         ]
       },
       {
@@ -781,6 +881,50 @@
                 },
                 "renameOutput": true,
                 "outputKey": "details"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.type }}",
+                      "rightValue": "cleaning_complete",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "cleaning_complete"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.type }}",
+                      "rightValue": "task_digest",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "task_digest"
               }
             ]
           },
@@ -788,13 +932,13 @@
             "fallbackOutput": "extra"
           }
         },
-        "id": "route-operation",
+        "id": "b863d7a7-d230-4211-b4a7-681ee9dc4fef",
         "name": "Route Operation",
         "type": "n8n-nodes-base.switch",
         "typeVersion": 3.2,
         "position": [
-          448,
-          328
+          -160,
+          800
         ]
       },
       {
@@ -803,16 +947,15 @@
           "text": "You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json.property_id }}\nReporter: {{ $json.data.sender_id }}\n\nDetermine:\n1. Issue category (plumbing, electrical, hvac, appliance, structural, other)\n2. Urgency level (emergency, high, medium, low)\n3. Brief description\n\nUse the create_maintenance_ticket tool to log this issue.",
           "options": {
             "maxIterations": 3
-          },
-          "systemMessage": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and create tickets using your tools\n- Return STRUCTURED DATA — never write customer-facing messages\n- The main concierge will use your data to respond to the guest\n\n## What You Determine\n1. Issue category: plumbing, electrical, hvac, appliance, structural, other\n2. Urgency level: emergency, high, medium, low\n3. Brief technical description\n\n## What You Return\n- \"TICKET_CREATED: #[id], category: [cat], urgency: [level], description: [desc]\"\n- \"ESCALATED: [reason], owner notified: yes/no, ETA: [time]\"\n- Include property_id and reporter info in your response\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json.property_id }}\nReporter: {{ $json.data.sender_id }}\n\nAnalyze and create the maintenance ticket."
+          }
         },
-        "id": "ai-maintenance",
+        "id": "7cf51779-da8c-4150-bdfe-ddfcc0b6b198",
         "name": "AI Maintenance Handler",
         "type": "@n8n/n8n-nodes-langchain.agent",
         "typeVersion": 1.7,
         "position": [
-          896,
-          -96
+          288,
+          208
         ]
       },
       {
@@ -821,17 +964,17 @@
             "temperature": 0.3
           }
         },
-        "id": "maint-model",
+        "id": "5f24be15-52c3-4758-a062-a9b937edc6b2",
         "name": "Maintenance Model",
         "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
         "typeVersion": 1,
         "position": [
-          904,
-          128
+          304,
+          432
         ],
         "credentials": {
           "openAiApi": {
-            "id": "slpbr7aUaU6fqTfw",
+            "id": "openai-cred",
             "name": "[Client] OpenAI"
           }
         }
@@ -841,111 +984,98 @@
           "name": "create_maintenance_ticket",
           "description": "Create a maintenance ticket for the property"
         },
-        "id": "tool-create-ticket",
+        "id": "547c7b26-9799-4fea-a479-ddd0c04bb297",
         "name": "Create Ticket Tool",
         "type": "@n8n/n8n-nodes-langchain.toolCode",
         "typeVersion": 1.1,
         "position": [
-          1032,
-          128
+          432,
+          432
         ]
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "SELECT b.*, p.cleaning_vendor_id, v.vendor_name, v.vendor_phone, v.vendor_email\nFROM bookings b\nJOIN property_configurations p ON b.property_id = p.property_id\nLEFT JOIN vendors v ON p.cleaning_vendor_id = v.vendor_id\nWHERE b.property_id = $1\n  AND b.check_out_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'",
+          "query": "SELECT\n  b.booking_id, b.guest_name, b.guest_phone, b.guest_email,\n  b.property_id, b.check_in_date, b.check_out_date,\n  b.booking_status, b.guests, b.total_amount, b.notes,\n  p.property_name, p.address, p.owner_name, p.owner_phone,\n  p.owner_email, p.owner_telegram, p.owner_contact,\n  p.cleaning_fee\nFROM bookings b\nJOIN property_configurations p ON b.property_id = p.property_id\nWHERE b.check_out_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nORDER BY b.property_id",
           "options": {}
         },
-        "id": "get-checkout",
+        "id": "378e041e-521c-45d5-a4be-aadf64f4d2e6",
         "name": "Get Today's Checkouts",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          672,
-          304
+          64,
+          608
         ],
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
       {
         "parameters": {
-          "schema": {
-            "__rl": true,
-            "mode": "list",
-            "value": "public"
-          },
-          "table": "cleaning_schedules",
-          "columns": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "schedule_id": "={{ 'clean_' + $now.toMillis() }}",
-              "property_id": "={{ $json.property_id }}",
-              "booking_id": "={{ $json.booking_id }}",
-              "vendor_id": "={{ $json.cleaning_vendor_id }}",
-              "scheduled_date": "={{ $now.toFormat('yyyy-MM-dd') }}",
-              "status": "scheduled"
-            }
-          },
+          "operation": "executeQuery",
+          "query": "WITH fix_seq AS (\n  SELECT setval(\n    pg_get_serial_sequence('cleaning_schedules', 'id'),\n    GREATEST(COALESCE((SELECT MAX(id) FROM cleaning_schedules), 0) + 1, 1),\n    false\n  )\n)\nINSERT INTO cleaning_schedules (property_id, scheduled_date, status, notes)\nSELECT\n  '{{ $('Normalize Input').item.json.property_id }}',\n  CURRENT_DATE,\n  'scheduled',\n  '{{ $('Normalize Input').item.json.data.issue_description || \"Cleaning scheduled\" }}'\nFROM fix_seq\nRETURNING *",
           "options": {}
         },
-        "id": "schedule-cleaning",
+        "id": "8cec48fd-dcf3-42c7-961c-a66ef21866c4",
         "name": "Schedule Cleaning",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          960,
-          304
+          352,
+          608
         ],
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "UPDATE maintenance_tickets\nSET status = $2,\n    vendor_notes = COALESCE(vendor_notes, '') || E'\\n' || $3,\n    photos = $4::jsonb,\n    updated_at = CURRENT_TIMESTAMP\nWHERE ticket_id = $1\nRETURNING *",
+          "query": "UPDATE maintenance_tickets\nSET status = '{{ $('Normalize Input').item.json.data.status || \"in_progress\" }}',\n    updated_at = CURRENT_TIMESTAMP,\n    notes = CASE\n      WHEN '{{ $('Normalize Input').item.json.data.notes || \"\" }}' != ''\n      THEN COALESCE(notes, '') || E'\\n' || '{{ $('Normalize Input').item.json.data.notes }}'\n      ELSE notes\n    END\nWHERE ticket_id = '{{ $('Normalize Input').item.json.ticket_id }}'\nRETURNING *",
           "options": {}
         },
-        "id": "update-ticket",
+        "id": "8a825a8f-c9fe-47e9-98b1-482c8185651a",
         "name": "Update Ticket Status",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          960,
-          496
+          352,
+          800
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "SELECT * FROM property_configurations WHERE property_id = $1",
+          "query": "SELECT\n  property_id, property_name, address,\n  max_guests, bedrooms, bathrooms,\n  base_price, weekend_price, cleaning_fee,\n  owner_name, owner_phone, owner_email, owner_telegram, owner_contact,\n  auto_approve_bookings, require_screening,\n  min_stay_nights, max_stay_nights,\n  timezone, property_status, settings\nFROM property_configurations\nWHERE property_id = '{{ $('Normalize Input').item.json.property_id }}'\n  AND property_status = 'active'",
           "options": {}
         },
-        "id": "get-property",
+        "id": "9caedc8c-39eb-4a8d-8379-8f2e3af3cafa",
         "name": "Get Property Details",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          1248,
-          640
+          640,
+          1136
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -954,20 +1084,25 @@
           "workflowId": {
             "__rl": true,
             "mode": "list",
-            "value": "UZMWfhnV6JmuwJXC",
-            "cachedResultName": "SUB: Universal Messenger",
-            "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
+            "value": "0L7HOkqENABlbPtT",
+            "cachedResultName": "SUB: Owner & Staff Notifier",
+            "cachedResultUrl": "/workflow/0L7HOkqENABlbPtT"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
             "value": {
-              "channel": "={{ $('Normalize Input').item.json.channel || 'telegram' }}"
+              "property_id": "={{ $json.property_id }}",
+              "event_type": "={{ $json.event_type }}",
+              "message": "={{ $json.message }}",
+              "notify": "={{ $json.notify }}",
+              "recipient_id": "={{ $json.recipient_id }}",
+              "customer_id": "={{ $json.customer_id }}"
             },
             "matchingColumns": [],
             "schema": [
               {
-                "id": "channel",
-                "displayName": "channel",
+                "id": "property_id",
+                "displayName": "property_id",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
@@ -975,24 +1110,40 @@
                 "type": "string"
               },
               {
-                "id": "sender_id",
-                "displayName": "sender_id",
+                "id": "event_type",
+                "displayName": "event_type",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
                 "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
+                "type": "string"
               },
               {
-                "id": "input",
-                "displayName": "input",
+                "id": "message",
+                "displayName": "message",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
                 "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
+                "type": "string"
+              },
+              {
+                "id": "notify",
+                "displayName": "notify",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "recipient_id",
+                "displayName": "recipient_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               },
               {
                 "id": "customer_id",
@@ -1001,8 +1152,7 @@
                 "defaultMatch": false,
                 "display": true,
                 "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
+                "type": "string"
               }
             ],
             "attemptToConvertTypes": false,
@@ -1010,26 +1160,83 @@
           },
           "options": {}
         },
-        "id": "send-notification",
+        "id": "3ace4048-b149-4300-9b8b-88811da6fa04",
         "name": "Send Notification",
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.2,
         "position": [
-          1248,
-          304
-        ]
+          640,
+          704
+        ],
+        "continueOnFail": true
       },
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "// Return operation result to calling workflow\nreturn $input.item.json;"
+          "jsCode": "// Return operation result to calling workflow (WF1)\n// For notifiable paths: extract _operation_result from Build Notification\n// For property_details path: pass through directly\ntry {\n  const buildResult = $('Build Notification').item.json;\n  if (buildResult && buildResult._operation_result) {\n    return buildResult._operation_result;\n  }\n} catch(e) {\n  // Build Notification didn't run (property_details path)\n}\nreturn $input.item.json;"
         },
-        "id": "return-result",
+        "id": "3c41f0f9-361a-49ab-a12b-236e4c5bf0d5",
         "name": "Return Result",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1472,
+          864,
+          1136
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE cleaning_schedules\nSET status = 'completed',\n    completed_at = CURRENT_TIMESTAMP,\n    notes = COALESCE(notes, '') || E'\\n' || '{{ $('Normalize Input').item.json.data.notes || \"Completed\" }}'\nWHERE property_id = '{{ $('Normalize Input').item.json.property_id }}'\n  AND scheduled_date = CURRENT_DATE\n  AND status = 'scheduled'\nRETURNING *",
+          "options": {}
+        },
+        "id": "5ba7bd8d-dca8-4ed3-ad33-1e22fa5f5602",
+        "name": "Complete Cleaning Task",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          352,
+          992
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT\n  mt.ticket_id, mt.property_id, mt.property_name,\n  mt.issue_description, mt.category, mt.urgency,\n  mt.status, mt.vendor_id, mt.assigned_vendor,\n  mt.created_at, mt.updated_at,\n  p.owner_name, p.owner_phone, p.owner_email,\n  p.owner_telegram, p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  v.name AS vendor_name, v.phone AS vendor_phone,\n  v.email AS vendor_email, v.telegram_id AS vendor_telegram\nFROM maintenance_tickets mt\nJOIN property_configurations p ON mt.property_id = p.property_id\nLEFT JOIN vendors v ON mt.vendor_id = v.vendor_id\nWHERE mt.status IN ('pending', 'dispatched', 'in_progress')\n  AND mt.property_id = COALESCE(NULLIF('{{ $('Normalize Input').item.json.property_id }}', ''), mt.property_id)\nORDER BY\n  CASE mt.urgency WHEN 'emergency' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END,\n  mt.created_at ASC",
+          "options": {}
+        },
+        "id": "e49bc626-8acf-4baa-8e8a-6618a84462dc",
+        "name": "Get Pending Tasks",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          640,
+          1328
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Build notification message for owner\n// SUB: Owner & Staff Notifier resolves the contact info from DB\nconst normalizeData = $('Normalize Input').item.json;\nconst opType = normalizeData.type;\n\n// Get the operation result from whichever operation node ran\nlet operationResult = {};\ntry {\n  if (opType === 'maintenance') operationResult = $('AI Maintenance Handler').item.json;\n  else if (opType === 'cleaning') operationResult = $('Schedule Cleaning').item.json;\n  else if (opType === 'vendor_update') operationResult = $('Update Ticket Status').item.json;\n} catch(e) { operationResult = {}; }\n\n// Build human-readable notification message\nlet message = '';\nif (opType === 'maintenance') {\n  const aiOutput = operationResult.output || operationResult.text || JSON.stringify(operationResult).substring(0, 200);\n  message = '\\u{1F527} Maintenance alert: ' + aiOutput;\n} else if (opType === 'cleaning') {\n  const date = operationResult.scheduled_date || new Date().toISOString().split('T')[0];\n  const time = operationResult.scheduled_time || '14:00';\n  message = '\\u{1F9F9} Cleaning scheduled for ' + date + ' at ' + time;\n} else if (opType === 'vendor_update') {\n  const ticketId = operationResult.ticket_id || normalizeData.ticket_id || 'N/A';\n  const newStatus = operationResult.status || 'updated';\n  message = '\\u{1F4CB} Ticket ' + ticketId + ': status changed to ' + newStatus;\n}\n\nreturn {\n  property_id: normalizeData.property_id || '',\n  event_type: opType,\n  message: message,\n  notify: 'owner',\n  recipient_id: '',\n  customer_id: normalizeData.customer_id || '',\n  _operation_result: operationResult\n};"
+        },
+        "id": "build-notif-mlorwrnr",
+        "name": "Build Notification",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          640,
           480
         ]
       }
@@ -1097,6 +1304,31 @@
               "type": "main",
               "index": 0
             }
+          ],
+          [
+            {
+              "node": "Complete Cleaning Task",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get Pending Tasks",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Maintenance Handler": {
+        "main": [
+          [
+            {
+              "node": "Build Notification",
+              "type": "main",
+              "index": 0
+            }
           ]
         ]
       },
@@ -1122,17 +1354,6 @@
           ]
         ]
       },
-      "AI Maintenance Handler": {
-        "main": [
-          [
-            {
-              "node": "Send Notification",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Get Today's Checkouts": {
         "main": [
           [
@@ -1148,7 +1369,7 @@
         "main": [
           [
             {
-              "node": "Send Notification",
+              "node": "Build Notification",
               "type": "main",
               "index": 0
             }
@@ -1159,7 +1380,7 @@
         "main": [
           [
             {
-              "node": "Send Notification",
+              "node": "Build Notification",
               "type": "main",
               "index": 0
             }
@@ -1187,6 +1408,39 @@
             }
           ]
         ]
+      },
+      "Complete Cleaning Task": {
+        "main": [
+          [
+            {
+              "node": "Send Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Pending Tasks": {
+        "main": [
+          [
+            {
+              "node": "Return Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Notification": {
+        "main": [
+          [
+            {
+              "node": "Send Notification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "authors": "Gabriel Erna",
@@ -1195,10 +1449,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-11T08:21:35.467Z",
-        "id": 208,
-        "workflowId": "JWEu9Uz2JJ5XZeIX",
-        "versionId": "f40d364c-c6a7-4ac8-bd6b-4d4e69165ccd",
+        "createdAt": "2026-02-16T06:08:26.764Z",
+        "id": 283,
+        "workflowId": "__WF_ID:WF5: Property Operations__",
+        "versionId": "f560e3e7-22ef-4c3e-a281-bbf7036a0938",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }

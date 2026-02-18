@@ -95,6 +95,8 @@ function propertyFromDb(row) {
     amenities: s.amenities || [],
     houseRules: s.house_rules || '',
     notes: s.notes || '',
+    paymentLink: row.payment_link || '',
+    paymentInstructions: row.payment_instructions || '',
     status: row.property_status || 'active',
     settings: s,
     color: s.color || '#1877f2',
@@ -126,6 +128,8 @@ function propertyToDb(property) {
     owner_name: property.ownerName || '',
     owner_phone: property.ownerPhone || '',
     owner_email: property.ownerEmail || '',
+    payment_link: property.paymentLink || '',
+    payment_instructions: property.paymentInstructions || '',
     property_status: property.status || 'active',
     settings: {
       property_type: property.type || 'apartment',
@@ -412,12 +416,14 @@ const V2DataService = {
           calendar_url, calendar_sync_enabled, timezone,
           auto_approve_bookings, require_screening,
           owner_contact, owner_telegram, owner_name, owner_phone, owner_email,
+          payment_link, payment_instructions,
           property_status, settings, customer_id
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15, $16, $17,
           $18, $19, $20, $21, $22,
-          $23, $24::jsonb, $25
+          $23, $24,
+          $25, $26::jsonb, $27
         )
         ON CONFLICT (property_id) DO UPDATE SET
           property_name = EXCLUDED.property_name,
@@ -441,6 +447,8 @@ const V2DataService = {
           owner_name = EXCLUDED.owner_name,
           owner_phone = EXCLUDED.owner_phone,
           owner_email = EXCLUDED.owner_email,
+          payment_link = EXCLUDED.payment_link,
+          payment_instructions = EXCLUDED.payment_instructions,
           property_status = EXCLUDED.property_status,
           settings = EXCLUDED.settings,
           customer_id = EXCLUDED.customer_id
@@ -453,6 +461,7 @@ const V2DataService = {
         db.calendar_url, db.calendar_sync_enabled, db.timezone,
         db.auto_approve_bookings, db.require_screening,
         db.owner_contact, db.owner_telegram, db.owner_name, db.owner_phone, db.owner_email,
+        db.payment_link, db.payment_instructions,
         db.property_status, JSON.stringify(db.settings), customerId,
       ]);
 

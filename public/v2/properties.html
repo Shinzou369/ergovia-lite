@@ -51,6 +51,10 @@
             </button>
         </div>
 
+        <!-- Sync Banner (hidden by default) -->
+        <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#1877f2,#42a5f5);color:#fff;border-radius:10px;font-size:14px;box-shadow:0 2px 8px rgba(24,119,242,0.3);">
+        </div>
+
         <!-- Properties Grid -->
         <div class="properties-grid" id="propertiesGrid">
             <!-- Properties will be loaded here -->
@@ -235,6 +239,33 @@
                     </div>
                 </div>
 
+                <!-- Payment Settings -->
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-credit-card"></i> Payment Settings</h3>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="paymentLink">
+                                <i class="fas fa-link"></i> Payment Link
+                            </label>
+                            <input type="url" id="paymentLink" name="paymentLink"
+                                   placeholder="https://gcash.com/pay/yourlink or PayPal.me/yourname"
+                                   maxlength="500">
+                            <small class="help-text">Your GCash, Maya, PayPal, or other payment link. Guests will receive this when booking is confirmed.</small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="paymentInstructions">
+                                <i class="fas fa-file-invoice-dollar"></i> Payment Instructions
+                            </label>
+                            <textarea id="paymentInstructions" name="paymentInstructions" rows="3"
+                                      placeholder="Bank transfer: BDO Account 1234567890 (Juan Dela Cruz)"
+                                      maxlength="1000"></textarea>
+                            <small class="help-text">Custom payment instructions if you don't have a payment link. Include bank details, account numbers, etc.</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Calendar & Automation -->
                 <div class="form-section-modal">
                     <h3><i class="fas fa-calendar-alt"></i> Calendar & Automation</h3>
@@ -251,19 +282,28 @@
 
                         <div class="form-group">
                             <label for="timezone">
-                                <i class="fas fa-globe-americas"></i> Timezone
+                                <i class="fas fa-globe-americas"></i> Property Timezone
+                                <span class="required">*</span>
                             </label>
                             <select id="timezone" name="timezone">
-                                <option value="America/New_York">Eastern Time (ET)</option>
-                                <option value="America/Chicago">Central Time (CT)</option>
-                                <option value="America/Denver">Mountain Time (MT)</option>
-                                <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                                <option value="Europe/London">London (GMT)</option>
-                                <option value="Europe/Paris">Paris (CET)</option>
-                                <option value="Asia/Tokyo">Tokyo (JST)</option>
-                                <option value="Asia/Manila">Manila (PHT)</option>
+                                <option value="Asia/Manila">Philippines (Asia/Manila) - UTC+8</option>
+                                <option value="Asia/Singapore">Singapore (Asia/Singapore) - UTC+8</option>
+                                <option value="Asia/Hong_Kong">Hong Kong (Asia/Hong_Kong) - UTC+8</option>
+                                <option value="Asia/Tokyo">Japan (Asia/Tokyo) - UTC+9</option>
+                                <option value="Asia/Seoul">South Korea (Asia/Seoul) - UTC+9</option>
+                                <option value="Asia/Bangkok">Thailand (Asia/Bangkok) - UTC+7</option>
+                                <option value="Asia/Jakarta">Indonesia (Asia/Jakarta) - UTC+7</option>
+                                <option value="Asia/Kuala_Lumpur">Malaysia (Asia/Kuala_Lumpur) - UTC+8</option>
+                                <option value="Australia/Sydney">Australia Sydney - UTC+10/11</option>
+                                <option value="America/New_York">US Eastern - UTC-5/-4</option>
+                                <option value="America/Chicago">US Central - UTC-6/-5</option>
+                                <option value="America/Denver">US Mountain - UTC-7/-6</option>
+                                <option value="America/Los_Angeles">US Pacific - UTC-8/-7</option>
+                                <option value="Europe/London">UK (Europe/London) - UTC+0/+1</option>
+                                <option value="Europe/Paris">Europe Central (Europe/Paris) - UTC+1/+2</option>
                                 <option value="UTC">UTC</option>
                             </select>
+                            <small class="help-text">Timezone where your property is located. Used for date/time interpretation.</small>
                         </div>
 
                         <div class="form-group">
@@ -507,5 +547,6 @@
     <!-- Scripts -->
     <script src="assets/js/config.js"></script>
     <script src="assets/js/properties.js"></script>
+    <script src="assets/js/sync.js"></script>
 </body>
 </html>

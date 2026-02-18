@@ -1,0 +1,579 @@
+{
+  "name": "SUB: Owner & Staff Notifier",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "property_id"
+            },
+            {
+              "name": "event_type"
+            },
+            {
+              "name": "message"
+            },
+            {
+              "name": "notify"
+            },
+            {
+              "name": "recipient_id"
+            },
+            {
+              "name": "customer_id"
+            }
+          ]
+        }
+      },
+      "id": "notifier-trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Set defaults for all input fields\nconst input = $input.item.json;\nreturn {\n  property_id: input.property_id || '',\n  event_type: input.event_type || 'general',\n  message: input.message || input.input || '',\n  notify: (input.notify || 'owner').toLowerCase(),\n  recipient_id: input.recipient_id || '',\n  customer_id: input.customer_id || ''\n};"
+      },
+      "id": "notifier-normalize",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM (\n  SELECT\n    owner_name AS name,\n    owner_telegram AS telegram_id,\n    owner_phone AS phone,\n    owner_email AS email,\n    COALESCE(settings->>'preferred_platform', 'telegram') AS preferred_channel,\n    property_name,\n    'owner' AS resolved_type\n  FROM property_configurations\n  WHERE property_id = '{{ $json.property_id }}'\n\n  UNION ALL\n\n  SELECT\n    cleaner_name, telegram_id, phone, email,\n    'telegram', NULL, 'cleaner'\n  FROM cleaners\n  WHERE cleaner_id = '{{ $json.recipient_id }}'\n    AND status = 'active'\n    AND '{{ $json.recipient_id }}' != ''\n\n  UNION ALL\n\n  SELECT\n    name, telegram_id, phone, email,\n    'telegram', NULL, 'vendor'\n  FROM vendors\n  WHERE vendor_id = '{{ $json.recipient_id }}'\n    AND status = 'active'\n    AND '{{ $json.recipient_id }}' != ''\n) recipients\nWHERE resolved_type = '{{ $json.notify }}'\n   OR '{{ $json.notify }}' = 'all'",
+        "options": {}
+      },
+      "id": "notifier-resolve",
+      "name": "Resolve Recipients",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        176
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "BWlLUMKn64aZsHi8",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Determine delivery channel for each resolved recipient\nconst input = $('Normalize Input').item.json;\nconst recipient = $input.item.json; // From Resolve Recipients\n\n// No recipient found — skip silently\nif (!recipient || !recipient.name) {\n  return { channel: 'skip', reason: 'No recipient found for ' + input.notify };\n}\n\n// Determine channel based on preferred + available contact info\nconst preferred = (recipient.preferred_channel || 'telegram').toLowerCase();\nlet channel = '';\nlet contactId = '';\n\nif (preferred === 'telegram' && recipient.telegram_id) {\n  channel = 'telegram';\n  contactId = recipient.telegram_id;\n} else if (preferred === 'whatsapp' && recipient.phone) {\n  channel = 'whatsapp';\n  contactId = recipient.phone;\n} else if (recipient.telegram_id) {\n  channel = 'telegram';\n  contactId = recipient.telegram_id;\n} else if (recipient.phone) {\n  channel = 'whatsapp';\n  contactId = recipient.phone;\n} else {\n  return { channel: 'skip', reason: 'No contact info for ' + recipient.name };\n}\n\nreturn {\n  channel,\n  recipient: contactId,\n  recipient_name: recipient.name,\n  recipient_type: recipient.resolved_type,\n  message: input.message,\n  event_type: input.event_type,\n  property_id: input.property_id,\n  property_name: recipient.property_name || '',\n  customer_id: input.customer_id || '',\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "notifier-build",
+      "name": "Build Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "notifier-route",
+      "name": "Route by Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        896,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Build Delivery').item.json.recipient }}",
+        "text": "={{ $('Build Delivery').item.json.message }}",
+        "replyMarkup": "none",
+        "forceReply": {},
+        "inlineKeyboard": {
+          "rows": []
+        },
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "notifier-send-telegram",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        -96
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "6ltptOrFLUaZzC1C",
+          "name": "[Client] Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const normalized = $('Build Delivery').item.json;\nconst result = $input.item.json;\nreturn {\n  success: true,\n  channel: 'telegram',\n  recipient: normalized.recipient,\n  recipient_name: normalized.recipient_name,\n  recipient_type: normalized.recipient_type,\n  message_id: result.message_id || result.result?.message_id,\n  event_type: normalized.event_type,\n  property_id: normalized.property_id,\n  customer_id: normalized.customer_id,\n  cost_usd: 0.00,\n  cost_type: 'free'\n};"
+      },
+      "id": "notifier-log-telegram",
+      "name": "Log Telegram Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $('Build Delivery').item.json.recipient }}",
+        "textBody": "={{ $('Build Delivery').item.json.message }}",
+        "additionalFields": {}
+      },
+      "id": "notifier-send-whatsapp",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        96
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const normalized = $('Build Delivery').item.json;\nconst result = $input.item.json;\nreturn {\n  success: true,\n  channel: 'whatsapp',\n  recipient: normalized.recipient,\n  recipient_name: normalized.recipient_name,\n  recipient_type: normalized.recipient_type,\n  message_id: result.messages?.[0]?.id || result.message_id,\n  event_type: normalized.event_type,\n  property_id: normalized.property_id,\n  customer_id: normalized.customer_id,\n  cost_usd: 0.005,\n  cost_type: 'twilio_whatsapp'\n};"
+      },
+      "id": "notifier-log-whatsapp",
+      "name": "Log WhatsApp Cost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "to": "={{ $('Build Delivery').item.json.recipient }}",
+        "message": "={{ $('Build Delivery').item.json.message }}",
+        "options": {}
+      },
+      "id": "notifier-send-sms",
+      "name": "Send SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        384
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-cred",
+          "name": "Twilio"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const normalized = $('Build Delivery').item.json;\nconst result = $input.item.json;\nconst costUsd = result.price ? Math.abs(parseFloat(result.price)) : 0.0079;\nreturn {\n  success: true,\n  channel: 'sms',\n  recipient: normalized.recipient,\n  recipient_name: normalized.recipient_name,\n  recipient_type: normalized.recipient_type,\n  message_id: result.sid || result.message_sid,\n  event_type: normalized.event_type,\n  property_id: normalized.property_id,\n  customer_id: normalized.customer_id,\n  cost_usd: costUsd,\n  cost_type: 'twilio_sms'\n};"
+      },
+      "id": "notifier-log-sms",
+      "name": "Log SMS Cost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "notifier-merge",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1568,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-cost",
+              "leftValue": "={{ $json.cost_usd }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "has-customer",
+              "leftValue": "={{ $json.customer_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "notifier-check-cost",
+      "name": "Has Messaging Cost?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT * FROM log_api_usage('{{ $json.customer_id }}'::uuid, '{{ $json.channel === \"sms\" ? \"twilio\" : ($json.channel === \"whatsapp\" ? \"twilio\" : \"telegram\") }}', '{{ $json.channel }}', 'send_notification', 0::int, 0::int, {{ $json.cost_usd }}::decimal, 'SUB: Owner & Staff Notifier', '{{ $json.event_type }}', '{{ $execution.id }}')",
+        "options": {}
+      },
+      "id": "notifier-log-cost",
+      "name": "Log Messaging Cost",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2016,
+        -48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "BWlLUMKn64aZsHi8",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Format final response for the calling workflow\nconst input = $input.item.json;\nreturn {\n  success: input.success !== false,\n  channel: input.channel || 'unknown',\n  recipient: input.recipient || null,\n  recipient_name: input.recipient_name || null,\n  recipient_type: input.recipient_type || null,\n  event_type: input.event_type || null,\n  property_id: input.property_id || null,\n  messageId: input.message_id || null,\n  cost_tracked: (input.cost_usd || 0) > 0,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "notifier-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        176
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Resolve Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Recipients": {
+      "main": [
+        [
+          {
+            "node": "Build Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Delivery": {
+      "main": [
+        [
+          {
+            "node": "Route by Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Channel": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Log Telegram Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Telegram Result": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Log WhatsApp Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log WhatsApp Cost": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS": {
+      "main": [
+        [
+          {
+            "node": "Log SMS Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log SMS Cost": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Has Messaging Cost?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Messaging Cost?": {
+      "main": [
+        [
+          {
+            "node": "Log Messaging Cost",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Messaging Cost": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "active": false,
+  "versionId": "6c391fda-b418-4ba4-a3cc-768031905c8a",
+  "id": "0L7HOkqENABlbPtT",
+  "description": null,
+  "meta": null,
+  "pinData": null,
+  "activeVersionId": null,
+  "updatedAt": "2026-02-16T06:00:01.831Z",
+  "createdAt": "2026-02-16T06:00:01.831Z",
+  "isArchived": false,
+  "versionCounter": 1,
+  "triggerCount": 0
+}

@@ -178,6 +178,8 @@ const SchemaMapper = {
 
             amenities: data.amenities,
             notes: data.notes,
+            payment_link: data.paymentLink,
+            payment_instructions: data.paymentInstructions,
         }),
         toFrontend: (data) => ({
             id: data.id,
@@ -226,6 +228,8 @@ const SchemaMapper = {
 
             amenities: data.amenities || [],
             notes: data.notes || '',
+            paymentLink: data.payment_link || data.paymentLink || '',
+            paymentInstructions: data.payment_instructions || data.paymentInstructions || '',
             color: data.color || CONFIG.PROPERTY_COLORS[0],
         }),
     },

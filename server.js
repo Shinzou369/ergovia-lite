@@ -1113,7 +1113,13 @@ app.get('/api/v2/properties/:id', async (req, res) => {
 // Properties - POST create/update
 app.post('/api/v2/properties', async (req, res) => {
   try {
+    const isUpdate = !!req.body.id;
     const result = await v2Data.saveProperty(req.body);
+    // Flag that workflows need sync when editing an existing property
+    if (isUpdate && result.success) {
+      result.needsSync = true;
+      result.syncCategory = 'workflows';
+    }
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

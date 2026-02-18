@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-12T06:42:05.747Z",
+  "updatedAt": "2026-02-16T06:52:43.616Z",
   "createdAt": "2026-02-09T10:16:32.316Z",
-  "id": "LP7YknAVPiQsidWq",
+  "id": "__WF_ID:WF1: AI Gateway__",
   "name": "WF1: AI Gateway - Unified Entry Point",
   "description": null,
   "active": true,
@@ -21,12 +21,11 @@
       "typeVersion": 1.2,
       "position": [
         -208,
-        104
+        -52
       ],
-      "webhookId": "c2f7c25b-4e8f-4755-81b3-bd2ffb072819",
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -44,9 +43,8 @@
       "typeVersion": 1,
       "position": [
         -208,
-        296
+        140
       ],
-      "webhookId": "8314034e-62b3-4f15-80ea-6e7e60d9f690",
       "disabled": true
     },
     {
@@ -61,9 +59,8 @@
       "typeVersion": 1,
       "position": [
         -208,
-        488
+        332
       ],
-      "webhookId": "81d80984-a266-4918-822e-d962d1015860",
       "credentials": {
         "twilioApi": {
           "id": "twilio-cred",
@@ -83,7 +80,7 @@
       "typeVersion": 2,
       "position": [
         16,
-        296
+        140
       ]
     },
     {
@@ -98,12 +95,12 @@
       "typeVersion": 2.5,
       "position": [
         240,
-        296
+        140
       ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -119,7 +116,7 @@
       "typeVersion": 2,
       "position": [
         464,
-        296
+        140
       ]
     },
     {
@@ -134,11 +131,11 @@
       "typeVersion": 2.5,
       "position": [
         688,
-        296
+        140
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -173,7 +170,7 @@
       "typeVersion": 2,
       "position": [
         912,
-        296
+        140
       ]
     },
     {
@@ -181,7 +178,7 @@
         "promptType": "define",
         "text": "={{ $('Merge Customer ID').item.json.message_text }}",
         "options": {
-          "systemMessage": "Today's date is {{ $now.format('yyyy-MM-dd') }} ({{ $now.format('EEEE') }}). Use this for ALL date calculations — when a guest says 'this weekend', 'next Friday', 'the 14th', etc., always resolve relative to today's date.\n\nYou are the main AI concierge for a vacation rental business. You are the ONLY one who communicates with guests — your tools are your back-office team that return data to you.\n\n## How You Work\n1. Read the guest's message and determine their intent\n2. Call the right tool(s) to get data\n3. Use the returned data to craft YOUR friendly response\n4. Keep responses concise (under 150 words)\n\n## Your Tools (return DATA, not messages):\n\n### Offer Conflict Checker\nALWAYS call this BEFORE confirming any booking. Checks if other guests are competing for the same dates.\n- Returns CLEAR → safe to proceed with booking\n- Returns COMPETING → owner is deciding between offers, tell guest to wait\n\n### Calendar Manager\nCheck property availability for specific dates. Use when guest asks about dates or availability.\n- Returns: available dates, pricing, conflicts, alternative dates\n\n### Payment Processor\nCreate bookings and payment links. Use AFTER confirming availability and no conflicts.\n- Returns: booking ID, payment link, transaction status\n\n### Calculate Price\nCalculate total cost for a stay with fees and discounts.\n- Returns: price breakdown (nightly rate, nights, cleaning fee, service fee, discounts, total)\n\n### Property Operations\nHandle maintenance reports, property issues, cleaning requests.\n- Returns: ticket info, issue category, urgency level\n\n### Emergency Handler\nONLY for urgent safety emergencies (fire, medical, break-in, gas leak, flooding).\n- Returns: emergency assessment, responder info, immediate action instructions\n\n## Booking Flow (follow this order):\n1. Guest asks about dates → Calendar Manager (check availability)\n2. Dates available → Calculate Price (get total)\n3. Guest wants to book → Offer Conflict Checker (check for competing offers)\n4. No conflicts → Payment Processor (create booking + payment link)\n\n## Response Guidelines\n- Never expose raw JSON or data to the guest\n- Paraphrase tool results naturally\n- Use emojis sparingly (1-2 per message max)\n- Always end with a clear next step or question\n- If a tool errors, apologize and offer alternatives\n- For emergencies, lead with safety instructions immediately"
+          "systemMessage": "You are the main AI concierge for a vacation rental business. You are the ONLY one who communicates with guests — your tools are your back-office team that return data to you.\n\n## How You Work\n1. Read the guest's message and determine their intent\n2. Call the right tool(s) to get data\n3. Use the returned data to craft YOUR friendly response\n4. Keep responses concise (under 150 words)\n\n## Your Tools (return DATA, not messages):\n\n### Offer Conflict Checker\nALWAYS call this BEFORE confirming any booking. Checks if other guests are competing for the same dates.\n- Returns CLEAR → safe to proceed with booking\n- Returns COMPETING → owner is deciding between offers, tell guest to wait\n\n### Calendar Manager\nCheck property availability for specific dates. Use when guest asks about dates or availability.\n- Returns: available dates, pricing, conflicts, alternative dates\n\n### Payment Processor\nCreate bookings and payment links. Use AFTER confirming availability and no conflicts.\n- Returns: booking ID, payment link, transaction status\n\n### Calculate Price\nCalculate total cost for a stay with fees and discounts.\n- NOTE: Calendar Manager already includes full pricing in its response. Only use Calculate Price if you need to recalculate with different parameters (e.g., guest asks about a discount).\n- Returns: price breakdown (nightly rate, nights, cleaning fee, service fee, discounts, total)\n\n### Property Operations\nHandle maintenance reports, property issues, cleaning requests.\n- Returns: ticket info, issue category, urgency level\n\n### Emergency Handler\nONLY for urgent safety emergencies (fire, medical, break-in, gas leak, flooding).\n- Returns: emergency assessment, responder info, immediate action instructions\n\n## Booking Flow (follow this order):\n1. Guest asks about dates → Calendar Manager (returns availability + pricing)\n2. Guest wants to book → Offer Conflict Checker (check for competing offers)\n4. No conflicts → Payment Processor (create booking + payment link)\n\n## Response Guidelines\n- Never expose raw JSON or data to the guest\n- Paraphrase tool results naturally\n- Use emojis sparingly (1-2 per message max)\n- Always end with a clear next step or question\n- If a tool errors, apologize and offer alternatives\n- For emergencies, lead with safety instructions immediately"
         }
       },
       "id": "ai-agent",
@@ -189,7 +186,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        1744,
+        1512,
         -112
       ]
     },
@@ -209,7 +206,7 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
+          "id": "openai-cred",
           "name": "[Client] OpenAI"
         }
       }
@@ -229,7 +226,7 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -239,9 +236,10 @@
         "description": "ALWAYS call this BEFORE confirming any booking. Checks if there are competing offers from other guests for the same property and dates. Returns either CLEAR (safe to proceed with booking via Payment Processor) or COMPETING (owner notified, guest must wait). Pass the property_id and detected check-in/check-out dates.",
         "workflowId": {
           "__rl": true,
-          "value": "NPInwpKv4Oriq04F",
+          "value": "__WF_ID:WF2: Offer Conflict Manager__",
           "mode": "id",
-          "cachedResultUrl": "/workflow/NPInwpKv4Oriq04F"
+          "cachedResultUrl": "/workflow/NPInwpKv4Oriq04F",
+          "cachedResultName": "WF2: Offer Conflict Manager"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -327,8 +325,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        2320,
-        256
+        2032,
+        112
       ]
     },
     {
@@ -337,14 +335,16 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "pEn69kwNtCEQ21y9"
+          "value": "__WF_ID:WF3: Calendar Manager__",
+          "cachedResultName": "WF3: Calendar Manager"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "property_id": "={{ $fromAI('property_id', 'The property ID to check. Use empty string to check all properties.', 'string', '') }}",
+            "property_id": "={{ $fromAI('property_id', 'The property ID to check availability for. Leave empty to check all properties.', 'string', '') }}",
             "check_in_date": "={{ $fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format', 'string', '') }}",
-            "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format', 'string', '') }}"
+            "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format', 'string', '') }}",
+            "num_guests": "={{ $fromAI('num_guests', 'Number of guests. Optional.', 'string', '') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -354,28 +354,39 @@
               "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true,
+              "type": "string"
             },
             {
               "id": "check_in_date",
               "displayName": "check_in_date",
-              "required": true,
+              "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true,
+              "type": "string"
             },
             {
               "id": "check_out_date",
               "displayName": "check_out_date",
-              "required": true,
+              "required": false,
               "defaultMatch": false,
               "display": true,
-              "type": "string",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "num_guests",
+              "displayName": "num_guests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
             }
-          ]
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
         }
       },
       "id": "tool-calendar",
@@ -383,7 +394,7 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1680,
+        1392,
         112
       ]
     },
@@ -393,7 +404,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "5loDH75zrEDh9x5H"
+          "value": "__WF_ID:WF4: Payment Processor__",
+          "cachedResultName": "WF4: Payment Processor"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -505,8 +517,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1824,
-        256
+        1616,
+        160
       ]
     },
     {
@@ -515,7 +527,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "JWEu9Uz2JJ5XZeIX"
+          "value": "__WF_ID:WF5: Property Operations__",
+          "cachedResultName": "WF5: Property Operations"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -593,8 +606,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1936,
-        112
+        1680,
+        176
       ]
     },
     {
@@ -603,7 +616,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "mLm2HaIRzNfIX5uh"
+          "value": "__WF_ID:WF8: Safety & Screening__",
+          "cachedResultName": "WF8: Safety & Screening"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -664,8 +678,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        2064,
-        256
+        1776,
+        112
       ]
     },
     {
@@ -678,8 +692,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2528,
-        96
+        2240,
+        -8
       ]
     },
     {
@@ -693,12 +707,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2752,
-        96
+        2464,
+        -8
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -731,8 +745,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2976,
-        96
+        2688,
+        -8
       ]
     },
     {
@@ -745,8 +759,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3200,
-        24
+        2912,
+        -80
       ]
     },
     {
@@ -760,12 +774,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3424,
-        24
+        3136,
+        -80
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -775,7 +789,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -837,8 +852,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        3648,
-        96
+        3360,
+        -8
       ]
     },
     {
@@ -867,12 +882,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3872,
-        96
+        3584,
+        -8
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -887,8 +902,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1720,
-        496
+        1576,
+        288
       ]
     },
     {
@@ -896,7 +911,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -936,23 +952,23 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2528,
-        496
+        2240,
+        288
       ]
     },
     {
       "parameters": {
         "name": "calculate_price",
         "description": "Calculate total price for a stay. Input: check_in_date, check_out_date, price_per_night, cleaning_fee (optional), discount_percent (optional). Returns total price breakdown.",
-        "jsCode": "// Calculate total price for a vacation rental stay\nconst checkIn = new Date($fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format'));\nconst checkOut = new Date($fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format'));\nconst pricePerNight = parseFloat($fromAI('price_per_night', 'Price per night in USD', 'number', '150'));\nconst cleaningFee = parseFloat($fromAI('cleaning_fee', 'One-time cleaning fee', 'number', '50'));\nconst discountPercent = parseFloat($fromAI('discount_percent', 'Discount percentage', 'number', '0'));\n\nconst nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\nif (nights <= 0) {\n  return { error: true, message: 'Invalid dates: check-out must be after check-in' };\n}\n\nconst subtotal = nights * pricePerNight;\nconst discount = subtotal * (discountPercent / 100);\nconst totalBeforeFees = subtotal - discount;\nconst serviceFee = Math.round(totalBeforeFees * 0.12 * 100) / 100; // 12% service fee\nconst total = totalBeforeFees + cleaningFee + serviceFee;\n\n// Weekly discount auto-apply\nlet weeklyDiscount = 0;\nif (nights >= 7 && discountPercent === 0) {\n  weeklyDiscount = subtotal * 0.10; // 10% weekly discount\n}\n\nconst finalTotal = total - weeklyDiscount;\n\nreturn {\n  nights: nights,\n  price_per_night: pricePerNight,\n  subtotal: Math.round(subtotal * 100) / 100,\n  weekly_discount: Math.round(weeklyDiscount * 100) / 100,\n  custom_discount: Math.round(discount * 100) / 100,\n  cleaning_fee: cleaningFee,\n  service_fee: serviceFee,\n  total: Math.round(finalTotal * 100) / 100,\n  currency: 'USD',\n  check_in: checkIn.toISOString().split('T')[0],\n  check_out: checkOut.toISOString().split('T')[0]\n};"
+        "jsCode": "// Calculate total price for a vacation rental stay\n// Robust version that handles n8n toolCode execution context\ntry {\n  const checkIn = new Date($fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format'));\n  const checkOut = new Date($fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format'));\n  const pricePerNight = parseFloat($fromAI('price_per_night', 'Price per night in USD', 'number', '100'));\n  const weekendPrice = parseFloat($fromAI('weekend_price', 'Weekend price per night', 'number', String(pricePerNight)));\n  const cleaningFee = parseFloat($fromAI('cleaning_fee', 'One-time cleaning fee', 'number', '0'));\n  const discountPercent = parseFloat($fromAI('discount_percent', 'Discount percentage', 'number', '0'));\n\n  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\n  if (nights <= 0 || isNaN(nights)) {\n    return { error: true, message: 'Invalid dates: check-out must be after check-in' };\n  }\n\n  // Count weekday vs weekend nights\n  let weekdayNights = 0;\n  let weekendNights = 0;\n  for (let d = 0; d < nights; d++) {\n    const day = new Date(checkIn);\n    day.setDate(day.getDate() + d);\n    const dow = day.getDay();\n    if (dow === 5 || dow === 6) weekendNights++;\n    else weekdayNights++;\n  }\n\n  const nightly = (weekdayNights * pricePerNight) + (weekendNights * weekendPrice);\n  const discount = nightly * (discountPercent / 100);\n  const afterDiscount = nightly - discount;\n  const serviceFee = Math.round(afterDiscount * 0.12 * 100) / 100;\n\n  let weeklyDiscount = 0;\n  if (nights >= 7 && discountPercent === 0) {\n    weeklyDiscount = Math.round(nightly * 0.10 * 100) / 100;\n  }\n\n  const total = Math.round((afterDiscount - weeklyDiscount + cleaningFee + serviceFee) * 100) / 100;\n\n  return {\n    nights,\n    weekday_nights: weekdayNights,\n    weekend_nights: weekendNights,\n    price_per_night: pricePerNight,\n    weekend_price: weekendPrice,\n    nightly_subtotal: Math.round(nightly * 100) / 100,\n    custom_discount: Math.round(discount * 100) / 100,\n    weekly_discount: weeklyDiscount,\n    cleaning_fee: cleaningFee,\n    service_fee: serviceFee,\n    total: total,\n    currency: 'USD',\n    check_in: checkIn.toISOString().split('T')[0],\n    check_out: checkOut.toISOString().split('T')[0]\n  };\n} catch (err) {\n  return {\n    error: true,\n    message: 'Price calculation failed: ' + err.message,\n    hint: 'The Calendar Manager tool already includes pricing in its response. Use that instead.'\n  };\n}"
       },
       "id": "tool-calculate-price",
       "name": "Calculate Price Tool",
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        2176,
-        112
+        1920,
+        192
       ]
     }
   ],
@@ -1244,79 +1260,13 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "e2bb4af7-f115-4d98-915f-9ebe1453af04",
-  "activeVersionId": "e2bb4af7-f115-4d98-915f-9ebe1453af04",
-  "versionCounter": 161,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-09T10:16:32.319Z",
-      "createdAt": "2026-02-09T10:16:32.319Z",
-      "role": "workflow:owner",
-      "workflowId": "LP7YknAVPiQsidWq",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-12T06:08:15.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-12",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T04:47:30.869Z",
-      "createdAt": "2026-02-03T04:47:30.869Z",
-      "id": "5KF1N8X34HFV1sVH",
-      "name": "AI-Gateway"
-    },
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    }
-  ],
+  "activeVersionId": "45d1def6-4f41-4d4d-9649-43b2124791e4",
+  "versionCounter": 184,
   "activeVersion": {
-    "updatedAt": "2026-02-12T06:42:05.748Z",
-    "createdAt": "2026-02-12T06:42:05.748Z",
-    "versionId": "e2bb4af7-f115-4d98-915f-9ebe1453af04",
-    "workflowId": "LP7YknAVPiQsidWq",
+    "updatedAt": "2026-02-16T02:57:13.000Z",
+    "createdAt": "2026-02-13T05:29:39.308Z",
+    "versionId": "45d1def6-4f41-4d4d-9649-43b2124791e4",
+    "workflowId": "__WF_ID:WF1: AI Gateway__",
     "nodes": [
       {
         "parameters": {
@@ -1332,12 +1282,12 @@
         "typeVersion": 1.2,
         "position": [
           -208,
-          104
+          -52
         ],
         "webhookId": "c2f7c25b-4e8f-4755-81b3-bd2ffb072819",
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -1355,7 +1305,7 @@
         "typeVersion": 1,
         "position": [
           -208,
-          296
+          140
         ],
         "webhookId": "8314034e-62b3-4f15-80ea-6e7e60d9f690",
         "disabled": true
@@ -1372,7 +1322,7 @@
         "typeVersion": 1,
         "position": [
           -208,
-          488
+          332
         ],
         "webhookId": "81d80984-a266-4918-822e-d962d1015860",
         "credentials": {
@@ -1394,7 +1344,7 @@
         "typeVersion": 2,
         "position": [
           16,
-          296
+          140
         ]
       },
       {
@@ -1409,12 +1359,12 @@
         "typeVersion": 2.5,
         "position": [
           240,
-          296
+          140
         ],
         "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1430,7 +1380,7 @@
         "typeVersion": 2,
         "position": [
           464,
-          296
+          140
         ]
       },
       {
@@ -1445,11 +1395,11 @@
         "typeVersion": 2.5,
         "position": [
           688,
-          296
+          140
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1484,7 +1434,7 @@
         "typeVersion": 2,
         "position": [
           912,
-          296
+          140
         ]
       },
       {
@@ -1492,7 +1442,7 @@
           "promptType": "define",
           "text": "={{ $('Merge Customer ID').item.json.message_text }}",
           "options": {
-            "systemMessage": "Today's date is {{ $now.format('yyyy-MM-dd') }} ({{ $now.format('EEEE') }}). Use this for ALL date calculations — when a guest says 'this weekend', 'next Friday', 'the 14th', etc., always resolve relative to today's date.\n\nYou are the main AI concierge for a vacation rental business. You are the ONLY one who communicates with guests — your tools are your back-office team that return data to you.\n\n## How You Work\n1. Read the guest's message and determine their intent\n2. Call the right tool(s) to get data\n3. Use the returned data to craft YOUR friendly response\n4. Keep responses concise (under 150 words)\n\n## Your Tools (return DATA, not messages):\n\n### Offer Conflict Checker\nALWAYS call this BEFORE confirming any booking. Checks if other guests are competing for the same dates.\n- Returns CLEAR → safe to proceed with booking\n- Returns COMPETING → owner is deciding between offers, tell guest to wait\n\n### Calendar Manager\nCheck property availability for specific dates. Use when guest asks about dates or availability.\n- Returns: available dates, pricing, conflicts, alternative dates\n\n### Payment Processor\nCreate bookings and payment links. Use AFTER confirming availability and no conflicts.\n- Returns: booking ID, payment link, transaction status\n\n### Calculate Price\nCalculate total cost for a stay with fees and discounts.\n- Returns: price breakdown (nightly rate, nights, cleaning fee, service fee, discounts, total)\n\n### Property Operations\nHandle maintenance reports, property issues, cleaning requests.\n- Returns: ticket info, issue category, urgency level\n\n### Emergency Handler\nONLY for urgent safety emergencies (fire, medical, break-in, gas leak, flooding).\n- Returns: emergency assessment, responder info, immediate action instructions\n\n## Booking Flow (follow this order):\n1. Guest asks about dates → Calendar Manager (check availability)\n2. Dates available → Calculate Price (get total)\n3. Guest wants to book → Offer Conflict Checker (check for competing offers)\n4. No conflicts → Payment Processor (create booking + payment link)\n\n## Response Guidelines\n- Never expose raw JSON or data to the guest\n- Paraphrase tool results naturally\n- Use emojis sparingly (1-2 per message max)\n- Always end with a clear next step or question\n- If a tool errors, apologize and offer alternatives\n- For emergencies, lead with safety instructions immediately"
+            "systemMessage": "You are the main AI concierge for a vacation rental business. You are the ONLY one who communicates with guests — your tools are your back-office team that return data to you.\n\n## How You Work\n1. Read the guest's message and determine their intent\n2. Call the right tool(s) to get data\n3. Use the returned data to craft YOUR friendly response\n4. Keep responses concise (under 150 words)\n\n## Your Tools (return DATA, not messages):\n\n### Offer Conflict Checker\nALWAYS call this BEFORE confirming any booking. Checks if other guests are competing for the same dates.\n- Returns CLEAR → safe to proceed with booking\n- Returns COMPETING → owner is deciding between offers, tell guest to wait\n\n### Calendar Manager\nCheck property availability for specific dates. Use when guest asks about dates or availability.\n- Returns: available dates, pricing, conflicts, alternative dates\n\n### Payment Processor\nCreate bookings and payment links. Use AFTER confirming availability and no conflicts.\n- Returns: booking ID, payment link, transaction status\n\n### Calculate Price\nCalculate total cost for a stay with fees and discounts.\n- NOTE: Calendar Manager already includes full pricing in its response. Only use Calculate Price if you need to recalculate with different parameters (e.g., guest asks about a discount).\n- Returns: price breakdown (nightly rate, nights, cleaning fee, service fee, discounts, total)\n\n### Property Operations\nHandle maintenance reports, property issues, cleaning requests.\n- Returns: ticket info, issue category, urgency level\n\n### Emergency Handler\nONLY for urgent safety emergencies (fire, medical, break-in, gas leak, flooding).\n- Returns: emergency assessment, responder info, immediate action instructions\n\n## Booking Flow (follow this order):\n1. Guest asks about dates → Calendar Manager (returns availability + pricing)\n2. Guest wants to book → Offer Conflict Checker (check for competing offers)\n4. No conflicts → Payment Processor (create booking + payment link)\n\n## Response Guidelines\n- Never expose raw JSON or data to the guest\n- Paraphrase tool results naturally\n- Use emojis sparingly (1-2 per message max)\n- Always end with a clear next step or question\n- If a tool errors, apologize and offer alternatives\n- For emergencies, lead with safety instructions immediately"
           }
         },
         "id": "ai-agent",
@@ -1500,7 +1450,7 @@
         "type": "@n8n/n8n-nodes-langchain.agent",
         "typeVersion": 3.1,
         "position": [
-          1744,
+          1512,
           -112
         ]
       },
@@ -1520,7 +1470,7 @@
         ],
         "credentials": {
           "openAiApi": {
-            "id": "slpbr7aUaU6fqTfw",
+            "id": "openai-cred",
             "name": "[Client] OpenAI"
           }
         }
@@ -1540,7 +1490,7 @@
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1550,7 +1500,7 @@
           "description": "ALWAYS call this BEFORE confirming any booking. Checks if there are competing offers from other guests for the same property and dates. Returns either CLEAR (safe to proceed with booking via Payment Processor) or COMPETING (owner notified, guest must wait). Pass the property_id and detected check-in/check-out dates.",
           "workflowId": {
             "__rl": true,
-            "value": "NPInwpKv4Oriq04F",
+            "value": "__WF_ID:WF2: Offer Conflict Manager__",
             "mode": "id",
             "cachedResultUrl": "/workflow/NPInwpKv4Oriq04F"
           },
@@ -1638,8 +1588,8 @@
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "position": [
-          2320,
-          256
+          2032,
+          112
         ]
       },
       {
@@ -1648,14 +1598,15 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "pEn69kwNtCEQ21y9"
+            "value": "__WF_ID:WF3: Calendar Manager__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
             "value": {
-              "property_id": "={{ $fromAI('property_id', 'The property ID to check. Use empty string to check all properties.', 'string', '') }}",
+              "property_id": "={{ $fromAI('property_id', 'The property ID to check availability for. Leave empty to check all properties.', 'string', '') }}",
               "check_in_date": "={{ $fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format', 'string', '') }}",
-              "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format', 'string', '') }}"
+              "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format', 'string', '') }}",
+              "num_guests": "={{ $fromAI('num_guests', 'Number of guests. Optional.', 'string', '') }}"
             },
             "matchingColumns": [],
             "schema": [
@@ -1665,28 +1616,39 @@
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
+                "canBeUsedToMatch": true,
+                "type": "string"
               },
               {
                 "id": "check_in_date",
                 "displayName": "check_in_date",
-                "required": true,
+                "required": false,
                 "defaultMatch": false,
                 "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
+                "canBeUsedToMatch": true,
+                "type": "string"
               },
               {
                 "id": "check_out_date",
                 "displayName": "check_out_date",
-                "required": true,
+                "required": false,
                 "defaultMatch": false,
                 "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
+                "canBeUsedToMatch": true,
+                "type": "string"
+              },
+              {
+                "id": "num_guests",
+                "displayName": "num_guests",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "type": "string"
               }
-            ]
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
           }
         },
         "id": "tool-calendar",
@@ -1694,7 +1656,7 @@
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "position": [
-          1680,
+          1392,
           112
         ]
       },
@@ -1704,7 +1666,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "5loDH75zrEDh9x5H"
+            "value": "__WF_ID:WF4: Payment Processor__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -1816,8 +1778,8 @@
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "position": [
-          1824,
-          256
+          1520,
+          112
         ]
       },
       {
@@ -1826,7 +1788,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "JWEu9Uz2JJ5XZeIX"
+            "value": "__WF_ID:WF5: Property Operations__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -1904,7 +1866,7 @@
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "position": [
-          1936,
+          1648,
           112
         ]
       },
@@ -1914,7 +1876,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "mLm2HaIRzNfIX5uh"
+            "value": "__WF_ID:WF8: Safety & Screening__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -1975,8 +1937,8 @@
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "position": [
-          2064,
-          256
+          1776,
+          112
         ]
       },
       {
@@ -1989,8 +1951,8 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          2528,
-          96
+          2240,
+          -8
         ]
       },
       {
@@ -2004,12 +1966,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          2752,
-          96
+          2464,
+          -8
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2042,8 +2004,8 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
         "position": [
-          2976,
-          96
+          2688,
+          -8
         ]
       },
       {
@@ -2056,8 +2018,8 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          3200,
-          24
+          2912,
+          -80
         ]
       },
       {
@@ -2071,12 +2033,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          3424,
-          24
+          3136,
+          -80
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2086,7 +2048,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "UZMWfhnV6JmuwJXC"
+            "value": "__WF_ID:SUB: Universal Messenger__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -2148,8 +2110,8 @@
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.3,
         "position": [
-          3648,
-          96
+          3360,
+          -8
         ]
       },
       {
@@ -2178,12 +2140,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          3872,
-          96
+          3584,
+          -8
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2198,8 +2160,8 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1720,
-          496
+          1576,
+          288
         ]
       },
       {
@@ -2207,7 +2169,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "UZMWfhnV6JmuwJXC"
+            "value": "__WF_ID:SUB: Universal Messenger__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -2247,22 +2209,22 @@
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.3,
         "position": [
-          2528,
-          496
+          2240,
+          288
         ]
       },
       {
         "parameters": {
           "name": "calculate_price",
           "description": "Calculate total price for a stay. Input: check_in_date, check_out_date, price_per_night, cleaning_fee (optional), discount_percent (optional). Returns total price breakdown.",
-          "jsCode": "// Calculate total price for a vacation rental stay\nconst checkIn = new Date($fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format'));\nconst checkOut = new Date($fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format'));\nconst pricePerNight = parseFloat($fromAI('price_per_night', 'Price per night in USD', 'number', '150'));\nconst cleaningFee = parseFloat($fromAI('cleaning_fee', 'One-time cleaning fee', 'number', '50'));\nconst discountPercent = parseFloat($fromAI('discount_percent', 'Discount percentage', 'number', '0'));\n\nconst nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\nif (nights <= 0) {\n  return { error: true, message: 'Invalid dates: check-out must be after check-in' };\n}\n\nconst subtotal = nights * pricePerNight;\nconst discount = subtotal * (discountPercent / 100);\nconst totalBeforeFees = subtotal - discount;\nconst serviceFee = Math.round(totalBeforeFees * 0.12 * 100) / 100; // 12% service fee\nconst total = totalBeforeFees + cleaningFee + serviceFee;\n\n// Weekly discount auto-apply\nlet weeklyDiscount = 0;\nif (nights >= 7 && discountPercent === 0) {\n  weeklyDiscount = subtotal * 0.10; // 10% weekly discount\n}\n\nconst finalTotal = total - weeklyDiscount;\n\nreturn {\n  nights: nights,\n  price_per_night: pricePerNight,\n  subtotal: Math.round(subtotal * 100) / 100,\n  weekly_discount: Math.round(weeklyDiscount * 100) / 100,\n  custom_discount: Math.round(discount * 100) / 100,\n  cleaning_fee: cleaningFee,\n  service_fee: serviceFee,\n  total: Math.round(finalTotal * 100) / 100,\n  currency: 'USD',\n  check_in: checkIn.toISOString().split('T')[0],\n  check_out: checkOut.toISOString().split('T')[0]\n};"
+          "jsCode": "// Calculate total price for a vacation rental stay\n// Robust version that handles n8n toolCode execution context\ntry {\n  const checkIn = new Date($fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format'));\n  const checkOut = new Date($fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format'));\n  const pricePerNight = parseFloat($fromAI('price_per_night', 'Price per night in USD', 'number', '100'));\n  const weekendPrice = parseFloat($fromAI('weekend_price', 'Weekend price per night', 'number', String(pricePerNight)));\n  const cleaningFee = parseFloat($fromAI('cleaning_fee', 'One-time cleaning fee', 'number', '0'));\n  const discountPercent = parseFloat($fromAI('discount_percent', 'Discount percentage', 'number', '0'));\n\n  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\n  if (nights <= 0 || isNaN(nights)) {\n    return { error: true, message: 'Invalid dates: check-out must be after check-in' };\n  }\n\n  // Count weekday vs weekend nights\n  let weekdayNights = 0;\n  let weekendNights = 0;\n  for (let d = 0; d < nights; d++) {\n    const day = new Date(checkIn);\n    day.setDate(day.getDate() + d);\n    const dow = day.getDay();\n    if (dow === 5 || dow === 6) weekendNights++;\n    else weekdayNights++;\n  }\n\n  const nightly = (weekdayNights * pricePerNight) + (weekendNights * weekendPrice);\n  const discount = nightly * (discountPercent / 100);\n  const afterDiscount = nightly - discount;\n  const serviceFee = Math.round(afterDiscount * 0.12 * 100) / 100;\n\n  let weeklyDiscount = 0;\n  if (nights >= 7 && discountPercent === 0) {\n    weeklyDiscount = Math.round(nightly * 0.10 * 100) / 100;\n  }\n\n  const total = Math.round((afterDiscount - weeklyDiscount + cleaningFee + serviceFee) * 100) / 100;\n\n  return {\n    nights,\n    weekday_nights: weekdayNights,\n    weekend_nights: weekendNights,\n    price_per_night: pricePerNight,\n    weekend_price: weekendPrice,\n    nightly_subtotal: Math.round(nightly * 100) / 100,\n    custom_discount: Math.round(discount * 100) / 100,\n    weekly_discount: weeklyDiscount,\n    cleaning_fee: cleaningFee,\n    service_fee: serviceFee,\n    total: total,\n    currency: 'USD',\n    check_in: checkIn.toISOString().split('T')[0],\n    check_out: checkOut.toISOString().split('T')[0]\n  };\n} catch (err) {\n  return {\n    error: true,\n    message: 'Price calculation failed: ' + err.message,\n    hint: 'The Calendar Manager tool already includes pricing in its response. Use that instead.'\n  };\n}"
         },
         "id": "tool-calculate-price",
         "name": "Calculate Price Tool",
         "type": "@n8n/n8n-nodes-langchain.toolCode",
         "typeVersion": 1.1,
         "position": [
-          2176,
+          1904,
           112
         ]
       }
@@ -2548,15 +2510,15 @@
       }
     },
     "authors": "Gabriel Erna",
-    "name": null,
-    "description": null,
-    "autosaved": false,
+    "name": "Version 45d1def6",
+    "description": "",
+    "autosaved": true,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-12T06:42:07.390Z",
-        "id": 218,
-        "workflowId": "LP7YknAVPiQsidWq",
-        "versionId": "e2bb4af7-f115-4d98-915f-9ebe1453af04",
+        "createdAt": "2026-02-16T02:57:13.139Z",
+        "id": 256,
+        "workflowId": "__WF_ID:WF1: AI Gateway__",
+        "versionId": "45d1def6-4f41-4d4d-9649-43b2124791e4",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }

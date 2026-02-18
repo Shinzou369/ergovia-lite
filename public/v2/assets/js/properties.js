@@ -159,6 +159,10 @@ function editProperty(propertyId) {
     document.getElementById('autoApproveBookings').checked = !!property.autoApproveBookings;
     document.getElementById('requireScreening').checked = property.requireScreening !== false;
 
+    // Payment settings
+    document.getElementById('paymentLink').value = property.paymentLink || '';
+    document.getElementById('paymentInstructions').value = property.paymentInstructions || '';
+
     // Listing platforms
     document.getElementById('airbnbListingUrl').value = property.airbnbUrl || '';
     document.getElementById('bookingComUrl').value = property.bookingComUrl || '';
@@ -267,6 +271,10 @@ async function handlePropertySubmit(event) {
         autoApproveBookings: !!formData.get('autoApproveBookings'),
         requireScreening: !!formData.get('requireScreening'),
 
+        // Payment settings
+        paymentLink: formData.get('paymentLink'),
+        paymentInstructions: formData.get('paymentInstructions'),
+
         // Listing platforms
         airbnbUrl: formData.get('airbnbListingUrl'),
         bookingComUrl: formData.get('bookingComUrl'),
@@ -308,6 +316,11 @@ async function handlePropertySubmit(event) {
             currentPropertyId ? 'Property updated!' : 'Property added!',
             'success'
         );
+
+        // Trigger workflow sync banner if editing existing property
+        if (currentPropertyId && response.needsSync && typeof WorkflowSync !== 'undefined') {
+            WorkflowSync.markNeedsSync(response.syncCategory || 'workflows');
+        }
 
         // Close modal
         closePropertyModal();

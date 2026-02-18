@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-11T08:42:42.180Z",
+  "updatedAt": "2026-02-13T05:52:48.448Z",
   "createdAt": "2026-02-09T10:16:30.161Z",
-  "id": "NPInwpKv4Oriq04F",
+  "id": "__WF_ID:WF2: Offer Conflict Manager__",
   "name": "WF2: Offer Conflict Manager",
   "description": null,
   "active": true,
@@ -10,15 +10,15 @@
     {
       "parameters": {
         "inputSource": "jsonExample",
-        "jsonExample": "{\n  \"query\": \"I want to book a room for next weekend\",\n  \"sender_id\": \"123456789\",\n  \"sender_name\": \"Guest\",\n  \"channel\": \"telegram\",\n  \"customer_id\": \"123456789\"\n}"
+        "jsonExample": "{\n  \"property_id\": \"PROP-001\",\n  \"check_in_date\": \"2026-02-14\",\n  \"check_out_date\": \"2026-02-20\",\n  \"sender_id\": \"123456789\",\n  \"sender_name\": \"Guest\",\n  \"channel\": \"telegram\",\n  \"customer_id\": \"00000000-0000-0000-0000-000000000001\"\n}"
       },
       "id": "entry-webhook",
       "name": "When Called by Other Workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        -64
+        -32,
+        -112
       ]
     },
     {
@@ -34,9 +34,8 @@
       "typeVersion": 2,
       "position": [
         -32,
-        848
-      ],
-      "webhookId": "ecc92255-d70d-4bce-a980-ca1e1ec6ebcc"
+        400
+      ]
     },
     {
       "parameters": {
@@ -49,13 +48,13 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        224,
-        -64
+        192,
+        -112
       ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -63,15 +62,15 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Merge incoming data with loaded context\nconst input = $('When Called by Other Workflow').item.json;\nconst context = $input.item.json;\n\nlet conversationHistory = [];\ntry {\n  conversationHistory = context.conversation_history ? JSON.parse(context.conversation_history) : [];\n} catch (e) {\n  conversationHistory = [];\n}\n\nlet collectedData = {};\ntry {\n  collectedData = context.collected_data ? JSON.parse(context.collected_data) : {};\n} catch (e) {\n  collectedData = {};\n}\n\n// Extract dates from message using regex patterns\nconst message = input.message_text || '';\nconst datePattern = /(\\d{4}-\\d{2}-\\d{2})/g;\nconst foundDates = message.match(datePattern) || [];\n\n// Try to extract check-in/check-out from collected data or message\nlet checkIn = collectedData.check_in || (foundDates[0] || null);\nlet checkOut = collectedData.check_out || (foundDates[1] || null);\n\nreturn {\n  // Session info\n  conversation_id: context.conversation_id || `conv_${Date.now()}`,\n  contact_id: input.sender_id,\n  channel: input.channel,\n  \n  // Current message\n  user_message: input.message_text,\n  is_callback: input.is_callback || false,\n  callback_data: input.callback_data || null,\n  \n  // Conversation state\n  stage: context.conversation_stage || 'greeting',\n  history: conversationHistory,\n  collected: collectedData,\n  \n  // Property info (if associated)\n  property_id: context.property_id || input.property_id || null,\n  property_name: context.property_name || null,\n  property_type: context.property_type || null,\n  base_price: context.base_price || null,\n  max_guests: context.max_guests || null,\n  amenities: context.amenities || null,\n  house_rules: context.house_rules || null,\n  check_in_time: context.check_in_time || '15:00',\n  check_out_time: context.check_out_time || '11:00',\n  owner_name: context.owner_name || null,\n  owner_contact: context.owner_contact || null,\n  preferred_platform: context.preferred_platform || 'telegram',\n  \n  // Dates for competing offer check\n  detected_check_in: checkIn,\n  detected_check_out: checkOut,\n  \n  // AI context\n  ai_category: input.category || 'BOOKING_INQUIRY',\n  ai_confidence: input.confidence || 0.8,\n  suggested_response: input.suggested_response || null\n};"
+        "jsCode": "// Merge incoming data with loaded context\nconst input = $('When Called by Other Workflow').item.json;\nconst context = $input.item.json;\n\nlet conversationHistory = [];\ntry {\n  conversationHistory = context.conversation_history ? JSON.parse(context.conversation_history) : [];\n} catch (e) {\n  conversationHistory = [];\n}\n\nlet collectedData = {};\ntry {\n  collectedData = context.collected_data ? JSON.parse(context.collected_data) : {};\n} catch (e) {\n  collectedData = {};\n}\n\n// Use WF1's explicit fields first, fall back to context/regex\nlet checkIn = input.check_in_date || collectedData.check_in || null;\nlet checkOut = input.check_out_date || collectedData.check_out || null;\nconst propertyId = input.property_id || context.property_id || null;\n\n// Fallback: try regex extraction from message text if dates not provided\nif (!checkIn || !checkOut) {\n  const message = input.message_text || input.query || '';\n  const datePattern = /(\\d{4}-\\d{2}-\\d{2})/g;\n  const foundDates = message.match(datePattern) || [];\n  if (!checkIn && foundDates[0]) checkIn = foundDates[0];\n  if (!checkOut && foundDates[1]) checkOut = foundDates[1];\n}\n\nreturn {\n  // Session info\n  conversation_id: context.conversation_id || `conv_${Date.now()}`,\n  contact_id: input.sender_id,\n  channel: input.channel,\n\n  // Current message\n  user_message: input.message_text || input.query || '',\n  is_callback: input.is_callback || false,\n  callback_data: input.callback_data || null,\n\n  // Conversation state\n  stage: context.conversation_stage || 'greeting',\n  history: conversationHistory,\n  collected: collectedData,\n\n  // Property info — prefer WF1 input, then DB context\n  property_id: propertyId,\n  property_name: context.property_name || null,\n  property_type: context.property_type || null,\n  base_price: context.base_price || null,\n  max_guests: context.max_guests || null,\n  amenities: context.amenities || null,\n  house_rules: context.house_rules || null,\n  check_in_time: context.check_in_time || '15:00',\n  check_out_time: context.check_out_time || '11:00',\n  owner_name: context.owner_name || null,\n  owner_contact: context.owner_contact || null,\n  preferred_platform: context.preferred_platform || 'telegram',\n\n  // Dates for competing offer check — from WF1 input\n  detected_check_in: checkIn,\n  detected_check_out: checkOut,\n\n  // AI context\n  ai_category: input.category || 'BOOKING_INQUIRY',\n  ai_confidence: input.confidence || 0.8,\n  suggested_response: input.suggested_response || null\n};"
       },
       "id": "prepare-context",
       "name": "Prepare Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        448,
-        -64
+        416,
+        -112
       ]
     },
     {
@@ -85,13 +84,13 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        672,
-        -64
+        640,
+        -112
       ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -105,8 +104,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        896,
-        -64
+        864,
+        -112
       ]
     },
     {
@@ -138,8 +137,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1120,
-        -64
+        1088,
+        -112
       ]
     },
     {
@@ -152,7 +151,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1664,
+        1312,
         -208
       ]
     },
@@ -322,12 +321,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2192,
+        1536,
         -208
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -363,12 +362,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2416,
+        1760,
         -208
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -433,7 +432,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        2640,
+        1984,
         -224
       ]
     },
@@ -451,13 +450,12 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2864,
+        2208,
         -304
       ],
-      "webhookId": "99e3c796-d1ed-4238-a8f5-30de173759b1",
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -474,7 +472,7 @@
       "type": "n8n-nodes-base.twilio",
       "typeVersion": 1,
       "position": [
-        2864,
+        2208,
         -112
       ],
       "credentials": {
@@ -501,7 +499,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        3088,
+        2432,
         -208
       ]
     },
@@ -515,7 +513,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3312,
+        2656,
         -208
       ]
     },
@@ -619,12 +617,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        3536,
+        2880,
         -208
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -639,7 +637,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3984,
+        3104,
         -208
       ]
     },
@@ -654,7 +652,7 @@
       "typeVersion": 2,
       "position": [
         192,
-        848
+        400
       ]
     },
     {
@@ -737,7 +735,7 @@
       "typeVersion": 3.4,
       "position": [
         416,
-        832
+        384
       ]
     },
     {
@@ -752,11 +750,11 @@
       "typeVersion": 2.5,
       "position": [
         640,
-        656
+        208
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -772,7 +770,7 @@
       "typeVersion": 2,
       "position": [
         864,
-        656
+        208
       ]
     },
     {
@@ -780,7 +778,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -798,7 +797,7 @@
       "typeVersion": 1.2,
       "position": [
         1088,
-        656
+        208
       ]
     },
     {
@@ -811,7 +810,7 @@
       "typeVersion": 2,
       "position": [
         1312,
-        656
+        208
       ]
     },
     {
@@ -819,7 +818,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -837,7 +837,7 @@
       "typeVersion": 1.2,
       "position": [
         1536,
-        656
+        208
       ]
     },
     {
@@ -852,11 +852,11 @@
       "typeVersion": 2.5,
       "position": [
         1760,
-        656
+        208
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -873,7 +873,7 @@
       "typeVersion": 1.1,
       "position": [
         1984,
-        656
+        208
       ]
     },
     {
@@ -888,11 +888,11 @@
       "typeVersion": 2.5,
       "position": [
         640,
-        848
+        400
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -907,7 +907,7 @@
       "typeVersion": 2,
       "position": [
         864,
-        848
+        400
       ]
     },
     {
@@ -915,7 +915,8 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -933,7 +934,7 @@
       "typeVersion": 1.2,
       "position": [
         1088,
-        848
+        400
       ]
     },
     {
@@ -948,7 +949,7 @@
       "typeVersion": 1.1,
       "position": [
         1312,
-        848
+        400
       ]
     },
     {
@@ -963,11 +964,11 @@
       "typeVersion": 2.5,
       "position": [
         640,
-        1040
+        592
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -984,7 +985,7 @@
       "typeVersion": 1.1,
       "position": [
         864,
-        1040
+        592
       ]
     },
     {
@@ -996,8 +997,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1700,
-        260
+        1312,
+        -16
       ]
     }
   ],
@@ -1354,92 +1355,26 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "versionId": "708096dd-1912-4843-93de-6f760fa8176a",
-  "activeVersionId": "708096dd-1912-4843-93de-6f760fa8176a",
-  "versionCounter": 113,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-09T10:16:30.164Z",
-      "createdAt": "2026-02-09T10:16:30.164Z",
-      "role": "workflow:owner",
-      "workflowId": "NPInwpKv4Oriq04F",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-11T05:04:49.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-11",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    },
-    {
-      "updatedAt": "2026-02-03T04:47:33.564Z",
-      "createdAt": "2026-02-03T04:47:33.564Z",
-      "id": "xCWi7bUOrifTJb4J",
-      "name": "AI-Agent"
-    }
-  ],
+  "activeVersionId": "b42d85b1-ba08-4375-8330-6470d54ba1f3",
+  "versionCounter": 118,
   "activeVersion": {
-    "updatedAt": "2026-02-11T08:42:42.182Z",
-    "createdAt": "2026-02-11T08:42:42.182Z",
-    "versionId": "708096dd-1912-4843-93de-6f760fa8176a",
-    "workflowId": "NPInwpKv4Oriq04F",
+    "updatedAt": "2026-02-13T05:52:48.451Z",
+    "createdAt": "2026-02-13T05:52:48.451Z",
+    "versionId": "b42d85b1-ba08-4375-8330-6470d54ba1f3",
+    "workflowId": "__WF_ID:WF2: Offer Conflict Manager__",
     "nodes": [
       {
         "parameters": {
           "inputSource": "jsonExample",
-          "jsonExample": "{\n  \"query\": \"I want to book a room for next weekend\",\n  \"sender_id\": \"123456789\",\n  \"sender_name\": \"Guest\",\n  \"channel\": \"telegram\",\n  \"customer_id\": \"123456789\"\n}"
+          "jsonExample": "{\n  \"property_id\": \"PROP-001\",\n  \"check_in_date\": \"2026-02-14\",\n  \"check_out_date\": \"2026-02-20\",\n  \"sender_id\": \"123456789\",\n  \"sender_name\": \"Guest\",\n  \"channel\": \"telegram\",\n  \"customer_id\": \"00000000-0000-0000-0000-000000000001\"\n}"
         },
         "id": "entry-webhook",
         "name": "When Called by Other Workflow",
         "type": "n8n-nodes-base.executeWorkflowTrigger",
         "typeVersion": 1.1,
         "position": [
-          0,
-          -64
+          -32,
+          -112
         ]
       },
       {
@@ -1455,7 +1390,7 @@
         "typeVersion": 2,
         "position": [
           -32,
-          848
+          400
         ],
         "webhookId": "ecc92255-d70d-4bce-a980-ca1e1ec6ebcc"
       },
@@ -1470,13 +1405,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          224,
-          -64
+          192,
+          -112
         ],
         "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1484,15 +1419,15 @@
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "// Merge incoming data with loaded context\nconst input = $('When Called by Other Workflow').item.json;\nconst context = $input.item.json;\n\nlet conversationHistory = [];\ntry {\n  conversationHistory = context.conversation_history ? JSON.parse(context.conversation_history) : [];\n} catch (e) {\n  conversationHistory = [];\n}\n\nlet collectedData = {};\ntry {\n  collectedData = context.collected_data ? JSON.parse(context.collected_data) : {};\n} catch (e) {\n  collectedData = {};\n}\n\n// Extract dates from message using regex patterns\nconst message = input.message_text || '';\nconst datePattern = /(\\d{4}-\\d{2}-\\d{2})/g;\nconst foundDates = message.match(datePattern) || [];\n\n// Try to extract check-in/check-out from collected data or message\nlet checkIn = collectedData.check_in || (foundDates[0] || null);\nlet checkOut = collectedData.check_out || (foundDates[1] || null);\n\nreturn {\n  // Session info\n  conversation_id: context.conversation_id || `conv_${Date.now()}`,\n  contact_id: input.sender_id,\n  channel: input.channel,\n  \n  // Current message\n  user_message: input.message_text,\n  is_callback: input.is_callback || false,\n  callback_data: input.callback_data || null,\n  \n  // Conversation state\n  stage: context.conversation_stage || 'greeting',\n  history: conversationHistory,\n  collected: collectedData,\n  \n  // Property info (if associated)\n  property_id: context.property_id || input.property_id || null,\n  property_name: context.property_name || null,\n  property_type: context.property_type || null,\n  base_price: context.base_price || null,\n  max_guests: context.max_guests || null,\n  amenities: context.amenities || null,\n  house_rules: context.house_rules || null,\n  check_in_time: context.check_in_time || '15:00',\n  check_out_time: context.check_out_time || '11:00',\n  owner_name: context.owner_name || null,\n  owner_contact: context.owner_contact || null,\n  preferred_platform: context.preferred_platform || 'telegram',\n  \n  // Dates for competing offer check\n  detected_check_in: checkIn,\n  detected_check_out: checkOut,\n  \n  // AI context\n  ai_category: input.category || 'BOOKING_INQUIRY',\n  ai_confidence: input.confidence || 0.8,\n  suggested_response: input.suggested_response || null\n};"
+          "jsCode": "// Merge incoming data with loaded context\nconst input = $('When Called by Other Workflow').item.json;\nconst context = $input.item.json;\n\nlet conversationHistory = [];\ntry {\n  conversationHistory = context.conversation_history ? JSON.parse(context.conversation_history) : [];\n} catch (e) {\n  conversationHistory = [];\n}\n\nlet collectedData = {};\ntry {\n  collectedData = context.collected_data ? JSON.parse(context.collected_data) : {};\n} catch (e) {\n  collectedData = {};\n}\n\n// Use WF1's explicit fields first, fall back to context/regex\nlet checkIn = input.check_in_date || collectedData.check_in || null;\nlet checkOut = input.check_out_date || collectedData.check_out || null;\nconst propertyId = input.property_id || context.property_id || null;\n\n// Fallback: try regex extraction from message text if dates not provided\nif (!checkIn || !checkOut) {\n  const message = input.message_text || input.query || '';\n  const datePattern = /(\\d{4}-\\d{2}-\\d{2})/g;\n  const foundDates = message.match(datePattern) || [];\n  if (!checkIn && foundDates[0]) checkIn = foundDates[0];\n  if (!checkOut && foundDates[1]) checkOut = foundDates[1];\n}\n\nreturn {\n  // Session info\n  conversation_id: context.conversation_id || `conv_${Date.now()}`,\n  contact_id: input.sender_id,\n  channel: input.channel,\n\n  // Current message\n  user_message: input.message_text || input.query || '',\n  is_callback: input.is_callback || false,\n  callback_data: input.callback_data || null,\n\n  // Conversation state\n  stage: context.conversation_stage || 'greeting',\n  history: conversationHistory,\n  collected: collectedData,\n\n  // Property info — prefer WF1 input, then DB context\n  property_id: propertyId,\n  property_name: context.property_name || null,\n  property_type: context.property_type || null,\n  base_price: context.base_price || null,\n  max_guests: context.max_guests || null,\n  amenities: context.amenities || null,\n  house_rules: context.house_rules || null,\n  check_in_time: context.check_in_time || '15:00',\n  check_out_time: context.check_out_time || '11:00',\n  owner_name: context.owner_name || null,\n  owner_contact: context.owner_contact || null,\n  preferred_platform: context.preferred_platform || 'telegram',\n\n  // Dates for competing offer check — from WF1 input\n  detected_check_in: checkIn,\n  detected_check_out: checkOut,\n\n  // AI context\n  ai_category: input.category || 'BOOKING_INQUIRY',\n  ai_confidence: input.confidence || 0.8,\n  suggested_response: input.suggested_response || null\n};"
         },
         "id": "prepare-context",
         "name": "Prepare Context",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          448,
-          -64
+          416,
+          -112
         ]
       },
       {
@@ -1506,13 +1441,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          672,
-          -64
+          640,
+          -112
         ],
         "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1526,8 +1461,8 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          896,
-          -64
+          864,
+          -112
         ]
       },
       {
@@ -1559,8 +1494,8 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
         "position": [
-          1120,
-          -64
+          1088,
+          -112
         ]
       },
       {
@@ -1573,7 +1508,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1664,
+          1312,
           -208
         ]
       },
@@ -1743,12 +1678,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          2192,
+          1536,
           -208
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1784,12 +1719,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          2416,
+          1760,
           -208
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -1854,7 +1789,7 @@
         "type": "n8n-nodes-base.switch",
         "typeVersion": 3.4,
         "position": [
-          2640,
+          1984,
           -224
         ]
       },
@@ -1872,13 +1807,13 @@
         "type": "n8n-nodes-base.telegram",
         "typeVersion": 1.2,
         "position": [
-          2864,
+          2208,
           -304
         ],
         "webhookId": "99e3c796-d1ed-4238-a8f5-30de173759b1",
         "credentials": {
           "telegramApi": {
-            "id": "6ltptOrFLUaZzC1C",
+            "id": "telegram-cred",
             "name": "[Client] Telegram Bot"
           }
         }
@@ -1895,7 +1830,7 @@
         "type": "n8n-nodes-base.twilio",
         "typeVersion": 1,
         "position": [
-          2864,
+          2208,
           -112
         ],
         "credentials": {
@@ -1922,7 +1857,7 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.3,
         "position": [
-          3088,
+          2432,
           -208
         ]
       },
@@ -1936,7 +1871,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          3312,
+          2656,
           -208
         ]
       },
@@ -2040,12 +1975,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          3536,
+          2880,
           -208
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2060,7 +1995,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          3984,
+          3104,
           -208
         ]
       },
@@ -2075,7 +2010,7 @@
         "typeVersion": 2,
         "position": [
           192,
-          848
+          400
         ]
       },
       {
@@ -2158,7 +2093,7 @@
         "typeVersion": 3.4,
         "position": [
           416,
-          832
+          384
         ]
       },
       {
@@ -2173,11 +2108,11 @@
         "typeVersion": 2.5,
         "position": [
           640,
-          656
+          208
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2193,7 +2128,7 @@
         "typeVersion": 2,
         "position": [
           864,
-          656
+          208
         ]
       },
       {
@@ -2201,7 +2136,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "UZMWfhnV6JmuwJXC"
+            "value": "__WF_ID:SUB: Universal Messenger__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -2219,7 +2154,7 @@
         "typeVersion": 1.2,
         "position": [
           1088,
-          656
+          208
         ]
       },
       {
@@ -2232,7 +2167,7 @@
         "typeVersion": 2,
         "position": [
           1312,
-          656
+          208
         ]
       },
       {
@@ -2240,7 +2175,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "UZMWfhnV6JmuwJXC"
+            "value": "__WF_ID:SUB: Universal Messenger__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -2258,7 +2193,7 @@
         "typeVersion": 1.2,
         "position": [
           1536,
-          656
+          208
         ]
       },
       {
@@ -2273,11 +2208,11 @@
         "typeVersion": 2.5,
         "position": [
           1760,
-          656
+          208
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2294,7 +2229,7 @@
         "typeVersion": 1.1,
         "position": [
           1984,
-          656
+          208
         ]
       },
       {
@@ -2309,11 +2244,11 @@
         "typeVersion": 2.5,
         "position": [
           640,
-          848
+          400
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2328,7 +2263,7 @@
         "typeVersion": 2,
         "position": [
           864,
-          848
+          400
         ]
       },
       {
@@ -2336,7 +2271,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "UZMWfhnV6JmuwJXC"
+            "value": "__WF_ID:SUB: Universal Messenger__"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
@@ -2354,7 +2289,7 @@
         "typeVersion": 1.2,
         "position": [
           1088,
-          848
+          400
         ]
       },
       {
@@ -2369,7 +2304,7 @@
         "typeVersion": 1.1,
         "position": [
           1312,
-          848
+          400
         ]
       },
       {
@@ -2384,11 +2319,11 @@
         "typeVersion": 2.5,
         "position": [
           640,
-          1040
+          592
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -2405,7 +2340,7 @@
         "typeVersion": 1.1,
         "position": [
           864,
-          1040
+          592
         ]
       },
       {
@@ -2417,8 +2352,8 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1700,
-          260
+          1312,
+          -16
         ]
       }
     ],
@@ -2773,10 +2708,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-11T08:42:43.712Z",
-        "id": 213,
-        "workflowId": "NPInwpKv4Oriq04F",
-        "versionId": "708096dd-1912-4843-93de-6f760fa8176a",
+        "createdAt": "2026-02-13T05:52:49.936Z",
+        "id": 255,
+        "workflowId": "__WF_ID:WF2: Offer Conflict Manager__",
+        "versionId": "b42d85b1-ba08-4375-8330-6470d54ba1f3",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }

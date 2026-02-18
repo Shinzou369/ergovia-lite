@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-12T06:41:59.537Z",
+  "updatedAt": "2026-02-13T04:51:30.232Z",
   "createdAt": "2026-02-06T08:45:15.955Z",
-  "id": "pEn69kwNtCEQ21y9",
+  "id": "__WF_ID:WF3: Calendar Manager__",
   "name": "WF3: Calendar Manager",
   "description": null,
   "active": true,
@@ -23,7 +23,7 @@
       "typeVersion": 1.2,
       "position": [
         0,
-        168
+        -296
       ]
     },
     {
@@ -36,7 +36,7 @@
       "typeVersion": 1.1,
       "position": [
         0,
-        360
+        -104
       ]
     },
     {
@@ -50,7 +50,7 @@
       "typeVersion": 2,
       "position": [
         224,
-        264
+        -200
       ]
     },
     {
@@ -64,12 +64,13 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        448,
-        264
+        672,
+        -104
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -83,8 +84,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        672,
-        264
+        896,
+        -104
       ]
     },
     {
@@ -98,16 +99,16 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        896,
-        0
+        1120,
+        -368
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
       "parameters": {
@@ -118,8 +119,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
-        0
+        1344,
+        -368
       ]
     },
     {
@@ -150,8 +151,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1344,
-        0
+        1568,
+        -368
       ]
     },
     {
@@ -179,12 +180,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1568,
-        -96
+        1792,
+        -464
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -199,8 +200,8 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
       "position": [
-        1792,
-        -96
+        2016,
+        -464
       ]
     },
     {
@@ -214,12 +215,12 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        1864,
-        128
+        2088,
+        -240
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
+          "id": "openai-cred",
           "name": "[Client] OpenAI"
         }
       }
@@ -229,7 +230,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "list",
-          "value": "UZMWfhnV6JmuwJXC",
+          "value": "__WF_ID:SUB: Universal Messenger__",
           "cachedResultName": "SUB: Universal Messenger",
           "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
         },
@@ -237,7 +238,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "channel": "={{ $('Loop Properties').item.json.preferred_platform || 'telegram' }}",
-            "recipient": "={{ $('Loop Properties').item.json.owner_contact || $('Loop Properties').item.json.owner_telegram || $('Loop Properties').item.json.owner_phone || '' }}",
+            "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
             "message": "={{ $('Generate Alert').item.json.text }}"
           },
           "schema": [
@@ -268,8 +269,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2144,
-        168
+        2368,
+        -104
       ]
     },
     {
@@ -279,23 +280,89 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1568,
-        96
+        1792,
+        -272
       ]
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combineBy": "combineAll",
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "avail-check",
+              "leftValue": "={{ $json.is_availability_check }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
         "options": {}
       },
-      "id": "merge-results",
-      "name": "Merge Results",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
+      "id": "check-type",
+      "name": "Is Availability Check?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT\n  p.property_id, p.property_name, p.address, p.base_price, p.weekend_price,\n  p.cleaning_fee, p.max_guests, p.bedrooms, p.bathrooms,\n  p.min_stay_nights, p.max_stay_nights, p.settings,\n  CASE WHEN EXISTS (\n    SELECT 1 FROM bookings b\n    WHERE b.property_id = p.property_id\n    AND b.booking_status IN ('confirmed', 'pending')\n    AND b.check_in_date < '{{ $json.check_out_date }}'::date\n    AND b.check_out_date > '{{ $json.check_in_date }}'::date\n  ) THEN false ELSE true END as available,\n  (SELECT json_agg(json_build_object(\n    'booking_id', b.booking_id, 'guest_name', b.guest_name,\n    'check_in', b.check_in_date, 'check_out', b.check_out_date,\n    'status', b.booking_status\n  )) FROM bookings b\n  WHERE b.property_id = p.property_id\n  AND b.booking_status IN ('confirmed', 'pending')\n  AND b.check_in_date < '{{ $json.check_out_date }}'::date\n  AND b.check_out_date > '{{ $json.check_in_date }}'::date\n  ) as conflicting_bookings,\n  (SELECT COUNT(*) FROM bookings b\n  WHERE b.property_id = p.property_id\n  AND b.booking_status IN ('confirmed', 'pending')\n  AND b.check_out_date >= CURRENT_DATE\n  ) as total_upcoming_bookings\nFROM property_configurations p\nWHERE p.property_status = 'active'\n  AND (p.property_id = '{{ $json.property_id }}' OR '{{ $json.property_id }}' = '' OR '{{ $json.property_id }}' = 'null')\nORDER BY p.property_name",
+        "options": {}
+      },
+      "id": "check-availability",
+      "name": "Check Availability",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        -296
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format availability check response for WF1 AI Agent\n// Includes price calculation so agent doesn't need a separate tool call\nconst items = $input.all();\nconst params = $('Prepare Parameters').item.json;\n\n// Filter out empty objects from \"always output data\" (no rows returned)\nconst validItems = items.filter(item => item.json.property_id);\n\nconst nightsRequested = Math.ceil(\n  (new Date(params.check_out_date) - new Date(params.check_in_date)) / (1000 * 60 * 60 * 24)\n);\n\n// If no properties found at all, return early with clear message\nif (validItems.length === 0) {\n  return [{\n    json: {\n      status: 'SUCCESS',\n      check_in: params.check_in_date,\n      check_out: params.check_out_date,\n      nights: nightsRequested,\n      total_properties: 0,\n      available_count: 0,\n      unavailable_count: 0,\n      properties: [],\n      summary: 'No properties configured yet. Please add properties in the control panel first.'\n    }\n  }];\n}\n\nconst results = validItems.map(item => {\n  const p = item.json;\n\n  // Check minimum stay\n  const minStay = p.min_stay_nights || 1;\n  const meetsMinStay = nightsRequested >= minStay;\n\n  // available comes from the SQL CASE WHEN EXISTS query (true = no overlapping bookings)\n  const isAvailable = p.available === true;\n\n  let reason = null;\n  if (!isAvailable) reason = 'dates_booked';\n  else if (!meetsMinStay) reason = 'min_stay_' + minStay + '_nights';\n\n  const available = isAvailable && meetsMinStay;\n\n  // Calculate price breakdown for available properties\n  let pricing = null;\n  if (available) {\n    const basePrice = parseFloat(p.base_price || 0);\n    const weekendPrice = parseFloat(p.weekend_price || 0);\n    const cleaningFee = parseFloat(p.cleaning_fee || 0);\n\n    // Count weekday vs weekend nights\n    let weekdayNights = 0;\n    let weekendNights = 0;\n    const start = new Date(params.check_in_date);\n    for (let d = 0; d < nightsRequested; d++) {\n      const day = new Date(start);\n      day.setDate(day.getDate() + d);\n      const dow = day.getDay(); // 0=Sun, 5=Fri, 6=Sat\n      if (dow === 5 || dow === 6) {\n        weekendNights++;\n      } else {\n        weekdayNights++;\n      }\n    }\n\n    const nightlyTotal = (weekdayNights * basePrice) + (weekendNights * (weekendPrice || basePrice));\n    const serviceFee = Math.round(nightlyTotal * 0.12 * 100) / 100;\n\n    // Auto weekly discount (10% for 7+ nights)\n    let weeklyDiscount = 0;\n    if (nightsRequested >= 7) {\n      weeklyDiscount = Math.round(nightlyTotal * 0.10 * 100) / 100;\n    }\n\n    const total = Math.round((nightlyTotal - weeklyDiscount + cleaningFee + serviceFee) * 100) / 100;\n\n    pricing = {\n      weekday_nights: weekdayNights,\n      weekend_nights: weekendNights,\n      base_price_per_night: basePrice,\n      weekend_price_per_night: weekendPrice || basePrice,\n      nightly_subtotal: Math.round(nightlyTotal * 100) / 100,\n      weekly_discount: weeklyDiscount,\n      cleaning_fee: cleaningFee,\n      service_fee: serviceFee,\n      total: total,\n      currency: 'USD'\n    };\n  }\n\n  return {\n    property_id: p.property_id,\n    property_name: p.property_name,\n    address: p.address || '',\n    available: available,\n    reason_unavailable: available ? null : reason,\n    base_price: parseFloat(p.base_price || 0),\n    weekend_price: parseFloat(p.weekend_price || 0),\n    cleaning_fee: parseFloat(p.cleaning_fee || 0),\n    max_guests: p.max_guests || 0,\n    bedrooms: p.bedrooms || 0,\n    bathrooms: p.bathrooms || 0,\n    min_stay_nights: minStay,\n    conflicting_bookings: p.conflicting_bookings || [],\n    total_upcoming_bookings: parseInt(p.total_upcoming_bookings || 0),\n    pricing: pricing\n  };\n});\n\nconst available = results.filter(r => r.available);\nconst unavailable = results.filter(r => !r.available);\n\nlet summary = '';\nif (available.length > 0) {\n  const first = available[0];\n  summary = available.length + ' propert' + (available.length === 1 ? 'y' : 'ies') +\n    ' available for ' + params.check_in_date + ' to ' + params.check_out_date +\n    ' (' + nightsRequested + ' night' + (nightsRequested === 1 ? '' : 's') + ')';\n  if (first.pricing) {\n    summary += '. ' + first.property_name + ': $' + first.pricing.total + ' total';\n  }\n} else if (results.length > 0) {\n  summary = 'No properties available for ' + params.check_in_date + ' to ' + params.check_out_date +\n    ' — all ' + results.length + ' propert' + (results.length === 1 ? 'y is' : 'ies are') +\n    ' ' + (results[0].reason_unavailable || 'unavailable');\n} else {\n  summary = 'No properties configured yet';\n}\n\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    check_in: params.check_in_date,\n    check_out: params.check_out_date,\n    nights: nightsRequested,\n    total_properties: results.length,\n    available_count: available.length,\n    unavailable_count: unavailable.length,\n    properties: results,\n    summary: summary\n  }\n}];"
+      },
+      "id": "format-availability",
+      "name": "Format Availability Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         896,
-        192
+        -296
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build daily sync summary — returns data (tool output or cron log)\n// Safely get conflict results (may not exist if no properties)\nlet allResults = [];\ntry {\n  allResults = $('Detect Conflicts').all();\n} catch(e) {\n  // No properties were processed, Detect Conflicts never ran\n}\n\nlet propertyCount = 0;\ntry {\n  propertyCount = $input.all().length;\n} catch(e) {}\n\nlet totalConflicts = 0;\nconst conflictDetails = [];\n\nfor (const item of allResults) {\n  const r = item.json;\n  if (r.has_conflicts) {\n    totalConflicts += r.conflicts.length;\n    conflictDetails.push({\n      property: r.property_name,\n      property_id: r.property_id,\n      conflicts: r.conflicts\n    });\n  }\n}\n\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    action: 'calendar_sync',\n    timestamp: new Date().toISOString(),\n    properties_scanned: propertyCount,\n    total_conflicts: totalConflicts,\n    conflict_details: conflictDetails,\n    summary: propertyCount === 0\n      ? 'No active properties configured yet.'\n      : totalConflicts > 0\n        ? totalConflicts + ' booking conflict(s) found across ' + conflictDetails.length + ' properties. Individual alerts have been sent.'\n        : 'All ' + propertyCount + ' properties synced — no booking conflicts detected.'\n  }\n}];"
+      },
+      "id": "build-sync-summary",
+      "name": "Build Sync Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -176
       ]
     }
   ],
@@ -326,7 +393,7 @@
       "main": [
         [
           {
-            "node": "Get Properties",
+            "node": "Is Availability Check?",
             "type": "main",
             "index": 0
           }
@@ -355,7 +422,7 @@
         ],
         [
           {
-            "node": "Merge Results",
+            "node": "Build Sync Summary",
             "type": "main",
             "index": 0
           }
@@ -456,6 +523,35 @@
           }
         ]
       ]
+    },
+    "Is Availability Check?": {
+      "main": [
+        [
+          {
+            "node": "Check Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability": {
+      "main": [
+        [
+          {
+            "node": "Format Availability Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -473,86 +569,20 @@
     "When Called by Other Workflow": [
       {
         "json": {
-          "property_id": null,
+          "property_id": "PROP-TEST-001",
           "check_in_date": "2026-02-14",
           "check_out_date": "2026-02-15"
         }
       }
     ]
   },
-  "versionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
-  "activeVersionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
-  "versionCounter": 25,
-  "triggerCount": 1,
-  "shared": [
-    {
-      "updatedAt": "2026-02-06T08:45:15.957Z",
-      "createdAt": "2026-02-06T08:45:15.957Z",
-      "role": "workflow:owner",
-      "workflowId": "pEn69kwNtCEQ21y9",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-12T06:08:15.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-12",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    },
-    {
-      "updatedAt": "2026-02-03T04:47:35.753Z",
-      "createdAt": "2026-02-03T04:47:35.753Z",
-      "id": "xXzewijfO4PNYRXd",
-      "name": "Scheduled"
-    }
-  ],
+  "activeVersionId": "51db55f4-8768-4dfa-a8b3-8a734fa339a8",
+  "versionCounter": 102,
   "activeVersion": {
-    "updatedAt": "2026-02-12T06:41:59.539Z",
-    "createdAt": "2026-02-12T06:41:59.539Z",
-    "versionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
-    "workflowId": "pEn69kwNtCEQ21y9",
+    "updatedAt": "2026-02-12T10:27:40.132Z",
+    "createdAt": "2026-02-12T10:27:40.132Z",
+    "versionId": "51db55f4-8768-4dfa-a8b3-8a734fa339a8",
+    "workflowId": "__WF_ID:WF3: Calendar Manager__",
     "nodes": [
       {
         "parameters": {
@@ -570,7 +600,7 @@
         "typeVersion": 1.2,
         "position": [
           0,
-          168
+          -296
         ]
       },
       {
@@ -583,7 +613,7 @@
         "typeVersion": 1.1,
         "position": [
           0,
-          360
+          -104
         ]
       },
       {
@@ -597,7 +627,7 @@
         "typeVersion": 2,
         "position": [
           224,
-          264
+          -200
         ]
       },
       {
@@ -611,12 +641,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          448,
-          264
+          672,
+          -104
         ],
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -630,8 +661,8 @@
         "type": "n8n-nodes-base.splitInBatches",
         "typeVersion": 3,
         "position": [
-          672,
-          264
+          896,
+          -104
         ]
       },
       {
@@ -645,16 +676,16 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          896,
-          0
+          1120,
+          -368
         ],
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
-        },
-        "alwaysOutputData": true
+        }
       },
       {
         "parameters": {
@@ -665,8 +696,8 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1120,
-          0
+          1344,
+          -368
         ]
       },
       {
@@ -697,8 +728,8 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
         "position": [
-          1344,
-          0
+          1568,
+          -368
         ]
       },
       {
@@ -726,12 +757,12 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          1568,
-          -96
+          1792,
+          -464
         ],
         "credentials": {
           "postgres": {
-            "id": "BWlLUMKn64aZsHi8",
+            "id": "postgres-cred",
             "name": "[Client] PostgreSQL"
           }
         }
@@ -746,8 +777,8 @@
         "type": "@n8n/n8n-nodes-langchain.chainLlm",
         "typeVersion": 1.4,
         "position": [
-          1792,
-          -96
+          2016,
+          -464
         ]
       },
       {
@@ -761,12 +792,12 @@
         "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
         "typeVersion": 1,
         "position": [
-          1864,
-          128
+          2088,
+          -240
         ],
         "credentials": {
           "openAiApi": {
-            "id": "slpbr7aUaU6fqTfw",
+            "id": "openai-cred",
             "name": "[Client] OpenAI"
           }
         }
@@ -776,7 +807,7 @@
           "workflowId": {
             "__rl": true,
             "mode": "list",
-            "value": "UZMWfhnV6JmuwJXC",
+            "value": "__WF_ID:SUB: Universal Messenger__",
             "cachedResultName": "SUB: Universal Messenger",
             "cachedResultUrl": "/workflow/UZMWfhnV6JmuwJXC"
           },
@@ -784,7 +815,7 @@
             "mappingMode": "defineBelow",
             "value": {
               "channel": "={{ $('Loop Properties').item.json.preferred_platform || 'telegram' }}",
-              "recipient": "={{ $('Loop Properties').item.json.owner_contact || $('Loop Properties').item.json.owner_telegram || $('Loop Properties').item.json.owner_phone || '' }}",
+              "recipient": "={{ $('Loop Properties').item.json.owner_contact }}",
               "message": "={{ $('Generate Alert').item.json.text }}"
             },
             "schema": [
@@ -815,8 +846,8 @@
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.2,
         "position": [
-          2144,
-          168
+          2368,
+          -104
         ]
       },
       {
@@ -826,23 +857,89 @@
         "type": "n8n-nodes-base.noOp",
         "typeVersion": 1,
         "position": [
-          1568,
-          96
+          1792,
+          -272
         ]
       },
       {
         "parameters": {
-          "mode": "combine",
-          "combineBy": "combineAll",
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "avail-check",
+                "leftValue": "={{ $json.is_availability_check }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
           "options": {}
         },
-        "id": "merge-results",
-        "name": "Merge Results",
-        "type": "n8n-nodes-base.merge",
-        "typeVersion": 3,
+        "id": "check-type",
+        "name": "Is Availability Check?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          448,
+          -200
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT\n  p.property_id, p.property_name, p.address, p.base_price, p.weekend_price,\n  p.cleaning_fee, p.max_guests, p.bedrooms, p.bathrooms,\n  p.min_stay_nights, p.max_stay_nights, p.settings,\n  CASE WHEN EXISTS (\n    SELECT 1 FROM bookings b\n    WHERE b.property_id = p.property_id\n    AND b.booking_status IN ('confirmed', 'pending')\n    AND b.check_in_date < '{{ $json.check_out_date }}'::date\n    AND b.check_out_date > '{{ $json.check_in_date }}'::date\n  ) THEN false ELSE true END as available,\n  (SELECT json_agg(json_build_object(\n    'booking_id', b.booking_id, 'guest_name', b.guest_name,\n    'check_in', b.check_in_date, 'check_out', b.check_out_date,\n    'status', b.booking_status\n  )) FROM bookings b\n  WHERE b.property_id = p.property_id\n  AND b.booking_status IN ('confirmed', 'pending')\n  AND b.check_in_date < '{{ $json.check_out_date }}'::date\n  AND b.check_out_date > '{{ $json.check_in_date }}'::date\n  ) as conflicting_bookings,\n  (SELECT COUNT(*) FROM bookings b\n  WHERE b.property_id = p.property_id\n  AND b.booking_status IN ('confirmed', 'pending')\n  AND b.check_out_date >= CURRENT_DATE\n  ) as total_upcoming_bookings\nFROM property_configurations p\nWHERE p.property_status = 'active'\n  AND (p.property_id = '{{ $json.property_id }}' OR '{{ $json.property_id }}' = '' OR '{{ $json.property_id }}' = 'null')\nORDER BY p.property_name",
+          "options": {}
+        },
+        "id": "check-availability",
+        "name": "Check Availability",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          672,
+          -296
+        ],
+        "alwaysOutputData": true,
+        "credentials": {
+          "postgres": {
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Format availability check response for WF1 AI Agent\n// Includes price calculation so agent doesn't need a separate tool call\nconst items = $input.all();\nconst params = $('Prepare Parameters').item.json;\n\n// Filter out empty objects from \"always output data\" (no rows returned)\nconst validItems = items.filter(item => item.json.property_id);\n\nconst nightsRequested = Math.ceil(\n  (new Date(params.check_out_date) - new Date(params.check_in_date)) / (1000 * 60 * 60 * 24)\n);\n\n// If no properties found at all, return early with clear message\nif (validItems.length === 0) {\n  return [{\n    json: {\n      status: 'SUCCESS',\n      check_in: params.check_in_date,\n      check_out: params.check_out_date,\n      nights: nightsRequested,\n      total_properties: 0,\n      available_count: 0,\n      unavailable_count: 0,\n      properties: [],\n      summary: 'No properties configured yet. Please add properties in the control panel first.'\n    }\n  }];\n}\n\nconst results = validItems.map(item => {\n  const p = item.json;\n\n  // Check minimum stay\n  const minStay = p.min_stay_nights || 1;\n  const meetsMinStay = nightsRequested >= minStay;\n\n  // available comes from the SQL CASE WHEN EXISTS query (true = no overlapping bookings)\n  const isAvailable = p.available === true;\n\n  let reason = null;\n  if (!isAvailable) reason = 'dates_booked';\n  else if (!meetsMinStay) reason = 'min_stay_' + minStay + '_nights';\n\n  const available = isAvailable && meetsMinStay;\n\n  // Calculate price breakdown for available properties\n  let pricing = null;\n  if (available) {\n    const basePrice = parseFloat(p.base_price || 0);\n    const weekendPrice = parseFloat(p.weekend_price || 0);\n    const cleaningFee = parseFloat(p.cleaning_fee || 0);\n\n    // Count weekday vs weekend nights\n    let weekdayNights = 0;\n    let weekendNights = 0;\n    const start = new Date(params.check_in_date);\n    for (let d = 0; d < nightsRequested; d++) {\n      const day = new Date(start);\n      day.setDate(day.getDate() + d);\n      const dow = day.getDay(); // 0=Sun, 5=Fri, 6=Sat\n      if (dow === 5 || dow === 6) {\n        weekendNights++;\n      } else {\n        weekdayNights++;\n      }\n    }\n\n    const nightlyTotal = (weekdayNights * basePrice) + (weekendNights * (weekendPrice || basePrice));\n    const serviceFee = Math.round(nightlyTotal * 0.12 * 100) / 100;\n\n    // Auto weekly discount (10% for 7+ nights)\n    let weeklyDiscount = 0;\n    if (nightsRequested >= 7) {\n      weeklyDiscount = Math.round(nightlyTotal * 0.10 * 100) / 100;\n    }\n\n    const total = Math.round((nightlyTotal - weeklyDiscount + cleaningFee + serviceFee) * 100) / 100;\n\n    pricing = {\n      weekday_nights: weekdayNights,\n      weekend_nights: weekendNights,\n      base_price_per_night: basePrice,\n      weekend_price_per_night: weekendPrice || basePrice,\n      nightly_subtotal: Math.round(nightlyTotal * 100) / 100,\n      weekly_discount: weeklyDiscount,\n      cleaning_fee: cleaningFee,\n      service_fee: serviceFee,\n      total: total,\n      currency: 'USD'\n    };\n  }\n\n  return {\n    property_id: p.property_id,\n    property_name: p.property_name,\n    address: p.address || '',\n    available: available,\n    reason_unavailable: available ? null : reason,\n    base_price: parseFloat(p.base_price || 0),\n    weekend_price: parseFloat(p.weekend_price || 0),\n    cleaning_fee: parseFloat(p.cleaning_fee || 0),\n    max_guests: p.max_guests || 0,\n    bedrooms: p.bedrooms || 0,\n    bathrooms: p.bathrooms || 0,\n    min_stay_nights: minStay,\n    conflicting_bookings: p.conflicting_bookings || [],\n    total_upcoming_bookings: parseInt(p.total_upcoming_bookings || 0),\n    pricing: pricing\n  };\n});\n\nconst available = results.filter(r => r.available);\nconst unavailable = results.filter(r => !r.available);\n\nlet summary = '';\nif (available.length > 0) {\n  const first = available[0];\n  summary = available.length + ' propert' + (available.length === 1 ? 'y' : 'ies') +\n    ' available for ' + params.check_in_date + ' to ' + params.check_out_date +\n    ' (' + nightsRequested + ' night' + (nightsRequested === 1 ? '' : 's') + ')';\n  if (first.pricing) {\n    summary += '. ' + first.property_name + ': $' + first.pricing.total + ' total';\n  }\n} else if (results.length > 0) {\n  summary = 'No properties available for ' + params.check_in_date + ' to ' + params.check_out_date +\n    ' — all ' + results.length + ' propert' + (results.length === 1 ? 'y is' : 'ies are') +\n    ' ' + (results[0].reason_unavailable || 'unavailable');\n} else {\n  summary = 'No properties configured yet';\n}\n\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    check_in: params.check_in_date,\n    check_out: params.check_out_date,\n    nights: nightsRequested,\n    total_properties: results.length,\n    available_count: available.length,\n    unavailable_count: unavailable.length,\n    properties: results,\n    summary: summary\n  }\n}];"
+        },
+        "id": "format-availability",
+        "name": "Format Availability Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
         "position": [
           896,
-          192
+          -288
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Build daily sync summary — returns data (tool output or cron log)\n// Safely get conflict results (may not exist if no properties)\nlet allResults = [];\ntry {\n  allResults = $('Detect Conflicts').all();\n} catch(e) {\n  // No properties were processed, Detect Conflicts never ran\n}\n\nlet propertyCount = 0;\ntry {\n  propertyCount = $input.all().length;\n} catch(e) {}\n\nlet totalConflicts = 0;\nconst conflictDetails = [];\n\nfor (const item of allResults) {\n  const r = item.json;\n  if (r.has_conflicts) {\n    totalConflicts += r.conflicts.length;\n    conflictDetails.push({\n      property: r.property_name,\n      property_id: r.property_id,\n      conflicts: r.conflicts\n    });\n  }\n}\n\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    action: 'calendar_sync',\n    timestamp: new Date().toISOString(),\n    properties_scanned: propertyCount,\n    total_conflicts: totalConflicts,\n    conflict_details: conflictDetails,\n    summary: propertyCount === 0\n      ? 'No active properties configured yet.'\n      : totalConflicts > 0\n        ? totalConflicts + ' booking conflict(s) found across ' + conflictDetails.length + ' properties. Individual alerts have been sent.'\n        : 'All ' + propertyCount + ' properties synced — no booking conflicts detected.'\n  }\n}];"
+        },
+        "id": "build-sync-summary",
+        "name": "Build Sync Summary",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          -176
         ]
       }
     ],
@@ -873,7 +970,7 @@
         "main": [
           [
             {
-              "node": "Get Properties",
+              "node": "Is Availability Check?",
               "type": "main",
               "index": 0
             }
@@ -902,7 +999,7 @@
           ],
           [
             {
-              "node": "Merge Results",
+              "node": "Build Sync Summary",
               "type": "main",
               "index": 0
             }
@@ -1003,6 +1100,35 @@
             }
           ]
         ]
+      },
+      "Is Availability Check?": {
+        "main": [
+          [
+            {
+              "node": "Check Availability",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Get Properties",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Availability": {
+        "main": [
+          [
+            {
+              "node": "Format Availability Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "authors": "Gabriel Erna",
@@ -1011,10 +1137,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-12T06:42:00.844Z",
-        "id": 217,
-        "workflowId": "pEn69kwNtCEQ21y9",
-        "versionId": "008cf929-4d58-45fb-b966-8e2a4f04b7a7",
+        "createdAt": "2026-02-12T10:27:41.642Z",
+        "id": 250,
+        "workflowId": "__WF_ID:WF3: Calendar Manager__",
+        "versionId": "51db55f4-8768-4dfa-a8b3-8a734fa339a8",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }

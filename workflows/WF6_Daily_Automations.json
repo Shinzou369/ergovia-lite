@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-11T07:51:44.516Z",
+  "updatedAt": "2026-02-16T06:24:57.959Z",
   "createdAt": "2026-02-06T08:45:22.437Z",
-  "id": "ccEOaNnIwY6eeJOn",
+  "id": "__WF_ID:WF6: Daily Automations__",
   "name": "WF6: Daily Automations",
   "description": null,
   "active": true,
@@ -88,7 +88,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\nconst dayOfMonth = now.getDate();\n\nlet automationType;\nif (dayOfMonth === 1 && hour === 0) {\n  automationType = 'monthly_reset';\n} else if (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
+        "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\nconst dayOfMonth = now.getDate();\n\nlet automationType;\nif (dayOfMonth === 1 && hour === 0) {\n  automationType = 'monthly_reset';\n} else if (hour === 2) {\n  automationType = 'nightly_maintenance';\n} else if (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
       },
       "id": "determine-type",
       "name": "Determine Automation",
@@ -190,6 +190,28 @@
               },
               "renameOutput": true,
               "outputKey": "monthly"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.automation_type }}",
+                    "rightValue": "nightly_maintenance",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "nightly"
             }
           ]
         },
@@ -207,7 +229,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(CASE WHEN b.check_in_date = CURRENT_DATE THEN 1 END) as checkins_today,\n  COUNT(CASE WHEN b.check_out_date = CURRENT_DATE THEN 1 END) as checkouts_today,\n  COUNT(CASE WHEN mt.status IN ('new', 'in_progress') THEN 1 END) as open_tickets\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id \n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.preferred_platform, p.customer_id",
+        "query": "SELECT\n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id,\n  COUNT(DISTINCT CASE WHEN b.check_in_date = CURRENT_DATE THEN b.booking_id END) as checkins_today,\n  COUNT(DISTINCT CASE WHEN b.check_out_date = CURRENT_DATE THEN b.booking_id END) as checkouts_today,\n  COUNT(DISTINCT CASE WHEN mt.status IN ('new', 'in_progress') THEN mt.ticket_id END) as open_tickets,\n  (SELECT COUNT(*) FROM manual_tasks WHERE status IN ('pending', 'in_progress')\n    AND related_property_id = p.property_id) as pending_tasks,\n  (SELECT COUNT(*) FROM conversations WHERE is_active = true\n    AND property_id = p.property_id\n    AND updated_at < NOW() - INTERVAL '4 hours'\n    AND COALESCE(followup_exhausted, false) = false) as stale_conversations,\n  (SELECT COUNT(*) FROM scheduled_messages WHERE status = 'pending'\n    AND property_id = p.property_id\n    AND scheduled_time <= NOW() + INTERVAL '24 hours') as upcoming_messages\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.settings, p.customer_id",
         "options": {}
       },
       "id": "morning-data",
@@ -220,8 +242,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -241,8 +263,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -281,7 +303,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
+        "query": "SELECT\n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
         "options": {}
       },
       "id": "evening-data",
@@ -294,8 +316,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -315,8 +337,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -355,7 +377,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.preferred_platform, p.customer_id",
+        "query": "SELECT\n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.settings, p.customer_id",
         "options": {}
       },
       "id": "weekly-data",
@@ -368,8 +390,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -389,8 +411,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -442,15 +464,15 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  c.id as customer_id,\n  c.name as customer_name,\n  pc.owner_contact,\n  pc.preferred_platform,\n  b.used_amount as last_month_usage,\n  b.monthly_budget\nFROM customers c\nJOIN property_configurations pc ON c.id = pc.customer_id\nJOIN api_usage_budget b ON c.id = b.customer_id\nWHERE b.month_year = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')\nGROUP BY c.id, c.name, pc.owner_contact, pc.preferred_platform, b.used_amount, b.monthly_budget",
+        "query": "SELECT\n  c.id as customer_id,\n  c.name as customer_name,\n  pc.owner_contact,\n  COALESCE(pc.settings->>'preferred_platform', c.preferred_platform, 'telegram') AS preferred_platform,\n  b.used_amount as last_month_usage,\n  b.monthly_budget\nFROM customers c\nJOIN property_configurations pc ON c.id = pc.customer_id\nJOIN api_usage_budget b ON c.id = b.customer_id\nWHERE b.month_year = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')\nGROUP BY c.id, c.name, pc.owner_contact, pc.settings, c.preferred_platform, b.used_amount, b.monthly_budget",
         "options": {}
       },
       "id": "get-last-month",
@@ -463,8 +485,8 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
       }
     },
@@ -499,7 +521,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Template morning message when budget exhausted\nconst data = $('Get Morning Data').item.json;\nconst checkins = data.checkins_today || 0;\nconst checkouts = data.checkouts_today || 0;\nconst tickets = data.open_tickets || 0;\n\nlet message = `☀️ Good morning!\\n\\n`;\nmessage += `📊 *${data.property_name}* Daily Summary:\\n`;\nmessage += `• Check-ins today: ${checkins}\\n`;\nmessage += `• Check-outs today: ${checkouts}\\n`;\nmessage += `• Open tickets: ${tickets}\\n\\n`;\n\nif (checkins > 0 || checkouts > 0) {\n  message += `Have a productive day! ����`;\n} else {\n  message += `Quiet day ahead. Enjoy! ☕`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+        "jsCode": "// Template morning message with task queue and follow-up alerts\nconst data = $('Get Morning Data').item.json;\nconst checkins = data.checkins_today || 0;\nconst checkouts = data.checkouts_today || 0;\nconst tickets = data.open_tickets || 0;\nconst tasks = data.pending_tasks || 0;\nconst staleLeads = data.stale_conversations || 0;\nconst upcomingMsgs = data.upcoming_messages || 0;\n\nlet message = 'Good morning!\\n\\n';\nmessage += '*' + (data.property_name || 'Property') + '* Daily Summary:\\n';\nmessage += '  Check-ins today: ' + checkins + '\\n';\nmessage += '  Check-outs today: ' + checkouts + '\\n';\nmessage += '  Open tickets: ' + tickets + '\\n';\n\nif (tasks > 0) {\n  message += '  Pending tasks: ' + tasks + '\\n';\n}\nif (staleLeads > 0) {\n  message += '  Stale conversations: ' + staleLeads + ' (no reply >4h)\\n';\n}\nif (upcomingMsgs > 0) {\n  message += '  Scheduled messages (next 24h): ' + upcomingMsgs + '\\n';\n}\n\nmessage += '\\n';\nif (tasks > 0 || staleLeads > 0) {\n  message += 'Action needed - check your dashboard for details.';\n} else if (checkins > 0 || checkouts > 0) {\n  message += 'Have a productive day!';\n} else {\n  message += 'Quiet day ahead.';\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
       },
       "id": "template-morning",
       "name": "Template Morning",
@@ -582,7 +604,7 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "slpbr7aUaU6fqTfw",
+          "id": "openai-cred",
           "name": "[Client] OpenAI"
         }
       }
@@ -607,14 +629,16 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "UZMWfhnV6JmuwJXC"
+          "value": "__WF_ID:SUB: Universal Messenger__",
+          "cachedResultName": "SUB: Universal Messenger"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "channel": "={{ $json.preferred_platform || 'telegram' }}",
-            "recipient": "={{ $json.owner_contact }}",
-            "message": "={{ $json.report_text || $json.text }}"
+            "channel": "={{ $json.channel || $json.preferred_platform || 'telegram' }}",
+            "sender_id": "={{ $json.recipient || $json.owner_contact || '' }}",
+            "input": "={{ $json.report_text || $json.text || $json.message || 'Report' }}",
+            "customer_id": "={{ $json.customer_id || '' }}"
           },
           "schema": [
             {
@@ -624,14 +648,20 @@
               "required": true
             },
             {
-              "id": "recipient",
-              "displayName": "Recipient",
+              "id": "sender_id",
+              "displayName": "Sender ID",
               "type": "string",
               "required": true
             },
             {
-              "id": "message",
-              "displayName": "Message",
+              "id": "input",
+              "displayName": "Input",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "customer_id",
+              "displayName": "Customer ID",
               "type": "string",
               "required": true
             }
@@ -650,22 +680,8 @@
     },
     {
       "parameters": {
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": "automation_log",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "log_id": "={{ 'auto_' + $now.toMillis() }}",
-            "automation_type": "={{ $('Determine Automation').item.json.automation_type }}",
-            "executed_at": "={{ $now.toISO() }}",
-            "properties_processed": "={{ $json.length || 1 }}",
-            "status": "completed"
-          }
-        },
+        "operation": "executeQuery",
+        "query": "WITH fix_seq AS (\n  SELECT setval(\n    pg_get_serial_sequence('automation_log', 'id'),\n    GREATEST(COALESCE((SELECT MAX(id) FROM automation_log), 0) + 1, 1),\n    false\n  )\n)\nINSERT INTO automation_log (log_id, automation_type, executed_at, properties_processed, status)\nSELECT\n  'auto_' || EXTRACT(EPOCH FROM NOW())::bigint,\n  '{{ $('Determine Automation').item.json.automation_type }}',\n  NOW(),\n  {{ $json.length || 1 }},\n  'completed'\nFROM fix_seq\nRETURNING *",
         "options": {}
       },
       "id": "log-execution",
@@ -678,9 +694,62 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "sjaI08GtPbON8TLX",
-          "name": "PostgreSQL - Client"
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
         }
+      }
+    },
+    {
+      "id": "nightly-trigger",
+      "name": "Nightly 2 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1320
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "nightly-maintenance",
+      "name": "Nightly Maintenance",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        672,
+        1520
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH chat_cleanup AS (\n  DELETE FROM n8n_chat_histories\n  WHERE created_at < NOW() - INTERVAL '30 days' RETURNING 1\n), log_cleanup AS (\n  DELETE FROM automation_log\n  WHERE executed_at < NOW() - INTERVAL '90 days' RETURNING 1\n), msg_cleanup AS (\n  DELETE FROM scheduled_messages\n  WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '30 days' RETURNING 1\n)\nSELECT\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.property_name,\n  p.customer_id,\n  (SELECT COUNT(*) FROM chat_cleanup) as chat_rows_cleaned,\n  (SELECT COUNT(*) FROM log_cleanup) as log_rows_cleaned,\n  (SELECT COUNT(*) FROM msg_cleanup) as msgs_cleaned,\n  (SELECT COUNT(*) FROM bookings WHERE booking_status = 'confirmed' AND check_out_date >= CURRENT_DATE) as active_bookings,\n  (SELECT COALESCE(SUM(total_amount), 0) FROM bookings WHERE created_at >= date_trunc('month', CURRENT_DATE)) as mtd_revenue,\n  (SELECT COUNT(*) FROM deals WHERE status IN ('inquiry', 'negotiation')) as active_deals,\n  (SELECT COUNT(*) FROM maintenance_tickets WHERE status IN ('new', 'in_progress')) as open_tickets,\n  (SELECT COUNT(*) FROM cleaning_schedules WHERE status = 'scheduled') as pending_cleanings\nFROM property_configurations p\nWHERE p.property_status = 'active'\nORDER BY p.property_name\nLIMIT 1",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "id": "nightly-report",
+      "name": "Nightly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        1520
+      ],
+      "parameters": {
+        "jsCode": "// Format nightly maintenance report\nconst d = $input.item.json;\n\nlet message = 'Nightly Maintenance Report\\n\\n';\nmessage += 'Cleanup:\\n';\nmessage += '  Chat history cleaned: ' + (d.chat_rows_cleaned || 0) + ' old rows\\n';\nmessage += '  Automation logs cleaned: ' + (d.log_rows_cleaned || 0) + ' old rows\\n';\nmessage += '  Sent messages cleaned: ' + (d.msgs_cleaned || 0) + ' old rows\\n';\nmessage += '\\nSystem Health:\\n';\nmessage += '  Active bookings: ' + (d.active_bookings || 0) + '\\n';\nmessage += '  MTD revenue: $' + parseFloat(d.mtd_revenue || 0).toFixed(2) + '\\n';\nmessage += '  Active deals: ' + (d.active_deals || 0) + '\\n';\nmessage += '  Open tickets: ' + (d.open_tickets || 0) + '\\n';\nmessage += '  Pending cleanings: ' + (d.pending_cleanings || 0) + '\\n';\nmessage += '\\nAll systems operational.';\n\nreturn {\n  text: message,\n  report_text: message,\n  channel: d.preferred_platform || 'telegram',\n  recipient: d.owner_contact,\n  preferred_platform: d.preferred_platform || 'telegram',\n  owner_contact: d.owner_contact\n};"
       }
     }
   ],
@@ -766,6 +835,13 @@
         [
           {
             "node": "Reset Monthly Budgets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nightly Maintenance",
             "type": "main",
             "index": 0
           }
@@ -1037,6 +1113,39 @@
           }
         ]
       ]
+    },
+    "Nightly 2 AM": {
+      "main": [
+        [
+          {
+            "node": "Determine Automation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nightly Maintenance": {
+      "main": [
+        [
+          {
+            "node": "Nightly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nightly Report": {
+      "main": [
+        [
+          {
+            "node": "Send Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1056,83 +1165,20 @@
     },
     "node:Monthly 1st Midnight": {
       "recurrenceRules": []
+    },
+    "node:Nightly 2 AM": {
+      "recurrenceRules": []
     }
   },
   "meta": null,
   "pinData": {},
-  "versionId": "464b7a89-08b1-483b-a131-09fcc5193553",
-  "activeVersionId": "c90a1847-263f-455d-bd03-dd06bae3bb29",
-  "versionCounter": 30,
-  "triggerCount": 4,
-  "shared": [
-    {
-      "updatedAt": "2026-02-06T08:45:22.439Z",
-      "createdAt": "2026-02-06T08:45:22.439Z",
-      "role": "workflow:owner",
-      "workflowId": "ccEOaNnIwY6eeJOn",
-      "projectId": "JX3CVPOuNBbCCU8b",
-      "project": {
-        "updatedAt": "2026-02-02T07:09:35.792Z",
-        "createdAt": "2026-02-02T06:27:43.829Z",
-        "id": "JX3CVPOuNBbCCU8b",
-        "name": "Gabriel Erna <gabrielmarius2077@gmail.com>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-        "projectRelations": [
-          {
-            "updatedAt": "2026-02-02T06:27:43.829Z",
-            "createdAt": "2026-02-02T06:27:43.829Z",
-            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-            "projectId": "JX3CVPOuNBbCCU8b",
-            "user": {
-              "updatedAt": "2026-02-11T05:04:49.000Z",
-              "createdAt": "2026-02-02T06:27:43.413Z",
-              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
-              "email": "gabrielmarius2077@gmail.com",
-              "firstName": "Gabriel",
-              "lastName": "Erna",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
-                "personalization_survey_n8n_version": "2.4.8"
-              },
-              "settings": {
-                "userActivated": true,
-                "easyAIWorkflowOnboarded": true,
-                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
-                "userActivatedAt": 1770621057501
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2026-02-11",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": [
-    {
-      "updatedAt": "2026-02-03T05:39:35.942Z",
-      "createdAt": "2026-02-03T05:39:35.942Z",
-      "id": "OKLSzMJzAZ0oQPQn",
-      "name": "Client"
-    },
-    {
-      "updatedAt": "2026-02-03T04:47:35.753Z",
-      "createdAt": "2026-02-03T04:47:35.753Z",
-      "id": "xXzewijfO4PNYRXd",
-      "name": "Scheduled"
-    }
-  ],
+  "activeVersionId": "abbc642b-f03d-4a20-adbb-98f50cbb4b94",
+  "versionCounter": 43,
   "activeVersion": {
-    "updatedAt": "2026-02-11T03:56:46.313Z",
-    "createdAt": "2026-02-11T03:56:46.313Z",
-    "versionId": "c90a1847-263f-455d-bd03-dd06bae3bb29",
-    "workflowId": "ccEOaNnIwY6eeJOn",
+    "updatedAt": "2026-02-16T06:24:57.962Z",
+    "createdAt": "2026-02-16T06:24:57.962Z",
+    "versionId": "abbc642b-f03d-4a20-adbb-98f50cbb4b94",
+    "workflowId": "__WF_ID:WF6: Daily Automations__",
     "nodes": [
       {
         "parameters": {
@@ -1150,7 +1196,7 @@
         "typeVersion": 1.2,
         "position": [
           0,
-          0
+          512
         ]
       },
       {
@@ -1169,7 +1215,7 @@
         "typeVersion": 1.2,
         "position": [
           0,
-          200
+          704
         ]
       },
       {
@@ -1189,7 +1235,7 @@
         "typeVersion": 1.2,
         "position": [
           0,
-          400
+          896
         ]
       },
       {
@@ -1209,21 +1255,21 @@
         "typeVersion": 1.2,
         "position": [
           0,
-          600
+          1088
         ]
       },
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\nconst dayOfMonth = now.getDate();\n\nlet automationType;\nif (dayOfMonth === 1 && hour === 0) {\n  automationType = 'monthly_reset';\n} else if (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
+          "jsCode": "// Determine which automation to run based on trigger\nconst now = new Date();\nconst hour = now.getHours();\nconst dayOfWeek = now.getDay();\nconst dayOfMonth = now.getDate();\n\nlet automationType;\nif (dayOfMonth === 1 && hour === 0) {\n  automationType = 'monthly_reset';\n} else if (hour === 2) {\n  automationType = 'nightly_maintenance';\n} else if (dayOfWeek === 1 && hour === 10) {\n  automationType = 'weekly_report';\n} else if (hour >= 17) {\n  automationType = 'evening_check';\n} else {\n  automationType = 'morning_check';\n}\n\nreturn {\n  automation_type: automationType,\n  trigger_time: now.toISOString(),\n  date_today: now.toISOString().split('T')[0]\n};"
         },
         "id": "determine-type",
         "name": "Determine Automation",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          220,
-          200
+          224,
+          800
         ]
       },
       {
@@ -1317,6 +1363,28 @@
                 },
                 "renameOutput": true,
                 "outputKey": "monthly"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.automation_type }}",
+                      "rightValue": "nightly_maintenance",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "nightly"
               }
             ]
           },
@@ -1327,14 +1395,14 @@
         "type": "n8n-nodes-base.switch",
         "typeVersion": 3.2,
         "position": [
-          440,
-          200
+          448,
+          768
         ]
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(CASE WHEN b.check_in_date = CURRENT_DATE THEN 1 END) as checkins_today,\n  COUNT(CASE WHEN b.check_out_date = CURRENT_DATE THEN 1 END) as checkouts_today,\n  COUNT(CASE WHEN mt.status IN ('new', 'in_progress') THEN 1 END) as open_tickets\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id \n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.preferred_platform, p.customer_id",
+          "query": "SELECT\n  p.property_id,\n  p.property_name,\n  p.owner_name,\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id,\n  COUNT(DISTINCT CASE WHEN b.check_in_date = CURRENT_DATE THEN b.booking_id END) as checkins_today,\n  COUNT(DISTINCT CASE WHEN b.check_out_date = CURRENT_DATE THEN b.booking_id END) as checkouts_today,\n  COUNT(DISTINCT CASE WHEN mt.status IN ('new', 'in_progress') THEN mt.ticket_id END) as open_tickets,\n  (SELECT COUNT(*) FROM manual_tasks WHERE status IN ('pending', 'in_progress')\n    AND related_property_id = p.property_id) as pending_tasks,\n  (SELECT COUNT(*) FROM conversations WHERE is_active = true\n    AND property_id = p.property_id\n    AND updated_at < NOW() - INTERVAL '4 hours'\n    AND COALESCE(followup_exhausted, false) = false) as stale_conversations,\n  (SELECT COUNT(*) FROM scheduled_messages WHERE status = 'pending'\n    AND property_id = p.property_id\n    AND scheduled_time <= NOW() + INTERVAL '24 hours') as upcoming_messages\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND (b.check_in_date = CURRENT_DATE OR b.check_out_date = CURRENT_DATE)\nLEFT JOIN maintenance_tickets mt ON p.property_id = mt.property_id\n  AND mt.status IN ('new', 'in_progress')\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_name, p.owner_contact, p.settings, p.customer_id",
           "options": {}
         },
         "id": "morning-data",
@@ -1342,13 +1410,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          660,
-          0
+          672,
+          172
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1363,13 +1431,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          880,
-          0
+          896,
+          172
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1401,14 +1469,14 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
         "position": [
-          1100,
-          0
+          1120,
+          172
         ]
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
+          "query": "SELECT\n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id,\n  b.booking_id,\n  b.guest_name,\n  b.check_in_date,\n  cs.status as cleaning_status,\n  cs.completed_at as cleaning_completed\nFROM property_configurations p\nJOIN bookings b ON p.property_id = b.property_id\n  AND b.check_in_date = CURRENT_DATE\n  AND b.booking_status = 'confirmed'\nLEFT JOIN cleaning_schedules cs ON b.booking_id = cs.booking_id\nWHERE p.property_status = 'active'",
           "options": {}
         },
         "id": "evening-data",
@@ -1416,13 +1484,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          660,
-          200
+          672,
+          608
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1437,13 +1505,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          880,
-          200
+          896,
+          608
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1475,14 +1543,14 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
         "position": [
-          1100,
-          200
+          1120,
+          608
         ]
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "SELECT \n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  p.preferred_platform,\n  p.customer_id,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.preferred_platform, p.customer_id",
+          "query": "SELECT\n  p.property_id,\n  p.property_name,\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id,\n  COUNT(b.booking_id) as total_bookings,\n  SUM(b.total_amount) as total_revenue,\n  AVG(EXTRACT(DAY FROM b.check_out_date - b.check_in_date)) as avg_stay_length,\n  COUNT(CASE WHEN b.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as new_bookings_week\nFROM property_configurations p\nLEFT JOIN bookings b ON p.property_id = b.property_id\n  AND b.booking_status = 'confirmed'\n  AND b.created_at >= CURRENT_DATE - INTERVAL '30 days'\nWHERE p.property_status = 'active'\nGROUP BY p.property_id, p.property_name, p.owner_contact, p.settings, p.customer_id",
           "options": {}
         },
         "id": "weekly-data",
@@ -1490,13 +1558,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          660,
-          400
+          672,
+          992
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1511,13 +1579,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          880,
-          400
+          896,
+          992
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1549,8 +1617,8 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2,
         "position": [
-          1100,
-          400
+          1120,
+          992
         ]
       },
       {
@@ -1564,20 +1632,20 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          660,
-          600
+          1120,
+          1280
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "SELECT \n  c.id as customer_id,\n  c.name as customer_name,\n  pc.owner_contact,\n  pc.preferred_platform,\n  b.used_amount as last_month_usage,\n  b.monthly_budget\nFROM customers c\nJOIN property_configurations pc ON c.id = pc.customer_id\nJOIN api_usage_budget b ON c.id = b.customer_id\nWHERE b.month_year = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')\nGROUP BY c.id, c.name, pc.owner_contact, pc.preferred_platform, b.used_amount, b.monthly_budget",
+          "query": "SELECT\n  c.id as customer_id,\n  c.name as customer_name,\n  pc.owner_contact,\n  COALESCE(pc.settings->>'preferred_platform', c.preferred_platform, 'telegram') AS preferred_platform,\n  b.used_amount as last_month_usage,\n  b.monthly_budget\nFROM customers c\nJOIN property_configurations pc ON c.id = pc.customer_id\nJOIN api_usage_budget b ON c.id = b.customer_id\nWHERE b.month_year = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')\nGROUP BY c.id, c.name, pc.owner_contact, pc.settings, c.preferred_platform, b.used_amount, b.monthly_budget",
           "options": {}
         },
         "id": "get-last-month",
@@ -1585,13 +1653,13 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          880,
-          600
+          1408,
+          1280
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
         }
       },
@@ -1605,54 +1673,50 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1100,
-          600
+          1696,
+          1280
         ]
       },
       {
         "parameters": {
           "promptType": "define",
-          "text": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').item.json.property_name }}\nCheck-ins Today: {{ $('Get Morning Data').item.json.checkins_today }}\nCheck-outs Today: {{ $('Get Morning Data').item.json.checkouts_today }}\nOpen Maintenance Tickets: {{ $('Get Morning Data').item.json.open_tickets }}\n\nCreate a concise message (under 100 words) with:\n1. Good morning greeting\n2. Summary of today's activity\n3. Any action items if needed\n\nUse appropriate emojis.",
-          "hasOutputParser": false,
-          "options": {}
+          "text": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').item.json.property_name }}\nCheck-ins Today: {{ $('Get Morning Data').item.json.checkins_today }}\nCheck-outs Today: {{ $('Get Morning Data').item.json.checkouts_today }}\nOpen Maintenance Tickets: {{ $('Get Morning Data').item.json.open_tickets }}\n\nCreate a concise message (under 100 words) with:\n1. Good morning greeting\n2. Summary of today's activity\n3. Any action items if needed\n\nUse appropriate emojis."
         },
         "id": "generate-morning",
         "name": "Generate Morning Brief",
         "type": "@n8n/n8n-nodes-langchain.chainLlm",
         "typeVersion": 1.4,
         "position": [
-          1320,
+          1344,
           -80
         ]
       },
       {
         "parameters": {
           "mode": "runOnceForEachItem",
-          "jsCode": "// Template morning message when budget exhausted\nconst data = $('Get Morning Data').item.json;\nconst checkins = data.checkins_today || 0;\nconst checkouts = data.checkouts_today || 0;\nconst tickets = data.open_tickets || 0;\n\nlet message = `☀️ Good morning!\\n\\n`;\nmessage += `📊 *${data.property_name}* Daily Summary:\\n`;\nmessage += `• Check-ins today: ${checkins}\\n`;\nmessage += `• Check-outs today: ${checkouts}\\n`;\nmessage += `• Open tickets: ${tickets}\\n\\n`;\n\nif (checkins > 0 || checkouts > 0) {\n  message += `Have a productive day! 💪`;\n} else {\n  message += `Quiet day ahead. Enjoy! ☕`;\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
+          "jsCode": "// Template morning message with task queue and follow-up alerts\nconst data = $('Get Morning Data').item.json;\nconst checkins = data.checkins_today || 0;\nconst checkouts = data.checkouts_today || 0;\nconst tickets = data.open_tickets || 0;\nconst tasks = data.pending_tasks || 0;\nconst staleLeads = data.stale_conversations || 0;\nconst upcomingMsgs = data.upcoming_messages || 0;\n\nlet message = 'Good morning!\\n\\n';\nmessage += '*' + (data.property_name || 'Property') + '* Daily Summary:\\n';\nmessage += '  Check-ins today: ' + checkins + '\\n';\nmessage += '  Check-outs today: ' + checkouts + '\\n';\nmessage += '  Open tickets: ' + tickets + '\\n';\n\nif (tasks > 0) {\n  message += '  Pending tasks: ' + tasks + '\\n';\n}\nif (staleLeads > 0) {\n  message += '  Stale conversations: ' + staleLeads + ' (no reply >4h)\\n';\n}\nif (upcomingMsgs > 0) {\n  message += '  Scheduled messages (next 24h): ' + upcomingMsgs + '\\n';\n}\n\nmessage += '\\n';\nif (tasks > 0 || staleLeads > 0) {\n  message += 'Action needed - check your dashboard for details.';\n} else if (checkins > 0 || checkouts > 0) {\n  message += 'Have a productive day!';\n} else {\n  message += 'Quiet day ahead.';\n}\n\nreturn {\n  text: message,\n  channel: data.preferred_platform || 'telegram',\n  recipient: data.owner_contact\n};"
         },
         "id": "template-morning",
         "name": "Template Morning",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1320,
-          80
+          1408,
+          320
         ]
       },
       {
         "parameters": {
           "promptType": "define",
-          "text": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data').item.json.guest_name }} checking in today\nCleaning Status: {{ $('Get Evening Data').item.json.cleaning_status || 'Not scheduled' }}\nCleaning Completed: {{ $('Get Evening Data').item.json.cleaning_completed || 'Pending' }}\n\nCreate a brief message confirming readiness for guest arrival or flagging any issues.",
-          "hasOutputParser": false,
-          "options": {}
+          "text": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data').item.json.guest_name }} checking in today\nCleaning Status: {{ $('Get Evening Data').item.json.cleaning_status || 'Not scheduled' }}\nCleaning Completed: {{ $('Get Evening Data').item.json.cleaning_completed || 'Pending' }}\n\nCreate a brief message confirming readiness for guest arrival or flagging any issues."
         },
         "id": "generate-evening",
         "name": "Generate Evening Update",
         "type": "@n8n/n8n-nodes-langchain.chainLlm",
         "typeVersion": 1.4,
         "position": [
-          1320,
-          120
+          1344,
+          512
         ]
       },
       {
@@ -1665,24 +1729,22 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1320,
-          280
+          1408,
+          704
         ]
       },
       {
         "parameters": {
           "promptType": "define",
-          "text": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 days): {{ $('Get Weekly Data').item.json.total_bookings }}\nTotal Revenue: ${{ $('Get Weekly Data').item.json.total_revenue || 0 }}\nNew Bookings This Week: {{ $('Get Weekly Data').item.json.new_bookings_week }}\nAverage Stay Length: {{ $('Get Weekly Data').item.json.avg_stay_length || 0 }} nights\n\nCreate a concise executive summary (under 150 words) highlighting:\n1. Performance overview\n2. Trends\n3. Any recommendations\n\nFormat professionally with bullet points.",
-          "hasOutputParser": false,
-          "options": {}
+          "text": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 days): {{ $('Get Weekly Data').item.json.total_bookings }}\nTotal Revenue: ${{ $('Get Weekly Data').item.json.total_revenue || 0 }}\nNew Bookings This Week: {{ $('Get Weekly Data').item.json.new_bookings_week }}\nAverage Stay Length: {{ $('Get Weekly Data').item.json.avg_stay_length || 0 }} nights\n\nCreate a concise executive summary (under 150 words) highlighting:\n1. Performance overview\n2. Trends\n3. Any recommendations\n\nFormat professionally with bullet points."
         },
         "id": "generate-weekly",
         "name": "Generate Weekly Report",
         "type": "@n8n/n8n-nodes-langchain.chainLlm",
         "typeVersion": 1.4,
         "position": [
-          1320,
-          320
+          1344,
+          896
         ]
       },
       {
@@ -1695,13 +1757,12 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1320,
-          480
+          1408,
+          1088
         ]
       },
       {
         "parameters": {
-          "model": "gpt-4o-mini",
           "options": {
             "temperature": 0.7
           }
@@ -1711,12 +1772,12 @@
         "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
         "typeVersion": 1,
         "position": [
-          1320,
-          700
+          1416,
+          144
         ],
         "credentials": {
           "openAiApi": {
-            "id": "slpbr7aUaU6fqTfw",
+            "id": "openai-cred",
             "name": "[Client] OpenAI"
           }
         }
@@ -1732,8 +1793,8 @@
         "type": "n8n-nodes-base.merge",
         "typeVersion": 3,
         "position": [
-          1540,
-          300
+          1696,
+          608
         ]
       },
       {
@@ -1741,15 +1802,15 @@
           "workflowId": {
             "__rl": true,
             "mode": "id",
-            "value": "UZMWfhnV6JmuwJXC"
+            "value": "__WF_ID:SUB: Universal Messenger__"
           },
-          "options": {},
           "workflowInputs": {
             "mappingMode": "defineBelow",
             "value": {
-              "channel": "={{ $json.preferred_platform || 'telegram' }}",
-              "recipient": "={{ $json.owner_contact }}",
-              "message": "={{ $json.report_text || $json.text }}"
+              "channel": "={{ $json.channel || $json.preferred_platform || 'telegram' }}",
+              "sender_id": "={{ $json.recipient || $json.owner_contact || '' }}",
+              "input": "={{ $json.report_text || $json.text || $json.message || 'Report' }}",
+              "customer_id": "={{ $json.customer_id || '' }}"
             },
             "schema": [
               {
@@ -1759,43 +1820,40 @@
                 "required": true
               },
               {
-                "id": "recipient",
-                "displayName": "Recipient",
+                "id": "sender_id",
+                "displayName": "Sender ID",
                 "type": "string",
                 "required": true
               },
               {
-                "id": "message",
-                "displayName": "Message",
+                "id": "input",
+                "displayName": "Input",
+                "type": "string",
+                "required": true
+              },
+              {
+                "id": "customer_id",
+                "displayName": "Customer ID",
                 "type": "string",
                 "required": true
               }
             ]
-          }
+          },
+          "options": {}
         },
         "id": "send-reports",
         "name": "Send Reports",
         "type": "n8n-nodes-base.executeWorkflow",
         "typeVersion": 1.2,
         "position": [
-          1760,
-          300
+          1920,
+          896
         ]
       },
       {
         "parameters": {
-          "operation": "insert",
-          "table": "automation_log",
-          "columns": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "log_id": "={{ 'auto_' + $now.toMillis() }}",
-              "automation_type": "={{ $('Determine Automation').item.json.automation_type }}",
-              "executed_at": "={{ $now.toISO() }}",
-              "properties_processed": "={{ $json.length || 1 }}",
-              "status": "completed"
-            }
-          },
+          "operation": "executeQuery",
+          "query": "WITH fix_seq AS (\n  SELECT setval(\n    pg_get_serial_sequence('automation_log', 'id'),\n    GREATEST(COALESCE((SELECT MAX(id) FROM automation_log), 0) + 1, 1),\n    false\n  )\n)\nINSERT INTO automation_log (log_id, automation_type, executed_at, properties_processed, status)\nSELECT\n  'auto_' || EXTRACT(EPOCH FROM NOW())::bigint,\n  '{{ $('Determine Automation').item.json.automation_type }}',\n  NOW(),\n  {{ $json.length || 1 }},\n  'completed'\nFROM fix_seq\nRETURNING *",
           "options": {}
         },
         "id": "log-execution",
@@ -1803,14 +1861,67 @@
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          1980,
-          300
+          2144,
+          896
         ],
         "credentials": {
           "postgres": {
-            "id": "sjaI08GtPbON8TLX",
-            "name": "PostgreSQL - Client"
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
           }
+        }
+      },
+      {
+        "id": "nightly-trigger",
+        "name": "Nightly 2 AM",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          1320
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 2
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "nightly-maintenance",
+        "name": "Nightly Maintenance",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          672,
+          1520
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH chat_cleanup AS (\n  DELETE FROM n8n_chat_histories\n  WHERE created_at < NOW() - INTERVAL '30 days' RETURNING 1\n), log_cleanup AS (\n  DELETE FROM automation_log\n  WHERE executed_at < NOW() - INTERVAL '90 days' RETURNING 1\n), msg_cleanup AS (\n  DELETE FROM scheduled_messages\n  WHERE status = 'sent' AND sent_at < NOW() - INTERVAL '30 days' RETURNING 1\n)\nSELECT\n  p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.property_name,\n  p.customer_id,\n  (SELECT COUNT(*) FROM chat_cleanup) as chat_rows_cleaned,\n  (SELECT COUNT(*) FROM log_cleanup) as log_rows_cleaned,\n  (SELECT COUNT(*) FROM msg_cleanup) as msgs_cleaned,\n  (SELECT COUNT(*) FROM bookings WHERE booking_status = 'confirmed' AND check_out_date >= CURRENT_DATE) as active_bookings,\n  (SELECT COALESCE(SUM(total_amount), 0) FROM bookings WHERE created_at >= date_trunc('month', CURRENT_DATE)) as mtd_revenue,\n  (SELECT COUNT(*) FROM deals WHERE status IN ('inquiry', 'negotiation')) as active_deals,\n  (SELECT COUNT(*) FROM maintenance_tickets WHERE status IN ('new', 'in_progress')) as open_tickets,\n  (SELECT COUNT(*) FROM cleaning_schedules WHERE status = 'scheduled') as pending_cleanings\nFROM property_configurations p\nWHERE p.property_status = 'active'\nORDER BY p.property_name\nLIMIT 1",
+          "options": {}
+        },
+        "credentials": {
+          "postgres": {
+            "id": "postgres-cred",
+            "name": "[Client] PostgreSQL"
+          }
+        }
+      },
+      {
+        "id": "nightly-report",
+        "name": "Nightly Report",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          1520
+        ],
+        "parameters": {
+          "jsCode": "// Format nightly maintenance report\nconst d = $input.item.json;\n\nlet message = 'Nightly Maintenance Report\\n\\n';\nmessage += 'Cleanup:\\n';\nmessage += '  Chat history cleaned: ' + (d.chat_rows_cleaned || 0) + ' old rows\\n';\nmessage += '  Automation logs cleaned: ' + (d.log_rows_cleaned || 0) + ' old rows\\n';\nmessage += '  Sent messages cleaned: ' + (d.msgs_cleaned || 0) + ' old rows\\n';\nmessage += '\\nSystem Health:\\n';\nmessage += '  Active bookings: ' + (d.active_bookings || 0) + '\\n';\nmessage += '  MTD revenue: $' + parseFloat(d.mtd_revenue || 0).toFixed(2) + '\\n';\nmessage += '  Active deals: ' + (d.active_deals || 0) + '\\n';\nmessage += '  Open tickets: ' + (d.open_tickets || 0) + '\\n';\nmessage += '  Pending cleanings: ' + (d.pending_cleanings || 0) + '\\n';\nmessage += '\\nAll systems operational.';\n\nreturn {\n  text: message,\n  report_text: message,\n  channel: d.preferred_platform || 'telegram',\n  recipient: d.owner_contact,\n  preferred_platform: d.preferred_platform || 'telegram',\n  owner_contact: d.owner_contact\n};"
         }
       }
     ],
@@ -1896,6 +2007,13 @@
           [
             {
               "node": "Reset Monthly Budgets",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Nightly Maintenance",
               "type": "main",
               "index": 0
             }
@@ -2167,6 +2285,39 @@
             }
           ]
         ]
+      },
+      "Nightly 2 AM": {
+        "main": [
+          [
+            {
+              "node": "Determine Automation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nightly Maintenance": {
+        "main": [
+          [
+            {
+              "node": "Nightly Report",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nightly Report": {
+        "main": [
+          [
+            {
+              "node": "Send Reports",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "authors": "Gabriel Erna",
@@ -2175,10 +2326,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-11T03:56:46.403Z",
-        "id": 172,
-        "workflowId": "ccEOaNnIwY6eeJOn",
-        "versionId": "c90a1847-263f-455d-bd03-dd06bae3bb29",
+        "createdAt": "2026-02-16T06:24:59.491Z",
+        "id": 287,
+        "workflowId": "__WF_ID:WF6: Daily Automations__",
+        "versionId": "abbc642b-f03d-4a20-adbb-98f50cbb4b94",
         "event": "activated",
         "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
       }
