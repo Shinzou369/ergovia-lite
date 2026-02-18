@@ -54,13 +54,14 @@ const WorkflowSync = {
     updateSyncStatusDisplay() {
         const statusEl = document.getElementById('syncLastStatus');
         const countEl = document.getElementById('syncWorkflowCount');
+        const banner = document.getElementById('syncBanner');
 
         if (statusEl) {
             if (!this.n8nConfigured) {
                 statusEl.innerHTML = '<span style="color: #e74c3c;">n8n not configured</span>';
-            } else if (this.lastSync) {
-                const ago = this.timeAgo(new Date(this.lastSync.at));
-                statusEl.innerHTML = `<span style="color: #42b72a;">Last synced ${ago}</span>`;
+            } else if (this.deployedCount > 0) {
+                const syncText = this.lastSync ? `Last synced ${this.timeAgo(new Date(this.lastSync.at))}` : 'Never synced';
+                statusEl.innerHTML = `<span style="color: #42b72a;"><i class="fas fa-check-circle"></i> ${this.deployedCount} workflows connected</span> &middot; <span style="color: #8b8d91;">${syncText}</span>`;
             } else {
                 statusEl.innerHTML = '<span style="color: #8b8d91;">Never synced</span>';
             }
@@ -68,13 +69,24 @@ const WorkflowSync = {
 
         if (countEl) {
             if (this.deployedCount > 0) {
-                countEl.innerHTML = `<span style="color: #42b72a;"><i class="fas fa-check-circle"></i> ${this.deployedCount} workflows connected</span>`;
+                countEl.innerHTML = '';
             } else if (this.n8nConfigured) {
-                countEl.innerHTML = `<span style="color: #ff9800;">No workflows linked</span> &nbsp;
-                    <button onclick="WorkflowSync.importLiveWorkflows()" style="background:#1877f2;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
-                        <i class="fas fa-download"></i> Import from n8n
-                    </button>`;
+                countEl.innerHTML = `<span style="color: #ff9800;">No workflows linked</span>`;
             }
+        }
+
+        // Show import banner when n8n is configured but no workflows are registered
+        if (this.n8nConfigured && this.deployedCount === 0 && banner) {
+            banner.style.display = 'flex';
+            banner.innerHTML = `
+                <div style="flex: 1;">
+                    <strong><i class="fas fa-exclamation-triangle"></i> No workflows connected</strong>
+                    <div style="opacity: 0.85; margin-top: 4px; font-size: 13px;">Import your live n8n workflows to enable settings sync</div>
+                </div>
+                <button onclick="WorkflowSync.importLiveWorkflows()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">
+                    <i class="fas fa-download"></i> Import from n8n
+                </button>
+            `;
         }
     },
 
