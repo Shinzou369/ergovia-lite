@@ -2,7 +2,7 @@
   "updatedAt": "2026-02-16T13:24:07.342Z",
   "createdAt": "2026-02-16T13:20:14.136Z",
   "id": "__WF_ID:WF5: Property Operations__",
-  "name": "[V4] WF5: Property Operations",
+  "name": "WF5: Property Operations",
   "description": null,
   "active": false,
   "isArchived": false,
@@ -353,7 +353,7 @@
           "__rl": true,
           "mode": "list",
           "value": "__WF_ID:SUB: Owner & Staff Notifier__",
-          "cachedResultName": "[V4] SUB: Owner & Staff Notifier",
+          "cachedResultName": "SUB: Owner & Staff Notifier",
           "cachedResultUrl": "/workflow/SV80ObHW5jp7mOhL"
         },
         "workflowInputs": {

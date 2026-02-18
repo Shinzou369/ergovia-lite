@@ -2,7 +2,7 @@
   "updatedAt": "2026-02-17T06:39:54.138Z",
   "createdAt": "2026-02-16T13:21:11.215Z",
   "id": "__WF_ID:WF4: Payment Processor__",
-  "name": "[V4] WF4: Payment Processor",
+  "name": "WF4: Payment Processor",
   "description": null,
   "active": false,
   "isArchived": false,
@@ -499,7 +499,7 @@
           "value": "__WF_ID:WF7: Integration Hub__",
           "mode": "list",
           "cachedResultUrl": "/workflow/3wN9FArGC9GgEcOz",
-          "cachedResultName": "[V4] WF7: Integration Hub"
+          "cachedResultName": "WF7: Integration Hub"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
