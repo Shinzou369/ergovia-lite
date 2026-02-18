@@ -15,6 +15,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Initialize database
 db.initDb();
 
+// Load n8n config from DB if env vars are missing
+n8nService.loadConfigFromDb(db);
+
 // Helper: Get PostgreSQL connection details from environment
 function getPostgresConfig() {
   const config = {
@@ -1376,6 +1379,7 @@ app.get('/api/v2/sync/status', async (req, res) => {
     const recentSyncs = db.getRecentSyncs(5);
     const deployedWorkflows = db.getDeployedWorkflows();
     const savedPrompt = db.getClientData('systemPrompt');
+    const n8nConfig = db.getClientData('n8n_config');
 
     res.json({
       success: true,
@@ -1392,7 +1396,75 @@ app.get('/api/v2/sync/status', async (req, res) => {
       })),
       deployedCount: deployedWorkflows.length,
       systemPrompt: savedPrompt || null,
-      n8nConfigured: n8nService.isConfigured()
+      n8nConfigured: n8nService.isConfigured(),
+      n8nUrl: n8nService.baseUrl || null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Connect to n8n instance (saves config to DB, tests connection, auto-imports workflows)
+app.post('/api/v2/n8n/connect', async (req, res) => {
+  try {
+    const { n8nUrl, apiKey } = req.body;
+    if (!n8nUrl || !apiKey) {
+      return res.status(400).json({ success: false, error: 'n8n URL and API Key are required' });
+    }
+
+    // Configure the n8n service with the provided credentials
+    n8nService.configure(n8nUrl, apiKey);
+
+    // Test connection
+    const test = await n8nService.testConnection();
+    if (!test.success) {
+      return res.status(400).json({ success: false, error: test.error || 'Connection failed' });
+    }
+
+    // Save config to database for persistence across restarts
+    db.saveClientData('n8n_config', { url: n8nUrl, apiKey: apiKey });
+
+    // Auto-import active workflows
+    const listResult = await n8nService.listWorkflows();
+    let importedCount = 0;
+
+    if (listResult.success) {
+      const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
+      const liveWorkflows = (listResult.workflows || []).filter(wf => {
+        return wf.active && validPrefixes.some(p => wf.name.startsWith(p));
+      });
+
+      if (liveWorkflows.length > 0) {
+        const filenameMap = {
+          'SUB: Universal Messenger': 'SUB_Universal_Messenger.json',
+          'SUB: Owner & Staff Notifier': 'SUB_Owner_Staff_Notifier.json',
+          'WF1: AI Gateway - Unified Entry Point': 'WF1_AI_Gateway.json',
+          'WF2: Offer Conflict Manager': 'WF2_Offer_Conflict_Manager.json',
+          'WF3: Calendar Manager': 'WF3_Calendar_Manager.json',
+          'WF4: Payment Processor': 'WF4_Payment_Processor.json',
+          'WF5: Property Operations': 'WF5_Property_Operations.json',
+          'WF6: Daily Automations': 'WF6_Daily_Automations.json',
+          'WF7: Integration Hub': 'WF7_Integration_Hub.json',
+          'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
+        };
+        const workflowEntries = liveWorkflows.map(wf => ({
+          filename: filenameMap[wf.name] || `${wf.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+          workflowId: wf.id,
+          name: wf.name,
+          triggerTag: wf.name.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
+          active: true
+        }));
+        db.clearDeployedWorkflows();
+        db.saveDeployedWorkflows(workflowEntries);
+        importedCount = workflowEntries.length;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Connected! Found ${importedCount} active workflows.`,
+      workflows: importedCount,
+      n8nUrl: n8nService.baseUrl
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

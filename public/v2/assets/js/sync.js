@@ -1,6 +1,6 @@
 /**
  * Workflow Sync Module - V2 Premium Dashboard
- * Handles syncing control panel changes to live n8n workflows
+ * Handles n8n connection, workflow import, and live variable sync
  */
 
 const WorkflowSync = {
@@ -8,6 +8,9 @@ const WorkflowSync = {
     needsSync: false,
     syncCategories: new Set(),
     isSyncing: false,
+    n8nConfigured: false,
+    deployedCount: 0,
+    n8nUrl: null,
 
     // ============================================
     // INITIALIZATION
@@ -20,7 +23,7 @@ const WorkflowSync = {
     },
 
     // ============================================
-    // SYNC STATUS
+    // SYNC STATUS & CONNECTION UI
     // ============================================
 
     async loadSyncStatus() {
@@ -31,6 +34,7 @@ const WorkflowSync = {
                 this.lastSync = result.lastSync;
                 this.deployedCount = result.deployedCount;
                 this.n8nConfigured = result.n8nConfigured;
+                this.n8nUrl = result.n8nUrl || null;
 
                 // Populate system prompt editor if data exists
                 if (result.systemPrompt) {
@@ -44,50 +48,105 @@ const WorkflowSync = {
                     }
                 }
 
-                this.updateSyncStatusDisplay();
+                this.updateConnectionCard();
             }
         } catch (err) {
             console.error('[sync] Failed to load sync status:', err);
+            // Still update the card to show "not connected" state
+            this.updateConnectionCard();
         }
     },
 
-    updateSyncStatusDisplay() {
+    updateConnectionCard() {
+        const notConnected = document.getElementById('n8nNotConnected');
+        const connected = document.getElementById('n8nConnected');
         const statusEl = document.getElementById('syncLastStatus');
-        const countEl = document.getElementById('syncWorkflowCount');
-        const banner = document.getElementById('syncBanner');
+        const countEl = document.getElementById('n8nConnectedCount');
+        const urlEl = document.getElementById('n8nConnectedUrl');
 
-        if (statusEl) {
-            if (!this.n8nConfigured) {
-                statusEl.innerHTML = '<span style="color: #e74c3c;">n8n not configured</span>';
-            } else if (this.deployedCount > 0) {
+        if (this.n8nConfigured && this.deployedCount > 0) {
+            // Connected with workflows
+            if (notConnected) notConnected.style.display = 'none';
+            if (connected) connected.style.display = 'block';
+            if (urlEl) urlEl.textContent = this.n8nUrl || 'Connected to n8n';
+            if (countEl) countEl.textContent = `${this.deployedCount} workflows linked`;
+            if (statusEl) {
                 const syncText = this.lastSync ? `Last synced ${this.timeAgo(new Date(this.lastSync.at))}` : 'Never synced';
-                statusEl.innerHTML = `<span style="color: #42b72a;"><i class="fas fa-check-circle"></i> ${this.deployedCount} workflows connected</span> &middot; <span style="color: #8b8d91;">${syncText}</span>`;
-            } else {
-                statusEl.innerHTML = '<span style="color: #8b8d91;">Never synced</span>';
+                statusEl.textContent = syncText;
             }
+        } else if (this.n8nConfigured) {
+            // Connected but no workflows (show connected card, prompt reimport)
+            if (notConnected) notConnected.style.display = 'none';
+            if (connected) connected.style.display = 'block';
+            if (urlEl) urlEl.textContent = this.n8nUrl || 'Connected to n8n';
+            if (countEl) {
+                countEl.innerHTML = '<span style="color:#ff9800;">No workflows found - <a href="#" onclick="WorkflowSync.importLiveWorkflows();return false;" style="color:#1877f2;text-decoration:underline;">reimport</a></span>';
+            }
+            if (statusEl) statusEl.textContent = '';
+        } else {
+            // Not connected — show connect form
+            if (notConnected) notConnected.style.display = 'block';
+            if (connected) connected.style.display = 'none';
+        }
+    },
+
+    // ============================================
+    // CONNECT TO N8N
+    // ============================================
+
+    async connectN8n() {
+        const urlInput = document.getElementById('n8nUrl');
+        const keyInput = document.getElementById('n8nApiKey');
+        const btn = document.getElementById('n8nConnectBtn');
+
+        if (!urlInput || !keyInput) return;
+
+        const n8nUrl = urlInput.value.trim();
+        const apiKey = keyInput.value.trim();
+
+        if (!n8nUrl || !apiKey) {
+            this.showToast('Please enter both n8n URL and API Key', 'error');
+            return;
         }
 
-        if (countEl) {
-            if (this.deployedCount > 0) {
-                countEl.innerHTML = '';
-            } else if (this.n8nConfigured) {
-                countEl.innerHTML = `<span style="color: #ff9800;">No workflows linked</span>`;
-            }
-        }
+        // Show loading state
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+        btn.disabled = true;
 
-        // Show import banner when n8n is configured but no workflows are registered
-        if (this.n8nConfigured && this.deployedCount === 0 && banner) {
-            banner.style.display = 'flex';
-            banner.innerHTML = `
-                <div style="flex: 1;">
-                    <strong><i class="fas fa-exclamation-triangle"></i> No workflows connected</strong>
-                    <div style="opacity: 0.85; margin-top: 4px; font-size: 13px;">Import your live n8n workflows to enable settings sync</div>
-                </div>
-                <button onclick="WorkflowSync.importLiveWorkflows()" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:8px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">
-                    <i class="fas fa-download"></i> Import from n8n
-                </button>
-            `;
+        try {
+            const response = await fetch(`${CONFIG.API.BASE_URL}/n8n/connect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ n8nUrl, apiKey })
+            });
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Connection failed');
+            }
+
+            this.n8nConfigured = true;
+            this.deployedCount = result.workflows || 0;
+            this.n8nUrl = result.n8nUrl || n8nUrl;
+
+            this.showToast(result.message || `Connected! ${result.workflows} workflows imported.`, 'success');
+            this.updateConnectionCard();
+        } catch (err) {
+            this.showToast(`Connection failed: ${err.message}`, 'error');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
+    },
+
+    disconnectN8n() {
+        if (!confirm('Disconnect from n8n? You can reconnect anytime.')) return;
+        // Just reset the UI — the config stays in DB for easy reconnect
+        this.n8nConfigured = false;
+        this.deployedCount = 0;
+        this.n8nUrl = null;
+        this.updateConnectionCard();
+        this.showToast('Disconnected from n8n', 'info');
     },
 
     // ============================================
@@ -106,7 +165,7 @@ const WorkflowSync = {
 
             this.deployedCount = result.imported;
             this.showToast(`Imported ${result.imported} workflows from n8n!`, 'success');
-            this.updateSyncStatusDisplay();
+            this.updateConnectionCard();
         } catch (err) {
             this.showToast(`Import failed: ${err.message}`, 'error');
         }
@@ -160,17 +219,12 @@ const WorkflowSync = {
         this.renderSyncBanner();
 
         try {
-            // Sync credentials if needed
             if (this.syncCategories.has('credentials')) {
                 await this.syncCredentials();
             }
-
-            // Sync system prompt if needed
             if (this.syncCategories.has('system-prompt')) {
                 await this.syncSystemPrompt();
             }
-
-            // Full workflow variable sync
             if (this.syncCategories.has('workflows')) {
                 await this.syncWorkflows();
             }
@@ -218,7 +272,6 @@ const WorkflowSync = {
     },
 
     async syncCredentials() {
-        // Collect credential values from form
         const types = [];
 
         const telegramToken = document.getElementById('telegramBotToken')?.value;
@@ -281,7 +334,6 @@ const WorkflowSync = {
     // ============================================
 
     showToast(message, type = 'info') {
-        // Use existing toast if available, else create one
         let toast = document.getElementById('syncToast');
         if (!toast) {
             toast = document.createElement('div');

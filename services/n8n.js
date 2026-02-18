@@ -76,6 +76,36 @@ class N8NService {
     return !!(this.baseUrl && this.apiKey);
   }
 
+  // Dynamically update n8n connection at runtime (from UI or DB)
+  configure(url, apiKey) {
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    // Strip trailing slashes
+    this.baseUrl = (url || '').replace(/\/+$/, '');
+    this.apiKey = apiKey || '';
+    console.log('N8N Service reconfigured:');
+    console.log('  - URL:', this.baseUrl || 'NOT SET');
+    console.log('  - API Key:', this.apiKey ? 'SET' : 'NOT SET');
+  }
+
+  // Load n8n config from SQLite if env vars are missing
+  loadConfigFromDb(dbModule) {
+    if (this.isConfigured()) {
+      console.log('N8N: Already configured from env vars');
+      return;
+    }
+    try {
+      const savedConfig = dbModule.getClientData('n8n_config');
+      if (savedConfig && savedConfig.url && savedConfig.apiKey) {
+        this.configure(savedConfig.url, savedConfig.apiKey);
+        console.log('N8N: Config loaded from database');
+      }
+    } catch (err) {
+      console.error('N8N: Failed to load config from DB:', err.message);
+    }
+  }
+
   // ============================================
   // CREDENTIAL MANAGEMENT
   // ============================================
