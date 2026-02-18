@@ -1045,7 +1045,13 @@ class N8NService {
 
         // Case 2: mode is "list" or "name" with a workflow name as value
         if ((workflowRef.mode === 'list' || workflowRef.mode === 'name') && workflowRef.value) {
-          const referencedWorkflowName = workflowRef.value;
+          let referencedWorkflowName = workflowRef.value;
+
+          // Strip __WF_ID:...__  placeholder wrapper if present
+          const placeholderMatch = referencedWorkflowName.match(/^__WF_ID:(.+)__$/);
+          if (placeholderMatch) {
+            referencedWorkflowName = placeholderMatch[1];
+          }
 
           // Skip if already an ID (not a name) - IDs don't contain colons or spaces
           if (!referencedWorkflowName.includes(':') && !referencedWorkflowName.includes(' ')) {
