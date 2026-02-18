@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-02-16T06:52:43.616Z",
-  "createdAt": "2026-02-09T10:16:32.316Z",
+  "updatedAt": "2026-02-17T08:49:47.409Z",
+  "createdAt": "2026-02-16T13:21:06.777Z",
   "id": "__WF_ID:WF1: AI Gateway__",
   "name": "WF1: AI Gateway - Unified Entry Point",
   "description": null,
-  "active": true,
+  "active": false,
   "isArchived": false,
   "nodes": [
     {
@@ -21,7 +21,7 @@
       "typeVersion": 1.2,
       "position": [
         -208,
-        -52
+        -48
       ],
       "credentials": {
         "telegramApi": {
@@ -43,7 +43,7 @@
       "typeVersion": 1,
       "position": [
         -208,
-        140
+        144
       ],
       "disabled": true
     },
@@ -59,7 +59,7 @@
       "typeVersion": 1,
       "position": [
         -208,
-        332
+        336
       ],
       "credentials": {
         "twilioApi": {
@@ -80,13 +80,13 @@
       "typeVersion": 2,
       "position": [
         16,
-        140
+        144
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=SELECT pc.customer_id FROM property_configurations pc JOIN conversations c ON pc.property_id = c.property_id WHERE c.contact_id = '{{ $json.sender_id }}' LIMIT 1",
+        "query": "=SELECT \n  pc.customer_id, \n  pc.property_id,\n  pc.property_name,\n  pc.timezone,\n  pc.owner_telegram,\n  pc.owner_contact\nFROM property_configurations pc \nLEFT JOIN conversations c ON pc.property_id = c.property_id \nWHERE c.contact_id = '{{ $json.sender_id }}' \n   OR pc.owner_telegram = '{{ $json.sender_id }}'\n   OR pc.owner_contact = '{{ $json.sender_id }}'\nLIMIT 1",
         "options": {}
       },
       "id": "get-customer-id",
@@ -95,7 +95,7 @@
       "typeVersion": 2.5,
       "position": [
         240,
-        140
+        144
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -108,7 +108,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Merge customer_id with normalized data\nconst normalized = $('Normalize Input').item.json;\nconst customerResult = $input.item.json;\n\n// Use customer_id from DB or fallback to a default for new guests\nconst customerId = customerResult?.customer_id || '00000000-0000-0000-0000-000000000001';\n\nreturn {\n  ...normalized,\n  customer_id: customerId\n};"
+        "jsCode": "// Merge customer_id + property context + DATE CONTEXT\nconst normalized = $('Normalize Input').item.json;\nconst customerResult = $input.item.json;\n\nconst customerId = customerResult?.customer_id || '00000000-0000-0000-0000-000000000001';\nconst timezone = customerResult?.timezone || 'Asia/Manila';\n\nconst isOwner = (customerResult?.owner_telegram === normalized.sender_id) ||\n                (customerResult?.owner_contact === normalized.sender_id);\n\n// ══════ DATE CONTEXT (computed here, referenced in system prompt) ══════\nconst days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];\nconst months = ['January', 'February', 'March', 'April', 'May', 'June',\n  'July', 'August', 'September', 'October', 'November', 'December'];\n\nconst now = new Date();\nconst yyyy = now.getFullYear();\nconst mm = String(now.getMonth() + 1).padStart(2, '0');\nconst dd = String(now.getDate()).padStart(2, '0');\nconst today = yyyy + '-' + mm + '-' + dd;\nconst dayName = days[now.getDay()];\nconst monthName = months[now.getMonth()];\n\n// Build 14-day calendar\nconst calendarLines = [];\nfor (let i = 0; i < 14; i++) {\n  const d = new Date(now.getTime() + i * 86400000);\n  const y = d.getFullYear();\n  const m = String(d.getMonth() + 1).padStart(2, '0');\n  const day = String(d.getDate()).padStart(2, '0');\n  const dateStr = y + '-' + m + '-' + day;\n  const dn = days[d.getDay()];\n  let label = '';\n  if (i === 0) label = ' <-- TODAY';\n  else if (i === 1) label = ' <-- TOMORROW';\n  calendarLines.push(dateStr + ' ' + dn + label);\n}\n\nconst calendar = calendarLines.join('\\n');\nconst todayFull = dayName + ', ' + monthName + ' ' + now.getDate() + ', ' + yyyy;\n\nreturn {\n  ...normalized,\n  customer_id: customerId,\n  property_id: customerResult?.property_id || null,\n  property_name: customerResult?.property_name || null,\n  timezone: timezone,\n  is_owner: isOwner,\n  today: today,\n  today_full: todayFull,\n  today_year: String(yyyy),\n  today_day: dayName,\n  calendar: calendar\n};"
       },
       "id": "merge-customer",
       "name": "Merge Customer ID",
@@ -116,7 +116,7 @@
       "typeVersion": 2,
       "position": [
         464,
-        140
+        144
       ]
     },
     {
@@ -131,7 +131,7 @@
       "typeVersion": 2.5,
       "position": [
         688,
-        140
+        144
       ],
       "credentials": {
         "postgres": {
@@ -170,7 +170,7 @@
       "typeVersion": 2,
       "position": [
         912,
-        140
+        144
       ]
     },
     {
@@ -178,7 +178,8 @@
         "promptType": "define",
         "text": "={{ $('Merge Customer ID').item.json.message_text }}",
         "options": {
-          "systemMessage": "You are the main AI concierge for a vacation rental business. You are the ONLY one who communicates with guests — your tools are your back-office team that return data to you.\n\n## How You Work\n1. Read the guest's message and determine their intent\n2. Call the right tool(s) to get data\n3. Use the returned data to craft YOUR friendly response\n4. Keep responses concise (under 150 words)\n\n## Your Tools (return DATA, not messages):\n\n### Offer Conflict Checker\nALWAYS call this BEFORE confirming any booking. Checks if other guests are competing for the same dates.\n- Returns CLEAR → safe to proceed with booking\n- Returns COMPETING → owner is deciding between offers, tell guest to wait\n\n### Calendar Manager\nCheck property availability for specific dates. Use when guest asks about dates or availability.\n- Returns: available dates, pricing, conflicts, alternative dates\n\n### Payment Processor\nCreate bookings and payment links. Use AFTER confirming availability and no conflicts.\n- Returns: booking ID, payment link, transaction status\n\n### Calculate Price\nCalculate total cost for a stay with fees and discounts.\n- NOTE: Calendar Manager already includes full pricing in its response. Only use Calculate Price if you need to recalculate with different parameters (e.g., guest asks about a discount).\n- Returns: price breakdown (nightly rate, nights, cleaning fee, service fee, discounts, total)\n\n### Property Operations\nHandle maintenance reports, property issues, cleaning requests.\n- Returns: ticket info, issue category, urgency level\n\n### Emergency Handler\nONLY for urgent safety emergencies (fire, medical, break-in, gas leak, flooding).\n- Returns: emergency assessment, responder info, immediate action instructions\n\n## Booking Flow (follow this order):\n1. Guest asks about dates → Calendar Manager (returns availability + pricing)\n2. Guest wants to book → Offer Conflict Checker (check for competing offers)\n4. No conflicts → Payment Processor (create booking + payment link)\n\n## Response Guidelines\n- Never expose raw JSON or data to the guest\n- Paraphrase tool results naturally\n- Use emojis sparingly (1-2 per message max)\n- Always end with a clear next step or question\n- If a tool errors, apologize and offer alternatives\n- For emergencies, lead with safety instructions immediately"
+          "systemMessage": "You are the main AI concierge for a vacation rental business. You communicate with guests — your tools are your back-office team.\n\n## CONTEXT\n- Property: {{ $('Merge Customer ID').item.json.property_name }}\n- Timezone: {{ $('Merge Customer ID').item.json.timezone }}\n- Is Owner: {{ $('Merge Customer ID').item.json.is_owner }}\n\n## TODAY'S DATE (READ THIS — THIS IS THE REAL DATE)\nToday is {{ $('Merge Customer ID').item.json.today_full }} ({{ $('Merge Customer ID').item.json.today }}).\nThe current year is {{ $('Merge Customer ID').item.json.today_year }}.\n\n## 14-DAY CALENDAR\n{{ $('Merge Customer ID').item.json.calendar }}\n\n## CRITICAL DATE RULES\n1. The ONLY correct dates are in the calendar above. DO NOT use any other dates.\n2. The current year is {{ $('Merge Customer ID').item.json.today_year }} — NEVER use 2024 or any other year.\n3. \"tomorrow\" = the line marked TOMORROW in the calendar above\n4. \"next Sunday\" = find the next Sunday AFTER today in the calendar\n5. \"next week\" = the week starting with the next Monday in the calendar\n6. ALWAYS resolve dates to YYYY-MM-DD using the calendar BEFORE calling any tool\n7. ALWAYS confirm resolved dates with the guest before booking\n8. If a date would be BEFORE {{ $('Merge Customer ID').item.json.today }}, it is WRONG — find the next occurrence\n\n## OWNER MESSAGES (is_owner = true)\nIf from the OWNER: check if confirming payment, or asking about property/bookings.\n\n## How You Work\n1. Read the message and determine intent\n2. Resolve dates using the CALENDAR above (no tool call needed for dates)\n3. Call 1-2 tools max to get data\n4. Respond in under 150 words\n\n## EFFICIENCY\n- Dates are in the calendar — no tool call needed for date resolution\n- 1-2 tool calls per message, max 3 for complex booking flows\n- Greetings and simple questions need no tools\n- Never call the same tool twice with same parameters\n\n## Tools:\n\n### Calendar Manager\nCheck availability. Pass check_in_date and check_out_date in YYYY-MM-DD format.\nIMPORTANT: Both dates must be {{ $('Merge Customer ID').item.json.today }} or later. Never pass a past date.\n\n### Offer Conflict Checker\nCall BEFORE confirming a booking. Returns CLEAR or COMPETING.\n\n### Payment Processor\nCreate bookings after confirming availability + no conflicts. Also confirms owner payments.\n\n### Calculate Price\nRecalculate pricing (Calendar Manager already includes pricing — only use for recalculation).\n\n### Property Operations\nMaintenance, issues, cleaning requests.\n\n### Emergency Handler\nONLY for emergencies: fire, medical, break-in, gas leak, flooding.\n\n## Booking Flow:\n1. Guest mentions dates = resolve using CALENDAR above to YYYY-MM-DD\n2. Calendar Manager (check availability)\n3. Offer Conflict Checker (check for competing offers)\n4. Payment Processor (create booking)\n\n## Response Rules\n- Never expose JSON to guests\n- 1-2 emojis max\n- End with next step or question\n- Confirm dates as: \"February 22 to March 1, {{ $('Merge Customer ID').item.json.today_year }} (Sunday to Sunday)\"",
+          "maxIterations": 15
         }
       },
       "id": "ai-agent",
@@ -186,7 +187,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        1512,
+        1520,
         -112
       ]
     },
@@ -238,8 +239,7 @@
           "__rl": true,
           "value": "__WF_ID:WF2: Offer Conflict Manager__",
           "mode": "id",
-          "cachedResultUrl": "/workflow/NPInwpKv4Oriq04F",
-          "cachedResultName": "WF2: Offer Conflict Manager"
+          "cachedResultUrl": "/workflow/XnhCywT7s1ttYFvr"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -331,12 +331,11 @@
     },
     {
       "parameters": {
-        "description": "Check property calendar availability for specific dates. Use when guest mentions specific travel dates or asks about date ranges. Returns availability status, pricing per night, and alternative dates if requested dates are unavailable.",
+        "description": "Check property availability for specific dates. Pass check_in_date and check_out_date in YYYY-MM-DD format. IMPORTANT: Today is {{ $('Merge Customer ID').item.json.today }}. Both dates MUST be on or after today. Never pass a date before {{ $('Merge Customer ID').item.json.today }}.",
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:WF3: Calendar Manager__",
-          "cachedResultName": "WF3: Calendar Manager"
+          "value": "__WF_ID:WF3: Calendar Manager__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -404,8 +403,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:WF4: Payment Processor__",
-          "cachedResultName": "WF4: Payment Processor"
+          "value": "__WF_ID:WF4: Payment Processor__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -517,8 +515,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1616,
-        160
+        1520,
+        112
       ]
     },
     {
@@ -527,8 +525,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:WF5: Property Operations__",
-          "cachedResultName": "WF5: Property Operations"
+          "value": "__WF_ID:WF5: Property Operations__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -606,8 +603,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1680,
-        176
+        1648,
+        112
       ]
     },
     {
@@ -616,8 +613,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:WF8: Safety & Screening__",
-          "cachedResultName": "WF8: Safety & Screening"
+          "value": "__WF_ID:WF8: Safety & Screening__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -693,7 +689,7 @@
       "typeVersion": 2,
       "position": [
         2240,
-        -8
+        -16
       ]
     },
     {
@@ -708,7 +704,7 @@
       "typeVersion": 2.5,
       "position": [
         2464,
-        -8
+        -16
       ],
       "credentials": {
         "postgres": {
@@ -746,7 +742,7 @@
       "typeVersion": 2,
       "position": [
         2688,
-        -8
+        -16
       ]
     },
     {
@@ -789,8 +785,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:SUB: Universal Messenger__",
-          "cachedResultName": "SUB: Universal Messenger"
+          "value": "__WF_ID:SUB: Universal Messenger__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -853,7 +848,7 @@
       "typeVersion": 1.3,
       "position": [
         3360,
-        -8
+        -16
       ]
     },
     {
@@ -883,7 +878,7 @@
       "typeVersion": 2.5,
       "position": [
         3584,
-        -8
+        -16
       ],
       "credentials": {
         "postgres": {
@@ -902,7 +897,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1576,
+        1584,
         288
       ]
     },
@@ -911,8 +906,7 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:SUB: Universal Messenger__",
-          "cachedResultName": "SUB: Universal Messenger"
+          "value": "__WF_ID:SUB: Universal Messenger__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -967,8 +961,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        1920,
-        192
+        1904,
+        112
       ]
     }
   ],
@@ -1260,1268 +1254,7 @@
   "staticData": null,
   "meta": null,
   "pinData": {},
-  "activeVersionId": "45d1def6-4f41-4d4d-9649-43b2124791e4",
-  "versionCounter": 184,
-  "activeVersion": {
-    "updatedAt": "2026-02-16T02:57:13.000Z",
-    "createdAt": "2026-02-13T05:29:39.308Z",
-    "versionId": "45d1def6-4f41-4d4d-9649-43b2124791e4",
-    "workflowId": "__WF_ID:WF1: AI Gateway__",
-    "nodes": [
-      {
-        "parameters": {
-          "updates": [
-            "message",
-            "callback_query"
-          ],
-          "additionalFields": {}
-        },
-        "id": "telegram-trigger",
-        "name": "Telegram Trigger",
-        "type": "n8n-nodes-base.telegramTrigger",
-        "typeVersion": 1.2,
-        "position": [
-          -208,
-          -52
-        ],
-        "webhookId": "c2f7c25b-4e8f-4755-81b3-bd2ffb072819",
-        "credentials": {
-          "telegramApi": {
-            "id": "telegram-cred",
-            "name": "[Client] Telegram Bot"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "updates": [
-            "messages"
-          ],
-          "options": {}
-        },
-        "id": "whatsapp-trigger",
-        "name": "WhatsApp Trigger",
-        "type": "n8n-nodes-base.whatsAppTrigger",
-        "typeVersion": 1,
-        "position": [
-          -208,
-          140
-        ],
-        "webhookId": "8314034e-62b3-4f15-80ea-6e7e60d9f690",
-        "disabled": true
-      },
-      {
-        "parameters": {
-          "updates": [
-            "com.twilio.messaging.inbound-message.received"
-          ]
-        },
-        "id": "sms-trigger",
-        "name": "SMS Trigger",
-        "type": "n8n-nodes-base.twilioTrigger",
-        "typeVersion": 1,
-        "position": [
-          -208,
-          332
-        ],
-        "webhookId": "81d80984-a266-4918-822e-d962d1015860",
-        "credentials": {
-          "twilioApi": {
-            "id": "twilio-cred",
-            "name": "Twilio"
-          }
-        },
-        "disabled": true
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Normalize input from any channel into standard format\nconst input = $input.item.json;\nlet normalized = {\n  channel: 'unknown',\n  sender_id: null,\n  sender_name: null,\n  message_text: '',\n  is_callback: false,\n  callback_data: null,\n  customer_id: null\n};\n\n// Telegram message\nif (input.message?.text) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.message.chat.id);\n  normalized.sender_name = input.message.from?.first_name || 'Guest';\n  normalized.message_text = input.message.text;\n}\n// Telegram callback\nelse if (input.callback_query) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.callback_query.message.chat.id);\n  normalized.sender_name = input.callback_query.from?.first_name || 'Guest';\n  normalized.is_callback = true;\n  normalized.callback_data = input.callback_query.data;\n  normalized.message_text = input.callback_query.data;\n}\n// WhatsApp\nelse if (input.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {\n  const msg = input.entry[0].changes[0].value.messages[0];\n  const contact = input.entry[0].changes[0].value.contacts?.[0];\n  normalized.channel = 'whatsapp';\n  normalized.sender_id = msg.from;\n  normalized.sender_name = contact?.profile?.name || 'Guest';\n  normalized.message_text = msg.text?.body || msg.interactive?.button_reply?.title || '';\n  normalized.is_callback = !!msg.interactive;\n  normalized.callback_data = msg.interactive?.button_reply?.id || null;\n}\n// Twilio SMS\nelse if (input.Body && input.From) {\n  normalized.channel = 'sms';\n  normalized.sender_id = input.From;\n  normalized.sender_name = 'Guest';\n  normalized.message_text = input.Body;\n}\n\nnormalized.timestamp = new Date().toISOString();\nreturn normalized;"
-        },
-        "id": "normalize-input",
-        "name": "Normalize Input",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          16,
-          140
-        ]
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=SELECT pc.customer_id FROM property_configurations pc JOIN conversations c ON pc.property_id = c.property_id WHERE c.contact_id = '{{ $json.sender_id }}' LIMIT 1",
-          "options": {}
-        },
-        "id": "get-customer-id",
-        "name": "Get Customer ID",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          240,
-          140
-        ],
-        "alwaysOutputData": true,
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Merge customer_id with normalized data\nconst normalized = $('Normalize Input').item.json;\nconst customerResult = $input.item.json;\n\n// Use customer_id from DB or fallback to a default for new guests\nconst customerId = customerResult?.customer_id || '00000000-0000-0000-0000-000000000001';\n\nreturn {\n  ...normalized,\n  customer_id: customerId\n};"
-        },
-        "id": "merge-customer",
-        "name": "Merge Customer ID",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          464,
-          140
-        ]
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=SELECT * FROM check_budget_available('{{ $json.customer_id }}'::uuid)",
-          "options": {}
-        },
-        "id": "check-budget",
-        "name": "Check Budget",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          688,
-          140
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "loose",
-              "version": 1
-            },
-            "conditions": [
-              {
-                "id": "budget-check",
-                "leftValue": "={{ $json.is_available !== false }}",
-                "rightValue": true,
-                "operator": {
-                  "type": "boolean",
-                  "operation": "equals"
-                }
-              }
-            ],
-            "combinator": "and"
-          },
-          "options": {}
-        },
-        "id": "budget-gate",
-        "name": "Budget Available?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2,
-        "position": [
-          912,
-          140
-        ]
-      },
-      {
-        "parameters": {
-          "promptType": "define",
-          "text": "={{ $('Merge Customer ID').item.json.message_text }}",
-          "options": {
-            "systemMessage": "You are the main AI concierge for a vacation rental business. You are the ONLY one who communicates with guests — your tools are your back-office team that return data to you.\n\n## How You Work\n1. Read the guest's message and determine their intent\n2. Call the right tool(s) to get data\n3. Use the returned data to craft YOUR friendly response\n4. Keep responses concise (under 150 words)\n\n## Your Tools (return DATA, not messages):\n\n### Offer Conflict Checker\nALWAYS call this BEFORE confirming any booking. Checks if other guests are competing for the same dates.\n- Returns CLEAR → safe to proceed with booking\n- Returns COMPETING → owner is deciding between offers, tell guest to wait\n\n### Calendar Manager\nCheck property availability for specific dates. Use when guest asks about dates or availability.\n- Returns: available dates, pricing, conflicts, alternative dates\n\n### Payment Processor\nCreate bookings and payment links. Use AFTER confirming availability and no conflicts.\n- Returns: booking ID, payment link, transaction status\n\n### Calculate Price\nCalculate total cost for a stay with fees and discounts.\n- NOTE: Calendar Manager already includes full pricing in its response. Only use Calculate Price if you need to recalculate with different parameters (e.g., guest asks about a discount).\n- Returns: price breakdown (nightly rate, nights, cleaning fee, service fee, discounts, total)\n\n### Property Operations\nHandle maintenance reports, property issues, cleaning requests.\n- Returns: ticket info, issue category, urgency level\n\n### Emergency Handler\nONLY for urgent safety emergencies (fire, medical, break-in, gas leak, flooding).\n- Returns: emergency assessment, responder info, immediate action instructions\n\n## Booking Flow (follow this order):\n1. Guest asks about dates → Calendar Manager (returns availability + pricing)\n2. Guest wants to book → Offer Conflict Checker (check for competing offers)\n4. No conflicts → Payment Processor (create booking + payment link)\n\n## Response Guidelines\n- Never expose raw JSON or data to the guest\n- Paraphrase tool results naturally\n- Use emojis sparingly (1-2 per message max)\n- Always end with a clear next step or question\n- If a tool errors, apologize and offer alternatives\n- For emergencies, lead with safety instructions immediately"
-          }
-        },
-        "id": "ai-agent",
-        "name": "AI Agent",
-        "type": "@n8n/n8n-nodes-langchain.agent",
-        "typeVersion": 3.1,
-        "position": [
-          1512,
-          -112
-        ]
-      },
-      {
-        "parameters": {
-          "options": {
-            "temperature": 0.7
-          }
-        },
-        "id": "openai-model",
-        "name": "OpenAI Chat Model",
-        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-        "typeVersion": 1,
-        "position": [
-          1136,
-          112
-        ],
-        "credentials": {
-          "openAiApi": {
-            "id": "openai-cred",
-            "name": "[Client] OpenAI"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "sessionIdType": "customKey",
-          "sessionKey": "={{ $('Normalize Input').item.json.sender_id }}"
-        },
-        "id": "chat-memory",
-        "name": "Chat Memory",
-        "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
-        "typeVersion": 1.3,
-        "position": [
-          1264,
-          112
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "description": "ALWAYS call this BEFORE confirming any booking. Checks if there are competing offers from other guests for the same property and dates. Returns either CLEAR (safe to proceed with booking via Payment Processor) or COMPETING (owner notified, guest must wait). Pass the property_id and detected check-in/check-out dates.",
-          "workflowId": {
-            "__rl": true,
-            "value": "__WF_ID:WF2: Offer Conflict Manager__",
-            "mode": "id",
-            "cachedResultUrl": "/workflow/NPInwpKv4Oriq04F"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "property_id": "={{ $fromAI('property_id', 'The property ID to check for competing offers', 'string', '') }}",
-              "check_in_date": "={{ $fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format', 'string', '') }}",
-              "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format', 'string', '') }}",
-              "sender_id": "={{ $('Merge Customer ID').item.json.sender_id }}",
-              "sender_name": "={{ $('Merge Customer ID').item.json.sender_name }}",
-              "channel": "={{ $('Merge Customer ID').item.json.channel }}",
-              "customer_id": "={{ $('Merge Customer ID').item.json.customer_id }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "property_id",
-                "displayName": "property_id",
-                "required": true,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              },
-              {
-                "id": "check_in_date",
-                "displayName": "check_in_date",
-                "required": true,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              },
-              {
-                "id": "check_out_date",
-                "displayName": "check_out_date",
-                "required": true,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              },
-              {
-                "id": "sender_id",
-                "displayName": "sender_id",
-                "required": true,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              },
-              {
-                "id": "sender_name",
-                "displayName": "sender_name",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              },
-              {
-                "id": "channel",
-                "displayName": "channel",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              },
-              {
-                "id": "customer_id",
-                "displayName": "customer_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "type": "string",
-                "canBeUsedToMatch": false
-              }
-            ]
-          }
-        },
-        "id": "tool-booking",
-        "name": "Offer Conflict Checker",
-        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-        "typeVersion": 2.2,
-        "position": [
-          2032,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "description": "Check property calendar availability for specific dates. Use when guest mentions specific travel dates or asks about date ranges. Returns availability status, pricing per night, and alternative dates if requested dates are unavailable.",
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:WF3: Calendar Manager__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "property_id": "={{ $fromAI('property_id', 'The property ID to check availability for. Leave empty to check all properties.', 'string', '') }}",
-              "check_in_date": "={{ $fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format', 'string', '') }}",
-              "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format', 'string', '') }}",
-              "num_guests": "={{ $fromAI('num_guests', 'Number of guests. Optional.', 'string', '') }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "property_id",
-                "displayName": "property_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "check_in_date",
-                "displayName": "check_in_date",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "check_out_date",
-                "displayName": "check_out_date",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "num_guests",
-                "displayName": "num_guests",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              }
-            ],
-            "attemptToConvertTypes": false,
-            "convertFieldsToString": true
-          }
-        },
-        "id": "tool-calendar",
-        "name": "Calendar Manager Tool",
-        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-        "typeVersion": 2.2,
-        "position": [
-          1392,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "description": "Handle payment operations: create payment links, check payment status, process refunds, answer pricing questions. Returns payment links, transaction status, and financial data.",
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:WF4: Payment Processor__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "property_id": "={{ $fromAI('property_id', 'The property ID for the payment') }}",
-              "booking_id": "={{ $fromAI('booking_id', 'The booking ID if available') }}",
-              "guest_name": "={{ $fromAI('guest_name', 'The guest full name') }}",
-              "guest_email": "={{ $fromAI('guest_email', 'The guest email address') }}",
-              "guest_phone": "={{ $fromAI('guest_phone', 'The guest phone number') }}",
-              "check_in_date": "={{ $fromAI('check_in_date', 'Check-in date YYYY-MM-DD') }}",
-              "check_out_date": "={{ $fromAI('check_out_date', 'Check-out date YYYY-MM-DD') }}",
-              "num_guests": "={{ $fromAI('num_guests', 'Number of guests') }}",
-              "total_amount": "={{ $fromAI('total_amount', 'Total payment amount') }}",
-              "currency": "={{ $fromAI('currency', 'Currency code like USD, EUR. Default USD') }}",
-              "channel": "={{ $('Merge Customer ID').item.json.channel }}",
-              "sender_id": "={{ $('Merge Customer ID').item.json.sender_id }}",
-              "customer_id": "={{ $('Merge Customer ID').item.json.customer_id }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "property_id",
-                "displayName": "property_id",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "booking_id",
-                "displayName": "booking_id",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "guest_name",
-                "displayName": "guest_name",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "guest_email",
-                "displayName": "guest_email",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "guest_phone",
-                "displayName": "guest_phone",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "check_in_date",
-                "displayName": "check_in_date",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "check_out_date",
-                "displayName": "check_out_date",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "num_guests",
-                "displayName": "num_guests",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "total_amount",
-                "displayName": "total_amount",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "currency",
-                "displayName": "currency",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "channel",
-                "displayName": "Channel",
-                "type": "string",
-                "required": true,
-                "default": ""
-              },
-              {
-                "id": "sender_id",
-                "displayName": "Sender ID",
-                "type": "string",
-                "required": true,
-                "default": ""
-              },
-              {
-                "id": "customer_id",
-                "displayName": "Customer ID",
-                "type": "string",
-                "required": false,
-                "default": ""
-              }
-            ],
-            "attemptToConvertTypes": false,
-            "convertFieldsToString": true
-          }
-        },
-        "id": "tool-payment",
-        "name": "Payment Processor Tool",
-        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-        "typeVersion": 2.2,
-        "position": [
-          1520,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "description": "Handle property operations: maintenance reports, issue tracking, cleaning requests, vendor coordination. Use when a guest reports a problem or needs operational support. Returns ticket numbers, issue categories, and resolution info.",
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:WF5: Property Operations__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "issue_description": "={{ $fromAI('issue_description', 'Description of the maintenance issue or operational request') }}",
-              "property_id": "={{ $fromAI('property_id', 'The property ID where the issue is') }}",
-              "sender_id": "={{ $fromAI('sender_id', 'The guest sender ID or chat ID who reported the issue') }}",
-              "channel": "={{ $fromAI('channel', 'The messaging channel: telegram, whatsapp, or sms') }}",
-              "customer_id": "={{ $('Merge Customer ID').item.json.customer_id }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "operation",
-                "displayName": "operation",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
-              },
-              {
-                "id": "channel",
-                "displayName": "channel",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "sender_id",
-                "displayName": "sender_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "customer_id",
-                "displayName": "customer_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "property_id",
-                "displayName": "property_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "issue_description",
-                "displayName": "issue_description",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              }
-            ],
-            "attemptToConvertTypes": false,
-            "convertFieldsToString": true
-          }
-        },
-        "id": "tool-operations",
-        "name": "Property Operations Tool",
-        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-        "typeVersion": 2.2,
-        "position": [
-          1648,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "description": "ONLY for genuine safety or security emergencies: fire, medical emergency, break-in, gas leak, flooding, structural damage. Returns emergency assessment, severity, responder info, and immediate action instructions. Do NOT use for complaints or minor issues.",
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:WF8: Safety & Screening__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "category": "={{ $fromAI('category', 'Always set to EMERGENCY') }}",
-              "message_text": "={{ $fromAI('message_text', 'Description of the emergency situation') }}",
-              "sender_id": "={{ $fromAI('sender_id', 'The guest sender ID or chat ID') }}",
-              "channel": "={{ $fromAI('channel', 'The messaging channel: telegram, whatsapp, or sms') }}",
-              "property_id": "={{ $fromAI('property_id', 'The property ID where the emergency is') }}",
-              "customer_id": "={{ $('Merge Customer ID').item.json.customer_id }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "category",
-                "displayName": "category",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "message_text",
-                "displayName": "message_text",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "sender_id",
-                "displayName": "sender_id",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "channel",
-                "displayName": "channel",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "property_id",
-                "displayName": "property_id",
-                "type": "string",
-                "required": false
-              },
-              {
-                "id": "customer_id",
-                "displayName": "Customer ID",
-                "type": "string",
-                "required": false,
-                "default": ""
-              }
-            ],
-            "attemptToConvertTypes": false,
-            "convertFieldsToString": true
-          }
-        },
-        "id": "tool-emergency",
-        "name": "Emergency Handler Tool",
-        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-        "typeVersion": 2.2,
-        "position": [
-          1776,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Calculate AI cost after agent execution\nconst normalized = $('Merge Customer ID').item.json;\nconst aiOutput = $input.item.json;\n\n// GPT-4o-mini pricing (Jan 2026): $0.15/1M input, $0.60/1M output\nconst INPUT_COST_PER_1K = 0.00015;\nconst OUTPUT_COST_PER_1K = 0.0006;\n\n// Estimate tokens (approximately 4 chars per token)\nconst systemPromptTokens = 800;\nconst messageTokens = Math.ceil((normalized.message_text || '').length / 4);\nconst inputTokens = systemPromptTokens + messageTokens + 200; // 200 for context\n\n// Output is the AI response\nconst outputText = aiOutput.output || '';\nconst outputTokens = Math.ceil(outputText.length / 4);\n\n// Calculate cost\nconst inputCost = (inputTokens / 1000) * INPUT_COST_PER_1K;\nconst outputCost = (outputTokens / 1000) * OUTPUT_COST_PER_1K;\nconst totalCost = inputCost + outputCost;\n\nreturn {\n  ...aiOutput,\n  customer_id: normalized.customer_id,\n  sender_id: normalized.sender_id,\n  channel: normalized.channel,\n  cost_calculation: {\n    input_tokens: inputTokens,\n    output_tokens: outputTokens,\n    cost_usd: totalCost\n  }\n};"
-        },
-        "id": "calculate-cost",
-        "name": "Calculate AI Cost",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          2240,
-          -8
-        ]
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=SELECT * FROM log_api_usage('{{ $json.customer_id }}'::uuid, 'openai', 'gpt-4o-mini', 'chat', {{ $json.cost_calculation.input_tokens }}::int, {{ $json.cost_calculation.output_tokens }}::int, {{ $json.cost_calculation.cost_usd }}::decimal, 'WF1: AI Gateway', 'AI Agent', '{{ $execution.id }}')",
-          "options": {}
-        },
-        "id": "log-api-cost",
-        "name": "Log API Cost",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          2464,
-          -8
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": true,
-              "leftValue": "",
-              "typeValidation": "loose"
-            },
-            "conditions": [
-              {
-                "id": "alert-check",
-                "leftValue": "={{ $json.alert_50_needed === true || $json.alert_80_needed === true || $json.alert_100_needed === true }}",
-                "rightValue": true,
-                "operator": {
-                  "type": "boolean",
-                  "operation": "equals"
-                }
-              }
-            ],
-            "combinator": "and"
-          },
-          "options": {}
-        },
-        "id": "alert-needed",
-        "name": "Alert Needed?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2,
-        "position": [
-          2688,
-          -8
-        ]
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Prepare budget alert notification\nconst data = $input.item.json;\n\nlet alertType, alertEmoji, alertTitle, alertMessage;\nconst remaining = Number(data.remaining) || 0;\n\n// Check from highest to lowest priority\nif (data.alert_100_needed) {\n  alertType = '100_percent';\n  alertEmoji = '🔴';\n  alertTitle = 'API Budget Exhausted';\n  alertMessage = 'Your monthly API budget is exhausted. AI features will use template responses until next month.';\n} else if (data.alert_80_needed) {\n  alertType = '80_percent';\n  alertEmoji = '🔶';\n  alertTitle = 'API Budget: 80% Used';\n  alertMessage = `You have used 80% of your monthly API budget. Remaining: $${remaining.toFixed(2)}. Consider reducing usage.`;\n} else if (data.alert_50_needed) {\n  alertType = '50_percent';\n  alertEmoji = '⚠️';\n  alertTitle = 'API Budget: 50% Used';\n  alertMessage = `You have used 50% of your monthly API budget. Remaining: $${remaining.toFixed(2)}`;\n} else {\n  alertType = 'info';\n  alertEmoji = 'ℹ️';\n  alertTitle = 'Budget Update';\n  alertMessage = `Current remaining budget: $${remaining.toFixed(2)}`;\n}\n\nreturn {\n  alert_type: alertType,\n  alert_emoji: alertEmoji,\n  alert_title: alertTitle,\n  alert_message: alertMessage,\n  customer_id: $('Merge Customer ID').item.json.customer_id,\n  remaining: remaining\n};"
-        },
-        "id": "prepare-alert",
-        "name": "Prepare Alert",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          2912,
-          -80
-        ]
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=INSERT INTO api_budget_alerts (customer_id, month_year, alert_type, usage_at_alert, notification_sent) VALUES ('{{ $json.customer_id }}'::uuid, TO_CHAR(CURRENT_DATE, 'YYYY-MM'), '{{ $json.alert_type }}', (SELECT used_amount FROM api_usage_budget WHERE customer_id = '{{ $json.customer_id }}'::uuid AND month_year = TO_CHAR(CURRENT_DATE, 'YYYY-MM')), true)",
-          "options": {}
-        },
-        "id": "save-alert",
-        "name": "Save Alert Record",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          3136,
-          -80
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:SUB: Universal Messenger__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "channel": "={{ $('Merge Customer ID').item.json.channel }}",
-              "sender_id": "={{ $('Merge Customer ID').item.json.sender_id }}",
-              "customer_id": "={{ $('Merge Customer ID').item.json.customer_id }}",
-              "input": "={{ $('AI Agent').item.json.output }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "channel",
-                "displayName": "channel",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string"
-              },
-              {
-                "id": "sender_id",
-                "displayName": "sender_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
-              },
-              {
-                "id": "input",
-                "displayName": "input",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
-              },
-              {
-                "id": "customer_id",
-                "displayName": "customer_id",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "type": "string",
-                "removed": false
-              }
-            ],
-            "attemptToConvertTypes": false,
-            "convertFieldsToString": true
-          },
-          "options": {}
-        },
-        "id": "send-response-safety",
-        "name": "Call SUB: Universal Messenger",
-        "type": "n8n-nodes-base.executeWorkflow",
-        "typeVersion": 1.3,
-        "position": [
-          3360,
-          -8
-        ]
-      },
-      {
-        "parameters": {
-          "schema": {
-            "__rl": true,
-            "mode": "list",
-            "value": "public"
-          },
-          "table": "activity_log",
-          "columns": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "log_id": "={{ $runId }}",
-              "event_type": "message_processed",
-              "contact_id": "={{ $('Merge Customer ID').item.json.sender_id }}",
-              "channel": "={{ $('Merge Customer ID').item.json.channel }}",
-              "message": "={{ $('Merge Customer ID').item.json.message_text }}",
-              "created_at": "={{ $now.toISO() }}"
-            }
-          },
-          "options": {}
-        },
-        "id": "log-activity",
-        "name": "Log Activity",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          3584,
-          -8
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Budget exhausted - return template response\nconst normalized = $('Merge Customer ID').item.json;\nconst budgetInfo = $('Check Budget').item.json;\n\nconst fallbackResponses = {\n  en: \"I apologize, but I'm currently operating in limited mode. For immediate assistance with bookings or urgent issues, please contact our support team directly. We'll be back to full service soon!\",\n  es: \"Disculpe, actualmente estoy operando en modo limitado. Para asistencia inmediata con reservas o problemas urgentes, contacte a nuestro equipo de soporte directamente.\",\n  default: \"Thank you for your message. Our AI assistant is temporarily limited. Please try again later or contact support for immediate help.\"\n};\n\nconst response = fallbackResponses.en;\n\nreturn {\n  output: response,\n  sender_id: normalized.sender_id,\n  channel: normalized.channel,\n  budget_exhausted: true,\n  remaining_budget: budgetInfo.remaining || 0\n};"
-        },
-        "id": "budget-exhausted",
-        "name": "Budget Exhausted Response",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          1576,
-          288
-        ]
-      },
-      {
-        "parameters": {
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:SUB: Universal Messenger__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "recipient": "={{ $json.sender_id }}",
-              "channel": "={{ $json.channel }}",
-              "message": "={{ $json.output }}"
-            },
-            "matchingColumns": [],
-            "schema": [
-              {
-                "id": "channel",
-                "displayName": "channel",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "recipient",
-                "displayName": "recipient",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "message",
-                "displayName": "message",
-                "type": "string",
-                "required": true
-              }
-            ],
-            "attemptToConvertTypes": false,
-            "convertFieldsToString": true
-          },
-          "options": {}
-        },
-        "id": "send-fallback",
-        "name": "Send Fallback Response",
-        "type": "n8n-nodes-base.executeWorkflow",
-        "typeVersion": 1.3,
-        "position": [
-          2240,
-          288
-        ]
-      },
-      {
-        "parameters": {
-          "name": "calculate_price",
-          "description": "Calculate total price for a stay. Input: check_in_date, check_out_date, price_per_night, cleaning_fee (optional), discount_percent (optional). Returns total price breakdown.",
-          "jsCode": "// Calculate total price for a vacation rental stay\n// Robust version that handles n8n toolCode execution context\ntry {\n  const checkIn = new Date($fromAI('check_in_date', 'Check-in date in YYYY-MM-DD format'));\n  const checkOut = new Date($fromAI('check_out_date', 'Check-out date in YYYY-MM-DD format'));\n  const pricePerNight = parseFloat($fromAI('price_per_night', 'Price per night in USD', 'number', '100'));\n  const weekendPrice = parseFloat($fromAI('weekend_price', 'Weekend price per night', 'number', String(pricePerNight)));\n  const cleaningFee = parseFloat($fromAI('cleaning_fee', 'One-time cleaning fee', 'number', '0'));\n  const discountPercent = parseFloat($fromAI('discount_percent', 'Discount percentage', 'number', '0'));\n\n  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\n  if (nights <= 0 || isNaN(nights)) {\n    return { error: true, message: 'Invalid dates: check-out must be after check-in' };\n  }\n\n  // Count weekday vs weekend nights\n  let weekdayNights = 0;\n  let weekendNights = 0;\n  for (let d = 0; d < nights; d++) {\n    const day = new Date(checkIn);\n    day.setDate(day.getDate() + d);\n    const dow = day.getDay();\n    if (dow === 5 || dow === 6) weekendNights++;\n    else weekdayNights++;\n  }\n\n  const nightly = (weekdayNights * pricePerNight) + (weekendNights * weekendPrice);\n  const discount = nightly * (discountPercent / 100);\n  const afterDiscount = nightly - discount;\n  const serviceFee = Math.round(afterDiscount * 0.12 * 100) / 100;\n\n  let weeklyDiscount = 0;\n  if (nights >= 7 && discountPercent === 0) {\n    weeklyDiscount = Math.round(nightly * 0.10 * 100) / 100;\n  }\n\n  const total = Math.round((afterDiscount - weeklyDiscount + cleaningFee + serviceFee) * 100) / 100;\n\n  return {\n    nights,\n    weekday_nights: weekdayNights,\n    weekend_nights: weekendNights,\n    price_per_night: pricePerNight,\n    weekend_price: weekendPrice,\n    nightly_subtotal: Math.round(nightly * 100) / 100,\n    custom_discount: Math.round(discount * 100) / 100,\n    weekly_discount: weeklyDiscount,\n    cleaning_fee: cleaningFee,\n    service_fee: serviceFee,\n    total: total,\n    currency: 'USD',\n    check_in: checkIn.toISOString().split('T')[0],\n    check_out: checkOut.toISOString().split('T')[0]\n  };\n} catch (err) {\n  return {\n    error: true,\n    message: 'Price calculation failed: ' + err.message,\n    hint: 'The Calendar Manager tool already includes pricing in its response. Use that instead.'\n  };\n}"
-        },
-        "id": "tool-calculate-price",
-        "name": "Calculate Price Tool",
-        "type": "@n8n/n8n-nodes-langchain.toolCode",
-        "typeVersion": 1.1,
-        "position": [
-          1904,
-          112
-        ]
-      }
-    ],
-    "connections": {
-      "Telegram Trigger": {
-        "main": [
-          [
-            {
-              "node": "Normalize Input",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "WhatsApp Trigger": {
-        "main": [
-          [
-            {
-              "node": "Normalize Input",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "SMS Trigger": {
-        "main": [
-          [
-            {
-              "node": "Normalize Input",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Normalize Input": {
-        "main": [
-          [
-            {
-              "node": "Get Customer ID",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Get Customer ID": {
-        "main": [
-          [
-            {
-              "node": "Merge Customer ID",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Merge Customer ID": {
-        "main": [
-          [
-            {
-              "node": "Check Budget",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Check Budget": {
-        "main": [
-          [
-            {
-              "node": "Budget Available?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Budget Available?": {
-        "main": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Budget Exhausted Response",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "AI Agent": {
-        "main": [
-          [
-            {
-              "node": "Calculate AI Cost",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Calculate AI Cost": {
-        "main": [
-          [
-            {
-              "node": "Log API Cost",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Log API Cost": {
-        "main": [
-          [
-            {
-              "node": "Alert Needed?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Alert Needed?": {
-        "main": [
-          [
-            {
-              "node": "Prepare Alert",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Call SUB: Universal Messenger",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Prepare Alert": {
-        "main": [
-          [
-            {
-              "node": "Save Alert Record",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Save Alert Record": {
-        "main": [
-          [
-            {
-              "node": "Call SUB: Universal Messenger",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Call SUB: Universal Messenger": {
-        "main": [
-          [
-            {
-              "node": "Log Activity",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Budget Exhausted Response": {
-        "main": [
-          [
-            {
-              "node": "Send Fallback Response",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "OpenAI Chat Model": {
-        "ai_languageModel": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_languageModel",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Chat Memory": {
-        "ai_memory": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_memory",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Calendar Manager Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Payment Processor Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Property Operations Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Emergency Handler Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Calculate Price Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Offer Conflict Checker": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      }
-    },
-    "authors": "Gabriel Erna",
-    "name": "Version 45d1def6",
-    "description": "",
-    "autosaved": true,
-    "workflowPublishHistory": [
-      {
-        "createdAt": "2026-02-16T02:57:13.139Z",
-        "id": 256,
-        "workflowId": "__WF_ID:WF1: AI Gateway__",
-        "versionId": "45d1def6-4f41-4d4d-9649-43b2124791e4",
-        "event": "activated",
-        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
-      }
-    ]
-  }
+  "activeVersionId": null,
+  "versionCounter": 97,
+  "activeVersion": null
 }

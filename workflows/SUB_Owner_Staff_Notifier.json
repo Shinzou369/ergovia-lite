@@ -1,5 +1,11 @@
 {
+  "updatedAt": "2026-02-16T13:21:16.251Z",
+  "createdAt": "2026-02-16T13:21:16.251Z",
+  "id": "__WF_ID:SUB: Owner & Staff Notifier__",
   "name": "SUB: Owner & Staff Notifier",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -66,7 +72,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -196,7 +202,7 @@
       ],
       "credentials": {
         "telegramApi": {
-          "id": "6ltptOrFLUaZzC1C",
+          "id": "telegram-cred",
           "name": "[Client] Telegram Bot"
         }
       }
@@ -354,7 +360,7 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "BWlLUMKn64aZsHi8",
+          "id": "postgres-cred",
           "name": "[Client] PostgreSQL"
         }
       }
@@ -564,16 +570,9 @@
     "availableInMCP": false
   },
   "staticData": null,
-  "active": false,
-  "versionId": "6c391fda-b418-4ba4-a3cc-768031905c8a",
-  "id": "0L7HOkqENABlbPtT",
-  "description": null,
   "meta": null,
   "pinData": null,
   "activeVersionId": null,
-  "updatedAt": "2026-02-16T06:00:01.831Z",
-  "createdAt": "2026-02-16T06:00:01.831Z",
-  "isArchived": false,
-  "versionCounter": 1,
-  "triggerCount": 0
+  "versionCounter": 4,
+  "activeVersion": null
 }
