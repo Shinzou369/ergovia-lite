@@ -53,15 +53,50 @@ const WorkflowSync = {
 
     updateSyncStatusDisplay() {
         const statusEl = document.getElementById('syncLastStatus');
-        if (!statusEl) return;
+        const countEl = document.getElementById('syncWorkflowCount');
 
-        if (!this.n8nConfigured) {
-            statusEl.innerHTML = '<span style="color: #e74c3c;">n8n not configured</span>';
-        } else if (this.lastSync) {
-            const ago = this.timeAgo(new Date(this.lastSync.at));
-            statusEl.innerHTML = `<span style="color: #42b72a;">Last synced ${ago}</span> (${this.deployedCount} workflows)`;
-        } else {
-            statusEl.innerHTML = '<span style="color: #8b8d91;">Never synced</span>';
+        if (statusEl) {
+            if (!this.n8nConfigured) {
+                statusEl.innerHTML = '<span style="color: #e74c3c;">n8n not configured</span>';
+            } else if (this.lastSync) {
+                const ago = this.timeAgo(new Date(this.lastSync.at));
+                statusEl.innerHTML = `<span style="color: #42b72a;">Last synced ${ago}</span>`;
+            } else {
+                statusEl.innerHTML = '<span style="color: #8b8d91;">Never synced</span>';
+            }
+        }
+
+        if (countEl) {
+            if (this.deployedCount > 0) {
+                countEl.innerHTML = `<span style="color: #42b72a;"><i class="fas fa-check-circle"></i> ${this.deployedCount} workflows connected</span>`;
+            } else if (this.n8nConfigured) {
+                countEl.innerHTML = `<span style="color: #ff9800;">No workflows linked</span> &nbsp;
+                    <button onclick="WorkflowSync.importLiveWorkflows()" style="background:#1877f2;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;">
+                        <i class="fas fa-download"></i> Import from n8n
+                    </button>`;
+            }
+        }
+    },
+
+    // ============================================
+    // IMPORT LIVE WORKFLOWS
+    // ============================================
+
+    async importLiveWorkflows() {
+        try {
+            this.showToast('Importing workflows from n8n...', 'info');
+            const response = await fetch(`${CONFIG.API.BASE_URL}/sync/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Import failed');
+
+            this.deployedCount = result.imported;
+            this.showToast(`Imported ${result.imported} workflows from n8n!`, 'success');
+            this.updateSyncStatusDisplay();
+        } catch (err) {
+            this.showToast(`Import failed: ${err.message}`, 'error');
         }
     },
 

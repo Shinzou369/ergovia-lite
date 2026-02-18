@@ -435,6 +435,30 @@ class N8NService {
     }
   }
 
+  // List all workflows from n8n
+  async listWorkflows() {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'n8n not configured' };
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/v1/workflows?limit=100`, {
+        headers: { 'X-N8N-API-KEY': this.apiKey },
+        timeout: 15000
+      });
+      const workflows = (response.data.data || []).map(wf => ({
+        id: wf.id,
+        name: wf.name,
+        active: wf.active,
+        createdAt: wf.createdAt,
+        updatedAt: wf.updatedAt
+      }));
+      return { success: true, workflows };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
   // Get trigger tag for a workflow (optimized workflow naming: WF1, WF2, SUB, etc.)
   getTriggerTag(filename) {
     // Match WF1, WF2, SUB patterns

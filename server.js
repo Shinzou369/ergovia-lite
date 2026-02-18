@@ -1399,6 +1399,69 @@ app.get('/api/v2/sync/status', async (req, res) => {
   }
 });
 
+// Import live workflows from n8n into the control panel database
+// This registers existing active workflows so sync features can manage them
+app.post('/api/v2/sync/import', async (req, res) => {
+  try {
+    if (!n8nService.isConfigured()) {
+      return res.status(400).json({ success: false, error: 'n8n not configured' });
+    }
+
+    // Fetch all workflows from n8n
+    const response = await n8nService.listWorkflows();
+    if (!response.success) {
+      return res.status(500).json({ success: false, error: response.error || 'Failed to list workflows' });
+    }
+
+    // Filter to only active workflows that match our naming convention
+    const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
+    const liveWorkflows = (response.workflows || []).filter(wf => {
+      return wf.active && validPrefixes.some(p => wf.name.startsWith(p));
+    });
+
+    if (liveWorkflows.length === 0) {
+      return res.json({ success: false, error: 'No active Ergovia workflows found on n8n' });
+    }
+
+    // Map to filename convention
+    const filenameMap = {
+      'SUB: Universal Messenger': 'SUB_Universal_Messenger.json',
+      'SUB: Owner & Staff Notifier': 'SUB_Owner_Staff_Notifier.json',
+      'WF1: AI Gateway - Unified Entry Point': 'WF1_AI_Gateway.json',
+      'WF2: Offer Conflict Manager': 'WF2_Offer_Conflict_Manager.json',
+      'WF3: Calendar Manager': 'WF3_Calendar_Manager.json',
+      'WF4: Payment Processor': 'WF4_Payment_Processor.json',
+      'WF5: Property Operations': 'WF5_Property_Operations.json',
+      'WF6: Daily Automations': 'WF6_Daily_Automations.json',
+      'WF7: Integration Hub': 'WF7_Integration_Hub.json',
+      'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
+    };
+
+    // Build workflow entries for database
+    const workflowEntries = liveWorkflows.map(wf => ({
+      filename: filenameMap[wf.name] || `${wf.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+      workflowId: wf.id,
+      name: wf.name,
+      triggerTag: wf.name.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
+      active: true
+    }));
+
+    // Clear existing and save new
+    db.clearDeployedWorkflows();
+    db.saveDeployedWorkflows(workflowEntries);
+
+    db.logActivity('workflows_imported', `Imported ${workflowEntries.length} live workflows from n8n`);
+
+    res.json({
+      success: true,
+      imported: workflowEntries.length,
+      workflows: workflowEntries.map(w => ({ name: w.name, id: w.workflowId }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ============================================
 // 404 HANDLER (Return JSON not HTML)
 // ============================================
