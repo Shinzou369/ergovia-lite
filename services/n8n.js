@@ -29,17 +29,18 @@ class N8NService {
       'Sub-Workflow': ['SUB']
     };
 
-    // Optimized workflow files (9 workflows total - reduced from 25)
+    // Optimized workflow files (10 workflows - V4 production set)
     this.allWorkflows = [
-      'SUB_Universal_Messenger.json',  // Sub-workflow must deploy first for ExecuteWorkflow references
-      'WF1_AI_Gateway.json',           // Entry point - routes all incoming messages
-      'WF2_AI_Booking_Agent.json',     // AI-powered booking conversations
-      'WF3_Calendar_Manager.json',     // Calendar sync and availability
-      'WF4_Payment_Processor.json',    // Stripe payment handling
-      'WF5_Property_Operations.json',  // Maintenance, cleaning, vendors
-      'WF6_Daily_Automations.json',    // Morning/evening/weekly reports
-      'WF7_Integration_Hub.json',      // iCal sync, external platforms
-      'WF8_Safety_Screening.json'      // Emergency handling, guest screening, watchdog
+      'SUB_Universal_Messenger.json',    // Sub-workflow must deploy first for ExecuteWorkflow references
+      'SUB_Owner_Staff_Notifier.json',   // Owner/staff notification sub-workflow
+      'WF1_AI_Gateway.json',             // Entry point - routes all incoming messages
+      'WF2_Offer_Conflict_Manager.json', // Offer conflict detection and resolution
+      'WF3_Calendar_Manager.json',       // Calendar sync and availability
+      'WF4_Payment_Processor.json',      // Payment handling
+      'WF5_Property_Operations.json',    // Maintenance, cleaning, vendors
+      'WF6_Daily_Automations.json',      // Morning/evening/weekly reports
+      'WF7_Integration_Hub.json',        // iCal sync, external platforms
+      'WF8_Safety_Screening.json'        // Emergency handling, guest screening, watchdog
     ];
 
     // Fixed credential IDs used in optimized workflows
@@ -975,29 +976,30 @@ class N8NService {
     return [
       // Layer 1: No dependencies - deploy first
       { filename: 'SUB_Universal_Messenger.json', name: 'SUB: Universal Messenger', dependencies: [] },
+      { filename: 'SUB_Owner_Staff_Notifier.json', name: 'SUB: Owner & Staff Notifier', dependencies: [] },
 
-      // Layer 2: Only depends on SUB
+      // Layer 2: Depends on SUB(s)
       { filename: 'WF3_Calendar_Manager.json', name: 'WF3: Calendar Manager', dependencies: ['SUB: Universal Messenger'] },
       { filename: 'WF4_Payment_Processor.json', name: 'WF4: Payment Processor', dependencies: ['SUB: Universal Messenger'] },
-      { filename: 'WF5_Property_Operations.json', name: 'WF5: Property Operations', dependencies: ['SUB: Universal Messenger'] },
-      { filename: 'WF6_Daily_Automations.json', name: 'WF6: Daily Automations', dependencies: ['SUB: Universal Messenger'] },
-      { filename: 'WF8_Safety_Screening.json', name: 'WF8: Safety & Screening', dependencies: ['SUB: Universal Messenger'] },
+      { filename: 'WF5_Property_Operations.json', name: 'WF5: Property Operations', dependencies: ['SUB: Universal Messenger', 'SUB: Owner & Staff Notifier'] },
+      { filename: 'WF6_Daily_Automations.json', name: 'WF6: Daily Automations', dependencies: ['SUB: Owner & Staff Notifier'] },
+      { filename: 'WF8_Safety_Screening.json', name: 'WF8: Safety & Screening', dependencies: ['SUB: Owner & Staff Notifier'] },
 
-      // Layer 3: Depends on WF3
-      { filename: 'WF7_Integration_Hub.json', name: 'WF7: Integration Hub', dependencies: ['WF3: Calendar Manager'] },
+      // Layer 3: Depends on WF3 + SUB Notifier
+      { filename: 'WF7_Integration_Hub.json', name: 'WF7: Integration Hub', dependencies: ['WF3: Calendar Manager', 'SUB: Owner & Staff Notifier'] },
 
-      // Layer 4: Depends on multiple workflows
-      { filename: 'WF2_AI_Booking_Agent.json', name: 'WF2: AI Booking Agent', dependencies: ['SUB: Universal Messenger', 'WF3: Calendar Manager', 'WF4: Payment Processor'] },
+      // Layer 4: Depends on SUB
+      { filename: 'WF2_Offer_Conflict_Manager.json', name: 'WF2: Offer Conflict Manager', dependencies: ['SUB: Universal Messenger'] },
 
       // Layer 5: Gateway depends on all specialized workflows
-      { filename: 'WF1_AI_Gateway.json', name: 'WF1: AI Gateway - Unified Entry Point', dependencies: ['SUB: Universal Messenger', 'WF2: AI Booking Agent', 'WF3: Calendar Manager', 'WF4: Payment Processor', 'WF5: Property Operations', 'WF8: Safety & Screening'] }
+      { filename: 'WF1_AI_Gateway.json', name: 'WF1: AI Gateway - Unified Entry Point', dependencies: ['SUB: Universal Messenger', 'WF2: Offer Conflict Manager', 'WF3: Calendar Manager', 'WF4: Payment Processor', 'WF5: Property Operations', 'WF8: Safety & Screening'] }
     ];
   }
 
   // Inject actual workflow IDs into workflow references
   // Replaces workflow name values with actual n8n workflow IDs
   // Handles three modes:
-  //   - "list" or "name": value is a workflow name like "WF2: AI Booking Agent"
+  //   - "list" or "name": value is a workflow name like "WF2: Offer Conflict Manager"
   //   - "id": value is a stale/incorrect ID that needs replacement
   //   - missing workflowId: node has no workflowId param, matched by node name
   injectWorkflowIds(workflow, workflowIdMap) {
@@ -1104,7 +1106,9 @@ class N8NService {
   // Uses keyword matching from common node naming patterns
   _matchNodeToWorkflowName(nodeName, workflowIdMap) {
     const nodeNameKeywords = {
-      'booking': 'WF2: AI Booking Agent',
+      'booking': 'WF2: Offer Conflict Manager',
+      'offer': 'WF2: Offer Conflict Manager',
+      'conflict': 'WF2: Offer Conflict Manager',
       'calendar': 'WF3: Calendar Manager',
       'payment': 'WF4: Payment Processor',
       'property': 'WF5: Property Operations',
@@ -1117,6 +1121,9 @@ class N8NService {
       'send message': 'SUB: Universal Messenger',
       'send fallback': 'SUB: Universal Messenger',
       'call sub': 'SUB: Universal Messenger',
+      'notifier': 'SUB: Owner & Staff Notifier',
+      'notify owner': 'SUB: Owner & Staff Notifier',
+      'staff notif': 'SUB: Owner & Staff Notifier',
       'daily': 'WF6: Daily Automations',
       'integration': 'WF7: Integration Hub'
     };
