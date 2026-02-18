@@ -472,7 +472,7 @@ class N8NService {
     }
 
     try {
-      const response = await axios.get(`${this.baseUrl}/api/v1/workflows?limit=100`, {
+      const response = await axios.get(`${this.baseUrl}/api/v1/workflows?limit=250`, {
         headers: { 'X-N8N-API-KEY': this.apiKey },
         timeout: 15000
       });

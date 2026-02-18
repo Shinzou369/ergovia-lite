@@ -1428,10 +1428,14 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
     const listResult = await n8nService.listWorkflows();
     let importedCount = 0;
 
+    // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
+    const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
+
     if (listResult.success) {
       const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
       const liveWorkflows = (listResult.workflows || []).filter(wf => {
-        return wf.active && validPrefixes.some(p => wf.name.startsWith(p));
+        const cleanName = stripTag(wf.name);
+        return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
       });
 
       if (liveWorkflows.length > 0) {
@@ -1447,13 +1451,16 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
           'WF7: Integration Hub': 'WF7_Integration_Hub.json',
           'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
         };
-        const workflowEntries = liveWorkflows.map(wf => ({
-          filename: filenameMap[wf.name] || `${wf.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
-          workflowId: wf.id,
-          name: wf.name,
-          triggerTag: wf.name.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
-          active: true
-        }));
+        const workflowEntries = liveWorkflows.map(wf => {
+          const cleanName = stripTag(wf.name);
+          return {
+            filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+            workflowId: wf.id,
+            name: cleanName,
+            triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
+            active: true
+          };
+        });
         db.clearDeployedWorkflows();
         db.saveDeployedWorkflows(workflowEntries);
         importedCount = workflowEntries.length;
@@ -1485,10 +1492,14 @@ app.post('/api/v2/sync/import', async (req, res) => {
       return res.status(500).json({ success: false, error: response.error || 'Failed to list workflows' });
     }
 
+    // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
+    const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
+
     // Filter to only active workflows that match our naming convention
     const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
     const liveWorkflows = (response.workflows || []).filter(wf => {
-      return wf.active && validPrefixes.some(p => wf.name.startsWith(p));
+      const cleanName = stripTag(wf.name);
+      return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
     });
 
     if (liveWorkflows.length === 0) {
@@ -1509,14 +1520,17 @@ app.post('/api/v2/sync/import', async (req, res) => {
       'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
     };
 
-    // Build workflow entries for database
-    const workflowEntries = liveWorkflows.map(wf => ({
-      filename: filenameMap[wf.name] || `${wf.name.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
-      workflowId: wf.id,
-      name: wf.name,
-      triggerTag: wf.name.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
-      active: true
-    }));
+    // Build workflow entries for database (use clean names without tag prefix)
+    const workflowEntries = liveWorkflows.map(wf => {
+      const cleanName = stripTag(wf.name);
+      return {
+        filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+        workflowId: wf.id,
+        name: cleanName,
+        triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
+        active: true
+      };
+    });
 
     // Clear existing and save new
     db.clearDeployedWorkflows();
