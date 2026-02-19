@@ -4,222 +4,323 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ergovia Lite - Login</title>
+    <link rel="icon" href="/logo.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --accent-gold: #c8a55a;
+            --bg-dark: #030712;
+            --bg-card: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.08);
+            --border-focus: rgba(99, 102, 241, 0.5);
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-dim: #6b7280;
+            --success: #10b981;
+            --error: #ef4444;
+            --radius: 16px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #f0f2f5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+
+        /* Animated background orbs */
+        .bg-orbs {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bg-orbs .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.5;
+        }
+        .bg-orbs .orb-1 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%);
+            top: -100px; left: -100px;
+            animation: float1 20s ease-in-out infinite;
+        }
+        .bg-orbs .orb-2 {
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%);
+            bottom: -80px; right: -80px;
+            animation: float2 25s ease-in-out infinite;
+        }
+        .bg-orbs .orb-3 {
+            width: 250px; height: 250px;
+            background: radial-gradient(circle, rgba(200, 165, 90, 0.15) 0%, transparent 70%);
+            top: 50%; left: 60%;
+            animation: float3 18s ease-in-out infinite;
+        }
+
+        @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+        @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-30px)} }
+        @keyframes float3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,50px)} }
+
+        /* Grid overlay */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
         }
 
         .login-container {
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .logo-section {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 32px;
         }
-        .logo-section .logo-icon {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #1877f2, #42b72a);
-            border-radius: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+        .logo-section img {
+            width: 72px;
+            height: auto;
             margin-bottom: 16px;
-            box-shadow: 0 4px 16px rgba(24, 119, 242, 0.3);
-        }
-        .logo-section .logo-icon i {
-            font-size: 28px;
-            color: white;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
         }
         .logo-section h1 {
-            font-size: 28px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 32px;
             font-weight: 700;
-            color: #050505;
+            background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .logo-section p {
             font-size: 15px;
-            color: #65676b;
+            color: var(--text-muted);
             margin-top: 4px;
+            letter-spacing: 0.5px;
         }
 
         .card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
         .card h2 {
-            font-size: 20px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 22px;
             font-weight: 600;
-            color: #050505;
-            margin-bottom: 20px;
+            color: var(--text);
+            margin-bottom: 24px;
             text-align: center;
         }
 
-        .form-group {
-            margin-bottom: 16px;
-        }
+        .form-group { margin-bottom: 18px; }
         .form-group label {
             display: block;
             font-size: 13px;
-            font-weight: 600;
-            color: #050505;
+            font-weight: 500;
+            color: var(--text-muted);
             margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .form-group input {
             width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #ced0d4;
-            border-radius: 8px;
+            padding: 13px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
+        .form-group input::placeholder { color: var(--text-dim); }
         .form-group input:focus {
-            border-color: #1877f2;
-            box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
         .btn-primary {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
+            font-family: 'Inter', sans-serif;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
         }
         .btn-login {
-            background: #1877f2;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
             color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
         }
-        .btn-login:hover { background: #1565c0; }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        }
         .btn-login:disabled {
-            background: #bcc3ce;
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         .btn-register {
-            background: #42b72a;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             margin-top: 12px;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
         }
-        .btn-register:hover { background: #36a420; }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
         .btn-register:disabled {
-            background: #bcc3ce;
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .toggle-link {
             text-align: center;
-            margin-top: 16px;
+            margin-top: 20px;
             font-size: 14px;
-            color: #65676b;
+            color: var(--text-dim);
         }
         .toggle-link a {
-            color: #1877f2;
+            color: var(--primary-light);
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
+            transition: color 0.2s;
         }
-        .toggle-link a:hover { text-decoration: underline; }
+        .toggle-link a:hover { color: white; }
 
         .error-msg {
-            background: #fff3f3;
-            border: 1px solid #f44336;
-            border-radius: 8px;
-            padding: 10px 14px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
             font-size: 14px;
-            color: #d32f2f;
-            margin-bottom: 16px;
+            color: #fca5a5;
+            margin-bottom: 18px;
             display: none;
         }
-        .error-msg.visible { display: flex; align-items: center; gap: 8px; }
+        .error-msg.visible { display: flex; align-items: center; gap: 10px; }
 
         .setup-badge {
-            background: linear-gradient(135deg, #42b72a, #2d9617);
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 12px 16px;
+            border-radius: 10px;
             font-size: 14px;
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             display: none;
         }
         .setup-badge.visible { display: block; }
-        .setup-badge i { margin-right: 6px; }
+        .setup-badge i { margin-right: 8px; }
 
         .spinner {
-            width: 18px;
-            height: 18px;
+            width: 18px; height: 18px;
             border: 2px solid rgba(255,255,255,0.3);
             border-top-color: white;
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .form-group .password-wrapper {
-            position: relative;
-        }
-        .form-group .password-wrapper input {
-            padding-right: 42px;
-        }
+        .form-group .password-wrapper { position: relative; }
+        .form-group .password-wrapper input { padding-right: 44px; }
         .form-group .toggle-password {
             position: absolute;
-            right: 12px;
+            right: 14px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: #65676b;
+            color: var(--text-dim);
             cursor: pointer;
             font-size: 16px;
+            transition: color 0.2s;
         }
+        .form-group .toggle-password:hover { color: var(--text); }
 
         .footer-text {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 24px;
             font-size: 13px;
-            color: #8a8d91;
+            color: var(--text-dim);
+        }
+        .footer-text span {
+            color: var(--accent-gold);
+            font-weight: 500;
         }
 
-        /* Register-only fields */
         .register-only { display: none; }
         body.register-mode .register-only { display: block; }
         body.register-mode .login-only { display: none; }
+
+        @media (max-width: 480px) {
+            .card { padding: 24px; }
+            .logo-section img { width: 56px; }
+            .logo-section h1 { font-size: 26px; }
+        }
     </style>
 </head>
 <body>
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="bg-grid"></div>
+
     <div class="login-container">
         <div class="logo-section">
-            <div class="logo-icon">
-                <i class="fas fa-robot"></i>
-            </div>
+            <img src="/logo.png" alt="Ergovia">
             <h1>Ergovia Lite</h1>
             <p>AI-Powered Property Management</p>
         </div>
 
         <div class="card">
             <div class="setup-badge" id="setupBadge">
-                <i class="fas fa-star"></i> First-time setup — Create your admin account
+                <i class="fas fa-rocket"></i> First-time setup &mdash; Create your admin account
             </div>
 
             <h2 id="formTitle">Sign In</h2>
@@ -265,25 +366,23 @@
                 </button>
             </form>
 
-            <div class="toggle-link login-only" id="toggleToRegister">
+            <div class="toggle-link login-only">
                 No account yet? <a onclick="toggleMode('register')">Create one</a>
             </div>
-            <div class="toggle-link register-only" id="toggleToLogin">
+            <div class="toggle-link register-only">
                 Already have an account? <a onclick="toggleMode('login')">Sign in</a>
             </div>
         </div>
 
         <div class="footer-text">
-            Ergovia Lite v2.0 &mdash; Vacation Property Automation
+            <span>Ergovia Lite</span> v2.1 &mdash; Vacation Property Automation
         </div>
     </div>
 
     <script>
         let isRegisterMode = false;
 
-        // Check auth status on load
         async function init() {
-            // If already logged in, redirect
             const token = localStorage.getItem('ergovia_token');
             if (token) {
                 try {
@@ -292,7 +391,7 @@
                     });
                     const data = await resp.json();
                     if (data.success) {
-                        window.location.href = '/';
+                        window.location.href = '/v2/dashboard.html';
                         return;
                     }
                 } catch (e) {
@@ -301,7 +400,6 @@
                 }
             }
 
-            // Check if setup is needed
             try {
                 const resp = await fetch('/api/auth/status');
                 const data = await resp.json();
@@ -322,9 +420,8 @@
         }
 
         function showError(msg) {
-            const el = document.getElementById('errorMsg');
             document.getElementById('errorText').textContent = msg;
-            el.classList.add('visible');
+            document.getElementById('errorMsg').classList.add('visible');
         }
         function hideError() {
             document.getElementById('errorMsg').classList.remove('visible');
@@ -371,19 +468,9 @@
             if (isRegisterMode) {
                 const email = document.getElementById('email').value.trim();
                 const confirmPassword = document.getElementById('confirmPassword').value;
-
-                if (!email) {
-                    showError('Email is required');
-                    return;
-                }
-                if (password.length < 6) {
-                    showError('Password must be at least 6 characters');
-                    return;
-                }
-                if (password !== confirmPassword) {
-                    showError('Passwords do not match');
-                    return;
-                }
+                if (!email) { showError('Email is required'); return; }
+                if (password.length < 6) { showError('Password must be at least 6 characters'); return; }
+                if (password !== confirmPassword) { showError('Passwords do not match'); return; }
 
                 setLoading(true);
                 try {
@@ -396,7 +483,7 @@
                     if (data.success) {
                         localStorage.setItem('ergovia_token', data.token);
                         localStorage.setItem('ergovia_user', JSON.stringify(data.user));
-                        window.location.href = '/';
+                        window.location.href = '/v2/dashboard.html';
                     } else {
                         showError(data.error || 'Registration failed');
                     }
@@ -417,7 +504,7 @@
                     if (data.success) {
                         localStorage.setItem('ergovia_token', data.token);
                         localStorage.setItem('ergovia_user', JSON.stringify(data.user));
-                        window.location.href = '/';
+                        window.location.href = '/v2/dashboard.html';
                     } else {
                         showError(data.error || 'Login failed');
                     }
