@@ -704,6 +704,16 @@ function showBookingDetail(booking) {
                 </div>` : ''}
             </div>
         </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+            ${booking.status !== 'cancelled' ? `
+                <button onclick="cancelBooking('${booking.id}')" style="padding:8px 18px;border:1px solid #f44336;color:#f44336;background:#fff;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
+                    <i class="fas fa-times"></i> Cancel Booking
+                </button>
+            ` : ''}
+            <button onclick="editBookingStatus('${booking.id}', '${booking.status === 'confirmed' ? 'pending' : 'confirmed'}')" style="padding:8px 18px;border:none;color:#fff;background:${booking.status === 'confirmed' ? '#ff9800' : '#42b72a'};border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;">
+                <i class="fas fa-${booking.status === 'confirmed' ? 'pause' : 'check'}"></i> ${booking.status === 'confirmed' ? 'Mark Pending' : 'Confirm'}
+            </button>
+        </div>
     `;
 
     modal.style.display = 'flex';

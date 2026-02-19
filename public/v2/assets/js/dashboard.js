@@ -261,6 +261,49 @@ async function seedDemoData() {
     }
 }
 
+/**
+ * Cancel a booking
+ */
+async function cancelBooking(bookingId) {
+    if (!confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+        const response = await Utils.delete(CONFIG.API.CANCEL_BOOKING + '/' + bookingId);
+        if (response.success) {
+            Utils.showToast('Booking cancelled', 'success');
+            closeModal();
+            await loadDashboard();
+            await loadCalendarData();
+            renderCalendar();
+        } else {
+            throw new Error(response.error || 'Failed to cancel booking');
+        }
+    } catch (error) {
+        console.error('[Dashboard] Cancel booking failed:', error);
+        Utils.showToast('Failed to cancel booking', 'error');
+    }
+}
+
+/**
+ * Update booking status (confirm/pending)
+ */
+async function editBookingStatus(bookingId, newStatus) {
+    try {
+        const response = await Utils.put(CONFIG.API.UPDATE_BOOKING + '/' + bookingId, { status: newStatus });
+        if (response.success) {
+            Utils.showToast(`Booking ${newStatus === 'confirmed' ? 'confirmed' : 'set to pending'}`, 'success');
+            closeModal();
+            await loadDashboard();
+            await loadCalendarData();
+            renderCalendar();
+        } else {
+            throw new Error(response.error || 'Failed to update booking');
+        }
+    } catch (error) {
+        console.error('[Dashboard] Update booking failed:', error);
+        Utils.showToast('Failed to update booking', 'error');
+    }
+}
+
 // Help button info texts
 const helpTexts = {
     tasks: 'This section shows your pending tasks and reminders. Complete them to keep your property management running smoothly.',

@@ -66,6 +66,34 @@ function initDb() {
       error_details TEXT,
       synced_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT DEFAULT 'admin',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_login DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      notification_id TEXT NOT NULL UNIQUE,
+      type TEXT DEFAULT 'info',
+      title TEXT NOT NULL,
+      message TEXT DEFAULT '',
+      read INTEGER DEFAULT 0,
+      action_link TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS v2_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      section TEXT NOT NULL UNIQUE,
+      data TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Seed initial deployment status
@@ -296,6 +324,109 @@ function getRecentSyncs(limit = 10) {
   return db.prepare('SELECT * FROM sync_log ORDER BY synced_at DESC LIMIT ?').all(limit);
 }
 
+// ============================================
+// USERS (Authentication)
+// ============================================
+
+function createUser(username, email, passwordHash) {
+  try {
+    const result = db.prepare(
+      'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)'
+    ).run(username, email, passwordHash);
+    return { success: true, userId: result.lastInsertRowid };
+  } catch (error) {
+    if (error.message.includes('UNIQUE')) {
+      return { success: false, error: 'Username or email already exists' };
+    }
+    return { success: false, error: error.message };
+  }
+}
+
+function getUserByUsername(username) {
+  return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+}
+
+function getUserByEmail(email) {
+  return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+}
+
+function getUserById(id) {
+  return db.prepare('SELECT id, username, email, role, created_at, last_login FROM users WHERE id = ?').get(id);
+}
+
+function updateLastLogin(userId) {
+  db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(userId);
+}
+
+function getUserCount() {
+  return db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+}
+
+// ============================================
+// NOTIFICATIONS (Persistent)
+// ============================================
+
+function addNotification(notification) {
+  const id = notification.id || 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  try {
+    db.prepare(`
+      INSERT OR IGNORE INTO notifications (notification_id, type, title, message, action_link)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(id, notification.type || 'info', notification.title, notification.message || '', notification.actionLink || null);
+    return id;
+  } catch (error) {
+    console.error('addNotification error:', error.message);
+    return null;
+  }
+}
+
+function getNotifications(unreadOnly = false) {
+  if (unreadOnly) {
+    return db.prepare('SELECT * FROM notifications WHERE read = 0 ORDER BY created_at DESC').all();
+  }
+  return db.prepare('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50').all();
+}
+
+function markNotificationRead(notificationId) {
+  const result = db.prepare('UPDATE notifications SET read = 1 WHERE notification_id = ?').run(notificationId);
+  return result.changes > 0;
+}
+
+function markAllNotificationsRead() {
+  db.prepare('UPDATE notifications SET read = 1 WHERE read = 0').run();
+  return true;
+}
+
+function getUnreadNotificationCount() {
+  return db.prepare('SELECT COUNT(*) as count FROM notifications WHERE read = 0').get().count;
+}
+
+// ============================================
+// V2 SETTINGS (Persistent local settings)
+// ============================================
+
+function getV2Setting(section) {
+  const row = db.prepare('SELECT data FROM v2_settings WHERE section = ?').get(section);
+  return row ? JSON.parse(row.data) : null;
+}
+
+function saveV2Setting(section, data) {
+  db.prepare(`
+    INSERT INTO v2_settings (section, data, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(section) DO UPDATE SET data = ?, updated_at = CURRENT_TIMESTAMP
+  `).run(section, JSON.stringify(data), JSON.stringify(data));
+}
+
+function getAllV2Settings() {
+  const rows = db.prepare('SELECT section, data FROM v2_settings').all();
+  const result = {};
+  for (const row of rows) {
+    result[row.section] = JSON.parse(row.data);
+  }
+  return result;
+}
+
 module.exports = {
   initDb,
   // Client data
@@ -333,5 +464,22 @@ module.exports = {
   // Sync log
   logSync,
   getLastSync,
-  getRecentSyncs
+  getRecentSyncs,
+  // Users (auth)
+  createUser,
+  getUserByUsername,
+  getUserByEmail,
+  getUserById,
+  updateLastLogin,
+  getUserCount,
+  // Notifications (persistent)
+  addNotification,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getUnreadNotificationCount,
+  // V2 Settings (persistent)
+  getV2Setting,
+  saveV2Setting,
+  getAllV2Settings,
 };

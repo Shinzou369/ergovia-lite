@@ -1,0 +1,423 @@
+{
+  "name": "[MARKETING] New Customer Provisioning",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-customer",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "New Customer Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "new-customer-provision"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-email",
+              "leftValue": "={{ $json.customer.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM customers WHERE email = '{{ $json.customer.email }}' LIMIT 1",
+        "options": {}
+      },
+      "id": "check-existing",
+      "name": "Check Existing Customer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [680, 280],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-marketing",
+          "name": "PostgreSQL Marketing DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-new",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-new-customer",
+      "name": "Is New Customer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 280]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO customers (email, name, lemonsqueezy_subscription_id, status, provisioning_status, created_at)\nVALUES ('{{ $('New Customer Webhook').item.json.customer.email }}', \n        '{{ $('New Customer Webhook').item.json.customer.name }}',\n        '{{ $('New Customer Webhook').item.json.customer.subscriptionId }}',\n        'active',\n        'in_progress',\n        NOW())\nRETURNING *",
+        "options": {}
+      },
+      "id": "create-customer",
+      "name": "Create Customer Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 180],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-marketing",
+          "name": "PostgreSQL Marketing DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET \n  status = 'active',\n  provisioning_status = 'in_progress',\n  lemonsqueezy_subscription_id = '{{ $('New Customer Webhook').item.json.customer.subscriptionId }}',\n  updated_at = NOW()\nWHERE email = '{{ $('New Customer Webhook').item.json.customer.email }}'\nRETURNING *",
+        "options": {}
+      },
+      "id": "update-customer",
+      "name": "Update Existing Customer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 380],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-marketing",
+          "name": "PostgreSQL Marketing DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "output": "all"
+      },
+      "id": "merge-customers",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1340, 280]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "customer-email",
+              "name": "customer_email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "customer-name",
+              "name": "customer_name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "customer-id",
+              "name": "customer_id",
+              "value": "={{ $json.id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-onboarding",
+      "name": "Prepare Onboarding Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1560, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "🎉 *NEW CUSTOMER SIGNED UP!*\n\n👤 Name: {{ $json.customer_name }}\n📧 Email: {{ $json.customer_email }}\n📅 Time: {{ $now.format('YYYY-MM-DD HH:mm') }}\n\n_Provisioning in progress..._"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-admin",
+      "name": "Notify Admin (Telegram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 180]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "toEmail": "={{ $json.customer_email }}",
+        "subject": "Welcome to Ergovia Lite! 🎉",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }\n    .header { text-align: center; margin-bottom: 40px; }\n    .logo { font-size: 32px; font-weight: bold; color: #6366f1; }\n    .content { background: #f9fafb; padding: 30px; border-radius: 12px; }\n    .cta { display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }\n    .footer { text-align: center; margin-top: 40px; color: #6b7280; font-size: 14px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"logo\">◈ Ergovia Lite</div>\n    </div>\n    <div class=\"content\">\n      <h2>Welcome aboard, {{ $json.customer_name }}! 🎉</h2>\n      <p>Thank you for subscribing to Ergovia Lite. Your AI-powered vacation rental management system is being set up.</p>\n      <p><strong>What happens next:</strong></p>\n      <ol>\n        <li>We're configuring your AI assistant (takes ~24 hours)</li>\n        <li>You'll receive your Telegram bot credentials</li>\n        <li>Complete a quick onboarding form with your property details</li>\n        <li>Start receiving bookings on autopilot!</li>\n      </ol>\n      <p>In the meantime, you can prepare:</p>\n      <ul>\n        <li>Your property photos and descriptions</li>\n        <li>Pricing and availability calendar</li>\n        <li>House rules and check-in instructions</li>\n      </ul>\n      <center>\n        <a href=\"https://ergovia.ai/onboarding\" class=\"cta\">Complete Onboarding Form</a>\n      </center>\n      <p>Questions? Reply to this email or message us on Telegram.</p>\n    </div>\n    <div class=\"footer\">\n      <p>Ergovia Lite • AI-Powered Vacation Rental Management</p>\n      <p>© 2026 Ergovia. All rights reserved.</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1780, 380],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cred",
+          "name": "SMTP Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO activity_log (customer_email, action, description, created_at)\nVALUES ('{{ $json.customer_email }}', 'subscription_started', 'Customer subscribed to Ergovia Lite Monthly', NOW())",
+        "options": {}
+      },
+      "id": "log-activity",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [2000, 280],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-marketing",
+          "name": "PostgreSQL Marketing DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Customer provisioning initiated', customer_id: $('Prepare Onboarding Data').item.json.customer_id }) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2220, 280]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: 'Invalid input - email required' }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 460]
+    }
+  ],
+  "connections": {
+    "New Customer Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Is New Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Customer?": {
+      "main": [
+        [
+          {
+            "node": "Create Customer Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Existing Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Customer Record": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Customer": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Prepare Onboarding Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Onboarding Data": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin (Telegram)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Activity": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Marketing"
+    },
+    {
+      "name": "Provisioning"
+    }
+  ],
+  "pinData": {},
+  "versionId": "1"
+}

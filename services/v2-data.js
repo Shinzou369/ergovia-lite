@@ -2,13 +2,14 @@
  * V2 Data Service - Premium Dashboard Data Layer
  *
  * PostgreSQL bridge: properties, bookings, owners, tasks → remote PostgreSQL
- * Local storage: credentials, AI config, media, notifications → in-memory
+ * Local storage: credentials, AI config, media → SQLite (persistent)
  *
  * This ensures the settings page writes to the SAME database
  * that n8n workflows read from.
  */
 
 const { Pool } = require('pg');
+const localDb = require('../db');
 
 // PostgreSQL connection (same DB as n8n workflows)
 const pool = new Pool({
@@ -28,37 +29,34 @@ pool.query('SELECT NOW()')
   .catch(err => console.error('[v2-data] PostgreSQL connection failed:', err.message));
 
 // ============================================
-// LOCAL STORAGE (not in PostgreSQL schema)
+// LOCAL STORAGE (SQLite-backed via db.js)
 // ============================================
-let localData = {
-  credentials: {
-    telegramBotToken: '',
-    whatsappApiKey: '',
-    airbnbCalendarLink: '',
-  },
-  ai: {
-    aiNotes: '',
-    pricingRules: '',
-  },
-  media: {
-    propertyPhotosLink: '',
-    propertyVideosLink: '',
-    documentationLink: '',
-  },
-  notifications: [],
-};
 
-// Initialize some demo notifications
-localData.notifications = [
-  {
-    id: 'notif_1',
-    type: 'system',
-    title: 'AI Assistant Active',
-    message: 'Your AI assistant is connected to PostgreSQL',
-    read: false,
-    createdAt: new Date().toISOString(),
-  },
-];
+function getLocalSection(section) {
+  const defaults = {
+    credentials: { telegramBotToken: '', whatsappApiKey: '', airbnbCalendarLink: '' },
+    ai: { aiNotes: '', pricingRules: '' },
+    media: { propertyPhotosLink: '', propertyVideosLink: '', documentationLink: '' },
+  };
+  return localDb.getV2Setting(section) || defaults[section] || {};
+}
+
+function saveLocalSection(section, data) {
+  const current = getLocalSection(section);
+  const merged = { ...current, ...data };
+  localDb.saveV2Setting(section, merged);
+  return merged;
+}
+
+// Mask sensitive credential values for API responses
+const SENSITIVE_KEYS = ['telegramBotToken', 'whatsappApiKey', 'n8n_api_key', 'openaiApiKey'];
+function maskSensitiveCreds(creds) {
+  const masked = { ...creds };
+  for (const key of SENSITIVE_KEYS) {
+    if (masked[key]) masked[key] = '********';
+  }
+  return masked;
+}
 
 // ============================================
 // FIELD MAPPERS (frontend camelCase ↔ DB snake_case)
@@ -219,7 +217,10 @@ const V2DataService = {
       },
       upcomingBookings: activeBookings.slice(0, 5),
       tasks: tasks.slice(0, 5),
-      recentNotifications: localData.notifications.slice(0, 10),
+      recentNotifications: localDb.getNotifications(false).slice(0, 10).map(n => ({
+        id: n.notification_id, type: n.type, title: n.title, message: n.message,
+        read: !!n.read, createdAt: n.created_at,
+      })),
     };
   },
 
@@ -324,29 +325,24 @@ const V2DataService = {
 
   async getSettings(section = null) {
     const owner = await this.getOwner();
+    const creds = getLocalSection('credentials');
+    const ai = getLocalSection('ai');
+    const media = getLocalSection('media');
 
     if (section === 'owner') return owner;
     if (section === 'credentials') {
-      return {
-        telegramBotToken: localData.credentials.telegramBotToken ? '********' : '',
-        whatsappApiKey: localData.credentials.whatsappApiKey ? '********' : '',
-        airbnbCalendarLink: localData.credentials.airbnbCalendarLink || '',
-      };
+      return maskSensitiveCreds(creds);
     }
     if (section === 'team') return [];
-    if (section === 'ai') return localData.ai;
-    if (section === 'media') return localData.media;
+    if (section === 'ai') return ai;
+    if (section === 'media') return media;
 
     return {
       owner,
-      credentials: {
-        telegramBotToken: localData.credentials.telegramBotToken ? '********' : '',
-        whatsappApiKey: localData.credentials.whatsappApiKey ? '********' : '',
-        airbnbCalendarLink: localData.credentials.airbnbCalendarLink || '',
-      },
+      credentials: maskSensitiveCreds(creds),
       team: [],
-      ai: localData.ai,
-      media: localData.media,
+      ai,
+      media,
     };
   },
 
@@ -355,8 +351,8 @@ const V2DataService = {
       return await this.saveOwner(data);
     }
     if (['credentials', 'ai', 'media'].includes(section)) {
-      localData[section] = { ...localData[section], ...data };
-      return { success: true, section, data: localData[section] };
+      const saved = saveLocalSection(section, data);
+      return { success: true, section, data: saved };
     }
     return { success: false, error: `Unknown section: ${section}` };
   },
@@ -600,33 +596,60 @@ const V2DataService = {
   },
 
   // ============================================
-  // NOTIFICATIONS (local — no PG table yet)
+  // BOOKING UPDATE / CANCEL
   // ============================================
 
-  getNotifications(unreadOnly = false) {
-    let notifications = [...localData.notifications];
-    if (unreadOnly) {
-      notifications = notifications.filter(n => !n.read);
+  async updateBooking(bookingId, data) {
+    try {
+      const sets = [];
+      const params = [];
+      let idx = 1;
+
+      if (data.guestName !== undefined) { sets.push(`guest_name = $${idx++}`); params.push(data.guestName); }
+      if (data.guestPhone !== undefined) { sets.push(`guest_phone = $${idx++}`); params.push(data.guestPhone); }
+      if (data.guestEmail !== undefined) { sets.push(`guest_email = $${idx++}`); params.push(data.guestEmail); }
+      if (data.checkIn !== undefined) { sets.push(`check_in_date = $${idx++}`); params.push(data.checkIn); }
+      if (data.checkOut !== undefined) { sets.push(`check_out_date = $${idx++}`); params.push(data.checkOut); }
+      if (data.guests !== undefined) { sets.push(`guests = $${idx++}`); params.push(data.guests); }
+      if (data.status !== undefined) { sets.push(`booking_status = $${idx++}`); params.push(data.status); }
+      if (data.totalAmount !== undefined) { sets.push(`total_amount = $${idx++}`); params.push(data.totalAmount); }
+      if (data.platform !== undefined) { sets.push(`platform = $${idx++}`); params.push(data.platform); }
+      if (data.notes !== undefined) { sets.push(`notes = $${idx++}`); params.push(data.notes); }
+
+      if (sets.length === 0) {
+        return { success: false, error: 'No fields to update' };
+      }
+
+      sets.push(`updated_at = NOW()`);
+      params.push(bookingId);
+
+      const query = `UPDATE bookings SET ${sets.join(', ')} WHERE booking_id = $${idx}`;
+      const result = await pool.query(query, params);
+
+      if (result.rowCount > 0) {
+        return { success: true };
+      }
+      return { success: false, error: 'Booking not found' };
+    } catch (err) {
+      console.error('[v2-data] updateBooking error:', err.message);
+      return { success: false, error: err.message };
     }
-    return notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   },
 
-  markNotificationRead(notificationId) {
-    const notification = localData.notifications.find(n => n.id === notificationId);
-    if (notification) {
-      notification.read = true;
-      return { success: true };
+  async cancelBooking(bookingId) {
+    try {
+      const result = await pool.query(
+        "UPDATE bookings SET booking_status = 'cancelled', updated_at = NOW() WHERE booking_id = $1",
+        [bookingId]
+      );
+      if (result.rowCount > 0) {
+        return { success: true };
+      }
+      return { success: false, error: 'Booking not found' };
+    } catch (err) {
+      console.error('[v2-data] cancelBooking error:', err.message);
+      return { success: false, error: err.message };
     }
-    return { success: false, error: 'Notification not found' };
-  },
-
-  markAllNotificationsRead() {
-    localData.notifications.forEach(n => n.read = true);
-    return { success: true };
-  },
-
-  getUnreadCount() {
-    return localData.notifications.filter(n => !n.read).length;
   },
 
   // ============================================
@@ -635,13 +658,13 @@ const V2DataService = {
 
   async activate(allData) {
     if (allData.owner) await this.saveOwner(allData.owner);
-    if (allData.credentials) localData.credentials = { ...localData.credentials, ...allData.credentials };
-    if (allData.ai) localData.ai = { ...localData.ai, ...allData.ai };
-    if (allData.media) localData.media = { ...localData.media, ...allData.media };
+    if (allData.credentials) saveLocalSection('credentials', allData.credentials);
+    if (allData.ai) saveLocalSection('ai', allData.ai);
+    if (allData.media) saveLocalSection('media', allData.media);
 
     return {
       success: true,
-      message: 'Settings saved to PostgreSQL. Activation would trigger deployment in production.',
+      message: 'Settings saved. Activation would trigger deployment in production.',
     };
   },
 
@@ -650,16 +673,11 @@ const V2DataService = {
   // ============================================
 
   async resetToDemo() {
-    localData.notifications = [
-      {
-        id: 'notif_1',
-        type: 'system',
-        title: 'Demo Reset',
-        message: 'Data has been reset. Properties still come from PostgreSQL.',
-        read: false,
-        createdAt: new Date().toISOString(),
-      },
-    ];
+    localDb.addNotification({
+      type: 'system',
+      title: 'Demo Reset',
+      message: 'Data has been reset. Properties still come from PostgreSQL.',
+    });
     return { success: true, message: 'Local data reset. PostgreSQL data unchanged.' };
   },
 

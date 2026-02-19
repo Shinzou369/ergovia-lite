@@ -1,0 +1,365 @@
+{
+  "name": "[MARKETING] Subscription Events Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "subscription-cancelled",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-cancelled",
+      "name": "Subscription Cancelled",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 200],
+      "webhookId": "subscription-cancelled"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "subscription-active",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-active",
+      "name": "Subscription Resumed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "subscription-active"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment-failed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-failed",
+      "name": "Payment Failed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 600],
+      "webhookId": "payment-failed"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET \n  status = 'churned',\n  subscription_status = 'cancelled',\n  updated_at = NOW()\nWHERE email = '{{ $json.customer.email }}'\nRETURNING *",
+        "options": {}
+      },
+      "id": "mark-churned",
+      "name": "Mark Customer Churned",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [500, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-marketing",
+          "name": "PostgreSQL Marketing DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "😢 *SUBSCRIPTION CANCELLED*\n\n📧 Email: {{ $('Subscription Cancelled').item.json.customer.email }}\n📅 Time: {{ $now.format('YYYY-MM-DD HH:mm') }}\n\n_Customer has been marked as churned._"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-cancelled",
+      "name": "Notify Cancellation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 200]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "toEmail": "={{ $('Subscription Cancelled').item.json.customer.email }}",
+        "subject": "We're sorry to see you go 😢",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }\n    .header { text-align: center; margin-bottom: 40px; }\n    .logo { font-size: 32px; font-weight: bold; color: #6366f1; }\n    .content { background: #f9fafb; padding: 30px; border-radius: 12px; }\n    .cta { display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }\n    .footer { text-align: center; margin-top: 40px; color: #6b7280; font-size: 14px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"logo\">◈ Ergovia Lite</div>\n    </div>\n    <div class=\"content\">\n      <h2>We're sorry to see you go 😢</h2>\n      <p>Your Ergovia Lite subscription has been cancelled.</p>\n      <p>Your AI assistant will remain active until the end of your current billing period.</p>\n      <p><strong>Before you go, we'd love to know:</strong></p>\n      <ul>\n        <li>Was the service not meeting your expectations?</li>\n        <li>Did you encounter any technical issues?</li>\n        <li>Is there anything we could have done better?</li>\n      </ul>\n      <p>Reply to this email and let us know - your feedback helps us improve!</p>\n      <p>If you change your mind, you can always reactivate your subscription:</p>\n      <center>\n        <a href=\"https://ergovia.ai/reactivate\" class=\"cta\">Reactivate Subscription</a>\n      </center>\n      <p>We hope to see you again! 💜</p>\n    </div>\n    <div class=\"footer\">\n      <p>Ergovia Lite • AI-Powered Vacation Rental Management</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-cancelled-email",
+      "name": "Send Cancellation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 100],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cred",
+          "name": "SMTP Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE customers SET \n  status = 'active',\n  subscription_status = 'active',\n  updated_at = NOW()\nWHERE email = '{{ $json.customer.email }}'\nRETURNING *",
+        "options": {}
+      },
+      "id": "mark-active",
+      "name": "Mark Customer Active",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [500, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-marketing",
+          "name": "PostgreSQL Marketing DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "🎉 *SUBSCRIPTION REACTIVATED!*\n\n📧 Email: {{ $('Subscription Resumed').item.json.customer.email }}\n📅 Time: {{ $now.format('YYYY-MM-DD HH:mm') }}\n\n_Customer is back!_"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-reactivated",
+      "name": "Notify Reactivation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}"
+            },
+            {
+              "name": "text",
+              "value": "⚠️ *PAYMENT FAILED!*\n\n📧 Email: {{ $json.customer.email }}\n🔖 Subscription: {{ $json.customer.subscriptionId }}\n📅 Time: {{ $now.format('YYYY-MM-DD HH:mm') }}\n\n_Action required: Follow up with customer._"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-failed",
+      "name": "Notify Payment Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 600]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "toEmail": "={{ $json.customer.email }}",
+        "subject": "⚠️ Payment Failed - Action Required",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }\n    .header { text-align: center; margin-bottom: 40px; }\n    .logo { font-size: 32px; font-weight: bold; color: #6366f1; }\n    .content { background: #fef2f2; padding: 30px; border-radius: 12px; border: 1px solid #fecaca; }\n    .cta { display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0; }\n    .footer { text-align: center; margin-top: 40px; color: #6b7280; font-size: 14px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"logo\">◈ Ergovia Lite</div>\n    </div>\n    <div class=\"content\">\n      <h2>⚠️ Payment Failed</h2>\n      <p>We couldn't process your payment for Ergovia Lite.</p>\n      <p><strong>What happened?</strong></p>\n      <ul>\n        <li>Your card may have expired</li>\n        <li>Insufficient funds</li>\n        <li>Your bank declined the transaction</li>\n      </ul>\n      <p>To keep your AI assistant running, please update your payment method:</p>\n      <center>\n        <a href=\"https://ergovia.lemonsqueezy.com/billing\" class=\"cta\">Update Payment Method</a>\n      </center>\n      <p>If you don't update within 7 days, your service will be paused.</p>\n      <p>Need help? Reply to this email.</p>\n    </div>\n    <div class=\"footer\">\n      <p>Ergovia Lite • AI-Powered Vacation Rental Management</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-failed-email",
+      "name": "Send Payment Failed Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 600],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cred",
+          "name": "SMTP Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, event: 'cancelled' }) }}"
+      },
+      "id": "respond-cancelled",
+      "name": "Respond (Cancelled)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, event: 'reactivated' }) }}"
+      },
+      "id": "respond-active",
+      "name": "Respond (Active)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, event: 'payment_failed_handled' }) }}"
+      },
+      "id": "respond-failed",
+      "name": "Respond (Failed)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 600]
+    }
+  ],
+  "connections": {
+    "Subscription Cancelled": {
+      "main": [
+        [
+          {
+            "node": "Mark Customer Churned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Customer Churned": {
+      "main": [
+        [
+          {
+            "node": "Notify Cancellation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Cancellation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Cancellation": {
+      "main": [
+        [
+          {
+            "node": "Respond (Cancelled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subscription Resumed": {
+      "main": [
+        [
+          {
+            "node": "Mark Customer Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Customer Active": {
+      "main": [
+        [
+          {
+            "node": "Notify Reactivation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Reactivation": {
+      "main": [
+        [
+          {
+            "node": "Respond (Active)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payment Failed": {
+      "main": [
+        [
+          {
+            "node": "Notify Payment Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Payment Failed": {
+      "main": [
+        [
+          {
+            "node": "Send Payment Failed Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Payment Failed Email": {
+      "main": [
+        [
+          {
+            "node": "Respond (Failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Marketing"
+    },
+    {
+      "name": "Subscriptions"
+    }
+  ],
+  "pinData": {},
+  "versionId": "1"
+}
