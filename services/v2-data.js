@@ -12,12 +12,14 @@ const { Pool } = require('pg');
 const localDb = require('../db');
 
 // PostgreSQL connection (same DB as n8n workflows)
+const pgSsl = process.env.PG_SSL || process.env.POSTGRES_SSL;
 const pool = new Pool({
   host: process.env.PG_HOST || '116.203.115.12',
   port: parseInt(process.env.PG_PORT || '5432'),
   database: process.env.PG_DATABASE || 'ergovia_db',
   user: process.env.PG_USER || 'ergovia_user',
   password: process.env.PG_PASSWORD || 'ergovia_secure_2026',
+  ssl: pgSsl ? { rejectUnauthorized: false } : false,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
