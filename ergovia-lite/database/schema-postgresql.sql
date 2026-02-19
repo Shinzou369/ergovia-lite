@@ -92,6 +92,10 @@ CREATE TABLE IF NOT EXISTS deals (
     id SERIAL PRIMARY KEY,
     deal_id VARCHAR(255) UNIQUE NOT NULL,
     inquiry_id VARCHAR(255),
+    contact_id VARCHAR(255),
+    guest_name VARCHAR(255),
+    guest_phone VARCHAR(50),
+    guest_email VARCHAR(255),
     client_name VARCHAR(255),
     client_phone VARCHAR(50),
     client_email VARCHAR(255),
@@ -100,15 +104,21 @@ CREATE TABLE IF NOT EXISTS deals (
     check_in_date DATE,
     check_out_date DATE,
     guests INTEGER,
+    num_guests INTEGER,
+    total_amount DECIMAL(10,2),
     status VARCHAR(50), -- negotiation, pending_conflict, needs_owner_decision, pending_payment_confirmation, ai_conversation, confirmed, rejected, expired
+    deal_status VARCHAR(50), -- alias for status, used by WF2
     deal_type VARCHAR(50), -- normal, conflict, party, negotiation
     price_quoted DECIMAL(10,2),
     price_final DECIMAL(10,2),
+    channel VARCHAR(50),
     channel_type VARCHAR(50),
     conversation_history JSONB,
     conflict_priority INTEGER,
     conflict_reason TEXT,
+    priority_score INTEGER,
     owner_notes TEXT,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP,
@@ -117,7 +127,9 @@ CREATE TABLE IF NOT EXISTS deals (
 );
 
 CREATE INDEX idx_deals_phone_status ON deals(client_phone, status);
+CREATE INDEX idx_deals_contact ON deals(contact_id);
 CREATE INDEX idx_deals_status ON deals(status);
+CREATE INDEX idx_deals_deal_status ON deals(deal_status);
 CREATE INDEX idx_deals_property_dates ON deals(property_id, check_in_date, check_out_date);
 CREATE INDEX idx_deals_inquiry ON deals(inquiry_id);
 
@@ -152,6 +164,7 @@ CREATE TABLE IF NOT EXISTS property_configurations (
     id SERIAL PRIMARY KEY,
     property_id VARCHAR(255) UNIQUE NOT NULL,
     property_name VARCHAR(255) UNIQUE NOT NULL,
+    customer_id VARCHAR(255),
     address TEXT,
     max_guests INTEGER,
     bedrooms INTEGER,
@@ -185,6 +198,15 @@ CREATE TABLE IF NOT EXISTS property_configurations (
 
     -- Status
     property_status VARCHAR(50) DEFAULT 'active', -- active, inactive, maintenance
+
+    -- Property details (used by WF2 Booking Agent)
+    property_type VARCHAR(100), -- apartment, house, villa, studio, etc.
+    amenities TEXT,
+    house_rules TEXT,
+    check_in_time VARCHAR(10) DEFAULT '15:00',
+    check_out_time VARCHAR(10) DEFAULT '11:00',
+    location_description TEXT,
+    preferred_platform VARCHAR(50) DEFAULT 'telegram',
 
     -- Flexible settings JSON
     settings JSONB DEFAULT '{}',
@@ -837,16 +859,45 @@ CREATE TRIGGER update_deal_conflicts_updated_at BEFORE UPDATE ON deal_conflicts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
+-- TABLE: conversations
+-- Used by: WF2 (AI Booking Agent) - tracks guest conversation state
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS conversations (
+    id SERIAL PRIMARY KEY,
+    conversation_id VARCHAR(255) UNIQUE NOT NULL,
+    contact_id VARCHAR(255) NOT NULL,
+    property_id VARCHAR(255),
+    conversation_stage VARCHAR(100) DEFAULT 'greeting',
+    conversation_history JSONB DEFAULT '[]',
+    collected_data JSONB DEFAULT '{}',
+    channel VARCHAR(50),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_conversations_contact ON conversations(contact_id);
+CREATE INDEX idx_conversations_property ON conversations(property_id);
+CREATE INDEX idx_conversations_stage ON conversations(conversation_stage);
+CREATE INDEX idx_conversations_active ON conversations(is_active) WHERE is_active = true;
+
+CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
 -- TABLE: activity_log
 -- Used by: WF1 (AI Gateway), WF6 (Daily Automations), others
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS activity_log (
     id SERIAL PRIMARY KEY,
     log_id VARCHAR(255),
+    event_type VARCHAR(100),
     automation_type VARCHAR(100),
     channel VARCHAR(50),
+    contact_id VARCHAR(255),
     sender_id VARCHAR(255),
     sender_name VARCHAR(255),
+    message TEXT,
     action TEXT,
     details JSONB,
     status VARCHAR(50) DEFAULT 'completed',
@@ -856,7 +907,128 @@ CREATE TABLE IF NOT EXISTS activity_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_activity_log_type ON activity_log(automation_type);
+CREATE INDEX IF NOT EXISTS idx_activity_log_event_type ON activity_log(event_type);
+CREATE INDEX IF NOT EXISTS idx_activity_log_contact ON activity_log(contact_id);
 CREATE INDEX IF NOT EXISTS idx_activity_log_date ON activity_log(created_at);
+
+-- ============================================================================
+-- TABLE: api_usage_budget
+-- Used by: WF1 (AI Gateway) - tracks API usage costs per customer
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS api_usage_budget (
+    id SERIAL PRIMARY KEY,
+    customer_id VARCHAR(255) NOT NULL,
+    monthly_budget DECIMAL(10,2) DEFAULT 50.00,
+    used_amount DECIMAL(10,2) DEFAULT 0.00,
+    budget_period VARCHAR(7) NOT NULL, -- YYYY-MM format
+    last_reset_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(customer_id, budget_period)
+);
+
+CREATE INDEX idx_api_usage_budget_customer ON api_usage_budget(customer_id);
+CREATE INDEX idx_api_usage_budget_period ON api_usage_budget(budget_period);
+
+CREATE TRIGGER update_api_usage_budget_updated_at BEFORE UPDATE ON api_usage_budget
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- TABLE: api_budget_alerts
+-- Used by: WF1 (AI Gateway) - budget threshold alerts (50%, 80%, 100%)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS api_budget_alerts (
+    id SERIAL PRIMARY KEY,
+    customer_id VARCHAR(255) NOT NULL,
+    alert_type VARCHAR(50) NOT NULL, -- warning_50, warning_80, exhausted_100
+    budget_period VARCHAR(7) NOT NULL, -- YYYY-MM format
+    used_amount DECIMAL(10,2),
+    monthly_budget DECIMAL(10,2),
+    usage_percentage DECIMAL(5,2),
+    message TEXT,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_api_budget_alerts_customer ON api_budget_alerts(customer_id);
+CREATE INDEX idx_api_budget_alerts_period ON api_budget_alerts(budget_period);
+CREATE INDEX idx_api_budget_alerts_type ON api_budget_alerts(alert_type);
+
+-- ============================================================================
+-- FUNCTION: check_budget_available
+-- Used by: WF1 (AI Gateway) - checks if customer has remaining API budget
+-- Returns: budget_available (boolean), remaining_budget, used_amount, monthly_budget
+-- ============================================================================
+CREATE OR REPLACE FUNCTION check_budget_available(p_customer_id VARCHAR)
+RETURNS TABLE (
+    budget_available BOOLEAN,
+    remaining_budget DECIMAL(10,2),
+    used_amount DECIMAL(10,2),
+    monthly_budget DECIMAL(10,2),
+    usage_percentage DECIMAL(5,2)
+) AS $$
+DECLARE
+    v_period VARCHAR(7);
+    v_used DECIMAL(10,2);
+    v_budget DECIMAL(10,2);
+BEGIN
+    v_period := TO_CHAR(CURRENT_DATE, 'YYYY-MM');
+
+    -- Get or create budget record for current period
+    INSERT INTO api_usage_budget (customer_id, budget_period, monthly_budget, used_amount)
+    VALUES (p_customer_id, v_period, 50.00, 0.00)
+    ON CONFLICT (customer_id, budget_period) DO NOTHING;
+
+    SELECT b.used_amount, b.monthly_budget
+    INTO v_used, v_budget
+    FROM api_usage_budget b
+    WHERE b.customer_id = p_customer_id AND b.budget_period = v_period;
+
+    RETURN QUERY SELECT
+        (v_used < v_budget) AS budget_available,
+        (v_budget - v_used) AS remaining_budget,
+        v_used AS used_amount,
+        v_budget AS monthly_budget,
+        CASE WHEN v_budget > 0 THEN ROUND((v_used / v_budget) * 100, 2) ELSE 0 END AS usage_percentage;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================================
+-- FUNCTION: log_api_usage
+-- Used by: WF1 (AI Gateway) - logs API cost after each AI call
+-- ============================================================================
+CREATE OR REPLACE FUNCTION log_api_usage(p_customer_id VARCHAR, p_cost DECIMAL)
+RETURNS TABLE (
+    new_used_amount DECIMAL(10,2),
+    monthly_budget DECIMAL(10,2),
+    usage_percentage DECIMAL(5,2)
+) AS $$
+DECLARE
+    v_period VARCHAR(7);
+    v_used DECIMAL(10,2);
+    v_budget DECIMAL(10,2);
+BEGIN
+    v_period := TO_CHAR(CURRENT_DATE, 'YYYY-MM');
+
+    -- Upsert: create budget record if not exists, then add cost
+    INSERT INTO api_usage_budget (customer_id, budget_period, monthly_budget, used_amount)
+    VALUES (p_customer_id, v_period, 50.00, p_cost)
+    ON CONFLICT (customer_id, budget_period)
+    DO UPDATE SET used_amount = api_usage_budget.used_amount + p_cost,
+                  updated_at = CURRENT_TIMESTAMP;
+
+    SELECT b.used_amount, b.monthly_budget
+    INTO v_used, v_budget
+    FROM api_usage_budget b
+    WHERE b.customer_id = p_customer_id AND b.budget_period = v_period;
+
+    RETURN QUERY SELECT
+        v_used AS new_used_amount,
+        v_budget AS monthly_budget,
+        CASE WHEN v_budget > 0 THEN ROUND((v_used / v_budget) * 100, 2) ELSE 0 END AS usage_percentage;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- HELPFUL VIEWS

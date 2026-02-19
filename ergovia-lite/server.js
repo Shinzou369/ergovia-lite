@@ -4,16 +4,62 @@ const path = require('path');
 const db = require('./db');
 const n8nService = require('./services/n8n');
 const v2Data = require('./services/v2-data');
+const auth = require('./services/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize database
 db.initDb();
+
+// Seed initial welcome notification if none exist
+if (db.getNotifications().length === 0) {
+  db.addNotification({
+    type: 'system',
+    title: 'Welcome to Ergovia Lite',
+    message: 'Your AI-powered vacation property management system is ready to configure.',
+  });
+}
+
+// ============================================
+// STATIC FILE SERVING WITH AUTH PROTECTION
+// ============================================
+
+// Public files (no auth required)
+const PUBLIC_PATHS = ['/login.html', '/favicon.ico', '/api/auth/'];
+
+// Serve login.html without auth
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Protect all other HTML pages — redirect to login if no valid session
+app.use((req, res, next) => {
+  // Skip API routes (handled by requireAuth middleware per-route)
+  if (req.path.startsWith('/api/')) return next();
+
+  // Skip public paths and static assets (css, js, fonts, images)
+  if (PUBLIC_PATHS.some(p => req.path.startsWith(p))) return next();
+  if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i.test(req.path)) return next();
+
+  // For HTML pages, check if setup is needed (no users yet)
+  const userCount = db.getUserCount();
+  if (userCount === 0 && req.path !== '/login.html') {
+    // First-time setup — let them through to login page which has register
+    return res.redirect('/login.html');
+  }
+
+  // All other pages served normally — frontend JS handles auth check
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Load n8n config from DB if env vars are missing
+n8nService.loadConfigFromDb(db);
 
 // Helper: Get PostgreSQL connection details from environment
 function getPostgresConfig() {
@@ -37,11 +83,151 @@ function getPostgresConfig() {
 
 // Redirect root to dashboard or onboarding
 app.get('/', (req, res) => {
+  const userCount = db.getUserCount();
+  if (userCount === 0) {
+    return res.redirect('/login.html');
+  }
   if (db.isOnboardingComplete()) {
-    res.redirect('/dashboard.html');
+    res.redirect('/v2/dashboard.html');
   } else {
     res.redirect('/onboarding.html');
   }
+});
+
+// ============================================
+// AUTH API
+// ============================================
+
+// Register (first user setup or admin creating accounts)
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ success: false, error: 'Username, email, and password are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    }
+
+    // Only allow registration if no users exist (first-time setup)
+    // OR if the request comes from an authenticated admin
+    const userCount = db.getUserCount();
+    if (userCount > 0) {
+      // Check for admin auth
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(403).json({ success: false, error: 'Registration closed. Only admins can create new accounts.' });
+      }
+      const decoded = auth.verifyToken(authHeader.substring(7));
+      if (!decoded || decoded.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Admin access required to create new accounts.' });
+      }
+    }
+
+    const passwordHash = await auth.hashPassword(password);
+    const result = db.createUser(username, email, passwordHash);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    const user = db.getUserById(result.userId);
+    const token = auth.generateToken(user);
+    db.updateLastLogin(user.id);
+    db.logActivity('user_registered', `New user: ${username}`);
+
+    res.json({
+      success: true,
+      token,
+      user: { id: user.id, username: user.username, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username and password are required' });
+    }
+
+    // Find user by username or email
+    const user = db.getUserByUsername(username) || db.getUserByEmail(username);
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+
+    const validPassword = await auth.comparePassword(password, user.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+
+    const token = auth.generateToken(user);
+    db.updateLastLogin(user.id);
+    db.logActivity('user_login', `User logged in: ${user.username}`);
+
+    res.json({
+      success: true,
+      token,
+      user: { id: user.id, username: user.username, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Verify token (check if still valid)
+app.get('/api/auth/verify', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.json({ success: false, error: 'No token provided' });
+  }
+
+  const decoded = auth.verifyToken(authHeader.substring(7));
+  if (!decoded) {
+    return res.json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  const user = db.getUserById(decoded.id);
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+
+  res.json({
+    success: true,
+    valid: true,
+    user: { id: user.id, username: user.username, email: user.email, role: user.role }
+  });
+});
+
+// Check if setup is needed (no users yet)
+app.get('/api/auth/status', (req, res) => {
+  const userCount = db.getUserCount();
+  res.json({
+    success: true,
+    setupRequired: userCount === 0,
+    hasUsers: userCount > 0
+  });
+});
+
+// ============================================
+// PROTECT ALL API ROUTES (except auth)
+// ============================================
+app.use('/api', (req, res, next) => {
+  // Skip auth routes
+  if (req.path.startsWith('/auth/')) return next();
+
+  // If no users exist yet (first-time setup), allow all API access
+  const userCount = db.getUserCount();
+  if (userCount === 0) return next();
+
+  // Require auth for everything else
+  auth.requireAuth(req, res, next);
 });
 
 // ============================================
@@ -1157,6 +1343,26 @@ app.post('/api/v2/bookings', async (req, res) => {
   }
 });
 
+// Bookings - PUT (update existing booking)
+app.put('/api/v2/bookings/:id', async (req, res) => {
+  try {
+    const result = await v2Data.updateBooking(req.params.id, req.body);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Bookings - DELETE (cancel booking)
+app.delete('/api/v2/bookings/:id', async (req, res) => {
+  try {
+    const result = await v2Data.cancelBooking(req.params.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Tasks - GET
 app.get('/api/v2/tasks', async (req, res) => {
   try {
@@ -1182,31 +1388,40 @@ app.post('/api/v2/tasks/complete', async (req, res) => {
   }
 });
 
-// Notifications - GET
+// Notifications - GET (now SQLite-backed)
 app.get('/api/v2/notifications', (req, res) => {
   try {
     const unreadOnly = req.query.unreadOnly === 'true';
-    const notifications = v2Data.getNotifications(unreadOnly);
-    const unreadCount = v2Data.getUnreadCount();
+    const rows = db.getNotifications(unreadOnly);
+    const notifications = rows.map(n => ({
+      id: n.notification_id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      read: !!n.read,
+      actionLink: n.action_link,
+      createdAt: n.created_at,
+    }));
+    const unreadCount = db.getUnreadNotificationCount();
     res.json({ success: true, notifications, unreadCount });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Notifications - Mark read
+// Notifications - Mark read (now SQLite-backed)
 app.post('/api/v2/notifications/read', (req, res) => {
   try {
     const { notificationId, markAll } = req.body;
-    let result;
     if (markAll) {
-      result = v2Data.markAllNotificationsRead();
+      db.markAllNotificationsRead();
+      res.json({ success: true });
     } else if (notificationId) {
-      result = v2Data.markNotificationRead(notificationId);
+      const found = db.markNotificationRead(notificationId);
+      res.json({ success: found, error: found ? undefined : 'Notification not found' });
     } else {
       return res.status(400).json({ success: false, error: 'Notification ID or markAll flag required' });
     }
-    res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1376,6 +1591,7 @@ app.get('/api/v2/sync/status', async (req, res) => {
     const recentSyncs = db.getRecentSyncs(5);
     const deployedWorkflows = db.getDeployedWorkflows();
     const savedPrompt = db.getClientData('systemPrompt');
+    const n8nConfig = db.getClientData('n8n_config');
 
     res.json({
       success: true,
@@ -1392,7 +1608,152 @@ app.get('/api/v2/sync/status', async (req, res) => {
       })),
       deployedCount: deployedWorkflows.length,
       systemPrompt: savedPrompt || null,
-      n8nConfigured: n8nService.isConfigured()
+      n8nConfigured: n8nService.isConfigured(),
+      n8nUrl: n8nService.baseUrl || null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Connect to n8n instance (saves config to DB, tests connection, auto-imports workflows)
+app.post('/api/v2/n8n/connect', async (req, res) => {
+  try {
+    const { n8nUrl, apiKey } = req.body;
+    if (!n8nUrl || !apiKey) {
+      return res.status(400).json({ success: false, error: 'n8n URL and API Key are required' });
+    }
+
+    // Configure the n8n service with the provided credentials
+    n8nService.configure(n8nUrl, apiKey);
+
+    // Test connection
+    const test = await n8nService.testConnection();
+    if (!test.success) {
+      return res.status(400).json({ success: false, error: test.error || 'Connection failed' });
+    }
+
+    // Save config to database for persistence across restarts
+    db.saveClientData('n8n_config', { url: n8nUrl, apiKey: apiKey });
+
+    // Auto-import active workflows
+    const listResult = await n8nService.listWorkflows();
+    let importedCount = 0;
+
+    // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
+    const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
+
+    if (listResult.success) {
+      const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
+      const liveWorkflows = (listResult.workflows || []).filter(wf => {
+        const cleanName = stripTag(wf.name);
+        return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
+      });
+
+      if (liveWorkflows.length > 0) {
+        const filenameMap = {
+          'SUB: Universal Messenger': 'SUB_Universal_Messenger.json',
+          'SUB: Owner & Staff Notifier': 'SUB_Owner_Staff_Notifier.json',
+          'WF1: AI Gateway - Unified Entry Point': 'WF1_AI_Gateway.json',
+          'WF2: Offer Conflict Manager': 'WF2_Offer_Conflict_Manager.json',
+          'WF3: Calendar Manager': 'WF3_Calendar_Manager.json',
+          'WF4: Payment Processor': 'WF4_Payment_Processor.json',
+          'WF5: Property Operations': 'WF5_Property_Operations.json',
+          'WF6: Daily Automations': 'WF6_Daily_Automations.json',
+          'WF7: Integration Hub': 'WF7_Integration_Hub.json',
+          'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
+        };
+        const workflowEntries = liveWorkflows.map(wf => {
+          const cleanName = stripTag(wf.name);
+          return {
+            filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+            workflowId: wf.id,
+            name: cleanName,
+            triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
+            active: true
+          };
+        });
+        db.clearDeployedWorkflows();
+        db.saveDeployedWorkflows(workflowEntries);
+        importedCount = workflowEntries.length;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Connected! Found ${importedCount} active workflows.`,
+      workflows: importedCount,
+      n8nUrl: n8nService.baseUrl
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Import live workflows from n8n into the control panel database
+// This registers existing active workflows so sync features can manage them
+app.post('/api/v2/sync/import', async (req, res) => {
+  try {
+    if (!n8nService.isConfigured()) {
+      return res.status(400).json({ success: false, error: 'n8n not configured' });
+    }
+
+    // Fetch all workflows from n8n
+    const response = await n8nService.listWorkflows();
+    if (!response.success) {
+      return res.status(500).json({ success: false, error: response.error || 'Failed to list workflows' });
+    }
+
+    // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
+    const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
+
+    // Filter to only active workflows that match our naming convention
+    const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
+    const liveWorkflows = (response.workflows || []).filter(wf => {
+      const cleanName = stripTag(wf.name);
+      return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
+    });
+
+    if (liveWorkflows.length === 0) {
+      return res.json({ success: false, error: 'No active Ergovia workflows found on n8n' });
+    }
+
+    // Map to filename convention
+    const filenameMap = {
+      'SUB: Universal Messenger': 'SUB_Universal_Messenger.json',
+      'SUB: Owner & Staff Notifier': 'SUB_Owner_Staff_Notifier.json',
+      'WF1: AI Gateway - Unified Entry Point': 'WF1_AI_Gateway.json',
+      'WF2: Offer Conflict Manager': 'WF2_Offer_Conflict_Manager.json',
+      'WF3: Calendar Manager': 'WF3_Calendar_Manager.json',
+      'WF4: Payment Processor': 'WF4_Payment_Processor.json',
+      'WF5: Property Operations': 'WF5_Property_Operations.json',
+      'WF6: Daily Automations': 'WF6_Daily_Automations.json',
+      'WF7: Integration Hub': 'WF7_Integration_Hub.json',
+      'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
+    };
+
+    // Build workflow entries for database (use clean names without tag prefix)
+    const workflowEntries = liveWorkflows.map(wf => {
+      const cleanName = stripTag(wf.name);
+      return {
+        filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
+        workflowId: wf.id,
+        name: cleanName,
+        triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
+        active: true
+      };
+    });
+
+    // Clear existing and save new
+    db.clearDeployedWorkflows();
+    db.saveDeployedWorkflows(workflowEntries);
+
+    db.logActivity('workflows_imported', `Imported ${workflowEntries.length} live workflows from n8n`);
+
+    res.json({
+      success: true,
+      imported: workflowEntries.length,
+      workflows: workflowEntries.map(w => ({ name: w.name, id: w.workflowId }))
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

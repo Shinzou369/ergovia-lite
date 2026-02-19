@@ -6,12 +6,18 @@
 
 const CONFIG = {
     // Version
-    VERSION: '2.0.0',
+    VERSION: '2.1.0',
 
     // Backend API endpoints (Express.js)
     API: {
         // Use relative URL (same origin as frontend)
         BASE_URL: '/api/v2',
+
+        // Auth endpoints (outside /api/v2)
+        AUTH_LOGIN: '/api/auth/login',
+        AUTH_REGISTER: '/api/auth/register',
+        AUTH_VERIFY: '/api/auth/verify',
+        AUTH_STATUS: '/api/auth/status',
 
         // Dashboard endpoints
         GET_DASHBOARD_DATA: '/dashboard',
@@ -30,6 +36,8 @@ const CONFIG = {
         // Bookings/Calendar endpoints
         GET_BOOKINGS: '/bookings',
         CREATE_BOOKING: '/bookings',
+        UPDATE_BOOKING: '/bookings', // PUT method with /:id
+        CANCEL_BOOKING: '/bookings', // DELETE method with /:id
 
         // Seed demo data
         SEED_DATA: '/seed',
@@ -285,6 +293,7 @@ const Utils = {
      */
     async apiCall(endpoint, data = null, method = 'GET') {
         try {
+            const token = localStorage.getItem('ergovia_token');
             const options = {
                 method: method,
                 headers: {
@@ -292,15 +301,29 @@ const Utils = {
                 },
             };
 
+            // Attach auth token if available
+            if (token) {
+                options.headers['Authorization'] = 'Bearer ' + token;
+            }
+
             // Add body for POST/PUT/PATCH
             if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
                 options.body = JSON.stringify(data);
             }
 
-            const url = CONFIG.API.BASE_URL + endpoint;
+            // Determine full URL — auth endpoints are absolute, v2 endpoints are relative
+            const url = endpoint.startsWith('/api/') ? endpoint : CONFIG.API.BASE_URL + endpoint;
             console.log(`[API] ${method} ${url}`, data || '');
 
             const response = await fetch(url, options);
+
+            // Handle auth expiry — redirect to login
+            if (response.status === 401) {
+                localStorage.removeItem('ergovia_token');
+                localStorage.removeItem('ergovia_user');
+                window.location.href = '/login.html';
+                return;
+            }
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));

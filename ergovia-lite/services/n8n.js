@@ -29,17 +29,18 @@ class N8NService {
       'Sub-Workflow': ['SUB']
     };
 
-    // Optimized workflow files (9 workflows total - reduced from 25)
+    // Optimized workflow files (10 workflows - V4 production set)
     this.allWorkflows = [
-      'SUB_Universal_Messenger.json',  // Sub-workflow must deploy first for ExecuteWorkflow references
-      'WF1_AI_Gateway.json',           // Entry point - routes all incoming messages
-      'WF2_AI_Booking_Agent.json',     // AI-powered booking conversations
-      'WF3_Calendar_Manager.json',     // Calendar sync and availability
-      'WF4_Payment_Processor.json',    // Stripe payment handling
-      'WF5_Property_Operations.json',  // Maintenance, cleaning, vendors
-      'WF6_Daily_Automations.json',    // Morning/evening/weekly reports
-      'WF7_Integration_Hub.json',      // iCal sync, external platforms
-      'WF8_Safety_Screening.json'      // Emergency handling, guest screening, watchdog
+      'SUB_Universal_Messenger.json',    // Sub-workflow must deploy first for ExecuteWorkflow references
+      'SUB_Owner_Staff_Notifier.json',   // Owner/staff notification sub-workflow
+      'WF1_AI_Gateway.json',             // Entry point - routes all incoming messages
+      'WF2_Offer_Conflict_Manager.json', // Offer conflict detection and resolution
+      'WF3_Calendar_Manager.json',       // Calendar sync and availability
+      'WF4_Payment_Processor.json',      // Payment handling
+      'WF5_Property_Operations.json',    // Maintenance, cleaning, vendors
+      'WF6_Daily_Automations.json',      // Morning/evening/weekly reports
+      'WF7_Integration_Hub.json',        // iCal sync, external platforms
+      'WF8_Safety_Screening.json'        // Emergency handling, guest screening, watchdog
     ];
 
     // Fixed credential IDs used in optimized workflows
@@ -73,6 +74,36 @@ class N8NService {
 
   isConfigured() {
     return !!(this.baseUrl && this.apiKey);
+  }
+
+  // Dynamically update n8n connection at runtime (from UI or DB)
+  configure(url, apiKey) {
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    // Strip trailing slashes
+    this.baseUrl = (url || '').replace(/\/+$/, '');
+    this.apiKey = apiKey || '';
+    console.log('N8N Service reconfigured:');
+    console.log('  - URL:', this.baseUrl || 'NOT SET');
+    console.log('  - API Key:', this.apiKey ? 'SET' : 'NOT SET');
+  }
+
+  // Load n8n config from SQLite if env vars are missing
+  loadConfigFromDb(dbModule) {
+    if (this.isConfigured()) {
+      console.log('N8N: Already configured from env vars');
+      return;
+    }
+    try {
+      const savedConfig = dbModule.getClientData('n8n_config');
+      if (savedConfig && savedConfig.url && savedConfig.apiKey) {
+        this.configure(savedConfig.url, savedConfig.apiKey);
+        console.log('N8N: Config loaded from database');
+      }
+    } catch (err) {
+      console.error('N8N: Failed to load config from DB:', err.message);
+    }
   }
 
   // ============================================
@@ -430,6 +461,30 @@ class N8NService {
       return { success: true, workflowCount: response.data.data?.length || 0 };
     } catch (error) {
       console.error('n8n connection test failed:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data?.message || error.message };
+    }
+  }
+
+  // List all workflows from n8n
+  async listWorkflows() {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'n8n not configured' };
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/v1/workflows?limit=250`, {
+        headers: { 'X-N8N-API-KEY': this.apiKey },
+        timeout: 15000
+      });
+      const workflows = (response.data.data || []).map(wf => ({
+        id: wf.id,
+        name: wf.name,
+        active: wf.active,
+        createdAt: wf.createdAt,
+        updatedAt: wf.updatedAt
+      }));
+      return { success: true, workflows };
+    } catch (error) {
       return { success: false, error: error.response?.data?.message || error.message };
     }
   }
@@ -975,27 +1030,32 @@ class N8NService {
     return [
       // Layer 1: No dependencies - deploy first
       { filename: 'SUB_Universal_Messenger.json', name: 'SUB: Universal Messenger', dependencies: [] },
+      { filename: 'SUB_Owner_Staff_Notifier.json', name: 'SUB: Owner & Staff Notifier', dependencies: [] },
 
-      // Layer 2: Only depends on SUB
+      // Layer 2: Depends on SUB(s)
       { filename: 'WF3_Calendar_Manager.json', name: 'WF3: Calendar Manager', dependencies: ['SUB: Universal Messenger'] },
       { filename: 'WF4_Payment_Processor.json', name: 'WF4: Payment Processor', dependencies: ['SUB: Universal Messenger'] },
-      { filename: 'WF5_Property_Operations.json', name: 'WF5: Property Operations', dependencies: ['SUB: Universal Messenger'] },
-      { filename: 'WF6_Daily_Automations.json', name: 'WF6: Daily Automations', dependencies: ['SUB: Universal Messenger'] },
-      { filename: 'WF8_Safety_Screening.json', name: 'WF8: Safety & Screening', dependencies: ['SUB: Universal Messenger'] },
+      { filename: 'WF5_Property_Operations.json', name: 'WF5: Property Operations', dependencies: ['SUB: Universal Messenger', 'SUB: Owner & Staff Notifier'] },
+      { filename: 'WF6_Daily_Automations.json', name: 'WF6: Daily Automations', dependencies: ['SUB: Owner & Staff Notifier'] },
+      { filename: 'WF8_Safety_Screening.json', name: 'WF8: Safety & Screening', dependencies: ['SUB: Owner & Staff Notifier'] },
 
-      // Layer 3: Depends on WF3
-      { filename: 'WF7_Integration_Hub.json', name: 'WF7: Integration Hub', dependencies: ['WF3: Calendar Manager'] },
+      // Layer 3: Depends on WF3 + SUB Notifier
+      { filename: 'WF7_Integration_Hub.json', name: 'WF7: Integration Hub', dependencies: ['WF3: Calendar Manager', 'SUB: Owner & Staff Notifier'] },
 
-      // Layer 4: Depends on multiple workflows
-      { filename: 'WF2_AI_Booking_Agent.json', name: 'WF2: AI Booking Agent', dependencies: ['SUB: Universal Messenger', 'WF3: Calendar Manager', 'WF4: Payment Processor'] },
+      // Layer 4: Depends on SUB
+      { filename: 'WF2_Offer_Conflict_Manager.json', name: 'WF2: Offer Conflict Manager', dependencies: ['SUB: Universal Messenger'] },
 
       // Layer 5: Gateway depends on all specialized workflows
-      { filename: 'WF1_AI_Gateway.json', name: 'WF1: AI Gateway - Unified Entry Point', dependencies: ['SUB: Universal Messenger', 'WF2: AI Booking Agent', 'WF3: Calendar Manager', 'WF4: Payment Processor', 'WF5: Property Operations', 'WF8: Safety & Screening'] }
+      { filename: 'WF1_AI_Gateway.json', name: 'WF1: AI Gateway - Unified Entry Point', dependencies: ['SUB: Universal Messenger', 'WF2: Offer Conflict Manager', 'WF3: Calendar Manager', 'WF4: Payment Processor', 'WF5: Property Operations', 'WF8: Safety & Screening'] }
     ];
   }
 
   // Inject actual workflow IDs into workflow references
   // Replaces workflow name values with actual n8n workflow IDs
+  // Handles three modes:
+  //   - "list" or "name": value is a workflow name like "WF2: Offer Conflict Manager"
+  //   - "id": value is a stale/incorrect ID that needs replacement
+  //   - missing workflowId: node has no workflowId param, matched by node name
   injectWorkflowIds(workflow, workflowIdMap) {
     if (!workflow.nodes) {
       console.log('    WARNING: No nodes in workflow, skipping ID injection');
@@ -1006,42 +1066,91 @@ class N8NService {
 
     let injectedCount = 0;
     let warningCount = 0;
+    const knownIds = Object.values(workflowIdMap);
 
     workflow.nodes = workflow.nodes.map(node => {
       // Check for executeWorkflow nodes (both regular and tool versions)
       if (node.type === 'n8n-nodes-base.executeWorkflow' ||
           node.type === '@n8n/n8n-nodes-langchain.toolWorkflow') {
 
-        if (node.parameters?.workflowId) {
-          const workflowRef = node.parameters.workflowId;
+        const workflowRef = node.parameters?.workflowId;
 
-          // Check if using "list" mode with workflow name as value
-          if (workflowRef.__rl && workflowRef.mode === 'list' && workflowRef.value) {
-            const referencedWorkflowName = workflowRef.value;
+        // Case 1: No workflowId parameter at all - match by node name
+        if (!workflowRef) {
+          const matchedName = this._matchNodeToWorkflowName(node.name, workflowIdMap);
+          if (matchedName) {
+            const actualId = workflowIdMap[matchedName];
+            node.parameters = node.parameters || {};
+            node.parameters.workflowId = {
+              __rl: true,
+              mode: 'id',
+              value: actualId
+            };
+            injectedCount++;
+            console.log(`      ✓ Injected (missing ref): "${matchedName}" -> ${actualId} in node "${node.name}"`);
+          } else {
+            warningCount++;
+            console.log(`      ✗ WARNING: No workflowId and could not match node "${node.name}"`);
+          }
+          return node;
+        }
 
-            // Skip if already an ID (not a name) - IDs don't contain colons or spaces
-            if (!referencedWorkflowName.includes(':') && !referencedWorkflowName.includes(' ')) {
-              console.log(`      Skipping "${referencedWorkflowName}" - already looks like an ID`);
-              return node;
-            }
+        if (!workflowRef.__rl) return node;
 
-            const actualId = workflowIdMap[referencedWorkflowName];
+        // Case 2: mode is "list" or "name" with a workflow name as value
+        if ((workflowRef.mode === 'list' || workflowRef.mode === 'name') && workflowRef.value) {
+          let referencedWorkflowName = workflowRef.value;
 
-            if (actualId) {
-              // Update to use actual workflow ID
-              // IMPORTANT: mode must be 'id' (not 'list') when using actual workflow ID
+          // Strip __WF_ID:...__  placeholder wrapper if present
+          const placeholderMatch = referencedWorkflowName.match(/^__WF_ID:(.+)__$/);
+          if (placeholderMatch) {
+            referencedWorkflowName = placeholderMatch[1];
+          }
+
+          // Skip if already an ID (not a name) - IDs don't contain colons or spaces
+          if (!referencedWorkflowName.includes(':') && !referencedWorkflowName.includes(' ')) {
+            console.log(`      Skipping "${referencedWorkflowName}" - already looks like an ID`);
+            return node;
+          }
+
+          const actualId = workflowIdMap[referencedWorkflowName];
+
+          if (actualId) {
+            // Update to use actual workflow ID
+            // IMPORTANT: mode must be 'id' (not 'list') when using actual workflow ID
+            node.parameters.workflowId = {
+              __rl: true,
+              mode: 'id',
+              value: actualId
+            };
+            injectedCount++;
+            console.log(`      ✓ Injected: "${referencedWorkflowName}" -> ${actualId} (mode: id) in node "${node.name}"`);
+          } else {
+            warningCount++;
+            console.log(`      ✗ WARNING: No ID found for "${referencedWorkflowName}" in node "${node.name}"`);
+            console.log(`        Available in map: ${JSON.stringify(Object.keys(workflowIdMap))}`);
+          }
+        }
+        // Case 3: mode is "id" with a stale/unknown ID - replace if not a known deployed ID
+        else if (workflowRef.mode === 'id' && workflowRef.value) {
+          if (!knownIds.includes(workflowRef.value)) {
+            // This ID doesn't match any workflow we just deployed - it's stale
+            const matchedName = this._matchNodeToWorkflowName(node.name, workflowIdMap);
+            if (matchedName) {
+              const actualId = workflowIdMap[matchedName];
               node.parameters.workflowId = {
                 __rl: true,
                 mode: 'id',
                 value: actualId
               };
               injectedCount++;
-              console.log(`      ✓ Injected: "${referencedWorkflowName}" -> ${actualId} (mode: id) in node "${node.name}"`);
+              console.log(`      ✓ Replaced stale ID: "${workflowRef.value}" -> ${actualId} (matched "${matchedName}") in node "${node.name}"`);
             } else {
               warningCount++;
-              console.log(`      ✗ WARNING: No ID found for "${referencedWorkflowName}" in node "${node.name}"`);
-              console.log(`        Available in map: ${JSON.stringify(Object.keys(workflowIdMap))}`);
+              console.log(`      ✗ WARNING: Stale ID "${workflowRef.value}" in node "${node.name}" - could not match to deployed workflow`);
             }
+          } else {
+            console.log(`      ○ ID "${workflowRef.value}" already correct in node "${node.name}"`);
           }
         }
       }
@@ -1051,6 +1160,41 @@ class N8NService {
     console.log(`    Injection complete: ${injectedCount} injected, ${warningCount} warnings`);
 
     return workflow;
+  }
+
+  // Match a tool/execute node name to a workflow name in the deployed ID map
+  // Uses keyword matching from common node naming patterns
+  _matchNodeToWorkflowName(nodeName, workflowIdMap) {
+    const nodeNameKeywords = {
+      'booking': 'WF2: Offer Conflict Manager',
+      'offer': 'WF2: Offer Conflict Manager',
+      'conflict': 'WF2: Offer Conflict Manager',
+      'calendar': 'WF3: Calendar Manager',
+      'payment': 'WF4: Payment Processor',
+      'property': 'WF5: Property Operations',
+      'operations': 'WF5: Property Operations',
+      'maintenance': 'WF5: Property Operations',
+      'emergency': 'WF8: Safety & Screening',
+      'safety': 'WF8: Safety & Screening',
+      'screening': 'WF8: Safety & Screening',
+      'messenger': 'SUB: Universal Messenger',
+      'send message': 'SUB: Universal Messenger',
+      'send fallback': 'SUB: Universal Messenger',
+      'call sub': 'SUB: Universal Messenger',
+      'notifier': 'SUB: Owner & Staff Notifier',
+      'notify owner': 'SUB: Owner & Staff Notifier',
+      'staff notif': 'SUB: Owner & Staff Notifier',
+      'daily': 'WF6: Daily Automations',
+      'integration': 'WF7: Integration Hub'
+    };
+
+    const lowerName = nodeName.toLowerCase();
+    for (const [keyword, workflowName] of Object.entries(nodeNameKeywords)) {
+      if (lowerName.includes(keyword) && workflowIdMap[workflowName]) {
+        return workflowName;
+      }
+    }
+    return null;
   }
 
   // Deploy all workflows in dependency order with ID resolution
@@ -1217,6 +1361,183 @@ class N8NService {
       workflowIdMap,
       results
     };
+  }
+  // ============================================
+  // LIVE WORKFLOW SYNC (patch running workflows)
+  // ============================================
+
+  // Fetch a workflow from n8n by ID
+  async getWorkflow(workflowId) {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'n8n not configured' };
+    }
+
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v1/workflows/${workflowId}`,
+        {
+          headers: { 'X-N8N-API-KEY': this.apiKey },
+          timeout: 15000
+        }
+      );
+      return { success: true, workflow: response.data };
+    } catch (error) {
+      console.error(`Failed to get workflow ${workflowId}:`, error.response?.data || error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Patch specific nodes in a live workflow
+  // patches: [{ nodeId: 'ai-agent', path: 'parameters.options.systemMessage', value: '...' }]
+  async patchWorkflowNodes(workflowId, patches) {
+    const getResult = await this.getWorkflow(workflowId);
+    if (!getResult.success) return getResult;
+
+    const workflow = getResult.workflow;
+    let patchCount = 0;
+
+    for (const patch of patches) {
+      const node = workflow.nodes.find(n => n.id === patch.nodeId || n.name === patch.nodeId);
+      if (!node) {
+        console.warn(`  Node "${patch.nodeId}" not found in workflow ${workflowId}`);
+        continue;
+      }
+
+      // Navigate to nested path and set value
+      const parts = patch.path.split('.');
+      let target = node;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!target[parts[i]]) target[parts[i]] = {};
+        target = target[parts[i]];
+      }
+      target[parts[parts.length - 1]] = patch.value;
+      patchCount++;
+    }
+
+    if (patchCount === 0) {
+      return { success: true, message: 'No patches applied (nodes not found)' };
+    }
+
+    const updateResult = await this.updateWorkflow(workflowId, workflow);
+    return {
+      ...updateResult,
+      patchedNodes: patchCount
+    };
+  }
+
+  // Update an n8n credential (delete old + create new, since n8n API doesn't support PATCH on credentials)
+  async replaceCredential(oldCredentialId, type, name, data) {
+    console.log(`  Replacing credential ${oldCredentialId} (${type})...`);
+
+    // Create the new credential first
+    const createResult = await this.createCredential(type, name, data);
+    if (!createResult.success) {
+      return { success: false, error: `Failed to create new credential: ${createResult.error}` };
+    }
+
+    // Delete old credential
+    if (oldCredentialId) {
+      await this.deleteCredential(oldCredentialId);
+    }
+
+    console.log(`  Credential replaced: ${oldCredentialId} -> ${createResult.credentialId}`);
+    return {
+      success: true,
+      oldCredentialId,
+      newCredentialId: createResult.credentialId,
+      name: createResult.name
+    };
+  }
+
+  // Sync all workflow variables to live n8n workflows
+  // Uses deployed workflow IDs from SQLite, re-personalizes, and PUTs back
+  async syncAllWorkflowVariables(clientData, assignedApiKey, deployedWorkflows) {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'n8n not configured' };
+    }
+
+    const results = [];
+    console.log('\n==== SYNC WORKFLOW VARIABLES ====');
+    console.log(`Syncing ${deployedWorkflows.length} workflows...`);
+
+    for (const deployed of deployedWorkflows) {
+      const { workflow_id, workflow_name, filename } = deployed;
+      console.log(`\n  Syncing: ${workflow_name} (${workflow_id})`);
+
+      try {
+        // 1. Get current live workflow from n8n
+        const getResult = await this.getWorkflow(workflow_id);
+        if (!getResult.success) {
+          results.push({ workflow: workflow_name, success: false, error: getResult.error });
+          continue;
+        }
+
+        const liveWorkflow = getResult.workflow;
+
+        // 2. Re-personalize: replace placeholders in the live workflow
+        const personalized = this.personalizeWorkflow(liveWorkflow, clientData, assignedApiKey);
+
+        // 3. PUT updated workflow back
+        const updateResult = await this.updateWorkflow(workflow_id, personalized);
+        results.push({ workflow: workflow_name, success: updateResult.success, error: updateResult.error });
+
+        if (updateResult.success) {
+          console.log(`  ✓ ${workflow_name} synced`);
+        } else {
+          console.log(`  ✗ ${workflow_name} failed: ${updateResult.error}`);
+        }
+
+        // Rate limiting
+        await this.sleep(1500);
+      } catch (error) {
+        console.error(`  Error syncing ${workflow_name}:`, error.message);
+        results.push({ workflow: workflow_name, success: false, error: error.message });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+
+    console.log(`\n==== SYNC COMPLETE: ${successCount} OK, ${failCount} FAILED ====\n`);
+
+    return {
+      success: failCount === 0,
+      synced: successCount,
+      failed: failCount,
+      total: deployedWorkflows.length,
+      results
+    };
+  }
+
+  // Update credentials in all deployed workflows that reference an old credential ID
+  async syncCredentialAcrossWorkflows(oldCredentialId, newCredentialId, credentialType, deployedWorkflows) {
+    const results = [];
+
+    for (const deployed of deployedWorkflows) {
+      const getResult = await this.getWorkflow(deployed.workflow_id);
+      if (!getResult.success) continue;
+
+      const workflow = getResult.workflow;
+      let updated = false;
+
+      for (const node of workflow.nodes) {
+        if (!node.credentials) continue;
+        for (const [key, cred] of Object.entries(node.credentials)) {
+          if (cred.id === oldCredentialId) {
+            node.credentials[key] = { ...cred, id: newCredentialId };
+            updated = true;
+          }
+        }
+      }
+
+      if (updated) {
+        const updateResult = await this.updateWorkflow(deployed.workflow_id, workflow);
+        results.push({ workflow: deployed.workflow_name, success: updateResult.success });
+        await this.sleep(1500);
+      }
+    }
+
+    return results;
   }
 }
 

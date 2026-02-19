@@ -3,33 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ergovia - Property Automation</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title>Ergovia Lite</title>
 </head>
 <body>
-  <div class="container" style="max-width: 600px; margin-top: 100px; text-align: center;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 16px;">Welcome to Ergovia</h1>
-    <p class="text-muted mb-4">Property automation made simple</p>
-    <div class="loading">
-      <div class="spinner"></div>
-    </div>
-    <p class="mt-3 text-muted">Redirecting...</p>
-  </div>
-
   <script>
-    // Check if onboarding is complete and redirect accordingly
-    fetch('/api/client')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.onboardingComplete) {
-          window.location.href = '/dashboard.html';
-        } else {
-          window.location.href = '/onboarding.html';
-        }
-      })
-      .catch(() => {
-        window.location.href = '/onboarding.html';
-      });
+    // Auth-aware redirect
+    const token = localStorage.getItem('ergovia_token');
+    if (!token) {
+      window.location.href = '/login.html';
+    } else {
+      fetch('/api/auth/verify', { headers: { Authorization: 'Bearer ' + token } })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            window.location.href = '/v2/dashboard.html';
+          } else {
+            localStorage.removeItem('ergovia_token');
+            window.location.href = '/login.html';
+          }
+        })
+        .catch(() => { window.location.href = '/login.html'; });
+    }
   </script>
 </body>
 </html>

@@ -1,26 +1,23 @@
 {
-  "updatedAt": "2026-02-16T07:04:59.470Z",
-  "createdAt": "2026-02-06T08:45:26.643Z",
+  "updatedAt": "2026-02-16T13:26:05.572Z",
+  "createdAt": "2026-02-16T13:21:14.128Z",
   "id": "__WF_ID:WF7: Integration Hub__",
   "name": "WF7: Integration Hub",
   "description": null,
-  "active": true,
+  "active": false,
   "isArchived": false,
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "triggerAtHour": 3
-            }
-          ]
-        }
+        "httpMethod": "POST",
+        "path": "add-external-booking",
+        "responseMode": "responseNode",
+        "options": {}
       },
-      "id": "sync-trigger",
-      "name": "Daily 3 AM Sync",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
+      "id": "add-external-trigger",
+      "name": "Add External Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
       "position": [
         0,
         0
@@ -28,33 +25,62 @@
     },
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "integration-sync",
-        "responseMode": "responseNode",
-        "options": {}
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $input.item.json;\n\nconst required = ['property_id', 'platform', 'guest_name', 'check_in_date', 'check_out_date'];\nconst missing = required.filter(f => !input[f]);\n\nif (missing.length > 0) {\n  return {\n    valid: false,\n    error: 'Missing required fields: ' + missing.join(', ')\n  };\n}\n\nconst checkIn = new Date(input.check_in_date);\nconst checkOut = new Date(input.check_out_date);\n\nif (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {\n  return { valid: false, error: 'Invalid date format' };\n}\n\nif (checkOut <= checkIn) {\n  return { valid: false, error: 'Check-out must be after check-in' };\n}\n\nconst platform = input.platform.toLowerCase().replace(/[^a-z]/g, '');\nconst confNum = (input.confirmation_number || Date.now().toString()).replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);\nconst bookingId = 'ext_' + platform + '_' + confNum;\n\nreturn {\n  valid: true,\n  booking_id: bookingId,\n  property_id: input.property_id,\n  platform: input.platform.toLowerCase(),\n  confirmation_number: input.confirmation_number || '',\n  guest_name: input.guest_name,\n  check_in_date: input.check_in_date,\n  check_out_date: input.check_out_date,\n  total_amount: input.total_amount || 0,\n  notes: input.notes || 'External booking from ' + input.platform\n};"
       },
-      "id": "manual-trigger",
-      "name": "Manual Sync Request",
-      "type": "n8n-nodes-base.webhook",
+      "id": "validate-external",
+      "name": "Validate External Booking",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        0,
-        208
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-valid-external",
+      "name": "Valid Input?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  property_id,\n  property_name,\n  calendar_url,\n  settings->>'airbnb_calendar_url' AS airbnb_calendar_url,\n  settings->>'vrbo_calendar_url' AS vrbo_calendar_url,\n  settings->>'booking_com_calendar_url' AS booking_com_calendar_url,\n  settings->>'google_calendar_id' AS google_calendar_id,\n  settings->>'ical_export_url' AS ical_export_url,\n  last_calendar_sync,\n  owner_contact,\n  COALESCE(settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  customer_id\nFROM property_configurations\nWHERE property_status = 'active'\n  AND calendar_sync_enabled = true\n  AND (calendar_url IS NOT NULL\n       OR settings->>'airbnb_calendar_url' IS NOT NULL\n       OR settings->>'vrbo_calendar_url' IS NOT NULL\n       OR settings->>'booking_com_calendar_url' IS NOT NULL)",
+        "query": "SELECT booking_id, guest_name, check_in_date, check_out_date\nFROM bookings\nWHERE property_id = '{{ $json.property_id }}'\n  AND booking_status = 'confirmed'\n  AND (\n    (check_in_date <= '{{ $json.check_out_date }}' AND check_out_date >= '{{ $json.check_in_date }}')\n  )\nLIMIT 1",
         "options": {}
       },
-      "id": "get-properties",
-      "name": "Get Properties with Integrations",
+      "id": "check-conflicts-external",
+      "name": "Check Conflicts",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        224,
-        112
+        660,
+        -80
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -66,183 +92,550 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.booking_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
         "options": {}
       },
-      "id": "loop-properties",
-      "name": "Loop Properties",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        448,
-        112
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Prepare calendar URLs for fetching\nconst property = $input.item.json;\nconst calendars = [];\n\nif (property.airbnb_calendar_url) {\n  calendars.push({\n    platform: 'airbnb',\n    url: property.airbnb_calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\nif (property.vrbo_calendar_url) {\n  calendars.push({\n    platform: 'vrbo',\n    url: property.vrbo_calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\nif (property.booking_com_calendar_url) {\n  calendars.push({\n    platform: 'booking_com',\n    url: property.booking_com_calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\n// Fallback: use the main calendar_url if no platform-specific URLs\nif (calendars.length === 0 && property.calendar_url) {\n  calendars.push({\n    platform: 'ical',\n    url: property.calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\n\n// If no calendar URLs found, return empty with flag\nif (calendars.length === 0) {\n  return [{ json: { property_id: property.property_id, skip: true, reason: 'No calendar URLs configured' } }];\n}\n\nreturn calendars.map(c => ({ json: c }));"
-      },
-      "id": "prepare-urls",
-      "name": "Prepare Calendar URLs",
-      "type": "n8n-nodes-base.code",
+      "id": "has-conflict",
+      "name": "Has Conflict?",
+      "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [
-        672,
-        112
-      ]
-    },
-    {
-      "parameters": {
-        "url": "={{ $json.url }}",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "fetch-ical",
-      "name": "Fetch iCal",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
       "position": [
         880,
-        112
+        -80
       ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO bookings (\n  booking_id, property_id, platform, guest_name,\n  check_in_date, check_out_date, booking_status,\n  channel_type, total_amount, notes, created_at\n) VALUES (\n  '{{ $('Validate External Booking').item.json.booking_id }}',\n  '{{ $('Validate External Booking').item.json.property_id }}',\n  '{{ $('Validate External Booking').item.json.platform }}',\n  '{{ $('Validate External Booking').item.json.guest_name }}',\n  '{{ $('Validate External Booking').item.json.check_in_date }}',\n  '{{ $('Validate External Booking').item.json.check_out_date }}',\n  'confirmed',\n  'external',\n  {{ $('Validate External Booking').item.json.total_amount || 0 }},\n  '{{ ($('Validate External Booking').item.json.notes || '').replace(/'/g, \"''\") }}',\n  CURRENT_TIMESTAMP\n)\nON CONFLICT (booking_id) DO UPDATE SET\n  guest_name = EXCLUDED.guest_name,\n  check_in_date = EXCLUDED.check_in_date,\n  check_out_date = EXCLUDED.check_out_date,\n  updated_at = CURRENT_TIMESTAMP\nRETURNING *",
+        "options": {}
+      },
+      "id": "insert-external-booking",
+      "name": "Insert External Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1100,
+        -160
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT property_name, owner_telegram, owner_phone,\n  COALESCE(settings->>'preferred_platform', 'telegram') AS preferred_platform\nFROM property_configurations\nWHERE property_id = '{{ $('Validate External Booking').item.json.property_id }}'",
+        "options": {}
+      },
+      "id": "get-property-for-confirm",
+      "name": "Get Property Info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1320,
+        -160
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Parse iCal data and extract events\nconst input = $input.item.json;\nconst icalData = typeof input === 'string' ? input : input.data || '';\nconst property_id = $('Prepare Calendar URLs').item.json.property_id;\nconst platform = $('Prepare Calendar URLs').item.json.platform;\n\nconst events = [];\n\n// Simple iCal parser\nconst lines = icalData.split(/\\r?\\n/);\nlet currentEvent = null;\n\nfor (const line of lines) {\n  if (line.startsWith('BEGIN:VEVENT')) {\n    currentEvent = {};\n  } else if (line.startsWith('END:VEVENT') && currentEvent) {\n    if (currentEvent.dtstart && currentEvent.dtend) {\n      events.push({\n        property_id: property_id,\n        platform: platform,\n        external_id: currentEvent.uid || `${platform}_${Date.now()}`,\n        summary: currentEvent.summary || 'Blocked',\n        check_in: currentEvent.dtstart,\n        check_out: currentEvent.dtend,\n        description: currentEvent.description || ''\n      });\n    }\n    currentEvent = null;\n  } else if (currentEvent) {\n    const [key, ...valueParts] = line.split(':');\n    const value = valueParts.join(':');\n    \n    if (key.startsWith('DTSTART')) {\n      currentEvent.dtstart = value.replace(/T.*/, '');\n    } else if (key.startsWith('DTEND')) {\n      currentEvent.dtend = value.replace(/T.*/, '');\n    } else if (key === 'UID') {\n      currentEvent.uid = value;\n    } else if (key === 'SUMMARY') {\n      currentEvent.summary = value;\n    } else if (key === 'DESCRIPTION') {\n      currentEvent.description = value;\n    }\n  }\n}\n\nreturn {\n  property_id: property_id,\n  platform: platform,\n  events_count: events.length,\n  events: events,\n  synced_at: new Date().toISOString()\n};"
+        "jsCode": "const booking = $('Validate External Booking').item.json;\nconst property = $input.item.json;\n\nconst message = '✅ External Booking Added\\n\\nProperty: ' + (property.property_name || booking.property_id) + '\\nPlatform: ' + booking.platform.toUpperCase() + '\\nGuest: ' + booking.guest_name + '\\nDates: ' + booking.check_in_date + ' to ' + booking.check_out_date + (booking.confirmation_number ? '\\nConfirmation #: ' + booking.confirmation_number : '') + '\\n\\nThese dates are now blocked in Ergovia.';\n\nreturn {\n  success: true,\n  message: message,\n  telegram_id: property.owner_telegram,\n  phone: property.owner_phone,\n  preferred_platform: property.preferred_platform,\n  booking_id: booking.booking_id\n};"
       },
-      "id": "parse-ical",
-      "name": "Parse iCal Data",
+      "id": "build-confirm-message",
+      "name": "Build Confirmation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1104,
-        112
+        1540,
+        -160
       ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Prepare upsert data for bookings table\nconst allItems = $input.all();\nconst results = [];\n\nfor (const item of allItems) {\n  const data = item.json;\n\n  // Skip items flagged as no-calendar\n  if (data.skip) continue;\n\n  for (const event of (data.events || [])) {\n    // Generate a deterministic booking_id from property + platform + external ID\n    const bookingId = 'ext_' + event.platform + '_' + (event.external_id || '').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 50);\n\n    results.push({ json: {\n      booking_id: bookingId,\n      property_id: event.property_id,\n      platform: event.platform,\n      guest_name: event.summary || 'Blocked',\n      check_in_date: event.check_in,\n      check_out_date: event.check_out,\n      booking_status: 'confirmed',\n      notes: event.description || 'Synced from ' + event.platform + ' calendar'\n    }});\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { skip: true, message: 'No events to upsert' } }];\n}\n\nreturn results;"
-      },
-      "id": "prepare-upserts",
-      "name": "Prepare Upserts",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1328,
-        112
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "=INSERT INTO bookings (\n  booking_id, property_id, platform,\n  guest_name, check_in_date, check_out_date, booking_status,\n  channel_type, notes\n)\nVALUES (\n  '{{ $json.booking_id }}',\n  '{{ $json.property_id }}',\n  '{{ $json.platform }}',\n  '{{ $json.guest_name }}',\n  '{{ $json.check_in_date }}',\n  '{{ $json.check_out_date }}',\n  '{{ $json.booking_status || \"confirmed\" }}',\n  'calendar_sync',\n  '{{ ($json.notes || \"\").replace(/'/g, \"''\") }}'\n)\nON CONFLICT (booking_id) DO UPDATE SET\n  guest_name = EXCLUDED.guest_name,\n  check_in_date = EXCLUDED.check_in_date,\n  check_out_date = EXCLUDED.check_out_date,\n  updated_at = CURRENT_TIMESTAMP\nRETURNING booking_id",
-        "options": {}
-      },
-      "id": "upsert-bookings",
-      "name": "Upsert External Bookings",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1552,
-        112
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "postgres-cred",
-          "name": "[Client] PostgreSQL"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "=UPDATE property_configurations\nSET last_calendar_sync = CURRENT_TIMESTAMP\nWHERE property_id = '{{ $('Loop Properties').item.json.property_id }}'",
-        "options": {}
-      },
-      "id": "update-sync-time",
-      "name": "Update Sync Time",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1760,
-        112
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "postgres-cred",
-          "name": "[Client] PostgreSQL"
-        }
-      }
     },
     {
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "mode": "list",
-          "value": "__WF_ID:WF3: Calendar Manager__",
-          "cachedResultName": "WF3: Calendar Manager",
-          "cachedResultUrl": "/workflow/pEn69kwNtCEQ21y9"
+          "mode": "id",
+          "value": "__WF_ID:SUB: Owner & Staff Notifier__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "property_id": "={{ $('Loop Properties').item.json.property_id }}",
-            "action": "check_conflicts"
-          },
-          "schema": [
-            {
-              "id": "property_id",
-              "displayName": "Property ID",
-              "type": "string",
-              "required": true
-            },
-            {
-              "id": "action",
-              "displayName": "Action",
-              "type": "string",
-              "required": true
-            }
-          ]
+            "property_id": "={{ $('Validate External Booking').item.json.property_id }}",
+            "event_type": "external_booking_added",
+            "message": "={{ $json.message }}",
+            "notify": "owner"
+          }
         },
         "options": {}
       },
-      "id": "check-conflicts",
-      "name": "Check for Conflicts",
+      "id": "notify-external-added",
+      "name": "Notify Owner (Added)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1984,
-        112
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Generate iCal export for our bookings\nconst items = $input.all();\n\nlet ical = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//PropertyManager//EN\\n';\n\nfor (const item of items) {\n  const b = item.json;\n  if (b.booking_id && b.check_in_date && b.check_out_date) {\n    const startDate = b.check_in_date.replace(/-/g, '');\n    const endDate = b.check_out_date.replace(/-/g, '');\n    \n    ical += 'BEGIN:VEVENT\\n';\n    ical += `UID:${b.booking_id}@propertymanager\\n`;\n    ical += `DTSTART;VALUE=DATE:${startDate}\\n`;\n    ical += `DTEND;VALUE=DATE:${endDate}\\n`;\n    ical += `SUMMARY:${b.guest_name || 'Booked'}\\n`;\n    ical += `DESCRIPTION:Booking ID: ${b.booking_id}\\n`;\n    ical += 'END:VEVENT\\n';\n  }\n}\n\nical += 'END:VCALENDAR';\n\nreturn { ical_content: ical, events_exported: items.length };"
-      },
-      "id": "generate-ical",
-      "name": "Generate iCal Export",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1328,
-        544
+        1760,
+        -160
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: true, properties_synced: $('Get Properties with Integrations').all().length, timestamp: $now.toISO() } }}",
+        "responseBody": "={{ { success: true, booking_id: $('Validate External Booking').item.json.booking_id, message: 'External booking added successfully' } }}",
         "options": {}
       },
-      "id": "respond",
-      "name": "Respond",
+      "id": "respond-external-success",
+      "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2208,
-        144
+        1980,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: 'Conflict detected', conflicting_booking: $json.booking_id, conflicting_dates: $json.check_in_date + ' to ' + $json.check_out_date, conflicting_guest: $json.guest_name } }}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "id": "respond-conflict",
+      "name": "Respond Conflict",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-invalid",
+      "name": "Respond Invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "action"
+            },
+            {
+              "name": "booking_id"
+            },
+            {
+              "name": "property_id"
+            },
+            {
+              "name": "property_name"
+            },
+            {
+              "name": "guest_name"
+            },
+            {
+              "name": "check_in_date"
+            },
+            {
+              "name": "check_out_date"
+            }
+          ]
+        }
+      },
+      "id": "blocking-task-trigger",
+      "name": "Create Blocking Task Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "create_blocking_task",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-action-blocking",
+      "name": "Is Blocking Task?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO manual_tasks (\n  task_id, task_type, description, priority, status,\n  related_booking_id, related_property_id, due_date, created_at\n) VALUES (\n  'TASK_block_' || REPLACE('{{ $json.booking_id }}', 'BK_', ''),\n  'block_external_calendar',\n  'Block {{ $json.check_in_date }} to {{ $json.check_out_date }} in Airbnb/VRBO/Booking.com for {{ $json.property_name }}',\n  2,\n  'pending',\n  '{{ $json.booking_id }}',\n  '{{ $json.property_id }}',\n  CURRENT_TIMESTAMP + INTERVAL '4 hours',\n  CURRENT_TIMESTAMP\n)\nON CONFLICT (task_id) DO NOTHING\nRETURNING *",
+        "options": {}
+      },
+      "id": "insert-blocking-task",
+      "name": "Insert Blocking Task",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $('Create Blocking Task Trigger').item.json;\n\nconst message = '🗓️ ACTION REQUIRED: Block External Calendars\\n\\nNew booking confirmed for ' + input.property_name + ':\\n\\n👤 Guest: ' + input.guest_name + '\\n📅 Dates: ' + input.check_in_date + ' to ' + input.check_out_date + '\\n\\nPlease block these dates in:\\n□ Airbnb\\n□ VRBO\\n□ Booking.com\\n\\nReply DONE when completed.';\n\nreturn {\n  message: message,\n  property_id: input.property_id,\n  booking_id: input.booking_id\n};"
+      },
+      "id": "build-blocking-message",
+      "name": "Build Blocking Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__WF_ID:SUB: Owner & Staff Notifier__"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "property_id": "={{ $json.property_id }}",
+            "event_type": "block_external_calendar",
+            "message": "={{ $json.message }}",
+            "notify": "owner"
+          }
+        },
+        "options": {}
+      },
+      "id": "notify-blocking-task",
+      "name": "Notify Owner (Block)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  success: true,\n  task_created: true,\n  owner_notified: true\n};"
+      },
+      "id": "blocking-response",
+      "name": "Blocking Task Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "complete-blocking-task",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "complete-task-trigger",
+      "name": "Complete Blocking Task",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE manual_tasks\nSET status = 'completed', completed_at = CURRENT_TIMESTAMP\nWHERE (task_id = '{{ $json.task_id }}' OR related_booking_id = '{{ $json.booking_id }}')\n  AND task_type = 'block_external_calendar'\n  AND status = 'pending'\nRETURNING *",
+        "options": {}
+      },
+      "id": "complete-task-update",
+      "name": "Mark Task Complete",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        520
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.task_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "task-found",
+      "name": "Task Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__WF_ID:SUB: Owner & Staff Notifier__"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "property_id": "={{ $json.related_property_id }}",
+            "event_type": "blocking_task_completed",
+            "message": "=✅ Calendar Blocking Confirmed\\n\\nTask: {{ $json.description }}\\n\\nThank you for keeping calendars in sync!",
+            "notify": "owner"
+          }
+        },
+        "options": {}
+      },
+      "id": "notify-task-complete",
+      "name": "Notify Owner (Done)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Task marked complete' } }}",
+        "options": {}
+      },
+      "id": "respond-task-complete",
+      "name": "Respond Task Done",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: 'Task not found or already completed' } }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "respond-task-not-found",
+      "name": "Respond Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "reminder-trigger",
+      "name": "Daily 9 AM Reminder",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT t.*, p.property_name, p.owner_telegram, p.owner_phone,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  b.guest_name, b.check_in_date, b.check_out_date,\n  EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - t.created_at))/3600 AS hours_pending\nFROM manual_tasks t\nLEFT JOIN property_configurations p ON t.related_property_id = p.property_id\nLEFT JOIN bookings b ON t.related_booking_id = b.booking_id\nWHERE t.task_type = 'block_external_calendar'\n  AND t.status = 'pending'\n  AND t.created_at < CURRENT_TIMESTAMP - INTERVAL '4 hours'\nORDER BY t.created_at ASC",
+        "options": {}
+      },
+      "id": "get-pending-tasks",
+      "name": "Get Pending Tasks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        780
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "[Client] PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.task_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-pending-tasks",
+      "name": "Has Pending Tasks?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const task = $input.item.json;\nconst hours = Math.round(task.hours_pending || 0);\n\nconst message = '⚠️ REMINDER: Calendar Blocking Still Pending\\n\\nBooking: ' + (task.guest_name || 'Guest') + ' @ ' + (task.property_name || task.related_property_id) + '\\nDates: ' + task.check_in_date + ' to ' + task.check_out_date + '\\nTask created: ' + hours + ' hours ago\\n\\nPlease block in Airbnb/VRBO/Booking.com\\nReply DONE when completed.';\n\nreturn {\n  message: message,\n  property_id: task.related_property_id,\n  task_id: task.task_id\n};"
+      },
+      "id": "build-reminder-message",
+      "name": "Build Reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__WF_ID:SUB: Owner & Staff Notifier__"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "property_id": "={{ $json.property_id }}",
+            "event_type": "blocking_task_reminder",
+            "message": "={{ $json.message }}",
+            "notify": "owner"
+          }
+        },
+        "options": {}
+      },
+      "id": "send-reminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        700
       ]
     },
     {
@@ -261,13 +654,13 @@
       "typeVersion": 1.2,
       "position": [
         0,
-        480
+        1040
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  r.review_id, r.platform, r.property_id, r.property_name,\n  r.booking_id, r.guest_name, r.star_rating, r.review_text,\n  r.review_date, p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id\nFROM reviews r\nLEFT JOIN property_configurations p ON r.property_id = p.property_id\nWHERE r.sentiment IS NULL\n  AND r.review_text IS NOT NULL\n  AND r.review_text != ''\nORDER BY r.received_date DESC\nLIMIT 10",
+        "query": "SELECT\n  r.review_id, r.platform, r.property_id, r.property_name,\n  r.booking_id, r.guest_name, r.star_rating, r.review_text,\n  r.review_date, p.owner_telegram, p.owner_phone,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform\nFROM reviews r\nLEFT JOIN property_configurations p ON r.property_id = p.property_id\nWHERE r.sentiment IS NULL\n  AND r.review_text IS NOT NULL\n  AND r.review_text != ''\nORDER BY r.received_date DESC\nLIMIT 10",
         "options": {}
       },
       "id": "get-unanalyzed-reviews",
@@ -275,9 +668,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        224,
-        480
+        220,
+        1040
       ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "postgres-cred",
@@ -287,30 +681,61 @@
     },
     {
       "parameters": {
-        "jsCode": "// Keyword-based sentiment analysis for property reviews\nconst review = $input.item.json;\nconst text = (review.review_text || '').toLowerCase();\n\nconst negativeWords = ['terrible', 'awful', 'dirty', 'broken', 'worst', 'disappointing',\n  'unacceptable', 'rude', 'noise', 'cockroach', 'bug', 'smell', 'mold', 'cold',\n  'uncomfortable', 'overpriced', 'scam', 'avoid', 'never again', 'horrible',\n  'disgusting', 'unsafe', 'dangerous', 'nightmare', 'fraud'];\nconst positiveWords = ['amazing', 'wonderful', 'excellent', 'perfect', 'beautiful',\n  'clean', 'comfortable', 'lovely', 'great', 'fantastic', 'recommend', 'spacious',\n  'cozy', 'friendly', 'helpful', 'quiet', 'stunning', 'delightful', 'convenient',\n  'spotless', 'incredible', 'awesome', 'superb', 'charming'];\n\nlet negCount = 0, posCount = 0;\nconst issues = [], topics = [];\n\nfor (const word of negativeWords) {\n  if (text.includes(word)) { negCount++; issues.push(word); }\n}\nfor (const word of positiveWords) {\n  if (text.includes(word)) { posCount++; topics.push(word); }\n}\n\nconst rating = review.star_rating || 3;\nlet score = (posCount - negCount) + (rating - 3) * 0.5;\nscore = Math.max(-1, Math.min(1, score / 3));\n\nconst sentiment = score >= 0.2 ? 'positive' : score <= -0.2 ? 'negative' : 'neutral';\n\nlet responseDraft = '';\nif (sentiment === 'positive') {\n  responseDraft = 'Thank you for your wonderful review! We are delighted you enjoyed your stay' +\n    (review.property_name ? ' at ' + review.property_name : '') + '. We would love to welcome you back anytime!';\n} else if (sentiment === 'negative') {\n  responseDraft = 'Thank you for your feedback. We sincerely apologize for the issues you experienced. ' +\n    'We take your concerns seriously and are working to address them. ' +\n    'We would love the opportunity to make it right.';\n} else {\n  responseDraft = 'Thank you for taking the time to share your experience. ' +\n    'We appreciate your feedback and are always looking to improve.';\n}\n\nreturn {\n  review_id: review.review_id,\n  property_name: review.property_name,\n  guest_name: review.guest_name,\n  star_rating: rating,\n  sentiment: sentiment,\n  sentiment_score: parseFloat(score.toFixed(2)),\n  topics: JSON.stringify(topics),\n  issues_mentioned: JSON.stringify(issues),\n  confidence: parseFloat((0.5 + Math.min(negCount + posCount, 5) * 0.1).toFixed(2)),\n  response_text: responseDraft,\n  approval_required: sentiment !== 'positive',\n  approval_urgency: sentiment === 'negative' ? 'high' : 'medium',\n  response_status: sentiment === 'positive' ? 'auto_approved' : 'pending_review',\n  owner_contact: review.owner_contact,\n  preferred_platform: review.preferred_platform\n};"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.review_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-reviews",
+      "name": "Has Reviews?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const review = $input.item.json;\nconst text = (review.review_text || '').toLowerCase();\n\nconst negativeWords = ['terrible', 'awful', 'dirty', 'broken', 'worst', 'disappointing', 'unacceptable', 'rude', 'noise', 'cockroach', 'bug', 'smell', 'mold', 'cold', 'uncomfortable', 'overpriced', 'scam', 'avoid', 'never again', 'horrible', 'disgusting', 'unsafe', 'dangerous', 'nightmare', 'fraud'];\nconst positiveWords = ['amazing', 'wonderful', 'excellent', 'perfect', 'beautiful', 'clean', 'comfortable', 'lovely', 'great', 'fantastic', 'recommend', 'spacious', 'cozy', 'friendly', 'helpful', 'quiet', 'stunning', 'delightful', 'convenient', 'spotless', 'incredible', 'awesome', 'superb', 'charming'];\n\nlet negCount = 0, posCount = 0;\nconst issues = [], topics = [];\n\nfor (const word of negativeWords) {\n  if (text.includes(word)) { negCount++; issues.push(word); }\n}\nfor (const word of positiveWords) {\n  if (text.includes(word)) { posCount++; topics.push(word); }\n}\n\nconst rating = review.star_rating || 3;\nlet score = (posCount - negCount) + (rating - 3) * 0.5;\nscore = Math.max(-1, Math.min(1, score / 3));\n\nconst sentiment = score >= 0.2 ? 'positive' : score <= -0.2 ? 'negative' : 'neutral';\n\nlet responseDraft = '';\nif (sentiment === 'positive') {\n  responseDraft = 'Thank you for your wonderful review! We are delighted you enjoyed your stay' + (review.property_name ? ' at ' + review.property_name : '') + '. We would love to welcome you back anytime!';\n} else if (sentiment === 'negative') {\n  responseDraft = 'Thank you for your feedback. We sincerely apologize for the issues you experienced. We take your concerns seriously and are working to address them. We would love the opportunity to make it right.';\n} else {\n  responseDraft = 'Thank you for taking the time to share your experience. We appreciate your feedback and are always looking to improve.';\n}\n\nreturn {\n  review_id: review.review_id,\n  property_id: review.property_id,\n  property_name: review.property_name,\n  guest_name: review.guest_name,\n  star_rating: rating,\n  review_text: review.review_text,\n  sentiment: sentiment,\n  sentiment_score: parseFloat(score.toFixed(2)),\n  topics: JSON.stringify(topics),\n  issues_mentioned: JSON.stringify(issues),\n  confidence: parseFloat((0.5 + Math.min(negCount + posCount, 5) * 0.1).toFixed(2)),\n  response_text: responseDraft,\n  approval_required: sentiment !== 'positive',\n  approval_urgency: sentiment === 'negative' ? 'high' : 'medium',\n  response_status: sentiment === 'positive' ? 'auto_approved' : 'pending_review'\n};"
       },
       "id": "analyze-review",
-      "name": "Analyze Review Sentiment",
+      "name": "Analyze Sentiment",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        448,
-        480
+        660,
+        960
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "=UPDATE reviews SET\n  sentiment = '{{ $json.sentiment }}',\n  sentiment_score = {{ $json.sentiment_score }},\n  topics = '{{ $json.topics }}'::jsonb,\n  issues_mentioned = '{{ $json.issues_mentioned }}'::jsonb,\n  confidence = {{ $json.confidence }},\n  response_text = '{{ $json.response_text.replace(/'/g, \"''\") }}',\n  approval_required = {{ $json.approval_required }},\n  approval_urgency = '{{ $json.approval_urgency }}',\n  response_status = '{{ $json.response_status }}',\n  updated_at = CURRENT_TIMESTAMP\nWHERE review_id = '{{ $json.review_id }}'\nRETURNING *",
+        "query": "UPDATE reviews SET\n  sentiment = '{{ $json.sentiment }}',\n  sentiment_score = {{ $json.sentiment_score }},\n  topics = '{{ $json.topics }}'::jsonb,\n  issues_mentioned = '{{ $json.issues_mentioned }}'::jsonb,\n  confidence = {{ $json.confidence }},\n  response_text = '{{ $json.response_text.replace(/'/g, \"''\") }}',\n  approval_required = {{ $json.approval_required }},\n  approval_urgency = '{{ $json.approval_urgency }}',\n  response_status = '{{ $json.response_status }}',\n  updated_at = CURRENT_TIMESTAMP\nWHERE review_id = '{{ $json.review_id }}'\nRETURNING *",
         "options": {}
       },
       "id": "update-review",
-      "name": "Update Review Analysis",
+      "name": "Update Review",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        672,
-        480
+        880,
+        960
       ],
       "credentials": {
         "postgres": {
@@ -341,13 +766,27 @@
         },
         "options": {}
       },
-      "id": "check-negative",
-      "name": "Needs Owner Attention?",
+      "id": "needs-attention",
+      "name": "Needs Attention?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        896,
-        480
+        1100,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $('Analyze Sentiment').item.json;\n\nconst stars = '⭐'.repeat(r.star_rating || 0);\nconst reviewPreview = (r.review_text || '').substring(0, 200) + ((r.review_text || '').length > 200 ? '...' : '');\n\nconst message = '📝 Review Alert (' + r.property_name + ')\\n\\nGuest: ' + r.guest_name + '\\nRating: ' + stars + ' ' + r.star_rating + '/5\\nSentiment: ' + r.sentiment.toUpperCase() + '\\n\\nReview: ' + reviewPreview + '\\n\\nDraft Response:\\n' + r.response_text + '\\n\\nPlease review and approve/edit the response.';\n\nreturn {\n  message: message,\n  property_id: r.property_id\n};"
+      },
+      "id": "build-review-alert",
+      "name": "Build Review Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        880
       ]
     },
     {
@@ -355,179 +794,289 @@
         "workflowId": {
           "__rl": true,
           "mode": "id",
-          "value": "__WF_ID:SUB: Universal Messenger__",
-          "cachedResultName": "SUB: Universal Messenger"
+          "value": "__WF_ID:SUB: Owner & Staff Notifier__"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "channel": "={{ $json.preferred_platform || 'telegram' }}",
-            "sender_id": "={{ $json.owner_contact || '' }}",
-            "input": "=Review Alert ({{ $json.property_name }})\n\nGuest: {{ $json.guest_name }}\nRating: {{ $json.star_rating }}/5\nSentiment: {{ $json.sentiment }}\nPlatform: {{ $json.platform || 'direct' }}\n\nReview: {{ $json.review_text ? $json.review_text.substring(0, 200) : 'N/A' }}\n\nDraft Response: {{ $json.response_text }}\n\nPlease review and approve/edit the response.",
-            "customer_id": "={{ $json.customer_id || '' }}"
-          },
-          "schema": [
-            {
-              "id": "channel",
-              "displayName": "Channel",
-              "type": "string",
-              "required": true
-            },
-            {
-              "id": "sender_id",
-              "displayName": "Sender ID",
-              "type": "string",
-              "required": true
-            },
-            {
-              "id": "input",
-              "displayName": "Input",
-              "type": "string",
-              "required": true
-            },
-            {
-              "id": "customer_id",
-              "displayName": "Customer ID",
-              "type": "string",
-              "required": true
-            }
-          ]
+            "property_id": "={{ $json.property_id }}",
+            "event_type": "review_needs_attention",
+            "message": "={{ $json.message }}",
+            "notify": "owner"
+          }
         },
         "options": {}
       },
-      "id": "notify-owner-review",
+      "id": "notify-review",
       "name": "Notify Owner (Review)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1120,
-        400
+        1540,
+        880
       ]
     }
   ],
   "connections": {
-    "Daily 3 AM Sync": {
+    "Add External Booking": {
       "main": [
         [
           {
-            "node": "Get Properties with Integrations",
+            "node": "Validate External Booking",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Manual Sync Request": {
+    "Validate External Booking": {
       "main": [
         [
           {
-            "node": "Get Properties with Integrations",
+            "node": "Valid Input?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Properties with Integrations": {
+    "Valid Input?": {
       "main": [
         [
           {
-            "node": "Loop Properties",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Properties": {
-      "main": [
-        [
-          {
-            "node": "Prepare Calendar URLs",
+            "node": "Check Conflicts",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Respond",
+            "node": "Respond Invalid",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Calendar URLs": {
+    "Check Conflicts": {
       "main": [
         [
           {
-            "node": "Fetch iCal",
+            "node": "Has Conflict?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch iCal": {
+    "Has Conflict?": {
       "main": [
         [
           {
-            "node": "Parse iCal Data",
+            "node": "Insert External Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Conflict",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse iCal Data": {
+    "Insert External Booking": {
       "main": [
         [
           {
-            "node": "Prepare Upserts",
+            "node": "Get Property Info",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Prepare Upserts": {
+    "Get Property Info": {
       "main": [
         [
           {
-            "node": "Upsert External Bookings",
+            "node": "Build Confirmation",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Upsert External Bookings": {
+    "Build Confirmation": {
       "main": [
         [
           {
-            "node": "Update Sync Time",
+            "node": "Notify Owner (Added)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update Sync Time": {
+    "Notify Owner (Added)": {
       "main": [
         [
           {
-            "node": "Check for Conflicts",
+            "node": "Respond Success",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Check for Conflicts": {
+    "Create Blocking Task Trigger": {
       "main": [
         [
           {
-            "node": "Loop Properties",
+            "node": "Is Blocking Task?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Blocking Task?": {
+      "main": [
+        [
+          {
+            "node": "Insert Blocking Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Insert Blocking Task": {
+      "main": [
+        [
+          {
+            "node": "Build Blocking Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Blocking Message": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner (Block)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Owner (Block)": {
+      "main": [
+        [
+          {
+            "node": "Blocking Task Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complete Blocking Task": {
+      "main": [
+        [
+          {
+            "node": "Mark Task Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Task Complete": {
+      "main": [
+        [
+          {
+            "node": "Task Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Found?": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner (Done)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Owner (Done)": {
+      "main": [
+        [
+          {
+            "node": "Respond Task Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 9 AM Reminder": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Tasks": {
+      "main": [
+        [
+          {
+            "node": "Has Pending Tasks?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Pending Tasks?": {
+      "main": [
+        [
+          {
+            "node": "Build Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Reminder": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
             "type": "main",
             "index": 0
           }
@@ -549,36 +1098,60 @@
       "main": [
         [
           {
-            "node": "Analyze Review Sentiment",
+            "node": "Has Reviews?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Analyze Review Sentiment": {
+    "Has Reviews?": {
       "main": [
         [
           {
-            "node": "Update Review Analysis",
+            "node": "Analyze Sentiment",
             "type": "main",
             "index": 0
           }
-        ]
+        ],
+        []
       ]
     },
-    "Update Review Analysis": {
+    "Analyze Sentiment": {
       "main": [
         [
           {
-            "node": "Needs Owner Attention?",
+            "node": "Update Review",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Needs Owner Attention?": {
+    "Update Review": {
+      "main": [
+        [
+          {
+            "node": "Needs Attention?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Attention?": {
+      "main": [
+        [
+          {
+            "node": "Build Review Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Review Alert": {
       "main": [
         [
           {
@@ -586,8 +1159,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     }
   },
@@ -597,7 +1169,7 @@
     "availableInMCP": false
   },
   "staticData": {
-    "node:Daily 3 AM Sync": {
+    "node:Daily 9 AM Reminder": {
       "recurrenceRules": []
     },
     "node:Review Analysis 8 AM": {
@@ -605,610 +1177,8 @@
     }
   },
   "meta": null,
-  "pinData": {},
-  "activeVersionId": "0ec40c37-f267-4211-82f8-f248e60c12c0",
-  "versionCounter": 30,
-  "activeVersion": {
-    "updatedAt": "2026-02-16T06:25:11.878Z",
-    "createdAt": "2026-02-16T06:25:11.878Z",
-    "versionId": "0ec40c37-f267-4211-82f8-f248e60c12c0",
-    "workflowId": "__WF_ID:WF7: Integration Hub__",
-    "nodes": [
-      {
-        "parameters": {
-          "rule": {
-            "interval": [
-              {
-                "triggerAtHour": 3
-              }
-            ]
-          }
-        },
-        "id": "sync-trigger",
-        "name": "Daily 3 AM Sync",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.2,
-        "position": [
-          0,
-          0
-        ]
-      },
-      {
-        "parameters": {
-          "httpMethod": "POST",
-          "path": "integration-sync",
-          "responseMode": "responseNode",
-          "options": {}
-        },
-        "id": "manual-trigger",
-        "name": "Manual Sync Request",
-        "type": "n8n-nodes-base.webhook",
-        "typeVersion": 2,
-        "position": [
-          0,
-          208
-        ],
-        "webhookId": "29e45eca-3f33-4c2f-a1f2-f55f7a2e1f77"
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "SELECT\n  property_id,\n  property_name,\n  calendar_url,\n  settings->>'airbnb_calendar_url' AS airbnb_calendar_url,\n  settings->>'vrbo_calendar_url' AS vrbo_calendar_url,\n  settings->>'booking_com_calendar_url' AS booking_com_calendar_url,\n  settings->>'google_calendar_id' AS google_calendar_id,\n  settings->>'ical_export_url' AS ical_export_url,\n  last_calendar_sync,\n  owner_contact,\n  COALESCE(settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  customer_id\nFROM property_configurations\nWHERE property_status = 'active'\n  AND calendar_sync_enabled = true\n  AND (calendar_url IS NOT NULL\n       OR settings->>'airbnb_calendar_url' IS NOT NULL\n       OR settings->>'vrbo_calendar_url' IS NOT NULL\n       OR settings->>'booking_com_calendar_url' IS NOT NULL)",
-          "options": {}
-        },
-        "id": "get-properties",
-        "name": "Get Properties with Integrations",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          224,
-          112
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "options": {}
-        },
-        "id": "loop-properties",
-        "name": "Loop Properties",
-        "type": "n8n-nodes-base.splitInBatches",
-        "typeVersion": 3,
-        "position": [
-          448,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Prepare calendar URLs for fetching\nconst property = $input.item.json;\nconst calendars = [];\n\nif (property.airbnb_calendar_url) {\n  calendars.push({\n    platform: 'airbnb',\n    url: property.airbnb_calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\nif (property.vrbo_calendar_url) {\n  calendars.push({\n    platform: 'vrbo',\n    url: property.vrbo_calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\nif (property.booking_com_calendar_url) {\n  calendars.push({\n    platform: 'booking_com',\n    url: property.booking_com_calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\n// Fallback: use the main calendar_url if no platform-specific URLs\nif (calendars.length === 0 && property.calendar_url) {\n  calendars.push({\n    platform: 'ical',\n    url: property.calendar_url,\n    property_id: property.property_id,\n    property_name: property.property_name\n  });\n}\n\n// If no calendar URLs found, return empty with flag\nif (calendars.length === 0) {\n  return [{ json: { property_id: property.property_id, skip: true, reason: 'No calendar URLs configured' } }];\n}\n\nreturn calendars.map(c => ({ json: c }));"
-        },
-        "id": "prepare-urls",
-        "name": "Prepare Calendar URLs",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          672,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "url": "={{ $json.url }}",
-          "options": {
-            "timeout": 30000
-          }
-        },
-        "id": "fetch-ical",
-        "name": "Fetch iCal",
-        "type": "n8n-nodes-base.httpRequest",
-        "typeVersion": 4.2,
-        "position": [
-          880,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "mode": "runOnceForEachItem",
-          "jsCode": "// Parse iCal data and extract events\nconst input = $input.item.json;\nconst icalData = typeof input === 'string' ? input : input.data || '';\nconst property_id = $('Prepare Calendar URLs').item.json.property_id;\nconst platform = $('Prepare Calendar URLs').item.json.platform;\n\nconst events = [];\n\n// Simple iCal parser\nconst lines = icalData.split(/\\r?\\n/);\nlet currentEvent = null;\n\nfor (const line of lines) {\n  if (line.startsWith('BEGIN:VEVENT')) {\n    currentEvent = {};\n  } else if (line.startsWith('END:VEVENT') && currentEvent) {\n    if (currentEvent.dtstart && currentEvent.dtend) {\n      events.push({\n        property_id: property_id,\n        platform: platform,\n        external_id: currentEvent.uid || `${platform}_${Date.now()}`,\n        summary: currentEvent.summary || 'Blocked',\n        check_in: currentEvent.dtstart,\n        check_out: currentEvent.dtend,\n        description: currentEvent.description || ''\n      });\n    }\n    currentEvent = null;\n  } else if (currentEvent) {\n    const [key, ...valueParts] = line.split(':');\n    const value = valueParts.join(':');\n    \n    if (key.startsWith('DTSTART')) {\n      currentEvent.dtstart = value.replace(/T.*/, '');\n    } else if (key.startsWith('DTEND')) {\n      currentEvent.dtend = value.replace(/T.*/, '');\n    } else if (key === 'UID') {\n      currentEvent.uid = value;\n    } else if (key === 'SUMMARY') {\n      currentEvent.summary = value;\n    } else if (key === 'DESCRIPTION') {\n      currentEvent.description = value;\n    }\n  }\n}\n\nreturn {\n  property_id: property_id,\n  platform: platform,\n  events_count: events.length,\n  events: events,\n  synced_at: new Date().toISOString()\n};"
-        },
-        "id": "parse-ical",
-        "name": "Parse iCal Data",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          1104,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "jsCode": "// Prepare upsert data for bookings table\nconst allItems = $input.all();\nconst results = [];\n\nfor (const item of allItems) {\n  const data = item.json;\n\n  // Skip items flagged as no-calendar\n  if (data.skip) continue;\n\n  for (const event of (data.events || [])) {\n    // Generate a deterministic booking_id from property + platform + external ID\n    const bookingId = 'ext_' + event.platform + '_' + (event.external_id || '').replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 50);\n\n    results.push({ json: {\n      booking_id: bookingId,\n      property_id: event.property_id,\n      platform: event.platform,\n      guest_name: event.summary || 'Blocked',\n      check_in_date: event.check_in,\n      check_out_date: event.check_out,\n      booking_status: 'confirmed',\n      notes: event.description || 'Synced from ' + event.platform + ' calendar'\n    }});\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { skip: true, message: 'No events to upsert' } }];\n}\n\nreturn results;"
-        },
-        "id": "prepare-upserts",
-        "name": "Prepare Upserts",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          1328,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=INSERT INTO bookings (\n  booking_id, property_id, platform,\n  guest_name, check_in_date, check_out_date, booking_status,\n  channel_type, notes\n)\nVALUES (\n  '{{ $json.booking_id }}',\n  '{{ $json.property_id }}',\n  '{{ $json.platform }}',\n  '{{ $json.guest_name }}',\n  '{{ $json.check_in_date }}',\n  '{{ $json.check_out_date }}',\n  '{{ $json.booking_status || \"confirmed\" }}',\n  'calendar_sync',\n  '{{ ($json.notes || \"\").replace(/'/g, \"''\") }}'\n)\nON CONFLICT (booking_id) DO UPDATE SET\n  guest_name = EXCLUDED.guest_name,\n  check_in_date = EXCLUDED.check_in_date,\n  check_out_date = EXCLUDED.check_out_date,\n  updated_at = CURRENT_TIMESTAMP\nRETURNING booking_id",
-          "options": {}
-        },
-        "id": "upsert-bookings",
-        "name": "Upsert External Bookings",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          1552,
-          112
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=UPDATE property_configurations\nSET last_calendar_sync = CURRENT_TIMESTAMP\nWHERE property_id = '{{ $('Loop Properties').item.json.property_id }}'",
-          "options": {}
-        },
-        "id": "update-sync-time",
-        "name": "Update Sync Time",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          1760,
-          112
-        ],
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "parameters": {
-          "workflowId": {
-            "__rl": true,
-            "mode": "list",
-            "value": "__WF_ID:WF3: Calendar Manager__",
-            "cachedResultName": "WF3: Calendar Manager",
-            "cachedResultUrl": "/workflow/pEn69kwNtCEQ21y9"
-          },
-          "options": {},
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "property_id": "={{ $('Loop Properties').item.json.property_id }}",
-              "action": "check_conflicts"
-            },
-            "schema": [
-              {
-                "id": "property_id",
-                "displayName": "Property ID",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "action",
-                "displayName": "Action",
-                "type": "string",
-                "required": true
-              }
-            ]
-          }
-        },
-        "id": "check-conflicts",
-        "name": "Check for Conflicts",
-        "type": "n8n-nodes-base.executeWorkflow",
-        "typeVersion": 1.2,
-        "position": [
-          1984,
-          112
-        ]
-      },
-      {
-        "parameters": {
-          "jsCode": "// Generate iCal export for our bookings\nconst items = $input.all();\n\nlet ical = 'BEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//PropertyManager//EN\\n';\n\nfor (const item of items) {\n  const b = item.json;\n  if (b.booking_id && b.check_in_date && b.check_out_date) {\n    const startDate = b.check_in_date.replace(/-/g, '');\n    const endDate = b.check_out_date.replace(/-/g, '');\n    \n    ical += 'BEGIN:VEVENT\\n';\n    ical += `UID:${b.booking_id}@propertymanager\\n`;\n    ical += `DTSTART;VALUE=DATE:${startDate}\\n`;\n    ical += `DTEND;VALUE=DATE:${endDate}\\n`;\n    ical += `SUMMARY:${b.guest_name || 'Booked'}\\n`;\n    ical += `DESCRIPTION:Booking ID: ${b.booking_id}\\n`;\n    ical += 'END:VEVENT\\n';\n  }\n}\n\nical += 'END:VCALENDAR';\n\nreturn { ical_content: ical, events_exported: items.length };"
-        },
-        "id": "generate-ical",
-        "name": "Generate iCal Export",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          688,
-          320
-        ]
-      },
-      {
-        "parameters": {
-          "respondWith": "json",
-          "responseBody": "={{ { success: true, properties_synced: $('Get Properties with Integrations').all().length, timestamp: $now.toISO() } }}",
-          "options": {}
-        },
-        "id": "respond",
-        "name": "Respond",
-        "type": "n8n-nodes-base.respondToWebhook",
-        "typeVersion": 1.1,
-        "position": [
-          2208,
-          112
-        ]
-      },
-      {
-        "id": "review-trigger",
-        "name": "Review Analysis 8 AM",
-        "type": "n8n-nodes-base.scheduleTrigger",
-        "typeVersion": 1.2,
-        "position": [
-          0,
-          480
-        ],
-        "parameters": {
-          "rule": {
-            "interval": [
-              {
-                "triggerAtHour": 8
-              }
-            ]
-          }
-        }
-      },
-      {
-        "id": "get-unanalyzed-reviews",
-        "name": "Get Unanalyzed Reviews",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          224,
-          480
-        ],
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "SELECT\n  r.review_id, r.platform, r.property_id, r.property_name,\n  r.booking_id, r.guest_name, r.star_rating, r.review_text,\n  r.review_date, p.owner_contact,\n  COALESCE(p.settings->>'preferred_platform', 'telegram') AS preferred_platform,\n  p.customer_id\nFROM reviews r\nLEFT JOIN property_configurations p ON r.property_id = p.property_id\nWHERE r.sentiment IS NULL\n  AND r.review_text IS NOT NULL\n  AND r.review_text != ''\nORDER BY r.received_date DESC\nLIMIT 10",
-          "options": {}
-        },
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "id": "analyze-review",
-        "name": "Analyze Review Sentiment",
-        "type": "n8n-nodes-base.code",
-        "typeVersion": 2,
-        "position": [
-          448,
-          480
-        ],
-        "parameters": {
-          "jsCode": "// Keyword-based sentiment analysis for property reviews\nconst review = $input.item.json;\nconst text = (review.review_text || '').toLowerCase();\n\nconst negativeWords = ['terrible', 'awful', 'dirty', 'broken', 'worst', 'disappointing',\n  'unacceptable', 'rude', 'noise', 'cockroach', 'bug', 'smell', 'mold', 'cold',\n  'uncomfortable', 'overpriced', 'scam', 'avoid', 'never again', 'horrible',\n  'disgusting', 'unsafe', 'dangerous', 'nightmare', 'fraud'];\nconst positiveWords = ['amazing', 'wonderful', 'excellent', 'perfect', 'beautiful',\n  'clean', 'comfortable', 'lovely', 'great', 'fantastic', 'recommend', 'spacious',\n  'cozy', 'friendly', 'helpful', 'quiet', 'stunning', 'delightful', 'convenient',\n  'spotless', 'incredible', 'awesome', 'superb', 'charming'];\n\nlet negCount = 0, posCount = 0;\nconst issues = [], topics = [];\n\nfor (const word of negativeWords) {\n  if (text.includes(word)) { negCount++; issues.push(word); }\n}\nfor (const word of positiveWords) {\n  if (text.includes(word)) { posCount++; topics.push(word); }\n}\n\nconst rating = review.star_rating || 3;\nlet score = (posCount - negCount) + (rating - 3) * 0.5;\nscore = Math.max(-1, Math.min(1, score / 3));\n\nconst sentiment = score >= 0.2 ? 'positive' : score <= -0.2 ? 'negative' : 'neutral';\n\nlet responseDraft = '';\nif (sentiment === 'positive') {\n  responseDraft = 'Thank you for your wonderful review! We are delighted you enjoyed your stay' +\n    (review.property_name ? ' at ' + review.property_name : '') + '. We would love to welcome you back anytime!';\n} else if (sentiment === 'negative') {\n  responseDraft = 'Thank you for your feedback. We sincerely apologize for the issues you experienced. ' +\n    'We take your concerns seriously and are working to address them. ' +\n    'We would love the opportunity to make it right.';\n} else {\n  responseDraft = 'Thank you for taking the time to share your experience. ' +\n    'We appreciate your feedback and are always looking to improve.';\n}\n\nreturn {\n  review_id: review.review_id,\n  property_name: review.property_name,\n  guest_name: review.guest_name,\n  star_rating: rating,\n  sentiment: sentiment,\n  sentiment_score: parseFloat(score.toFixed(2)),\n  topics: JSON.stringify(topics),\n  issues_mentioned: JSON.stringify(issues),\n  confidence: parseFloat((0.5 + Math.min(negCount + posCount, 5) * 0.1).toFixed(2)),\n  response_text: responseDraft,\n  approval_required: sentiment !== 'positive',\n  approval_urgency: sentiment === 'negative' ? 'high' : 'medium',\n  response_status: sentiment === 'positive' ? 'auto_approved' : 'pending_review',\n  owner_contact: review.owner_contact,\n  preferred_platform: review.preferred_platform\n};"
-        }
-      },
-      {
-        "id": "update-review",
-        "name": "Update Review Analysis",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          672,
-          480
-        ],
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=UPDATE reviews SET\n  sentiment = '{{ $json.sentiment }}',\n  sentiment_score = {{ $json.sentiment_score }},\n  topics = '{{ $json.topics }}'::jsonb,\n  issues_mentioned = '{{ $json.issues_mentioned }}'::jsonb,\n  confidence = {{ $json.confidence }},\n  response_text = '{{ $json.response_text.replace(/'/g, \"''\") }}',\n  approval_required = {{ $json.approval_required }},\n  approval_urgency = '{{ $json.approval_urgency }}',\n  response_status = '{{ $json.response_status }}',\n  updated_at = CURRENT_TIMESTAMP\nWHERE review_id = '{{ $json.review_id }}'\nRETURNING *",
-          "options": {}
-        },
-        "credentials": {
-          "postgres": {
-            "id": "postgres-cred",
-            "name": "[Client] PostgreSQL"
-          }
-        }
-      },
-      {
-        "id": "check-negative",
-        "name": "Needs Owner Attention?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2,
-        "position": [
-          896,
-          480
-        ],
-        "parameters": {
-          "conditions": {
-            "options": {
-              "caseSensitive": false,
-              "leftValue": "",
-              "typeValidation": "loose"
-            },
-            "conditions": [
-              {
-                "leftValue": "={{ $json.approval_required }}",
-                "rightValue": true,
-                "operator": {
-                  "type": "boolean",
-                  "operation": "true"
-                }
-              }
-            ],
-            "combinator": "and"
-          }
-        }
-      },
-      {
-        "id": "notify-owner-review",
-        "name": "Notify Owner (Review)",
-        "type": "n8n-nodes-base.executeWorkflow",
-        "typeVersion": 1.2,
-        "position": [
-          1120,
-          400
-        ],
-        "parameters": {
-          "workflowId": {
-            "__rl": true,
-            "mode": "id",
-            "value": "__WF_ID:SUB: Universal Messenger__"
-          },
-          "workflowInputs": {
-            "mappingMode": "defineBelow",
-            "value": {
-              "channel": "={{ $json.preferred_platform || 'telegram' }}",
-              "sender_id": "={{ $json.owner_contact || '' }}",
-              "input": "=Review Alert ({{ $json.property_name }})\n\nGuest: {{ $json.guest_name }}\nRating: {{ $json.star_rating }}/5\nSentiment: {{ $json.sentiment }}\nPlatform: {{ $json.platform || 'direct' }}\n\nReview: {{ $json.review_text ? $json.review_text.substring(0, 200) : 'N/A' }}\n\nDraft Response: {{ $json.response_text }}\n\nPlease review and approve/edit the response.",
-              "customer_id": "={{ $json.customer_id || '' }}"
-            },
-            "schema": [
-              {
-                "id": "channel",
-                "displayName": "Channel",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "sender_id",
-                "displayName": "Sender ID",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "input",
-                "displayName": "Input",
-                "type": "string",
-                "required": true
-              },
-              {
-                "id": "customer_id",
-                "displayName": "Customer ID",
-                "type": "string",
-                "required": true
-              }
-            ]
-          },
-          "options": {}
-        }
-      }
-    ],
-    "connections": {
-      "Daily 3 AM Sync": {
-        "main": [
-          [
-            {
-              "node": "Get Properties with Integrations",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Manual Sync Request": {
-        "main": [
-          [
-            {
-              "node": "Get Properties with Integrations",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Get Properties with Integrations": {
-        "main": [
-          [
-            {
-              "node": "Loop Properties",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Loop Properties": {
-        "main": [
-          [
-            {
-              "node": "Prepare Calendar URLs",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Respond",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Prepare Calendar URLs": {
-        "main": [
-          [
-            {
-              "node": "Fetch iCal",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Fetch iCal": {
-        "main": [
-          [
-            {
-              "node": "Parse iCal Data",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Parse iCal Data": {
-        "main": [
-          [
-            {
-              "node": "Prepare Upserts",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Prepare Upserts": {
-        "main": [
-          [
-            {
-              "node": "Upsert External Bookings",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Upsert External Bookings": {
-        "main": [
-          [
-            {
-              "node": "Update Sync Time",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Update Sync Time": {
-        "main": [
-          [
-            {
-              "node": "Check for Conflicts",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Check for Conflicts": {
-        "main": [
-          [
-            {
-              "node": "Loop Properties",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Review Analysis 8 AM": {
-        "main": [
-          [
-            {
-              "node": "Get Unanalyzed Reviews",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Get Unanalyzed Reviews": {
-        "main": [
-          [
-            {
-              "node": "Analyze Review Sentiment",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Analyze Review Sentiment": {
-        "main": [
-          [
-            {
-              "node": "Update Review Analysis",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Update Review Analysis": {
-        "main": [
-          [
-            {
-              "node": "Needs Owner Attention?",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Needs Owner Attention?": {
-        "main": [
-          [
-            {
-              "node": "Notify Owner (Review)",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          []
-        ]
-      }
-    },
-    "authors": "Gabriel Erna",
-    "name": null,
-    "description": null,
-    "autosaved": false,
-    "workflowPublishHistory": [
-      {
-        "createdAt": "2026-02-16T06:25:13.377Z",
-        "id": 289,
-        "workflowId": "__WF_ID:WF7: Integration Hub__",
-        "versionId": "0ec40c37-f267-4211-82f8-f248e60c12c0",
-        "event": "activated",
-        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
-      }
-    ]
-  }
+  "pinData": null,
+  "activeVersionId": null,
+  "versionCounter": 6,
+  "activeVersion": null
 }

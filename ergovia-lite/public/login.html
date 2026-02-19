@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ergovia Lite - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .logo-section .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #1877f2, #42b72a);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(24, 119, 242, 0.3);
+        }
+        .logo-section .logo-icon i {
+            font-size: 28px;
+            color: white;
+        }
+        .logo-section h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #050505;
+        }
+        .logo-section p {
+            font-size: 15px;
+            color: #65676b;
+            margin-top: 4px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 28px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #050505;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #050505;
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #ced0d4;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus {
+            border-color: #1877f2;
+            box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-login {
+            background: #1877f2;
+            color: white;
+        }
+        .btn-login:hover { background: #1565c0; }
+        .btn-login:disabled {
+            background: #bcc3ce;
+            cursor: not-allowed;
+        }
+        .btn-register {
+            background: #42b72a;
+            color: white;
+            margin-top: 12px;
+        }
+        .btn-register:hover { background: #36a420; }
+        .btn-register:disabled {
+            background: #bcc3ce;
+            cursor: not-allowed;
+        }
+
+        .toggle-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+            color: #65676b;
+        }
+        .toggle-link a {
+            color: #1877f2;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .toggle-link a:hover { text-decoration: underline; }
+
+        .error-msg {
+            background: #fff3f3;
+            border: 1px solid #f44336;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            color: #d32f2f;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .error-msg.visible { display: flex; align-items: center; gap: 8px; }
+
+        .setup-badge {
+            background: linear-gradient(135deg, #42b72a, #2d9617);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .setup-badge.visible { display: block; }
+        .setup-badge i { margin-right: 6px; }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-group .password-wrapper {
+            position: relative;
+        }
+        .form-group .password-wrapper input {
+            padding-right: 42px;
+        }
+        .form-group .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #65676b;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #8a8d91;
+        }
+
+        /* Register-only fields */
+        .register-only { display: none; }
+        body.register-mode .register-only { display: block; }
+        body.register-mode .login-only { display: none; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h1>Ergovia Lite</h1>
+            <p>AI-Powered Property Management</p>
+        </div>
+
+        <div class="card">
+            <div class="setup-badge" id="setupBadge">
+                <i class="fas fa-star"></i> First-time setup — Create your admin account
+            </div>
+
+            <h2 id="formTitle">Sign In</h2>
+
+            <div class="error-msg" id="errorMsg">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText"></span>
+            </div>
+
+            <form id="authForm" onsubmit="handleSubmit(event)">
+                <div class="form-group register-only">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="admin@example.com" autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter your username" autocomplete="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group register-only">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="confirmPassword" placeholder="Confirm your password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-login login-only" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                <button type="submit" class="btn-primary btn-register register-only" id="registerBtn">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+            </form>
+
+            <div class="toggle-link login-only" id="toggleToRegister">
+                No account yet? <a onclick="toggleMode('register')">Create one</a>
+            </div>
+            <div class="toggle-link register-only" id="toggleToLogin">
+                Already have an account? <a onclick="toggleMode('login')">Sign in</a>
+            </div>
+        </div>
+
+        <div class="footer-text">
+            Ergovia Lite v2.0 &mdash; Vacation Property Automation
+        </div>
+    </div>
+
+    <script>
+        let isRegisterMode = false;
+
+        // Check auth status on load
+        async function init() {
+            // If already logged in, redirect
+            const token = localStorage.getItem('ergovia_token');
+            if (token) {
+                try {
+                    const resp = await fetch('/api/auth/verify', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        window.location.href = '/';
+                        return;
+                    }
+                } catch (e) {
+                    localStorage.removeItem('ergovia_token');
+                    localStorage.removeItem('ergovia_user');
+                }
+            }
+
+            // Check if setup is needed
+            try {
+                const resp = await fetch('/api/auth/status');
+                const data = await resp.json();
+                if (data.setupRequired) {
+                    toggleMode('register');
+                    document.getElementById('setupBadge').classList.add('visible');
+                }
+            } catch (e) {
+                console.error('Failed to check auth status:', e);
+            }
+        }
+
+        function toggleMode(mode) {
+            isRegisterMode = mode === 'register';
+            document.body.classList.toggle('register-mode', isRegisterMode);
+            document.getElementById('formTitle').textContent = isRegisterMode ? 'Create Account' : 'Sign In';
+            hideError();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            document.getElementById('errorText').textContent = msg;
+            el.classList.add('visible');
+        }
+        function hideError() {
+            document.getElementById('errorMsg').classList.remove('visible');
+        }
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function setLoading(loading) {
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            loginBtn.disabled = loading;
+            registerBtn.disabled = loading;
+            if (loading) {
+                loginBtn.innerHTML = '<div class="spinner"></div> Signing in...';
+                registerBtn.innerHTML = '<div class="spinner"></div> Creating...';
+            } else {
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+                registerBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+            }
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            hideError();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            if (isRegisterMode) {
+                const email = document.getElementById('email').value.trim();
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!email) {
+                    showError('Email is required');
+                    return;
+                }
+                if (password.length < 6) {
+                    showError('Password must be at least 6 characters');
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    showError('Passwords do not match');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const resp = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        localStorage.setItem('ergovia_token', data.token);
+                        localStorage.setItem('ergovia_user', JSON.stringify(data.user));
+                        window.location.href = '/';
+                    } else {
+                        showError(data.error || 'Registration failed');
+                    }
+                } catch (err) {
+                    showError('Connection failed. Is the server running?');
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setLoading(true);
+                try {
+                    const resp = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        localStorage.setItem('ergovia_token', data.token);
+                        localStorage.setItem('ergovia_user', JSON.stringify(data.user));
+                        window.location.href = '/';
+                    } else {
+                        showError(data.error || 'Login failed');
+                    }
+                } catch (err) {
+                    showError('Connection failed. Is the server running?');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

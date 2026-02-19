@@ -52,6 +52,51 @@
             <p class="progress-text" id="progressText">0% Complete</p>
         </div>
 
+        <!-- n8n Connection Card -->
+        <div id="n8nConnectionCard" style="margin-bottom:16px;padding:16px 20px;background:#242526;border-radius:10px;border:1px solid #3a3b3c;">
+            <!-- Not connected state -->
+            <div id="n8nNotConnected">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-plug" style="color:#ff9800;font-size:18px;"></i>
+                        <strong style="color:#e4e6eb;">Connect to n8n</strong>
+                    </div>
+                    <span style="background:#e74c3c;color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">Not Connected</span>
+                </div>
+                <p style="color:#8b8d91;font-size:13px;margin-bottom:12px;">Enter your n8n instance URL and API key to enable live workflow sync from this settings page.</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <input type="url" id="n8nUrl" placeholder="http://116.203.115.12:5678" style="padding:10px 12px;border-radius:6px;border:1px solid #3a3b3c;background:#18191a;color:#e4e6eb;font-size:13px;">
+                    <input type="password" id="n8nApiKey" placeholder="n8n API Key" style="padding:10px 12px;border-radius:6px;border:1px solid #3a3b3c;background:#18191a;color:#e4e6eb;font-size:13px;">
+                </div>
+                <button type="button" id="n8nConnectBtn" onclick="WorkflowSync.connectN8n()" style="width:100%;padding:10px;border-radius:8px;border:none;background:#ff9800;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">
+                    <i class="fas fa-plug"></i> Connect & Import Workflows
+                </button>
+            </div>
+
+            <!-- Connected state (hidden initially) -->
+            <div id="n8nConnected" style="display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-check-circle" style="color:#42b72a;font-size:20px;"></i>
+                        <div>
+                            <strong style="color:#e4e6eb;" id="n8nConnectedUrl">Connected to n8n</strong>
+                            <div style="color:#42b72a;font-size:12px;" id="n8nConnectedCount">0 workflows linked</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="color:#8b8d91;font-size:12px;" id="syncLastStatus"></span>
+                        <button type="button" onclick="WorkflowSync.disconnectN8n()" style="padding:4px 12px;border-radius:6px;border:1px solid #3a3b3c;background:transparent;color:#8b8d91;font-size:12px;cursor:pointer;" title="Disconnect">
+                            <i class="fas fa-unlink"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Banner (hidden by default, shows when changes need sync) -->
+        <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#1877f2,#42a5f5);color:#fff;border-radius:10px;font-size:14px;box-shadow:0 2px 8px rgba(24,119,242,0.3);">
+        </div>
+
         <!-- Form Container -->
         <div class="form-container">
             <h1><i class="fas fa-cog"></i> Property Manager Settings</h1>
@@ -164,49 +209,69 @@
                             </small>
                         </div>
 
-                        <div class="form-group full-width">
-                            <label for="whatsappApiKey">
-                                <i class="fab fa-whatsapp"></i> WhatsApp Business API Key
+                        <div class="form-group full-width" style="margin-bottom: 4px;">
+                            <label>
+                                <i class="fab fa-whatsapp"></i> Twilio Credentials
+                                <small style="font-weight:normal; color: var(--text-gray);">(for WhatsApp &amp; SMS)</small>
                             </label>
-                            <input type="password" id="whatsappApiKey" name="whatsappApiKey"
-                                   placeholder="Optional - if you use WhatsApp Business">
-                            <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('whatsapp')">
-                                    <i class="fas fa-question-circle"></i> How to get WhatsApp API Key?
-                                </a>
-                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="twilioAccountSid">Account SID</label>
+                            <input type="password" id="twilioAccountSid" name="twilioAccountSid"
+                                   placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="twilioAuthToken">Auth Token</label>
+                            <input type="password" id="twilioAuthToken" name="twilioAuthToken"
+                                   placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
                         </div>
 
                         <div class="form-group full-width">
-                            <label for="googleServiceAccount">
-                                <i class="fab fa-google"></i> Google Service Account JSON
-                                <span class="required">*</span>
-                            </label>
-                            <textarea id="googleServiceAccount" name="googleServiceAccount" required
-                                      placeholder='{"type": "service_account", "project_id": "..."}'
-                                      rows="4"></textarea>
+                            <label for="twilioPhoneNumber">Twilio Phone Number</label>
+                            <input type="tel" id="twilioPhoneNumber" name="twilioPhoneNumber"
+                                   placeholder="+1234567890">
                             <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('google')">
-                                    <i class="fas fa-question-circle"></i> How to create Google Service Account?
-                                </a>
-                            </small>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="airbnbCalendarLink">
-                                <i class="fab fa-airbnb"></i> Airbnb Calendar iCal Link
-                            </label>
-                            <input type="url" id="airbnbCalendarLink" name="airbnbCalendarLink"
-                                   placeholder="https://www.airbnb.com/calendar/ical/...">
-                            <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('airbnb')">
-                                    <i class="fas fa-question-circle"></i> How to get Airbnb iCal Link?
+                                <a href="#" onclick="showCredentialHelp('twilio')">
+                                    <i class="fas fa-question-circle"></i> How to get Twilio credentials?
                                 </a>
                             </small>
                         </div>
                     </div>
 
                     <button type="button" class="btn-save-section" onclick="saveSection('credentials')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- SECTION 2B: AI Budget -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-wallet"></i> Monthly AI Budget</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('budget')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <p class="section-description">
+                        Set the monthly spending limit for AI API calls. When the budget is reached,
+                        the AI will send a polite fallback message instead of using paid API calls.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="monthlyBudget">
+                                <i class="fas fa-dollar-sign"></i> Monthly Budget (USD)
+                            </label>
+                            <input type="number" id="monthlyBudget" name="monthlyBudget"
+                                   min="5" max="500" step="5" value="50"
+                                   placeholder="50">
+                            <small class="help-text">Default: $50/month. Alerts at 50%, 80%, and 100%.</small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('budget')">
                         <i class="fas fa-save"></i> Save Section
                     </button>
                 </div>
@@ -300,6 +365,44 @@
                     </button>
                 </div>
 
+                <!-- SECTION 5B: AI System Prompt (Live Workflow Editor) -->
+                <div class="form-section" style="border-left: 3px solid #1877f2;">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-brain"></i> AI System Prompt (Live)</h2>
+                        <span style="background:#1877f2;color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">Syncs to n8n</span>
+                    </div>
+
+                    <p class="section-description">
+                        This is the core instruction set for your AI concierge. Changes here are pushed
+                        directly to the live WF1 AI Gateway workflow. Edit how your AI behaves, responds,
+                        and handles the booking flow.
+                    </p>
+
+                    <div class="form-group full-width">
+                        <label for="systemPromptEditor">
+                            <i class="fas fa-terminal"></i> System Prompt
+                        </label>
+                        <textarea id="systemPromptEditor" rows="12" style="font-family:monospace;font-size:13px;line-height:1.5;"
+                                  placeholder="The AI concierge system prompt will appear here after first deployment. You can edit it to change how your AI assistant behaves."></textarea>
+                        <small style="color:#8b8d91;">This controls the personality, rules, and booking flow of your AI assistant.</small>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="pricingRulesEditor">
+                            <i class="fas fa-tags"></i> Custom Pricing Rules (appended to prompt)
+                        </label>
+                        <textarea id="pricingRulesEditor" rows="4" style="font-family:monospace;font-size:13px;"
+                                  placeholder="Example:
+- Last-minute bookings (within 48h) get 10% discount
+- Stays over 7 nights get 15% off
+- Holiday weekends are non-negotiable pricing"></textarea>
+                    </div>
+
+                    <button type="button" id="saveSystemPromptBtn" class="btn-save-section" style="background:#1877f2;color:#fff;">
+                        <i class="fas fa-cloud-upload-alt"></i> Save & Sync to AI
+                    </button>
+                </div>
+
                 <!-- SECTION 6: Media & Resources -->
                 <div class="form-section">
                     <div class="section-header-form">
@@ -381,6 +484,8 @@
 
     <!-- Scripts -->
     <script src="assets/js/config.js"></script>
+    <script src="assets/js/auth-guard.js"></script>
     <script src="assets/js/fillup-form.js"></script>
+    <script src="assets/js/sync.js"></script>
 </body>
 </html>
