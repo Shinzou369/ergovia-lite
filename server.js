@@ -1645,12 +1645,12 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
 
     if (listResult.success) {
       const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
-      const liveWorkflows = (listResult.workflows || []).filter(wf => {
+      const ergoviaWorkflows = (listResult.workflows || []).filter(wf => {
         const cleanName = stripTag(wf.name);
-        return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
+        return validPrefixes.some(p => cleanName.startsWith(p));
       });
 
-      if (liveWorkflows.length > 0) {
+      if (ergoviaWorkflows.length > 0) {
         const filenameMap = {
           'SUB: Universal Messenger': 'SUB_Universal_Messenger.json',
           'SUB: Owner & Staff Notifier': 'SUB_Owner_Staff_Notifier.json',
@@ -1663,14 +1663,14 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
           'WF7: Integration Hub': 'WF7_Integration_Hub.json',
           'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
         };
-        const workflowEntries = liveWorkflows.map(wf => {
+        const workflowEntries = ergoviaWorkflows.map(wf => {
           const cleanName = stripTag(wf.name);
           return {
             filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
             workflowId: wf.id,
             name: cleanName,
             triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
-            active: true
+            active: wf.active
           };
         });
         db.clearDeployedWorkflows();
@@ -1681,7 +1681,7 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Connected! Found ${importedCount} active workflows.`,
+      message: `Connected! Found ${importedCount} workflows.`,
       workflows: importedCount,
       n8nUrl: n8nService.baseUrl
     });
@@ -1707,15 +1707,15 @@ app.post('/api/v2/sync/import', async (req, res) => {
     // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
     const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
 
-    // Filter to only active workflows that match our naming convention
+    // Filter to Ergovia workflows matching our naming convention (active or inactive)
     const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
-    const liveWorkflows = (response.workflows || []).filter(wf => {
+    const ergoviaWorkflows = (response.workflows || []).filter(wf => {
       const cleanName = stripTag(wf.name);
-      return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
+      return validPrefixes.some(p => cleanName.startsWith(p));
     });
 
-    if (liveWorkflows.length === 0) {
-      return res.json({ success: false, error: 'No active Ergovia workflows found on n8n' });
+    if (ergoviaWorkflows.length === 0) {
+      return res.json({ success: false, error: 'No Ergovia workflows found on n8n' });
     }
 
     // Map to filename convention
@@ -1733,14 +1733,14 @@ app.post('/api/v2/sync/import', async (req, res) => {
     };
 
     // Build workflow entries for database (use clean names without tag prefix)
-    const workflowEntries = liveWorkflows.map(wf => {
+    const workflowEntries = ergoviaWorkflows.map(wf => {
       const cleanName = stripTag(wf.name);
       return {
         filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
         workflowId: wf.id,
         name: cleanName,
         triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
-        active: true
+        active: wf.active
       };
     });
 
