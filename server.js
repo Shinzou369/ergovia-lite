@@ -1644,11 +1644,14 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
     const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
 
     if (listResult.success) {
-      const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
-      const ergoviaWorkflows = (listResult.workflows || []).filter(wf => {
-        const cleanName = stripTag(wf.name);
-        return validPrefixes.some(p => cleanName.startsWith(p));
-      });
+      // V4 production workflow IDs — only import these specific workflows
+      const V4_WORKFLOW_IDS = new Set([
+        'tvSLRSiOmNdkEfA2', 'XnhCywT7s1ttYFvr', 'FDZAlqrvOW4RUGHq',
+        'iaBWaaIjFUrzBcon', 'fIVtVj3tFzUKYgoN', 'kohspAO4n8msHAFQ',
+        '3wN9FArGC9GgEcOz', 'gNn1OeCXspbOYg6K', 'MWFSKpUCpYfFzDTr',
+        'SV80ObHW5jp7mOhL'
+      ]);
+      const ergoviaWorkflows = (listResult.workflows || []).filter(wf => V4_WORKFLOW_IDS.has(wf.id));
 
       if (ergoviaWorkflows.length > 0) {
         const filenameMap = {
@@ -1707,15 +1710,17 @@ app.post('/api/v2/sync/import', async (req, res) => {
     // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
     const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
 
-    // Filter to Ergovia workflows matching our naming convention (active or inactive)
-    const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
-    const ergoviaWorkflows = (response.workflows || []).filter(wf => {
-      const cleanName = stripTag(wf.name);
-      return validPrefixes.some(p => cleanName.startsWith(p));
-    });
+    // V4 production workflow IDs — only import these specific workflows
+    const V4_WORKFLOW_IDS = new Set([
+      'tvSLRSiOmNdkEfA2', 'XnhCywT7s1ttYFvr', 'FDZAlqrvOW4RUGHq',
+      'iaBWaaIjFUrzBcon', 'fIVtVj3tFzUKYgoN', 'kohspAO4n8msHAFQ',
+      '3wN9FArGC9GgEcOz', 'gNn1OeCXspbOYg6K', 'MWFSKpUCpYfFzDTr',
+      'SV80ObHW5jp7mOhL'
+    ]);
+    const ergoviaWorkflows = (response.workflows || []).filter(wf => V4_WORKFLOW_IDS.has(wf.id));
 
     if (ergoviaWorkflows.length === 0) {
-      return res.json({ success: false, error: 'No Ergovia workflows found on n8n' });
+      return res.json({ success: false, error: 'No V4 Ergovia workflows found on n8n' });
     }
 
     // Map to filename convention
