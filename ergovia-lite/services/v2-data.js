@@ -12,20 +12,86 @@ const { Pool } = require('pg');
 const localDb = require('../db');
 
 // PostgreSQL connection (same DB as n8n workflows)
+const pgSsl = process.env.PG_SSL || process.env.POSTGRES_SSL;
 const pool = new Pool({
   host: process.env.PG_HOST || '116.203.115.12',
   port: parseInt(process.env.PG_PORT || '5432'),
   database: process.env.PG_DATABASE || 'ergovia_db',
   user: process.env.PG_USER || 'ergovia_user',
   password: process.env.PG_PASSWORD || 'ergovia_secure_2026',
+  ssl: pgSsl ? { rejectUnauthorized: false } : false,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
 });
 
 // Test connection on startup
+// Ensure critical tables exist in PostgreSQL
+async function ensureTables() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS property_configurations (
+        id SERIAL PRIMARY KEY,
+        property_id VARCHAR(255) UNIQUE NOT NULL,
+        property_name VARCHAR(255) NOT NULL,
+        customer_id VARCHAR(255),
+        address TEXT,
+        max_guests INTEGER DEFAULT 0,
+        bedrooms INTEGER DEFAULT 0,
+        bathrooms INTEGER DEFAULT 0,
+        base_price DECIMAL(10,2) DEFAULT 0,
+        weekend_price DECIMAL(10,2) DEFAULT 0,
+        holiday_price DECIMAL(10,2) DEFAULT 0,
+        cleaning_fee DECIMAL(10,2) DEFAULT 0,
+        owner_name VARCHAR(255),
+        owner_phone VARCHAR(50),
+        owner_email VARCHAR(255),
+        owner_telegram VARCHAR(100),
+        owner_contact VARCHAR(255),
+        auto_approve_bookings BOOLEAN DEFAULT false,
+        require_screening BOOLEAN DEFAULT true,
+        min_stay_nights INTEGER DEFAULT 1,
+        max_stay_nights INTEGER DEFAULT 30,
+        calendar_sync_enabled BOOLEAN DEFAULT true,
+        calendar_url TEXT,
+        timezone VARCHAR(50) DEFAULT 'UTC',
+        property_status VARCHAR(50) DEFAULT 'active',
+        settings JSONB DEFAULT '{}',
+        payment_link TEXT,
+        payment_instructions TEXT,
+        preferred_platform VARCHAR(50) DEFAULT 'telegram',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id SERIAL PRIMARY KEY,
+        booking_id VARCHAR(255) UNIQUE NOT NULL,
+        property_id VARCHAR(255),
+        property_name VARCHAR(255),
+        guest_name VARCHAR(255),
+        guest_phone VARCHAR(50),
+        guest_email VARCHAR(255),
+        check_in_date DATE,
+        check_out_date DATE,
+        guests INTEGER DEFAULT 1,
+        booking_status VARCHAR(50) DEFAULT 'pending',
+        total_amount DECIMAL(10,2) DEFAULT 0,
+        platform VARCHAR(50),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('[v2-data] Tables ensured');
+  } catch (err) {
+    console.error('[v2-data] ensureTables error:', err.message);
+  }
+}
+
 pool.query('SELECT NOW()')
-  .then(() => console.log('[v2-data] PostgreSQL connected'))
+  .then(() => { console.log('[v2-data] PostgreSQL connected'); return ensureTables(); })
   .catch(err => console.error('[v2-data] PostgreSQL connection failed:', err.message));
 
 // ============================================
@@ -34,9 +100,10 @@ pool.query('SELECT NOW()')
 
 function getLocalSection(section) {
   const defaults = {
-    credentials: { telegramBotToken: '', whatsappApiKey: '', airbnbCalendarLink: '' },
+    credentials: { telegramBotToken: '', openaiApiKey: '', whatsappApiKey: '', airbnbCalendarLink: '' },
     ai: { aiNotes: '', pricingRules: '' },
     media: { propertyPhotosLink: '', propertyVideosLink: '', documentationLink: '' },
+    preferences: { language: 'en', timezone: 'UTC', currency: 'USD', paymentMethod: '' },
   };
   return localDb.getV2Setting(section) || defaults[section] || {};
 }
@@ -266,7 +333,16 @@ const V2DataService = {
 
   async saveOwner(data) {
     try {
-      const ownerId = 'owner-' + Date.now();
+      // Find existing owner or create a stable ID
+      const existing = await pool.query('SELECT owner_id FROM owners ORDER BY created_at ASC LIMIT 1');
+      const ownerId = existing.rows.length > 0 ? existing.rows[0].owner_id : 'owner-1';
+
+      const ownerName = data.ownerName || data.name || '';
+      const ownerEmail = data.ownerEmail || data.email || '';
+      const ownerPhone = data.ownerPhone || data.phone || '';
+      const chatId = data.telegramChatId || '';
+      const platform = data.preferredPlatform || data.platform || 'telegram';
+
       await pool.query(`
         INSERT INTO owners (owner_id, owner_name, owner_email, owner_phone, owner_chat_id, preferred_platform)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -275,15 +351,23 @@ const V2DataService = {
           owner_email = EXCLUDED.owner_email,
           owner_phone = EXCLUDED.owner_phone,
           owner_chat_id = EXCLUDED.owner_chat_id,
-          preferred_platform = EXCLUDED.preferred_platform
-      `, [
-        ownerId,
-        data.ownerName || data.name || '',
-        data.ownerEmail || data.email || '',
-        data.ownerPhone || data.phone || '',
-        data.telegramChatId || '',
-        data.preferredPlatform || data.platform || 'telegram',
-      ]);
+          preferred_platform = EXCLUDED.preferred_platform,
+          updated_at = NOW()
+      `, [ownerId, ownerName, ownerEmail, ownerPhone, chatId, platform]);
+
+      // Also propagate to property_configurations so workflows pick it up immediately
+      const propResult = await pool.query(`
+        UPDATE property_configurations SET
+          owner_name = $1,
+          owner_phone = $2,
+          owner_email = $3,
+          owner_telegram = $4,
+          owner_contact = COALESCE(NULLIF($4, ''), $2),
+          updated_at = NOW()
+        WHERE property_status = 'active'
+      `, [ownerName, ownerPhone, ownerEmail, chatId]);
+      console.log('[v2-data] saveOwner: updated', propResult.rowCount, 'property_configurations rows');
+
       return { success: true, ownerId };
     } catch (err) {
       console.error('[v2-data] saveOwner error:', err.message);
@@ -336,6 +420,7 @@ const V2DataService = {
     if (section === 'team') return [];
     if (section === 'ai') return ai;
     if (section === 'media') return media;
+    if (section === 'preferences') return getLocalSection('preferences');
 
     return {
       owner,
@@ -343,6 +428,7 @@ const V2DataService = {
       team: [],
       ai,
       media,
+      preferences: getLocalSection('preferences'),
     };
   },
 
@@ -350,7 +436,7 @@ const V2DataService = {
     if (section === 'owner') {
       return await this.saveOwner(data);
     }
-    if (['credentials', 'ai', 'media'].includes(section)) {
+    if (['credentials', 'ai', 'media', 'preferences'].includes(section)) {
       const saved = saveLocalSection(section, data);
       return { success: true, section, data: saved };
     }
@@ -366,10 +452,19 @@ const V2DataService = {
       const result = await pool.query(
         "SELECT * FROM property_configurations WHERE property_status = 'active' ORDER BY created_at DESC"
       );
-      return result.rows.map(propertyFromDb);
+      const pgProps = result.rows.map(propertyFromDb);
+      // Merge with any locally-saved properties
+      const localProps = (localDb.getV2Setting('properties') || [])
+        .filter(p => p.property_status === 'active')
+        .map(propertyFromDb);
+      const pgIds = new Set(pgProps.map(p => p.id));
+      const merged = [...pgProps, ...localProps.filter(p => !pgIds.has(p.id))];
+      return merged;
     } catch (err) {
-      console.error('[v2-data] getProperties error:', err.message);
-      return [];
+      console.error('[v2-data] getProperties PG error, using local:', err.message);
+      return (localDb.getV2Setting('properties') || [])
+        .filter(p => p.property_status === 'active')
+        .map(propertyFromDb);
     }
   },
 
@@ -465,8 +560,24 @@ const V2DataService = {
       const saved = await this.getProperty(savedId);
       return { success: true, property: saved };
     } catch (err) {
-      console.error('[v2-data] saveProperty error:', err.message);
-      return { success: false, error: err.message };
+      console.error('[v2-data] saveProperty PG error, using local fallback:', err.message);
+      // SQLite fallback
+      try {
+        const db = propertyToDb(property);
+        const existing = localDb.getV2Setting('properties') || [];
+        const idx = existing.findIndex(p => p.property_id === db.property_id);
+        const entry = { ...db, settings: db.settings, updated_at: new Date().toISOString() };
+        if (idx >= 0) {
+          existing[idx] = entry;
+        } else {
+          entry.created_at = new Date().toISOString();
+          existing.push(entry);
+        }
+        localDb.saveV2Setting('properties', existing);
+        return { success: true, property: propertyFromDb(entry) };
+      } catch (localErr) {
+        return { success: false, error: localErr.message };
+      }
     }
   },
 
@@ -479,11 +590,22 @@ const V2DataService = {
       if (result.rowCount > 0) {
         return { success: true };
       }
-      return { success: false, error: 'Property not found' };
     } catch (err) {
-      console.error('[v2-data] deleteProperty error:', err.message);
-      return { success: false, error: err.message };
+      console.error('[v2-data] deleteProperty PG error:', err.message);
     }
+    // Fallback: also remove from local SQLite store
+    try {
+      const existing = localDb.getV2Setting('properties') || [];
+      const idx = existing.findIndex(p => p.property_id === id);
+      if (idx >= 0) {
+        existing[idx].property_status = 'inactive';
+        localDb.saveV2Setting('properties', existing);
+        return { success: true };
+      }
+    } catch (localErr) {
+      console.error('[v2-data] deleteProperty local error:', localErr.message);
+    }
+    return { success: false, error: 'Property not found' };
   },
 
   // ============================================
@@ -492,7 +614,7 @@ const V2DataService = {
 
   async getBookings(propertyId = null, startDate = null, endDate = null) {
     try {
-      let query = 'SELECT * FROM bookings WHERE 1=1';
+      let query = "SELECT * FROM bookings WHERE booking_status != 'cancelled'";
       const params = [];
       let idx = 1;
 

@@ -30,7 +30,12 @@ async function loadDashboard() {
         // Update UI components
         updateWelcomeBanner(dashboardData.owner);
         updateStats(dashboardData.stats);
-        updateTasks(dashboardData.tasks || []);
+
+        // Build dynamic setup tasks from actual state
+        const setupTasks = buildSetupTasks(dashboardData);
+        const allTasks = [...setupTasks, ...(dashboardData.tasks || [])];
+        updateTasks(allTasks);
+
         updateUpcomingBookings(dashboardData.upcomingBookings || []);
 
         // Update user info in navbar
@@ -183,6 +188,43 @@ function updateUpcomingBookings(bookings) {
             </div>
         `;
     }).join('');
+}
+
+/**
+ * Build dynamic setup tasks based on current state
+ */
+function buildSetupTasks(data) {
+    const tasks = [];
+    const owner = data.owner || {};
+    const stats = data.stats || {};
+
+    // Check if owner info is missing
+    if (!owner.ownerName && !owner.name) {
+        tasks.push({
+            id: 'setup-owner',
+            title: 'Complete Your Profile',
+            description: 'Add your name, email, and phone number',
+            priority: 'high',
+            icon: 'user-edit',
+            actionLink: 'settings.html',
+            actionText: 'Complete Now',
+        });
+    }
+
+    // Check if no properties exist
+    if (!stats.totalProperties || stats.totalProperties === 0) {
+        tasks.push({
+            id: 'setup-property',
+            title: 'Add Your First Property',
+            description: 'Set up a property so the AI can manage bookings',
+            priority: 'high',
+            icon: 'building',
+            actionLink: 'properties.html',
+            actionText: 'Add Property',
+        });
+    }
+
+    return tasks;
 }
 
 /**

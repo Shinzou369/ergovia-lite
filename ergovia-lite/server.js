@@ -24,6 +24,33 @@ if (db.getNotifications().length === 0) {
   });
 }
 
+// Check and create setup reminder notifications (stable IDs = only created once)
+function checkAndCreateSetupReminders() {
+  const settings = db.getV2Setting('credentials') || {};
+  const owner = db.getV2Setting('owner') || {};
+
+  if (!owner.name && !owner.ownerName) {
+    db.addNotification({
+      id: 'setup-reminder-owner',
+      type: 'reminder',
+      title: 'Complete Your Profile',
+      message: 'Add your name, email, and phone so the AI assistant can contact you.',
+      actionLink: '/v2/settings.html',
+    });
+  }
+
+  if (!settings.telegramBotToken && !settings.openaiApiKey) {
+    db.addNotification({
+      id: 'setup-reminder-credentials',
+      type: 'reminder',
+      title: 'Add API Credentials',
+      message: 'Connect your Telegram bot and OpenAI key to activate the AI assistant.',
+      actionLink: '/v2/settings.html',
+    });
+  }
+}
+checkAndCreateSetupReminders();
+
 // ============================================
 // STATIC FILE SERVING WITH AUTH PROTECTION
 // ============================================
@@ -1253,7 +1280,8 @@ app.post('/api/v2/settings', async (req, res) => {
     const result = await v2Data.saveSettings(section, data);
 
     // Determine if this change needs a workflow sync
-    const syncSections = { credentials: 'credentials', ai: 'system-prompt', owner: 'workflows' };
+    // preferences triggers system-prompt sync because language is injected into WF1
+    const syncSections = { credentials: 'credentials', ai: 'system-prompt', owner: 'workflows', preferences: 'system-prompt' };
     const needsSync = !!syncSections[section];
     const syncCategory = syncSections[section] || null;
 
@@ -1484,40 +1512,87 @@ app.post('/api/v2/sync/workflows', async (req, res) => {
   }
 });
 
-// Sync just the AI system prompt in WF1
+// Sync AI system prompt, language & custom notes into WF1
 app.post('/api/v2/sync/system-prompt', async (req, res) => {
   try {
     const { systemPrompt, pricingRules } = req.body;
-    if (!systemPrompt) {
-      return res.status(400).json({ success: false, error: 'systemPrompt is required' });
-    }
 
-    // Find WF1 in deployed workflows
+    // Find WF1 — try deployed workflows table first, fall back to n8n API
     const deployedWorkflows = db.getDeployedWorkflows();
-    const wf1 = deployedWorkflows.find(w => w.workflow_name.includes('AI Gateway') || w.filename.includes('WF1'));
-    if (!wf1) {
-      return res.status(400).json({ success: false, error: 'WF1 AI Gateway not found in deployed workflows' });
+    let wf1 = deployedWorkflows.find(w => w.workflow_name.includes('AI Gateway') || w.filename.includes('WF1'));
+    let wf1Id = wf1 ? wf1.workflow_id : null;
+
+    // Fallback: search n8n API for V4 WF1
+    if (!wf1Id && n8nService) {
+      try {
+        const allWf = await n8nService.listWorkflows();
+        if (allWf.success) {
+          const found = allWf.workflows.find(w => w.name.includes('WF1') || w.name.includes('AI Gateway'));
+          if (found) wf1Id = found.id;
+        }
+      } catch (e) { /* ignore */ }
     }
 
-    // Build the full system prompt with date prefix
-    let fullPrompt = systemPrompt;
-
-    // Append pricing rules if provided
-    if (pricingRules) {
-      fullPrompt += `\n\n## Custom Pricing Rules\n${pricingRules}`;
+    if (!wf1Id) {
+      return res.status(400).json({ success: false, error: 'WF1 AI Gateway not found' });
     }
 
-    // Patch the AI Agent node in WF1
-    const result = await n8nService.patchWorkflowNodes(wf1.workflow_id, [
-      { nodeId: 'ai-agent', path: 'parameters.options.systemMessage', value: fullPrompt }
+    // Get current WF1 to read existing system prompt (preserve n8n expressions)
+    const currentWf = await n8nService.getWorkflow(wf1Id);
+    if (!currentWf.success) {
+      return res.status(500).json({ success: false, error: 'Could not read WF1: ' + currentWf.error });
+    }
+
+    const aiNode = currentWf.workflow.nodes.find(n =>
+      n.type && n.type.includes('agent') && (n.parameters?.options?.systemMessage || n.parameters?.systemMessage)
+    );
+    if (!aiNode) {
+      return res.status(400).json({ success: false, error: 'AI Agent node not found in WF1' });
+    }
+
+    let currentPrompt = aiNode.parameters?.options?.systemMessage || aiNode.parameters?.systemMessage || '';
+
+    // Load language preference from local settings
+    const preferences = v2Data ? await v2Data.getSettings('preferences') : {};
+    const language = preferences?.language || 'en';
+    const languageNames = { en: 'English', es: 'Spanish', tl: 'Tagalog/Filipino', fr: 'French', de: 'German', ja: 'Japanese' };
+    const languageName = languageNames[language] || 'English';
+
+    // Load AI notes from local settings
+    const aiSettings = v2Data ? await v2Data.getSettings('ai') : {};
+    const aiNotes = systemPrompt || aiSettings?.aiNotes || '';
+    const rules = pricingRules || aiSettings?.pricingRules || '';
+
+    // Strip any existing CLIENT CUSTOMIZATIONS section from current prompt
+    const marker = '## CLIENT CUSTOMIZATIONS';
+    const markerIdx = currentPrompt.indexOf(marker);
+    const basePrompt = markerIdx >= 0 ? currentPrompt.substring(0, markerIdx).trimEnd() : currentPrompt;
+
+    // Build the customization appendix
+    let appendix = `\n\n${marker}`;
+    appendix += `\n- Response Language: ${languageName}`;
+    appendix += `\n- ALWAYS respond to guests in ${languageName}. If the guest writes in another language, still reply in ${languageName} unless they explicitly ask otherwise.`;
+
+    if (aiNotes.trim()) {
+      appendix += `\n\n## Owner's Custom Instructions\n${aiNotes.trim()}`;
+    }
+    if (rules.trim()) {
+      appendix += `\n\n## Custom Pricing Rules\n${rules.trim()}`;
+    }
+
+    const fullPrompt = basePrompt + appendix;
+
+    // Patch the AI Agent node — use the node's actual name
+    const result = await n8nService.patchWorkflowNodes(wf1Id, [
+      { nodeId: aiNode.name, path: 'parameters.options.systemMessage', value: '=' + fullPrompt }
     ]);
 
-    // Save the prompt locally for future reference
-    db.saveClientData('systemPrompt', { systemPrompt, pricingRules, lastSynced: new Date().toISOString() });
+    // Save locally
+    db.saveClientData('systemPrompt', { systemPrompt: aiNotes, pricingRules: rules, language, lastSynced: new Date().toISOString() });
     db.logSync('system-prompt', result.success ? 'success' : 'failed', ['WF1: AI Gateway'], result.error || null);
-    db.logActivity('sync_system_prompt', 'Updated AI system prompt');
+    db.logActivity('sync_system_prompt', `Updated AI prompt (language: ${languageName})`);
 
-    res.json(result);
+    res.json({ ...result, language: languageName });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1644,13 +1719,16 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
     const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
 
     if (listResult.success) {
-      const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
-      const liveWorkflows = (listResult.workflows || []).filter(wf => {
-        const cleanName = stripTag(wf.name);
-        return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
-      });
+      // V4 production workflow IDs — only import these specific workflows
+      const V4_WORKFLOW_IDS = new Set([
+        'tvSLRSiOmNdkEfA2', 'XnhCywT7s1ttYFvr', 'FDZAlqrvOW4RUGHq',
+        'iaBWaaIjFUrzBcon', 'fIVtVj3tFzUKYgoN', 'kohspAO4n8msHAFQ',
+        '3wN9FArGC9GgEcOz', 'gNn1OeCXspbOYg6K', 'MWFSKpUCpYfFzDTr',
+        'SV80ObHW5jp7mOhL'
+      ]);
+      const ergoviaWorkflows = (listResult.workflows || []).filter(wf => V4_WORKFLOW_IDS.has(wf.id));
 
-      if (liveWorkflows.length > 0) {
+      if (ergoviaWorkflows.length > 0) {
         const filenameMap = {
           'SUB: Universal Messenger': 'SUB_Universal_Messenger.json',
           'SUB: Owner & Staff Notifier': 'SUB_Owner_Staff_Notifier.json',
@@ -1663,14 +1741,14 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
           'WF7: Integration Hub': 'WF7_Integration_Hub.json',
           'WF8: Safety & Screening': 'WF8_Safety_Screening.json',
         };
-        const workflowEntries = liveWorkflows.map(wf => {
+        const workflowEntries = ergoviaWorkflows.map(wf => {
           const cleanName = stripTag(wf.name);
           return {
             filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
             workflowId: wf.id,
             name: cleanName,
             triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
-            active: true
+            active: wf.active
           };
         });
         db.clearDeployedWorkflows();
@@ -1681,7 +1759,7 @@ app.post('/api/v2/n8n/connect', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Connected! Found ${importedCount} active workflows.`,
+      message: `Connected! Found ${importedCount} workflows.`,
       workflows: importedCount,
       n8nUrl: n8nService.baseUrl
     });
@@ -1707,15 +1785,17 @@ app.post('/api/v2/sync/import', async (req, res) => {
     // Strip [V4], [M1], [v2] etc. tag prefixes from workflow names
     const stripTag = (name) => name.replace(/^\[.*?\]\s*/, '');
 
-    // Filter to only active workflows that match our naming convention
-    const validPrefixes = ['SUB:', 'WF1:', 'WF2:', 'WF3:', 'WF4:', 'WF5:', 'WF6:', 'WF7:', 'WF8:'];
-    const liveWorkflows = (response.workflows || []).filter(wf => {
-      const cleanName = stripTag(wf.name);
-      return wf.active && validPrefixes.some(p => cleanName.startsWith(p));
-    });
+    // V4 production workflow IDs — only import these specific workflows
+    const V4_WORKFLOW_IDS = new Set([
+      'tvSLRSiOmNdkEfA2', 'XnhCywT7s1ttYFvr', 'FDZAlqrvOW4RUGHq',
+      'iaBWaaIjFUrzBcon', 'fIVtVj3tFzUKYgoN', 'kohspAO4n8msHAFQ',
+      '3wN9FArGC9GgEcOz', 'gNn1OeCXspbOYg6K', 'MWFSKpUCpYfFzDTr',
+      'SV80ObHW5jp7mOhL'
+    ]);
+    const ergoviaWorkflows = (response.workflows || []).filter(wf => V4_WORKFLOW_IDS.has(wf.id));
 
-    if (liveWorkflows.length === 0) {
-      return res.json({ success: false, error: 'No active Ergovia workflows found on n8n' });
+    if (ergoviaWorkflows.length === 0) {
+      return res.json({ success: false, error: 'No V4 Ergovia workflows found on n8n' });
     }
 
     // Map to filename convention
@@ -1733,14 +1813,14 @@ app.post('/api/v2/sync/import', async (req, res) => {
     };
 
     // Build workflow entries for database (use clean names without tag prefix)
-    const workflowEntries = liveWorkflows.map(wf => {
+    const workflowEntries = ergoviaWorkflows.map(wf => {
       const cleanName = stripTag(wf.name);
       return {
         filename: filenameMap[cleanName] || `${cleanName.replace(/[^a-zA-Z0-9]/g, '_')}.json`,
         workflowId: wf.id,
         name: cleanName,
         triggerTag: cleanName.startsWith('SUB') ? 'Sub-Workflow' : 'Imported',
-        active: true
+        active: wf.active
       };
     });
 

@@ -65,6 +65,9 @@ function populateForm(data) {
         if (data.credentials.telegramBotToken) {
             document.getElementById('telegramBotToken').value = data.credentials.telegramBotToken;
         }
+        if (data.credentials.whatsappApiKey) {
+            document.getElementById('whatsappApiKey').value = data.credentials.whatsappApiKey;
+        }
         if (data.credentials.twilioAccountSid) {
             document.getElementById('twilioAccountSid').value = data.credentials.twilioAccountSid;
         }
@@ -76,11 +79,10 @@ function populateForm(data) {
         }
     }
 
-    // Budget
-    if (data.budget) {
-        if (data.budget.monthlyBudget) {
-            document.getElementById('monthlyBudget').value = data.budget.monthlyBudget;
-        }
+    // Budget (field removed from UI — kept in backend)
+    if (data.budget && data.budget.monthlyBudget) {
+        const budgetEl = document.getElementById('monthlyBudget');
+        if (budgetEl) budgetEl.value = data.budget.monthlyBudget;
     }
 
     // AI Configuration
@@ -94,6 +96,26 @@ function populateForm(data) {
         document.getElementById('propertyPhotosLink').value = data.media.photosLink || '';
         document.getElementById('propertyVideosLink').value = data.media.videosLink || '';
         document.getElementById('documentationLink').value = data.media.documentationLink || '';
+    }
+
+    // Preferences
+    if (data.preferences) {
+        if (data.preferences.language) {
+            const el = document.getElementById('language');
+            if (el) el.value = data.preferences.language;
+        }
+        if (data.preferences.timezone) {
+            const el = document.getElementById('globalTimezone');
+            if (el) el.value = data.preferences.timezone;
+        }
+        if (data.preferences.currency) {
+            const el = document.getElementById('currency');
+            if (el) el.value = data.preferences.currency;
+        }
+        if (data.preferences.paymentMethod) {
+            const el = document.getElementById('paymentMethod');
+            if (el) el.value = data.preferences.paymentMethod;
+        }
     }
 
     // Team members
@@ -182,7 +204,7 @@ async function saveSection(sectionName) {
     try {
         const sectionData = getSectionData(sectionName);
 
-        const result = await Utils.apiCall(CONFIG.API.SAVE_SETTINGS, {
+        const result = await Utils.post(CONFIG.API.SAVE_SETTINGS, {
             section: sectionName,
             data: sectionData
         });
@@ -191,8 +213,19 @@ async function saveSection(sectionName) {
         sectionsCompleted[sectionName] = true;
         updateProgress();
 
-        // Trigger sync banner if this change affects live workflows
-        if (result && result.needsSync && typeof WorkflowSync !== 'undefined') {
+        // Auto-sync to live workflows if n8n is connected
+        if (result && result.needsSync && typeof WorkflowSync !== 'undefined' && WorkflowSync.n8nConfigured) {
+            Utils.showToast('Syncing changes to live workflows...', 'info');
+            try {
+                WorkflowSync.markNeedsSync(result.syncCategory);
+                await WorkflowSync.syncAll();
+            } catch (syncErr) {
+                console.error('Auto-sync failed:', syncErr);
+                // Show banner as fallback so user can retry manually
+                WorkflowSync.markNeedsSync(result.syncCategory);
+            }
+        } else if (result && result.needsSync && typeof WorkflowSync !== 'undefined') {
+            // n8n not connected — show sync banner for later
             WorkflowSync.markNeedsSync(result.syncCategory);
         }
 
@@ -220,6 +253,7 @@ function getSectionData(sectionName) {
         case 'credentials':
             return {
                 telegramBotToken: document.getElementById('telegramBotToken').value,
+                whatsappApiKey: document.getElementById('whatsappApiKey').value,
                 twilioAccountSid: document.getElementById('twilioAccountSid').value,
                 twilioAuthToken: document.getElementById('twilioAuthToken').value,
                 twilioPhoneNumber: document.getElementById('twilioPhoneNumber').value,
@@ -227,7 +261,7 @@ function getSectionData(sectionName) {
 
         case 'budget':
             return {
-                monthlyBudget: parseFloat(document.getElementById('monthlyBudget').value) || 50,
+                monthlyBudget: 50, // default — field removed from UI
             };
 
         case 'team':
@@ -248,6 +282,14 @@ function getSectionData(sectionName) {
                 documentationLink: document.getElementById('documentationLink').value,
             };
 
+        case 'preferences':
+            return {
+                language: document.getElementById('language').value,
+                timezone: document.getElementById('globalTimezone').value,
+                currency: document.getElementById('currency').value,
+                paymentMethod: document.getElementById('paymentMethod').value,
+            };
+
         default:
             return {};
     }
@@ -265,6 +307,7 @@ function getSectionTitle(sectionName) {
         properties: 'Property Details',
         ai: 'AI Assistant Notes',
         media: 'Photos & Videos',
+        preferences: 'Preferences',
     };
     return titles[sectionName] || sectionName;
 }
@@ -373,8 +416,8 @@ async function handleFormSubmit(event) {
             media: getSectionData('media'),
         };
 
-        // Call activation endpoint
-        const response = await Utils.apiCall(CONFIG.API.ACTIVATE_WORKFLOWS, allData);
+        // Call activation endpoint (POST)
+        const response = await Utils.post(CONFIG.API.ACTIVATE_WORKFLOWS, allData);
 
         // Simulate progress updates
         updateActivationProgress(20, 'Provisioning server...');

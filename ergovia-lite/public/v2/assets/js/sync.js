@@ -12,6 +12,14 @@ const WorkflowSync = {
     deployedCount: 0,
     n8nUrl: null,
 
+    // Auth helper - returns headers with JWT token
+    authHeaders(extra = {}) {
+        const token = localStorage.getItem('ergovia_token');
+        const headers = { 'Content-Type': 'application/json', ...extra };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        return headers;
+    },
+
     // ============================================
     // INITIALIZATION
     // ============================================
@@ -28,7 +36,7 @@ const WorkflowSync = {
 
     async loadSyncStatus() {
         try {
-            const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_STATUS}`);
+            const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_STATUS}`, { headers: this.authHeaders() });
             const result = await response.json();
             if (result.success) {
                 this.lastSync = result.lastSync;
@@ -117,7 +125,7 @@ const WorkflowSync = {
         try {
             const response = await fetch(`${CONFIG.API.BASE_URL}/n8n/connect`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.authHeaders(),
                 body: JSON.stringify({ n8nUrl, apiKey })
             });
             const result = await response.json();
@@ -158,7 +166,7 @@ const WorkflowSync = {
             this.showToast('Importing workflows from n8n...', 'info');
             const response = await fetch(`${CONFIG.API.BASE_URL}/sync/import`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: this.authHeaders()
             });
             const result = await response.json();
             if (!result.success) throw new Error(result.error || 'Import failed');
@@ -243,7 +251,7 @@ const WorkflowSync = {
     async syncWorkflows() {
         const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_WORKFLOWS}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: this.authHeaders()
         });
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'Workflow sync failed');
@@ -254,20 +262,21 @@ const WorkflowSync = {
         const promptEl = document.getElementById('systemPromptEditor');
         const rulesEl = document.getElementById('pricingRulesEditor');
 
-        if (!promptEl || !promptEl.value.trim()) {
-            throw new Error('System prompt is empty');
-        }
-
+        // Send whatever custom prompt/rules exist — backend appends to existing WF1 prompt
+        // and also injects language preference from saved settings
         const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_SYSTEM_PROMPT}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: this.authHeaders(),
             body: JSON.stringify({
-                systemPrompt: promptEl.value.trim(),
+                systemPrompt: promptEl ? promptEl.value.trim() : '',
                 pricingRules: rulesEl ? rulesEl.value.trim() : ''
             })
         });
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'System prompt sync failed');
+        if (result.language) {
+            this.showToast(`Language set to ${result.language}`, 'info');
+        }
         return result;
     },
 
@@ -288,7 +297,7 @@ const WorkflowSync = {
         for (const cred of types) {
             const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_CREDENTIALS}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: this.authHeaders(),
                 body: JSON.stringify(cred)
             });
             const result = await response.json();
