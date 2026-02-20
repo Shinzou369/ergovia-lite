@@ -65,9 +65,6 @@ function populateForm(data) {
         if (data.credentials.telegramBotToken) {
             document.getElementById('telegramBotToken').value = data.credentials.telegramBotToken;
         }
-        if (data.credentials.openaiApiKey) {
-            document.getElementById('openaiApiKey').value = data.credentials.openaiApiKey;
-        }
         if (data.credentials.whatsappApiKey) {
             document.getElementById('whatsappApiKey').value = data.credentials.whatsappApiKey;
         }
@@ -82,11 +79,10 @@ function populateForm(data) {
         }
     }
 
-    // Budget
-    if (data.budget) {
-        if (data.budget.monthlyBudget) {
-            document.getElementById('monthlyBudget').value = data.budget.monthlyBudget;
-        }
+    // Budget (field removed from UI — kept in backend)
+    if (data.budget && data.budget.monthlyBudget) {
+        const budgetEl = document.getElementById('monthlyBudget');
+        if (budgetEl) budgetEl.value = data.budget.monthlyBudget;
     }
 
     // AI Configuration
@@ -257,7 +253,6 @@ function getSectionData(sectionName) {
         case 'credentials':
             return {
                 telegramBotToken: document.getElementById('telegramBotToken').value,
-                openaiApiKey: document.getElementById('openaiApiKey').value,
                 whatsappApiKey: document.getElementById('whatsappApiKey').value,
                 twilioAccountSid: document.getElementById('twilioAccountSid').value,
                 twilioAuthToken: document.getElementById('twilioAuthToken').value,
@@ -266,7 +261,7 @@ function getSectionData(sectionName) {
 
         case 'budget':
             return {
-                monthlyBudget: parseFloat(document.getElementById('monthlyBudget').value) || 50,
+                monthlyBudget: 50, // default — field removed from UI
             };
 
         case 'team':

@@ -210,20 +210,6 @@
                         </div>
 
                         <div class="form-group full-width">
-                            <label for="openaiApiKey">
-                                <i class="fas fa-brain"></i> OpenAI API Key
-                                <span class="required">*</span>
-                            </label>
-                            <input type="password" id="openaiApiKey" name="openaiApiKey" required
-                                   placeholder="sk-...">
-                            <small class="help-text">
-                                <a href="#" onclick="showCredentialHelp('openai')">
-                                    <i class="fas fa-question-circle"></i> How to get your OpenAI API Key?
-                                </a>
-                            </small>
-                        </div>
-
-                        <div class="form-group full-width">
                             <label for="whatsappApiKey">
                                 <i class="fab fa-whatsapp"></i> WhatsApp Business API Key
                             </label>
@@ -268,37 +254,6 @@
                     </button>
                 </div>
 
-                <!-- SECTION 2B: AI Budget -->
-                <div class="form-section">
-                    <div class="section-header-form">
-                        <h2><i class="fas fa-wallet"></i> Monthly AI Budget</h2>
-                        <button type="button" class="btn-help" onclick="showHelp('budget')">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    </div>
-
-                    <p class="section-description">
-                        Set the monthly spending limit for AI API calls. When the budget is reached,
-                        the AI will send a polite fallback message instead of using paid API calls.
-                    </p>
-
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="monthlyBudget">
-                                <i class="fas fa-dollar-sign"></i> Monthly Budget (USD)
-                            </label>
-                            <input type="number" id="monthlyBudget" name="monthlyBudget"
-                                   min="5" max="500" step="5" value="50"
-                                   placeholder="50">
-                            <small class="help-text">Default: $50/month. Alerts at 50%, 80%, and 100%.</small>
-                        </div>
-                    </div>
-
-                    <button type="button" class="btn-save-section" onclick="saveSection('budget')">
-                        <i class="fas fa-save"></i> Save Section
-                    </button>
-                </div>
-
                 <!-- SECTION 3: Team & Contacts -->
                 <div class="form-section">
                     <div class="section-header-form">
@@ -325,29 +280,10 @@
                     </button>
                 </div>
 
-                <!-- SECTION 4: Property Details -->
+                <!-- SECTION 4: AI Assistant Configuration -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-building"></i> 4. Property Details</h2>
-                        <button type="button" class="btn-help" onclick="showHelp('properties')">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    </div>
-
-                    <p class="section-description">
-                        Managed from the <a href="properties.html">Properties page</a>.
-                        Add your properties there to track bookings and manage operations.
-                    </p>
-
-                    <a href="properties.html" class="btn-primary">
-                        <i class="fas fa-building"></i> Go to Properties
-                    </a>
-                </div>
-
-                <!-- SECTION 5: AI Assistant Configuration -->
-                <div class="form-section">
-                    <div class="section-header-form">
-                        <h2><i class="fas fa-robot"></i> 5. AI Assistant Notes</h2>
+                        <h2><i class="fas fa-robot"></i> 4. AI Assistant Notes</h2>
                         <button type="button" class="btn-help" onclick="showHelp('ai')">
                             <i class="fas fa-info-circle"></i>
                         </button>
@@ -429,7 +365,7 @@
                 <!-- SECTION 6: Media & Resources -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-image"></i> 6. Photos & Videos</h2>
+                        <h2><i class="fas fa-image"></i> 5. Photos & Videos</h2>
                         <button type="button" class="btn-help" onclick="showHelp('media')">
                             <i class="fas fa-info-circle"></i>
                         </button>

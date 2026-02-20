@@ -341,7 +341,6 @@ async function testFrontendPages() {
 
   r = await request('GET', '/v2/settings.html', null, authHeaders());
   assert('V2 Settings page loads', r.status === 200);
-  assert('Settings has openaiApiKey field (Fix 4)', r.raw && r.raw.includes('openaiApiKey'));
   assert('Settings has language field (Fix 4)', r.raw && r.raw.includes('id="language"'));
 
   r = await request('GET', '/v2/properties.html', null, authHeaders());
