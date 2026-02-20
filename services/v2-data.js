@@ -573,11 +573,22 @@ const V2DataService = {
       if (result.rowCount > 0) {
         return { success: true };
       }
-      return { success: false, error: 'Property not found' };
     } catch (err) {
-      console.error('[v2-data] deleteProperty error:', err.message);
-      return { success: false, error: err.message };
+      console.error('[v2-data] deleteProperty PG error:', err.message);
     }
+    // Fallback: also remove from local SQLite store
+    try {
+      const existing = localDb.getV2Setting('properties') || [];
+      const idx = existing.findIndex(p => p.property_id === id);
+      if (idx >= 0) {
+        existing[idx].property_status = 'inactive';
+        localDb.saveV2Setting('properties', existing);
+        return { success: true };
+      }
+    } catch (localErr) {
+      console.error('[v2-data] deleteProperty local error:', localErr.message);
+    }
+    return { success: false, error: 'Property not found' };
   },
 
   // ============================================
