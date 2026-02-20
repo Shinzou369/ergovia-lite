@@ -5,8 +5,10 @@
  * bookings CRUD + cancel filter, notifications, seeding, and frontend pages.
  *
  * Usage:
- *   node test-smoke.js                        # localhost:3000
- *   node test-smoke.js https://ergovia-ai.com  # live server
+ *   node test-smoke.js                                              # localhost:3000
+ *   node test-smoke.js https://ergovia-ai.com                       # live server
+ *   TEST_USER=admin TEST_PASS=MyPass123 node test-smoke.js          # custom creds
+ *   node test-smoke.js https://ergovia-ai.com admin MyPass123       # creds as args
  */
 
 const http = require('http');
@@ -14,6 +16,8 @@ const https = require('https');
 
 const TARGET = process.argv[2] || 'http://localhost:3000';
 const BASE = TARGET.replace(/\/$/, '');
+const TEST_USER = process.env.TEST_USER || process.argv[3] || 'admin';
+const TEST_PASS = process.env.TEST_PASS || process.argv[4] || 'Ergovia2026!';
 const IS_HTTPS = BASE.startsWith('https');
 const transport = IS_HTTPS ? https : http;
 
@@ -92,12 +96,12 @@ async function testAuth() {
     assert('Register first user succeeds', r.status === 200 && r.body && r.body.token);
     if (r.body && r.body.token) TOKEN = r.body.token;
   } else {
-    // Login with known test credentials
+    // Login with provided credentials
     r = await request('POST', '/api/auth/login', {
-      username: 'admin',
-      password: 'Ergovia2026!',
+      username: TEST_USER,
+      password: TEST_PASS,
     });
-    assert('Login returns token', r.status === 200 && r.body && r.body.token,
+    assert(`Login as "${TEST_USER}" returns token`, r.status === 200 && r.body && r.body.token,
       `status=${r.status} body=${JSON.stringify(r.body).slice(0, 100)}`);
     if (r.body && r.body.token) TOKEN = r.body.token;
   }
@@ -370,6 +374,7 @@ async function run() {
   console.log('\n╔══════════════════════════════════════════╗');
   console.log('║   ERGOVIA LITE — FULL HEALTH CHECK       ║');
   console.log(`║   Target: ${BASE.padEnd(30)}║`);
+  console.log(`║   User:   ${TEST_USER.padEnd(30)}║`);
   console.log('╚══════════════════════════════════════════╝');
 
   await testAuth();
