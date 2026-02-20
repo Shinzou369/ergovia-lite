@@ -24,6 +24,33 @@ if (db.getNotifications().length === 0) {
   });
 }
 
+// Check and create setup reminder notifications (stable IDs = only created once)
+function checkAndCreateSetupReminders() {
+  const settings = db.getV2Setting('credentials') || {};
+  const owner = db.getV2Setting('owner') || {};
+
+  if (!owner.name && !owner.ownerName) {
+    db.addNotification({
+      id: 'setup-reminder-owner',
+      type: 'reminder',
+      title: 'Complete Your Profile',
+      message: 'Add your name, email, and phone so the AI assistant can contact you.',
+      actionLink: '/v2/settings.html',
+    });
+  }
+
+  if (!settings.telegramBotToken && !settings.openaiApiKey) {
+    db.addNotification({
+      id: 'setup-reminder-credentials',
+      type: 'reminder',
+      title: 'Add API Credentials',
+      message: 'Connect your Telegram bot and OpenAI key to activate the AI assistant.',
+      actionLink: '/v2/settings.html',
+    });
+  }
+}
+checkAndCreateSetupReminders();
+
 // ============================================
 // STATIC FILE SERVING WITH AUTH PROTECTION
 // ============================================

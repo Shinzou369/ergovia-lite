@@ -101,6 +101,7 @@ function getPropertyColor(propertyId) {
  */
 function getBookingsForDate(date) {
     return allBookings.filter(booking => {
+        if (booking.status === 'cancelled') return false;
         if (selectedPropertyId !== 'all' && booking.propertyId !== selectedPropertyId) {
             return false;
         }
@@ -311,6 +312,7 @@ function getVisibleBookings(startDate, endDate) {
     end.setDate(end.getDate() + 1);
 
     return allBookings.filter(booking => {
+        if (booking.status === 'cancelled') return false;
         if (selectedPropertyId !== 'all' && booking.propertyId !== selectedPropertyId) {
             return false;
         }
@@ -771,6 +773,7 @@ function renderUpcomingBookings() {
 
     const upcoming = allBookings
         .filter(b => {
+            if (b.status === 'cancelled') return false;
             if (selectedPropertyId !== 'all' && b.propertyId !== selectedPropertyId) return false;
             const checkIn = new Date(b.checkIn || b.checkInDate);
             checkIn.setHours(0, 0, 0, 0);

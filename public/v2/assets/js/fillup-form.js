@@ -65,6 +65,12 @@ function populateForm(data) {
         if (data.credentials.telegramBotToken) {
             document.getElementById('telegramBotToken').value = data.credentials.telegramBotToken;
         }
+        if (data.credentials.openaiApiKey) {
+            document.getElementById('openaiApiKey').value = data.credentials.openaiApiKey;
+        }
+        if (data.credentials.whatsappApiKey) {
+            document.getElementById('whatsappApiKey').value = data.credentials.whatsappApiKey;
+        }
         if (data.credentials.twilioAccountSid) {
             document.getElementById('twilioAccountSid').value = data.credentials.twilioAccountSid;
         }
@@ -94,6 +100,26 @@ function populateForm(data) {
         document.getElementById('propertyPhotosLink').value = data.media.photosLink || '';
         document.getElementById('propertyVideosLink').value = data.media.videosLink || '';
         document.getElementById('documentationLink').value = data.media.documentationLink || '';
+    }
+
+    // Preferences
+    if (data.preferences) {
+        if (data.preferences.language) {
+            const el = document.getElementById('language');
+            if (el) el.value = data.preferences.language;
+        }
+        if (data.preferences.timezone) {
+            const el = document.getElementById('globalTimezone');
+            if (el) el.value = data.preferences.timezone;
+        }
+        if (data.preferences.currency) {
+            const el = document.getElementById('currency');
+            if (el) el.value = data.preferences.currency;
+        }
+        if (data.preferences.paymentMethod) {
+            const el = document.getElementById('paymentMethod');
+            if (el) el.value = data.preferences.paymentMethod;
+        }
     }
 
     // Team members
@@ -220,6 +246,8 @@ function getSectionData(sectionName) {
         case 'credentials':
             return {
                 telegramBotToken: document.getElementById('telegramBotToken').value,
+                openaiApiKey: document.getElementById('openaiApiKey').value,
+                whatsappApiKey: document.getElementById('whatsappApiKey').value,
                 twilioAccountSid: document.getElementById('twilioAccountSid').value,
                 twilioAuthToken: document.getElementById('twilioAuthToken').value,
                 twilioPhoneNumber: document.getElementById('twilioPhoneNumber').value,
@@ -248,6 +276,14 @@ function getSectionData(sectionName) {
                 documentationLink: document.getElementById('documentationLink').value,
             };
 
+        case 'preferences':
+            return {
+                language: document.getElementById('language').value,
+                timezone: document.getElementById('globalTimezone').value,
+                currency: document.getElementById('currency').value,
+                paymentMethod: document.getElementById('paymentMethod').value,
+            };
+
         default:
             return {};
     }
@@ -265,6 +301,7 @@ function getSectionTitle(sectionName) {
         properties: 'Property Details',
         ai: 'AI Assistant Notes',
         media: 'Photos & Videos',
+        preferences: 'Preferences',
     };
     return titles[sectionName] || sectionName;
 }
