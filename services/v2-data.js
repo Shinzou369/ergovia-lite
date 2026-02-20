@@ -333,7 +333,16 @@ const V2DataService = {
 
   async saveOwner(data) {
     try {
-      const ownerId = 'owner-' + Date.now();
+      // Find existing owner or create a stable ID
+      const existing = await pool.query('SELECT owner_id FROM owners ORDER BY created_at ASC LIMIT 1');
+      const ownerId = existing.rows.length > 0 ? existing.rows[0].owner_id : 'owner-1';
+
+      const ownerName = data.ownerName || data.name || '';
+      const ownerEmail = data.ownerEmail || data.email || '';
+      const ownerPhone = data.ownerPhone || data.phone || '';
+      const chatId = data.telegramChatId || '';
+      const platform = data.preferredPlatform || data.platform || 'telegram';
+
       await pool.query(`
         INSERT INTO owners (owner_id, owner_name, owner_email, owner_phone, owner_chat_id, preferred_platform)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -342,15 +351,23 @@ const V2DataService = {
           owner_email = EXCLUDED.owner_email,
           owner_phone = EXCLUDED.owner_phone,
           owner_chat_id = EXCLUDED.owner_chat_id,
-          preferred_platform = EXCLUDED.preferred_platform
-      `, [
-        ownerId,
-        data.ownerName || data.name || '',
-        data.ownerEmail || data.email || '',
-        data.ownerPhone || data.phone || '',
-        data.telegramChatId || '',
-        data.preferredPlatform || data.platform || 'telegram',
-      ]);
+          preferred_platform = EXCLUDED.preferred_platform,
+          updated_at = NOW()
+      `, [ownerId, ownerName, ownerEmail, ownerPhone, chatId, platform]);
+
+      // Also propagate to property_configurations so workflows pick it up immediately
+      const propResult = await pool.query(`
+        UPDATE property_configurations SET
+          owner_name = $1,
+          owner_phone = $2,
+          owner_email = $3,
+          owner_telegram = $4,
+          owner_contact = COALESCE(NULLIF($4, ''), $2),
+          updated_at = NOW()
+        WHERE property_status = 'active'
+      `, [ownerName, ownerPhone, ownerEmail, chatId]);
+      console.log('[v2-data] saveOwner: updated', propResult.rowCount, 'property_configurations rows');
+
       return { success: true, ownerId };
     } catch (err) {
       console.error('[v2-data] saveOwner error:', err.message);
