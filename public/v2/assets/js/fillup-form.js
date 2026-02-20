@@ -208,7 +208,7 @@ async function saveSection(sectionName) {
     try {
         const sectionData = getSectionData(sectionName);
 
-        const result = await Utils.apiCall(CONFIG.API.SAVE_SETTINGS, {
+        const result = await Utils.post(CONFIG.API.SAVE_SETTINGS, {
             section: sectionName,
             data: sectionData
         });
@@ -217,8 +217,19 @@ async function saveSection(sectionName) {
         sectionsCompleted[sectionName] = true;
         updateProgress();
 
-        // Trigger sync banner if this change affects live workflows
-        if (result && result.needsSync && typeof WorkflowSync !== 'undefined') {
+        // Auto-sync to live workflows if n8n is connected
+        if (result && result.needsSync && typeof WorkflowSync !== 'undefined' && WorkflowSync.n8nConfigured) {
+            Utils.showToast('Syncing changes to live workflows...', 'info');
+            try {
+                WorkflowSync.markNeedsSync(result.syncCategory);
+                await WorkflowSync.syncAll();
+            } catch (syncErr) {
+                console.error('Auto-sync failed:', syncErr);
+                // Show banner as fallback so user can retry manually
+                WorkflowSync.markNeedsSync(result.syncCategory);
+            }
+        } else if (result && result.needsSync && typeof WorkflowSync !== 'undefined') {
+            // n8n not connected — show sync banner for later
             WorkflowSync.markNeedsSync(result.syncCategory);
         }
 
@@ -410,8 +421,8 @@ async function handleFormSubmit(event) {
             media: getSectionData('media'),
         };
 
-        // Call activation endpoint
-        const response = await Utils.apiCall(CONFIG.API.ACTIVATE_WORKFLOWS, allData);
+        // Call activation endpoint (POST)
+        const response = await Utils.post(CONFIG.API.ACTIVATE_WORKFLOWS, allData);
 
         // Simulate progress updates
         updateActivationProgress(20, 'Provisioning server...');
