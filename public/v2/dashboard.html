@@ -30,6 +30,9 @@
                 </a>
             </div>
             <div class="nav-user">
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
                 <div class="notification-bell" id="notificationBell">
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge" id="notificationCount">0</span>
@@ -316,6 +319,29 @@
         localStorage.removeItem('ergovia_user');
         window.location.href = '/login.html';
     });
+    // Theme toggle
+    (function() {
+        const saved = localStorage.getItem('ergovia_theme');
+        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        const btn = document.getElementById('themeToggle');
+        if (!btn) return;
+        function updateIcon() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+        updateIcon();
+        btn.addEventListener('click', function() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('ergovia_theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('ergovia_theme', 'dark');
+            }
+            updateIcon();
+        });
+    })();
     </script>
 </body>
 </html>
