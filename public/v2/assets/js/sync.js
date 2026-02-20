@@ -262,20 +262,21 @@ const WorkflowSync = {
         const promptEl = document.getElementById('systemPromptEditor');
         const rulesEl = document.getElementById('pricingRulesEditor');
 
-        if (!promptEl || !promptEl.value.trim()) {
-            throw new Error('System prompt is empty');
-        }
-
+        // Send whatever custom prompt/rules exist — backend appends to existing WF1 prompt
+        // and also injects language preference from saved settings
         const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_SYSTEM_PROMPT}`, {
             method: 'POST',
             headers: this.authHeaders(),
             body: JSON.stringify({
-                systemPrompt: promptEl.value.trim(),
+                systemPrompt: promptEl ? promptEl.value.trim() : '',
                 pricingRules: rulesEl ? rulesEl.value.trim() : ''
             })
         });
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'System prompt sync failed');
+        if (result.language) {
+            this.showToast(`Language set to ${result.language}`, 'info');
+        }
         return result;
     },
 

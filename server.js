@@ -1280,7 +1280,8 @@ app.post('/api/v2/settings', async (req, res) => {
     const result = await v2Data.saveSettings(section, data);
 
     // Determine if this change needs a workflow sync
-    const syncSections = { credentials: 'credentials', ai: 'system-prompt', owner: 'workflows' };
+    // preferences triggers system-prompt sync because language is injected into WF1
+    const syncSections = { credentials: 'credentials', ai: 'system-prompt', owner: 'workflows', preferences: 'system-prompt' };
     const needsSync = !!syncSections[section];
     const syncCategory = syncSections[section] || null;
 
@@ -1511,40 +1512,87 @@ app.post('/api/v2/sync/workflows', async (req, res) => {
   }
 });
 
-// Sync just the AI system prompt in WF1
+// Sync AI system prompt, language & custom notes into WF1
 app.post('/api/v2/sync/system-prompt', async (req, res) => {
   try {
     const { systemPrompt, pricingRules } = req.body;
-    if (!systemPrompt) {
-      return res.status(400).json({ success: false, error: 'systemPrompt is required' });
-    }
 
-    // Find WF1 in deployed workflows
+    // Find WF1 — try deployed workflows table first, fall back to n8n API
     const deployedWorkflows = db.getDeployedWorkflows();
-    const wf1 = deployedWorkflows.find(w => w.workflow_name.includes('AI Gateway') || w.filename.includes('WF1'));
-    if (!wf1) {
-      return res.status(400).json({ success: false, error: 'WF1 AI Gateway not found in deployed workflows' });
+    let wf1 = deployedWorkflows.find(w => w.workflow_name.includes('AI Gateway') || w.filename.includes('WF1'));
+    let wf1Id = wf1 ? wf1.workflow_id : null;
+
+    // Fallback: search n8n API for V4 WF1
+    if (!wf1Id && n8nService) {
+      try {
+        const allWf = await n8nService.listWorkflows();
+        if (allWf.success) {
+          const found = allWf.workflows.find(w => w.name.includes('WF1') || w.name.includes('AI Gateway'));
+          if (found) wf1Id = found.id;
+        }
+      } catch (e) { /* ignore */ }
     }
 
-    // Build the full system prompt with date prefix
-    let fullPrompt = systemPrompt;
-
-    // Append pricing rules if provided
-    if (pricingRules) {
-      fullPrompt += `\n\n## Custom Pricing Rules\n${pricingRules}`;
+    if (!wf1Id) {
+      return res.status(400).json({ success: false, error: 'WF1 AI Gateway not found' });
     }
 
-    // Patch the AI Agent node in WF1
-    const result = await n8nService.patchWorkflowNodes(wf1.workflow_id, [
-      { nodeId: 'ai-agent', path: 'parameters.options.systemMessage', value: fullPrompt }
+    // Get current WF1 to read existing system prompt (preserve n8n expressions)
+    const currentWf = await n8nService.getWorkflow(wf1Id);
+    if (!currentWf.success) {
+      return res.status(500).json({ success: false, error: 'Could not read WF1: ' + currentWf.error });
+    }
+
+    const aiNode = currentWf.workflow.nodes.find(n =>
+      n.type && n.type.includes('agent') && (n.parameters?.options?.systemMessage || n.parameters?.systemMessage)
+    );
+    if (!aiNode) {
+      return res.status(400).json({ success: false, error: 'AI Agent node not found in WF1' });
+    }
+
+    let currentPrompt = aiNode.parameters?.options?.systemMessage || aiNode.parameters?.systemMessage || '';
+
+    // Load language preference from local settings
+    const preferences = v2Data ? await v2Data.getSettings('preferences') : {};
+    const language = preferences?.language || 'en';
+    const languageNames = { en: 'English', es: 'Spanish', tl: 'Tagalog/Filipino', fr: 'French', de: 'German', ja: 'Japanese' };
+    const languageName = languageNames[language] || 'English';
+
+    // Load AI notes from local settings
+    const aiSettings = v2Data ? await v2Data.getSettings('ai') : {};
+    const aiNotes = systemPrompt || aiSettings?.aiNotes || '';
+    const rules = pricingRules || aiSettings?.pricingRules || '';
+
+    // Strip any existing CLIENT CUSTOMIZATIONS section from current prompt
+    const marker = '## CLIENT CUSTOMIZATIONS';
+    const markerIdx = currentPrompt.indexOf(marker);
+    const basePrompt = markerIdx >= 0 ? currentPrompt.substring(0, markerIdx).trimEnd() : currentPrompt;
+
+    // Build the customization appendix
+    let appendix = `\n\n${marker}`;
+    appendix += `\n- Response Language: ${languageName}`;
+    appendix += `\n- ALWAYS respond to guests in ${languageName}. If the guest writes in another language, still reply in ${languageName} unless they explicitly ask otherwise.`;
+
+    if (aiNotes.trim()) {
+      appendix += `\n\n## Owner's Custom Instructions\n${aiNotes.trim()}`;
+    }
+    if (rules.trim()) {
+      appendix += `\n\n## Custom Pricing Rules\n${rules.trim()}`;
+    }
+
+    const fullPrompt = basePrompt + appendix;
+
+    // Patch the AI Agent node — use the node's actual name
+    const result = await n8nService.patchWorkflowNodes(wf1Id, [
+      { nodeId: aiNode.name, path: 'parameters.options.systemMessage', value: '=' + fullPrompt }
     ]);
 
-    // Save the prompt locally for future reference
-    db.saveClientData('systemPrompt', { systemPrompt, pricingRules, lastSynced: new Date().toISOString() });
+    // Save locally
+    db.saveClientData('systemPrompt', { systemPrompt: aiNotes, pricingRules: rules, language, lastSynced: new Date().toISOString() });
     db.logSync('system-prompt', result.success ? 'success' : 'failed', ['WF1: AI Gateway'], result.error || null);
-    db.logActivity('sync_system_prompt', 'Updated AI system prompt');
+    db.logActivity('sync_system_prompt', `Updated AI prompt (language: ${languageName})`);
 
-    res.json(result);
+    res.json({ ...result, language: languageName });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

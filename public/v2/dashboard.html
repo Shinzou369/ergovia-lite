@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Ergovia Premium</title>
+    <title>Dashboard - Ergovia</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -12,7 +12,7 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <img src="/logo.png" alt="Ergovia" style="width:28px;height:auto;margin-right:4px;">
+                <img src="/logo.png" alt="Ergovia" width="36" height="36">
                 <span>Ergovia</span>
             </div>
             <div class="nav-menu">
@@ -34,9 +34,20 @@
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge" id="notificationCount">0</span>
                 </div>
-                <div class="user-profile">
+                <div class="user-profile" id="userProfileBtn">
                     <i class="fas fa-user-circle"></i>
                     <span id="userName">Owner</span>
+                    <i class="fas fa-chevron-down" style="font-size:11px;color:#a0aec0;"></i>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-header">
+                            <h4 id="dropdownUserName">Owner</h4>
+                            <p id="dropdownUserEmail">owner@ergovia.com</p>
+                        </div>
+                        <a class="user-dropdown-item" href="settings.html"><i class="fas fa-cog"></i> Account Settings</a>
+                        <a class="user-dropdown-item" href="#" onclick="window.open('https://ergovia-ai.com','_blank')"><i class="fas fa-globe"></i> Visit Website</a>
+                        <div class="user-dropdown-divider"></div>
+                        <button class="user-dropdown-item danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Log Out</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -57,13 +68,17 @@
             </div>
         </div>
 
+        <!-- Sync Banner -->
+        <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#1a365d,#2a4a7f);color:#fff;border-radius:10px;font-size:14px;box-shadow:0 2px 8px rgba(26,54,93,0.3);">
+        </div>
+
         <!-- Welcome Banner -->
         <div class="welcome-banner">
-            <h1>Welcome back, <span id="ownerName">Owner</span>! 👋</h1>
+            <h1>Welcome back, <span id="ownerName">Owner</span>!</h1>
             <p id="welcomeMessage">Your AI assistant is working for you</p>
         </div>
 
-        <!-- Tasks & Reminders Section (TOP PRIORITY) -->
+        <!-- Tasks & Reminders Section -->
         <div class="tasks-section">
             <div class="section-header">
                 <h2><i class="fas fa-clipboard-check"></i> Tasks & Reminders</h2>
@@ -78,7 +93,7 @@
             </div>
         </div>
 
-        <!-- Calendar Section -->
+        <!-- Booking Calendar Section -->
         <div class="calendar-section">
             <div class="section-header">
                 <h2><i class="fas fa-calendar-alt"></i> Booking Calendar</h2>
@@ -100,7 +115,7 @@
                 </select>
                 <div id="propertyLegend" class="property-legend"></div>
                 <button class="btn-seed" onclick="seedDemoData()" title="Load sample properties & bookings">
-                    <i class="fas fa-database"></i> Demo Data
+                    <i class="fas fa-database"></i> Seed Data
                 </button>
             </div>
 
@@ -110,7 +125,7 @@
                     <button class="btn-calendar-nav" onclick="previousMonth()">
                         <i class="fas fa-chevron-left"></i>
                     </button>
-                    <h3 id="currentMonth">January 2026</h3>
+                    <h3 id="currentMonth">February 2026</h3>
                     <button class="btn-calendar-nav" onclick="nextMonth()">
                         <i class="fas fa-chevron-right"></i>
                     </button>
@@ -120,7 +135,7 @@
                 </div>
             </div>
 
-            <!-- Upcoming Bookings List -->
+            <!-- Upcoming Check-ins -->
             <div class="upcoming-bookings">
                 <h3><i class="fas fa-list"></i> Upcoming Check-ins</h3>
                 <div class="booking-list" id="upcomingBookings">
@@ -170,17 +185,7 @@
         </div>
     </div>
 
-    <!-- Info Modal -->
-    <div class="modal" id="infoModal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
-            <h2 id="modalTitle">Information</h2>
-            <p id="modalText"></p>
-            <button class="btn-primary" onclick="closeModal()">Got it!</button>
-        </div>
-    </div>
-
-    <!-- New Booking Modal -->
+    <!-- Booking Modal -->
     <div class="modal" id="bookingModal">
         <div class="modal-content modal-large" style="max-width: 780px;">
             <div class="modal-header">
@@ -277,12 +282,40 @@
         </div>
     </div>
 
+    <!-- Info Modal (used by calendar & dashboard help buttons) -->
+    <div class="modal" id="infoModal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 id="modalTitle">Info</h2>
+                <span class="modal-close" onclick="document.getElementById('infoModal').style.display='none'">&times;</span>
+            </div>
+            <div id="modalText" style="padding: 20px; line-height: 1.6;"></div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="assets/js/config.js"></script>
     <script src="assets/js/auth-guard.js"></script>
+    <script src="assets/js/sync.js"></script>
+    <script src="assets/js/notifications.js"></script>
     <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/calendar.js"></script>
     <script src="assets/js/booking.js"></script>
-    <script src="assets/js/notifications.js"></script>
+
+    <script>
+    // User dropdown toggle
+    document.getElementById('userProfileBtn')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('userDropdown')?.classList.toggle('active');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('userDropdown')?.classList.remove('active');
+    });
+    document.getElementById('logoutBtn')?.addEventListener('click', function() {
+        localStorage.removeItem('ergovia_token');
+        localStorage.removeItem('ergovia_user');
+        window.location.href = '/login.html';
+    });
+    </script>
 </body>
 </html>
