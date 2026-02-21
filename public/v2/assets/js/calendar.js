@@ -666,49 +666,49 @@ function showBookingDetail(booking) {
         : '<span style="background:#ff9800;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;">Pending</span>';
 
     modalText.innerHTML = `
-        <div style="border-left: 4px solid ${color}; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 12px;">
+        <div class="booking-detail-card" style="border-left: 4px solid ${color}; padding: 16px; background: var(--bg-main); border-radius: 8px; margin-bottom: 12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <h3 style="margin:0;font-size:20px;">${escapeHtml(booking.guestName)}</h3>
+                <h3 style="margin:0;font-size:20px;color:var(--text-primary);">${escapeHtml(booking.guestName)}</h3>
                 ${statusBadge}
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Property</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-home" style="color:${color};margin-right:4px;"></i>${escapeHtml(booking.propertyName)}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Property</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-home" style="color:${color};margin-right:4px;"></i>${escapeHtml(booking.propertyName)}</div>
                 </div>
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Duration</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-moon" style="color:#9c27b0;margin-right:4px;"></i>${nights} night${nights !== 1 ? 's' : ''}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Duration</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-moon" style="color:#9c27b0;margin-right:4px;"></i>${nights} night${nights !== 1 ? 's' : ''}</div>
                 </div>
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Check-in</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-sign-in-alt" style="color:#42b72a;margin-right:4px;"></i>${Utils.formatDate(checkIn)}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Check-in</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-sign-in-alt" style="color:#42b72a;margin-right:4px;"></i>${Utils.formatDate(checkIn)}</div>
                 </div>
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Check-out</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-sign-out-alt" style="color:#f44336;margin-right:4px;"></i>${Utils.formatDate(checkOut)}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Check-out</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-sign-out-alt" style="color:#f44336;margin-right:4px;"></i>${Utils.formatDate(checkOut)}</div>
                 </div>
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Guests</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-users" style="color:#1877f2;margin-right:4px;"></i>${booking.guests || 1}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Guests</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-users" style="color:#1877f2;margin-right:4px;"></i>${booking.guests || 1}</div>
                 </div>
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Total</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-dollar-sign" style="color:#42b72a;margin-right:4px;"></i>$${(booking.totalPrice || 0).toLocaleString()}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Total</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-dollar-sign" style="color:#42b72a;margin-right:4px;"></i>$${(booking.totalPrice || 0).toLocaleString()}</div>
                 </div>
                 <div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Platform</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-tag" style="color:#ff9800;margin-right:4px;"></i>${booking.platform || 'Direct'}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Platform</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-tag" style="color:#ff9800;margin-right:4px;"></i>${booking.platform || 'Direct'}</div>
                 </div>
                 ${booking.guestPhone ? `<div>
-                    <div style="color:#65676b;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Phone</div>
-                    <div style="font-weight:600;margin-top:2px;"><i class="fas fa-phone" style="color:#00bcd4;margin-right:4px;"></i>${escapeHtml(booking.guestPhone)}</div>
+                    <div class="booking-detail-label" style="color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Phone</div>
+                    <div class="booking-detail-value" style="font-weight:600;margin-top:2px;color:var(--text-primary);"><i class="fas fa-phone" style="color:#00bcd4;margin-right:4px;"></i>${escapeHtml(booking.guestPhone)}</div>
                 </div>` : ''}
             </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
             ${booking.status !== 'cancelled' ? `
-                <button onclick="cancelBooking('${booking.id}')" style="padding:8px 18px;border:1px solid #f44336;color:#f44336;background:#fff;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
+                <button class="booking-detail-cancel-btn" onclick="cancelBooking('${booking.id}')" style="padding:8px 18px;border:1px solid #f44336;color:#f44336;background:var(--bg-card);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;">
                     <i class="fas fa-times"></i> Cancel Booking
                 </button>
             ` : ''}
@@ -743,11 +743,12 @@ function showDayBookings(date, bookings) {
     modalText.innerHTML = bookings.map(booking => {
         const color = getPropertyColor(booking.propertyId);
         return `
-            <div style="padding:12px;margin-bottom:8px;border-left:4px solid ${color};background:#f8f9fa;border-radius:8px;cursor:pointer;transition:transform 0.15s;"
+            <div class="day-booking-item" style="padding:12px;margin-bottom:8px;border-left:4px solid ${color};background:var(--bg-main);border-radius:8px;cursor:pointer;transition:transform 0.15s;"
+                 onclick="showBookingDetail(${JSON.stringify(booking).replace(/"/g, '&quot;')})"
                  onmouseenter="this.style.transform='translateX(4px)'" onmouseleave="this.style.transform=''">
-                <strong>${escapeHtml(booking.guestName)}</strong>
+                <strong style="color:var(--text-primary);">${escapeHtml(booking.guestName)}</strong>
                 <span style="float:right;font-size:12px;background:${color};color:#fff;padding:1px 8px;border-radius:10px;">${booking.status}</span><br>
-                <span style="color:#65676b;font-size:13px;">
+                <span style="color:var(--text-secondary);font-size:13px;">
                     <i class="fas fa-home"></i> ${escapeHtml(booking.propertyName)} &middot;
                     ${Utils.formatDate(booking.checkIn)} - ${Utils.formatDate(booking.checkOut)} &middot;
                     $${(booking.totalPrice || 0).toLocaleString()}

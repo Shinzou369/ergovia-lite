@@ -1249,6 +1249,46 @@ app.get('/api/v2/dashboard', async (req, res) => {
   }
 });
 
+// System Health Check
+app.get('/api/v2/health', async (req, res) => {
+  const checks = { database: false, properties: 0, bookings: 0, workflows: 0, owner: false };
+  try {
+    const [propResult, bookResult, ownerResult] = await Promise.all([
+      v2Data.getProperties().catch(() => []),
+      v2Data.getBookings().catch(() => []),
+      v2Data.getOwner().catch(() => ({})),
+    ]);
+    checks.database = true;
+    checks.properties = propResult.length;
+    checks.bookings = bookResult.length;
+    checks.owner = !!(ownerResult && ownerResult.ownerName);
+
+    // Check n8n connectivity
+    try {
+      const n8nUrl = process.env.N8N_URL || 'http://localhost:5678';
+      const n8nKey = process.env.N8N_API_KEY || '';
+      if (n8nKey) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const n8nRes = await fetch(`${n8nUrl}/api/v1/workflows?limit=100`, {
+          headers: { 'X-N8N-API-KEY': n8nKey },
+          signal: controller.signal,
+        }).catch(() => null);
+        clearTimeout(timeout);
+        if (n8nRes && n8nRes.ok) {
+          const wfData = await n8nRes.json();
+          checks.workflows = (wfData.data || []).filter(w => w.active).length;
+        }
+      }
+    } catch (e) { /* n8n unreachable */ }
+
+    res.json({ success: true, checks });
+  } catch (error) {
+    checks.database = false;
+    res.json({ success: true, checks });
+  }
+});
+
 // Stats only
 app.get('/api/v2/stats', async (req, res) => {
   try {

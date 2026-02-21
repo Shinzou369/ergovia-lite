@@ -243,6 +243,141 @@
 [data-theme="dark"] .empty-state h2 { color: var(--text-primary); }
 [data-theme="dark"] .empty-state p { color: var(--text-secondary); }
 
+/* Dark mode - Gantt Calendar */
+[data-theme="dark"] .calendar-container { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .cal-header-row { background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 100%); border-bottom-color: var(--border); }
+[data-theme="dark"] .cal-header-cell { color: var(--text-secondary); }
+[data-theme="dark"] .cal-header-cell:first-child,
+[data-theme="dark"] .cal-header-cell:last-child { color: var(--accent); }
+[data-theme="dark"] .cal-week-row { border-bottom-color: var(--border); }
+[data-theme="dark"] .cal-day-cell { border-right-color: var(--border); }
+[data-theme="dark"] .cal-day-cell:hover:not(.other-month) { background-color: rgba(42, 74, 127, 0.3); }
+[data-theme="dark"] .cal-day-cell.past { background-color: rgba(10, 22, 40, 0.4); }
+[data-theme="dark"] .cal-day-cell.weekend { background-color: rgba(10, 22, 40, 0.25); }
+[data-theme="dark"] .cal-day-cell.today { background: linear-gradient(135deg, rgba(201, 169, 98, 0.15) 0%, rgba(201, 169, 98, 0.05) 100%); }
+[data-theme="dark"] .cal-day-num { color: var(--text-primary); }
+[data-theme="dark"] .cal-day-cell.other-month .cal-day-num { color: var(--text-muted); }
+[data-theme="dark"] .cal-today-badge { color: var(--accent); }
+[data-theme="dark"] .cal-booking-bar { color: #fff; }
+[data-theme="dark"] .cal-bar-label { color: #fff; }
+
+/* Dark mode - Booking Detail Modal (inline style overrides) */
+[data-theme="dark"] .booking-detail-card {
+    background: var(--bg-elevated) !important;
+    border-left-color: inherit;
+}
+[data-theme="dark"] .booking-detail-card h3 { color: var(--text-primary) !important; }
+[data-theme="dark"] .booking-detail-label { color: var(--text-muted) !important; }
+[data-theme="dark"] .booking-detail-value { color: var(--text-primary) !important; }
+[data-theme="dark"] .booking-detail-cancel-btn {
+    background: var(--bg-card) !important;
+    border-color: var(--danger) !important;
+    color: var(--danger) !important;
+}
+[data-theme="dark"] .booking-detail-cancel-btn:hover { background: rgba(244, 67, 54, 0.15) !important; }
+
+/* Dark mode - Upcoming Bookings */
+[data-theme="dark"] .booking-item { background-color: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .booking-item:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3); }
+[data-theme="dark"] .booking-info h4 { color: var(--text-primary); }
+[data-theme="dark"] .booking-info p { color: var(--text-secondary); }
+[data-theme="dark"] .booking-date strong { color: var(--text-primary) !important; }
+[data-theme="dark"] .booking-date span { color: var(--text-secondary); }
+[data-theme="dark"] .booking-item.today-checkin { background: rgba(244, 67, 54, 0.1); border-color: rgba(244, 67, 54, 0.3); }
+[data-theme="dark"] .booking-item.tomorrow-checkin { background: rgba(255, 152, 0, 0.1); border-color: rgba(255, 152, 0, 0.3); }
+[data-theme="dark"] .booking-item.soon-checkin { background: rgba(201, 169, 98, 0.1); border-color: rgba(201, 169, 98, 0.3); }
+
+/* Dark mode - Day bookings list in modal */
+[data-theme="dark"] .day-booking-item {
+    background: var(--bg-elevated) !important;
+}
+
+/* Dark mode - Calendar Section */
+[data-theme="dark"] .calendar-section { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .calendar-header h3 { color: var(--text-primary); }
+[data-theme="dark"] .btn-calendar-nav { background: var(--bg-elevated); border-color: var(--border); color: var(--text-primary); }
+[data-theme="dark"] .btn-calendar-nav:hover { background: var(--primary); color: #fff; }
+[data-theme="dark"] .property-filter { background: var(--bg-elevated); border-color: var(--border); }
+[data-theme="dark"] .property-filter label { color: var(--text-secondary); }
+[data-theme="dark"] .property-filter select { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+[data-theme="dark"] .legend-item { color: var(--text-secondary); }
+[data-theme="dark"] .upcoming-bookings h3 { color: var(--text-primary); }
+[data-theme="dark"] .section-header h2 { color: var(--text-primary); }
+[data-theme="dark"] .tasks-section { background: var(--bg-card); border-color: var(--border); }
+
+/* Dark mode - Booking New Modal */
+[data-theme="dark"] .booking-cal-header { color: var(--text-muted); }
+[data-theme="dark"] .booking-cal-day { color: var(--text-primary); }
+[data-theme="dark"] .booking-cal-day.other-month { color: var(--text-muted); }
+[data-theme="dark"] .booking-cal-day.disabled { color: var(--text-muted); opacity: 0.4; }
+[data-theme="dark"] .booking-cal-day:hover:not(.disabled):not(.other-month) { background: rgba(42, 74, 127, 0.4); }
+[data-theme="dark"] .booking-cal-day.selected-start,
+[data-theme="dark"] .booking-cal-day.selected-end { background: var(--accent); color: #0a1628; }
+[data-theme="dark"] .booking-cal-day.in-range { background: rgba(201, 169, 98, 0.2); }
+[data-theme="dark"] .booking-property-card { background: var(--bg-elevated); border-color: var(--border); color: var(--text-primary); }
+[data-theme="dark"] .booking-property-card:hover { border-color: var(--accent); }
+[data-theme="dark"] .booking-property-card.selected { border-color: var(--accent); background: rgba(201, 169, 98, 0.1); }
+[data-theme="dark"] .booking-property-card h4 { color: var(--text-primary); }
+[data-theme="dark"] .booking-property-card p { color: var(--text-secondary); }
+[data-theme="dark"] .form-section-modal h3 { color: var(--text-primary); }
+
+/* Health Panel */
+.health-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    padding: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+}
+.health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+.health-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: var(--bg-main);
+    border: 1px solid var(--border-subtle);
+    transition: all var(--transition-fast);
+}
+.health-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+.health-icon {
+    font-size: 24px;
+    color: var(--text-secondary);
+}
+.health-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.health-status {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 20px;
+}
+.health-status.checking { color: var(--text-muted); }
+.health-status.ok { background: rgba(66, 183, 42, 0.12); color: #42b72a; }
+.health-status.warn { background: rgba(255, 152, 0, 0.12); color: #ff9800; }
+.health-status.error { background: rgba(244, 67, 54, 0.12); color: #f44336; }
+.health-item.ok .health-icon { color: #42b72a; }
+.health-item.warn .health-icon { color: #ff9800; }
+.health-item.error .health-icon { color: #f44336; }
+
+[data-theme="dark"] .health-panel { background: var(--bg-card); border-color: var(--border); }
+[data-theme="dark"] .health-item { background: var(--bg-elevated); border-color: var(--border); }
+[data-theme="dark"] .health-label { color: var(--text-secondary); }
+
 /* Theme toggle button */
 .theme-toggle {
     width: 44px;
