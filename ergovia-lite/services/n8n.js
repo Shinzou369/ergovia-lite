@@ -737,17 +737,36 @@ class N8NService {
   // Activate a workflow in n8n
   async activateWorkflow(workflowId) {
     try {
-      await axios.patch(
-        `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-        { active: true },
-        {
-          headers: {
-            'X-N8N-API-KEY': this.apiKey,
-            'Content-Type': 'application/json'
+      // Use POST to /activate endpoint (universally supported across n8n versions)
+      try {
+        await axios.post(
+          `${this.baseUrl}/api/v1/workflows/${workflowId}/activate`,
+          {},
+          {
+            headers: {
+              'X-N8N-API-KEY': this.apiKey,
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
-      return { success: true };
+        );
+        return { success: true };
+      } catch (postErr) {
+        // Fallback: PUT with active flag (works on older n8n versions)
+        const getResult = await this.getWorkflow(workflowId);
+        if (!getResult.success) throw postErr;
+        const clean = this.cleanWorkflowForApi(getResult.workflow);
+        await axios.put(
+          `${this.baseUrl}/api/v1/workflows/${workflowId}`,
+          { ...clean, active: true },
+          {
+            headers: {
+              'X-N8N-API-KEY': this.apiKey,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        return { success: true };
+      }
     } catch (error) {
       console.error('Activate workflow error:', error.response?.data || error.message);
       return { success: false, error: error.message };
@@ -779,25 +798,13 @@ class N8NService {
   // Update a workflow in n8n (for variable updates)
   async updateWorkflow(workflowId, workflow) {
     try {
-      // First deactivate
-      await axios.patch(
-        `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-        { active: false },
-        {
-          headers: {
-            'X-N8N-API-KEY': this.apiKey,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
       // Clean workflow before update
       const cleanWorkflow = this.cleanWorkflowForApi(workflow);
 
-      // Update workflow content
+      // Deactivate + update in a single PUT (avoids PATCH compatibility issues)
       await axios.put(
         `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-        cleanWorkflow,
+        { ...cleanWorkflow, active: false },
         {
           headers: {
             'X-N8N-API-KEY': this.apiKey,
@@ -807,16 +814,7 @@ class N8NService {
       );
 
       // Reactivate
-      await axios.patch(
-        `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-        { active: true },
-        {
-          headers: {
-            'X-N8N-API-KEY': this.apiKey,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      await this.activateWorkflow(workflowId);
 
       return { success: true };
     } catch (error) {

@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes TEXT,
-    special_requests TEXT
+    special_requests TEXT,
+    confirmation_token VARCHAR(255) -- Token for webhook-based payment confirmation
 );
 
 CREATE INDEX idx_bookings_phone_status ON bookings(guest_phone, booking_status);
@@ -52,6 +53,26 @@ CREATE INDEX idx_bookings_property ON bookings(property_id);
 
 CREATE TRIGGER update_bookings_updated_at BEFORE UPDATE ON bookings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- TABLE: payment_action_tokens
+-- Used by: WF4 (Payment Processor) + webhook confirmation workflow
+-- Stores secure tokens for owner payment confirm/cancel via clickable links
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS payment_action_tokens (
+    id SERIAL PRIMARY KEY,
+    token UUID NOT NULL DEFAULT uuid_generate_v4(),
+    booking_id VARCHAR(255) NOT NULL,
+    action VARCHAR(20) NOT NULL CHECK (action IN ('confirm', 'cancel')),
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_booking FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX idx_payment_tokens_token ON payment_action_tokens(token);
+CREATE INDEX idx_payment_tokens_expires ON payment_action_tokens(expires_at) WHERE used_at IS NULL;
+CREATE INDEX idx_payment_tokens_booking ON payment_action_tokens(booking_id);
 
 -- ============================================================================
 -- TABLE: inquiries

@@ -346,6 +346,48 @@ async function editBookingStatus(bookingId, newStatus) {
     }
 }
 
+/**
+ * Load system health check
+ */
+async function loadHealthCheck() {
+    try {
+        const response = await Utils.get('/health');
+        if (!response.success) return;
+
+        const c = response.checks;
+
+        setHealth('healthDb', c.database, c.database ? 'Connected' : 'Offline');
+        setHealth('healthProps', c.properties > 0, c.properties > 0 ? `${c.properties} active` : 'None');
+        setHealth('healthBookings', c.bookings > 0, c.bookings > 0 ? `${c.bookings} active` : 'None');
+        setHealth('healthOwner', c.owner, c.owner ? 'Configured' : 'Not set');
+        setHealth('healthWorkflows', c.workflows > 0 ? 'ok' : 'warn',
+            c.workflows > 0 ? `${c.workflows} active` : 'Not connected');
+    } catch (error) {
+        console.error('[Dashboard] Health check failed:', error);
+        ['healthDb', 'healthProps', 'healthBookings', 'healthOwner', 'healthWorkflows'].forEach(id => {
+            setHealth(id, false, 'Error');
+        });
+    }
+}
+
+function setHealth(id, status, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const statusEl = el.querySelector('.health-status');
+    if (!statusEl) return;
+
+    let cls = 'error';
+    if (status === true || status === 'ok') cls = 'ok';
+    else if (status === 'warn') cls = 'warn';
+
+    el.className = 'health-item ' + cls;
+    statusEl.className = 'health-status ' + cls;
+    statusEl.textContent = text;
+}
+
+// Run health check on load
+document.addEventListener('DOMContentLoaded', () => { loadHealthCheck(); });
+
 // Help button info texts
 const helpTexts = {
     tasks: 'This section shows your pending tasks and reminders. Complete them to keep your property management running smoothly.',
