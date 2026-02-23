@@ -36,6 +36,7 @@ async function ensureTables() {
         property_name VARCHAR(255) NOT NULL,
         customer_id VARCHAR(255),
         address TEXT,
+        location_description TEXT,
         max_guests INTEGER DEFAULT 0,
         bedrooms INTEGER DEFAULT 0,
         bathrooms INTEGER DEFAULT 0,
@@ -84,6 +85,10 @@ async function ensureTables() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Add location_description column if missing (for existing databases)
+    await pool.query(`
+      ALTER TABLE property_configurations ADD COLUMN IF NOT EXISTS location_description TEXT
+    `).catch(() => {});
     console.log('[v2-data] Tables ensured');
   } catch (err) {
     console.error('[v2-data] ensureTables error:', err.message);
@@ -159,6 +164,8 @@ function propertyFromDb(row) {
     ownerEmail: row.owner_email || '',
     amenities: s.amenities || [],
     houseRules: s.house_rules || '',
+    locationDescription: row.location_description || '',
+    photos: s.photos || '',
     notes: s.notes || '',
     paymentLink: row.payment_link || '',
     paymentInstructions: row.payment_instructions || '',
@@ -195,6 +202,7 @@ function propertyToDb(property) {
     owner_email: property.ownerEmail || '',
     payment_link: property.paymentLink || '',
     payment_instructions: property.paymentInstructions || '',
+    location_description: property.locationDescription || '',
     property_status: property.status || 'active',
     settings: {
       property_type: property.type || 'apartment',
@@ -202,6 +210,7 @@ function propertyToDb(property) {
       check_out_time: property.checkOutTime || '11:00',
       amenities: property.amenities || [],
       house_rules: property.houseRules || '',
+      photos: property.photos || '',
       notes: property.notes || '',
     },
   };
@@ -412,22 +421,29 @@ const V2DataService = {
     const creds = getLocalSection('credentials');
     const ai = getLocalSection('ai');
     const media = getLocalSection('media');
+    const booking = getLocalSection('booking');
+    const notifications = getLocalSection('notifications');
+    const budget = getLocalSection('budget');
 
     if (section === 'owner') return owner;
-    if (section === 'credentials') {
-      return maskSensitiveCreds(creds);
-    }
-    if (section === 'team') return [];
+    if (section === 'credentials') return maskSensitiveCreds(creds);
+    if (section === 'team') return getLocalSection('team') || [];
     if (section === 'ai') return ai;
     if (section === 'media') return media;
+    if (section === 'booking') return booking;
+    if (section === 'notifications') return notifications;
+    if (section === 'budget') return budget;
     if (section === 'preferences') return getLocalSection('preferences');
 
     return {
       owner,
       credentials: maskSensitiveCreds(creds),
-      team: [],
+      team: getLocalSection('team') || [],
       ai,
       media,
+      booking,
+      notifications,
+      budget,
       preferences: getLocalSection('preferences'),
     };
   },
@@ -436,7 +452,8 @@ const V2DataService = {
     if (section === 'owner') {
       return await this.saveOwner(data);
     }
-    if (['credentials', 'ai', 'media', 'preferences'].includes(section)) {
+    const validSections = ['credentials', 'ai', 'media', 'preferences', 'booking', 'notifications', 'budget', 'team'];
+    if (validSections.includes(section)) {
       const saved = saveLocalSection(section, data);
       return { success: true, section, data: saved };
     }
@@ -500,7 +517,7 @@ const V2DataService = {
 
       const result = await pool.query(`
         INSERT INTO property_configurations (
-          property_id, property_name, address,
+          property_id, property_name, address, location_description,
           bedrooms, bathrooms, max_guests,
           base_price, weekend_price, holiday_price, cleaning_fee,
           min_stay_nights, max_stay_nights,
@@ -511,14 +528,15 @@ const V2DataService = {
           property_status, settings, customer_id
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15, $16, $17,
-          $18, $19, $20, $21, $22,
-          $23, $24,
-          $25, $26::jsonb, $27
+          $11, $12, $13, $14, $15, $16, $17, $18,
+          $19, $20, $21, $22, $23,
+          $24, $25,
+          $26, $27::jsonb, $28
         )
         ON CONFLICT (property_id) DO UPDATE SET
           property_name = EXCLUDED.property_name,
           address = EXCLUDED.address,
+          location_description = EXCLUDED.location_description,
           bedrooms = EXCLUDED.bedrooms,
           bathrooms = EXCLUDED.bathrooms,
           max_guests = EXCLUDED.max_guests,
@@ -545,7 +563,7 @@ const V2DataService = {
           customer_id = EXCLUDED.customer_id
         RETURNING property_id
       `, [
-        db.property_id, db.property_name, db.address,
+        db.property_id, db.property_name, db.address, db.location_description,
         db.bedrooms, db.bathrooms, db.max_guests,
         db.base_price, db.weekend_price, db.holiday_price, db.cleaning_fee,
         db.min_stay_nights, db.max_stay_nights,

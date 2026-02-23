@@ -773,6 +773,43 @@ class N8NService {
     }
   }
 
+  async deactivateWorkflow(workflowId) {
+    try {
+      try {
+        await axios.post(
+          `${this.baseUrl}/api/v1/workflows/${workflowId}/deactivate`,
+          {},
+          {
+            headers: {
+              'X-N8N-API-KEY': this.apiKey,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        return { success: true };
+      } catch (postErr) {
+        // Fallback: PUT with active: false
+        const getResult = await this.getWorkflow(workflowId);
+        if (!getResult.success) throw postErr;
+        const clean = this.cleanWorkflowForApi(getResult.workflow);
+        await axios.put(
+          `${this.baseUrl}/api/v1/workflows/${workflowId}`,
+          { ...clean, active: false },
+          {
+            headers: {
+              'X-N8N-API-KEY': this.apiKey,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        return { success: true };
+      }
+    } catch (error) {
+      console.error('Deactivate workflow error:', error.response?.data || error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Clean workflow for n8n API (only include accepted fields)
   cleanWorkflowForApi(workflow) {
     const cleanedNodes = (workflow.nodes || []).map(node => {

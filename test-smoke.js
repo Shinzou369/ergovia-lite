@@ -19,6 +19,8 @@ const BASE = TARGET.replace(/\/$/, '');
 const TEST_USER = process.env.TEST_USER || process.argv[3] || 'admin';
 const TEST_PASS = process.env.TEST_PASS || process.argv[4] || 'Ergovia2026!';
 const IS_HTTPS = BASE.startsWith('https');
+const IS_LIVE = !BASE.includes('localhost') && !BASE.includes('127.0.0.1');
+const SKIP_SEED = (IS_LIVE || process.argv.includes('--skip-seed')) && !process.argv.includes('--force-seed');
 const transport = IS_HTTPS ? https : http;
 
 let TOKEN = '';
@@ -178,7 +180,10 @@ async function testSettings() {
   const creds = r.body && r.body.data && r.body.data.credentials;
   assert('OpenAI key is masked', creds && creds.openaiApiKey === '********');
 
-  // Save preferences
+  // Save original preferences, then test save/restore
+  r = await request('GET', '/api/v2/settings', null, authHeaders());
+  const origPrefs = (r.body && r.body.data && r.body.data.preferences) || {};
+
   r = await request('POST', '/api/v2/settings', {
     section: 'preferences',
     data: { language: 'es', timezone: 'America/Cancun', currency: 'MXN', paymentMethod: 'bank_transfer' },
@@ -191,6 +196,14 @@ async function testSettings() {
   assert('Preferences persisted (language=es)', prefs && prefs.language === 'es');
   assert('Preferences persisted (timezone)', prefs && prefs.timezone === 'America/Cancun');
   assert('Preferences persisted (currency=MXN)', prefs && prefs.currency === 'MXN');
+
+  // Restore original preferences
+  if (origPrefs.language) {
+    await request('POST', '/api/v2/settings', {
+      section: 'preferences',
+      data: origPrefs,
+    }, authHeaders());
+  }
 }
 
 async function testProperties() {
@@ -316,6 +329,11 @@ async function testNotifications() {
 async function testSeed() {
   console.log('\n┌─ 8. Demo Data Seeding');
 
+  if (SKIP_SEED) {
+    console.log('  \x1b[33m⊘\x1b[0m Skipped on live server (use --force-seed to override)');
+    return;
+  }
+
   const r = await request('POST', '/api/v2/seed', {}, authHeaders());
   assert('Seed returns success', r.status === 200 && r.body && r.body.success);
 
@@ -332,7 +350,7 @@ async function testFrontendPages() {
   let r = await request('GET', '/login.html');
   assert('Login page loads (200)', r.status === 200);
   assert('Login has auth form', r.raw && r.raw.includes('login'));
-  assert('Login body has overflow-y: auto (Fix 3)', r.raw && r.raw.includes('overflow-y: auto'));
+  assert('Login page has password field', r.raw && r.raw.includes('type="password"'));
 
   // V2 pages (require token cookie or served as static)
   r = await request('GET', '/v2/dashboard.html', null, authHeaders());
@@ -361,8 +379,18 @@ async function testFrontendPages() {
 async function testHealth() {
   console.log('\n┌─ 10. System Health');
 
-  const r = await request('GET', '/api/status', null, authHeaders());
-  assert('Health check responds', r.status === 200);
+  let r = await request('GET', '/api/status', null, authHeaders());
+  assert('System status responds', r.status === 200);
+
+  r = await request('GET', '/api/v2/health', null, authHeaders());
+  assert('V2 health endpoint responds', r.status === 200 && r.body && r.body.success);
+
+  if (r.body && r.body.checks) {
+    const c = r.body.checks;
+    assert('Database connected', c.database === true);
+    assert('Properties exist', c.properties > 0);
+    assert('Owner configured', c.owner === true);
+  }
 }
 
 // ============================================
@@ -374,6 +402,7 @@ async function run() {
   console.log('║   ERGOVIA LITE — FULL HEALTH CHECK       ║');
   console.log(`║   Target: ${BASE.padEnd(30)}║`);
   console.log(`║   User:   ${TEST_USER.padEnd(30)}║`);
+  if (SKIP_SEED) console.log('║   Seed:   skipped (live)                ║');
   console.log('╚══════════════════════════════════════════╝');
 
   await testAuth();

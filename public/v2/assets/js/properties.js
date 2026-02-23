@@ -135,6 +135,7 @@ function editProperty(propertyId) {
     document.getElementById('propertyId').value = property.id;
     document.getElementById('propertyName').value = property.name || '';
     document.getElementById('propertyAddress').value = property.address || '';
+    document.getElementById('propertyDescription').value = property.locationDescription || '';
     document.getElementById('propertyType').value = property.type || '';
     document.getElementById('numberOfFloors').value = property.floors || '';
     document.getElementById('numberOfBedrooms').value = property.bedrooms || '';
@@ -195,6 +196,10 @@ function editProperty(propertyId) {
         });
     }
 
+    // House Rules & Photos
+    document.getElementById('houseRules').value = property.houseRules || '';
+    document.getElementById('photoUrls').value = property.photos || '';
+
     // Notes
     document.getElementById('propertyNotes').value = property.notes || '';
 
@@ -247,6 +252,7 @@ async function handlePropertySubmit(event) {
         id: currentPropertyId || `prop_${Date.now()}`,
         name: formData.get('propertyName'),
         address: formData.get('propertyAddress'),
+        locationDescription: formData.get('propertyDescription'),
         type: formData.get('propertyType'),
         floors: parseInt(formData.get('numberOfFloors')) || 1,
         bedrooms: parseInt(formData.get('numberOfBedrooms')),
@@ -299,6 +305,10 @@ async function handlePropertySubmit(event) {
 
         // Amenities
         amenities: amenities,
+
+        // House Rules & Photos
+        houseRules: formData.get('houseRules'),
+        photos: formData.get('photoUrls'),
 
         // Notes
         notes: formData.get('propertyNotes'),

@@ -1320,8 +1320,16 @@ app.post('/api/v2/settings', async (req, res) => {
     const result = await v2Data.saveSettings(section, data);
 
     // Determine if this change needs a workflow sync
-    // preferences triggers system-prompt sync because language is injected into WF1
-    const syncSections = { credentials: 'credentials', ai: 'system-prompt', owner: 'workflows', preferences: 'system-prompt' };
+    const syncSections = {
+      credentials: 'credentials',
+      ai: 'system-prompt',
+      owner: 'workflows',
+      preferences: 'system-prompt',
+      booking: 'booking-defaults',
+      notifications: 'notifications',
+      budget: 'budget',
+      team: 'workflows',
+    };
     const needsSync = !!syncSections[section];
     const syncCategory = syncSections[section] || null;
 
@@ -1367,10 +1375,9 @@ app.get('/api/v2/properties/:id', async (req, res) => {
 // Properties - POST create/update
 app.post('/api/v2/properties', async (req, res) => {
   try {
-    const isUpdate = !!req.body.id;
     const result = await v2Data.saveProperty(req.body);
-    // Flag that workflows need sync when editing an existing property
-    if (isUpdate && result.success) {
+    // Flag that workflows need sync so property data reaches n8n
+    if (result.success) {
       result.needsSync = true;
       result.syncCategory = 'workflows';
     }
@@ -1552,7 +1559,7 @@ app.post('/api/v2/sync/workflows', async (req, res) => {
   }
 });
 
-// Sync AI system prompt, language & custom notes into WF1
+// Sync AI system prompt, language, temperature, model & custom notes into WF1
 app.post('/api/v2/sync/system-prompt', async (req, res) => {
   try {
     const { systemPrompt, pricingRules } = req.body;
@@ -1592,14 +1599,13 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
 
     let currentPrompt = aiNode.parameters?.options?.systemMessage || aiNode.parameters?.systemMessage || '';
 
-    // Load language preference from local settings
+    // Load AI settings (language now lives in AI section)
+    const aiSettings = v2Data ? await v2Data.getSettings('ai') : {};
     const preferences = v2Data ? await v2Data.getSettings('preferences') : {};
-    const language = preferences?.language || 'en';
+    const language = aiSettings?.language || preferences?.language || 'en';
     const languageNames = { en: 'English', es: 'Spanish', tl: 'Tagalog/Filipino', fr: 'French', de: 'German', ja: 'Japanese' };
     const languageName = languageNames[language] || 'English';
 
-    // Load AI notes from local settings
-    const aiSettings = v2Data ? await v2Data.getSettings('ai') : {};
     const aiNotes = systemPrompt || aiSettings?.aiNotes || '';
     const rules = pricingRules || aiSettings?.pricingRules || '';
 
@@ -1622,10 +1628,48 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
 
     const fullPrompt = basePrompt + appendix;
 
-    // Patch the AI Agent node — use the node's actual name
-    const result = await n8nService.patchWorkflowNodes(wf1Id, [
+    // Build patches array — always patch system prompt
+    const patches = [
       { nodeId: aiNode.name, path: 'parameters.options.systemMessage', value: '=' + fullPrompt }
-    ]);
+    ];
+
+    // Patch AI temperature if set (find the OpenAI Chat Model node)
+    const aiTemp = parseFloat(aiSettings?.aiTemperature);
+    if (!isNaN(aiTemp) && aiTemp >= 0 && aiTemp <= 1) {
+      const chatModel = currentWf.workflow.nodes.find(n =>
+        n.type && (n.type.includes('openAi') || n.type.includes('lmChatOpenAi'))
+      );
+      if (chatModel) {
+        patches.push({ nodeId: chatModel.name, path: 'parameters.options.temperature', value: aiTemp });
+      }
+    }
+
+    // Patch AI model if set
+    const aiModel = aiSettings?.aiModel;
+    if (aiModel) {
+      const chatModel = currentWf.workflow.nodes.find(n =>
+        n.type && (n.type.includes('openAi') || n.type.includes('lmChatOpenAi'))
+      );
+      if (chatModel) {
+        patches.push({ nodeId: chatModel.name, path: 'parameters.model', value: aiModel });
+      }
+    }
+
+    const result = await n8nService.patchWorkflowNodes(wf1Id, patches);
+
+    // Handle auto-reply toggle — activate/deactivate WF1
+    const autoReply = aiSettings?.autoReplyEnabled;
+    if (autoReply !== undefined && n8nService.isConfigured()) {
+      try {
+        if (autoReply === false) {
+          await n8nService.deactivateWorkflow(wf1Id);
+        } else {
+          await n8nService.activateWorkflow(wf1Id);
+        }
+      } catch (e) {
+        console.error('[sync] Auto-reply toggle failed:', e.message);
+      }
+    }
 
     // Save locally
     db.saveClientData('systemPrompt', { systemPrompt: aiNotes, pricingRules: rules, language, lastSynced: new Date().toISOString() });
@@ -1633,6 +1677,272 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
     db.logActivity('sync_system_prompt', `Updated AI prompt (language: ${languageName})`);
 
     res.json({ ...result, language: languageName });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Sync booking defaults (cancellation policy, timeouts, payment config) → WF2 + WF4
+app.post('/api/v2/sync/booking-defaults', async (req, res) => {
+  try {
+    if (!n8nService.isConfigured()) {
+      return res.status(400).json({ success: false, error: 'n8n not configured' });
+    }
+
+    const deployedWorkflows = db.getDeployedWorkflows();
+    const bookingSettings = await v2Data.getSettings('booking');
+    const results = [];
+
+    // Find WF2 (Offer Conflict Manager) and WF4 (Payment Processor)
+    const wf2 = deployedWorkflows.find(w => w.workflow_name.includes('Offer Conflict') || w.filename.includes('WF2'));
+    const wf4 = deployedWorkflows.find(w => w.workflow_name.includes('Payment') || w.filename.includes('WF4'));
+
+    // Patch WF2: cancellation policy into AI prompt, competing offer timeouts
+    if (wf2) {
+      const wf2Result = await n8nService.getWorkflow(wf2.workflow_id);
+      if (wf2Result.success) {
+        const patches = [];
+        const aiNode = wf2Result.workflow.nodes.find(n =>
+          n.type && n.type.includes('agent') && (n.parameters?.options?.systemMessage || n.parameters?.systemMessage)
+        );
+
+        if (aiNode && bookingSettings.cancellationPolicy) {
+          let prompt = aiNode.parameters?.options?.systemMessage || aiNode.parameters?.systemMessage || '';
+          const policyMarker = '## CANCELLATION POLICY';
+          const policyIdx = prompt.indexOf(policyMarker);
+          const basePrompt = policyIdx >= 0 ? prompt.substring(0, policyIdx).trimEnd() : prompt;
+          const policyAppendix = `\n\n${policyMarker}\n${bookingSettings.cancellationPolicy}`;
+          patches.push({ nodeId: aiNode.name, path: 'parameters.options.systemMessage', value: '=' + basePrompt + policyAppendix });
+        }
+
+        // Patch competing offer timeout and hold duration in Code nodes
+        const codeNodes = wf2Result.workflow.nodes.filter(n => n.type && n.type.includes('code'));
+        for (const codeNode of codeNodes) {
+          const code = codeNode.parameters?.jsCode || '';
+          if (code.includes('competingOfferTimeout') || code.includes('offerHoldDuration') || code.includes('decision_timeout') || code.includes('hold_duration')) {
+            let updatedCode = code;
+            if (bookingSettings.competingOfferTimeout) {
+              updatedCode = updatedCode.replace(/(?:competingOfferTimeout|decision_timeout)\s*[:=]\s*\d+/g, `decision_timeout: ${bookingSettings.competingOfferTimeout}`);
+            }
+            if (bookingSettings.offerHoldDuration) {
+              updatedCode = updatedCode.replace(/(?:offerHoldDuration|hold_duration)\s*[:=]\s*\d+/g, `hold_duration: ${bookingSettings.offerHoldDuration}`);
+            }
+            if (updatedCode !== code) {
+              patches.push({ nodeId: codeNode.name, path: 'parameters.jsCode', value: updatedCode });
+            }
+          }
+        }
+
+        if (patches.length > 0) {
+          const patchResult = await n8nService.patchWorkflowNodes(wf2.workflow_id, patches);
+          results.push({ workflow: 'WF2', ...patchResult });
+        }
+      }
+    }
+
+    // Patch WF4: payment method, currency, check-in/out times
+    if (wf4) {
+      const wf4Result = await n8nService.getWorkflow(wf4.workflow_id);
+      if (wf4Result.success) {
+        const patches = [];
+        const codeNodes = wf4Result.workflow.nodes.filter(n => n.type && n.type.includes('code'));
+
+        for (const codeNode of codeNodes) {
+          const code = codeNode.parameters?.jsCode || '';
+          let updatedCode = code;
+
+          if (bookingSettings.defaultCurrency && code.includes('currency')) {
+            updatedCode = updatedCode.replace(/currency\s*[:=]\s*['"][A-Z]+['"]/g, `currency: '${bookingSettings.defaultCurrency}'`);
+          }
+          if (bookingSettings.defaultPaymentMethod && code.includes('payment_method')) {
+            updatedCode = updatedCode.replace(/payment_method\s*[:=]\s*['"][a-z_]+['"]/g, `payment_method: '${bookingSettings.defaultPaymentMethod}'`);
+          }
+          if (updatedCode !== code) {
+            patches.push({ nodeId: codeNode.name, path: 'parameters.jsCode', value: updatedCode });
+          }
+        }
+
+        if (patches.length > 0) {
+          const patchResult = await n8nService.patchWorkflowNodes(wf4.workflow_id, patches);
+          results.push({ workflow: 'WF4', ...patchResult });
+        }
+      }
+    }
+
+    db.logSync('booking-defaults', 'success', results.map(r => r.workflow), null);
+    db.logActivity('sync_booking_defaults', `Synced booking defaults to ${results.length} workflows`);
+
+    res.json({ success: true, results });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Sync notification & safety settings → WF8 + SUB Notifier
+app.post('/api/v2/sync/notifications', async (req, res) => {
+  try {
+    if (!n8nService.isConfigured()) {
+      return res.status(400).json({ success: false, error: 'n8n not configured' });
+    }
+
+    const deployedWorkflows = db.getDeployedWorkflows();
+    const notifSettings = await v2Data.getSettings('notifications');
+    const results = [];
+
+    // Find WF8 (Safety & Screening) and SUB Notifier
+    const wf8 = deployedWorkflows.find(w => w.workflow_name.includes('Safety') || w.filename.includes('WF8'));
+    const subNotifier = deployedWorkflows.find(w => w.workflow_name.includes('Notifier') || w.filename.includes('SUB_Owner'));
+
+    // Patch WF8: emergency contacts, screening defaults
+    if (wf8) {
+      const wf8Result = await n8nService.getWorkflow(wf8.workflow_id);
+      if (wf8Result.success) {
+        const patches = [];
+        const codeNodes = wf8Result.workflow.nodes.filter(n => n.type && n.type.includes('code'));
+
+        for (const codeNode of codeNodes) {
+          const code = codeNode.parameters?.jsCode || '';
+          let updatedCode = code;
+
+          // Patch emergency contacts
+          if (code.includes('emergency') || code.includes('escalation')) {
+            if (notifSettings.emergencyContact1Phone) {
+              updatedCode = updatedCode.replace(/emergency_contact_1_phone\s*[:=]\s*['"][^'"]*['"]/g, `emergency_contact_1_phone: '${notifSettings.emergencyContact1Phone}'`);
+              updatedCode = updatedCode.replace(/emergency_contact_1_name\s*[:=]\s*['"][^'"]*['"]/g, `emergency_contact_1_name: '${notifSettings.emergencyContact1Name || ''}'`);
+            }
+            if (notifSettings.emergencyContact2Phone) {
+              updatedCode = updatedCode.replace(/emergency_contact_2_phone\s*[:=]\s*['"][^'"]*['"]/g, `emergency_contact_2_phone: '${notifSettings.emergencyContact2Phone}'`);
+              updatedCode = updatedCode.replace(/emergency_contact_2_name\s*[:=]\s*['"][^'"]*['"]/g, `emergency_contact_2_name: '${notifSettings.emergencyContact2Name || ''}'`);
+            }
+          }
+
+          // Patch screening default
+          if (code.includes('screening') && notifSettings.guestScreeningDefault) {
+            updatedCode = updatedCode.replace(/screening_mode\s*[:=]\s*['"][a-z_]+['"]/g, `screening_mode: '${notifSettings.guestScreeningDefault}'`);
+          }
+
+          if (updatedCode !== code) {
+            patches.push({ nodeId: codeNode.name, path: 'parameters.jsCode', value: updatedCode });
+          }
+        }
+
+        if (patches.length > 0) {
+          const patchResult = await n8nService.patchWorkflowNodes(wf8.workflow_id, patches);
+          results.push({ workflow: 'WF8', ...patchResult });
+        }
+      }
+    }
+
+    // Patch SUB Notifier: notification toggle flags
+    if (subNotifier) {
+      const subResult = await n8nService.getWorkflow(subNotifier.workflow_id);
+      if (subResult.success) {
+        const patches = [];
+        const codeNodes = subResult.workflow.nodes.filter(n => n.type && n.type.includes('code'));
+
+        for (const codeNode of codeNodes) {
+          const code = codeNode.parameters?.jsCode || '';
+          let updatedCode = code;
+
+          if (code.includes('notify') || code.includes('notification')) {
+            const toggles = {
+              notify_new_booking: notifSettings.notifyOnNewBooking,
+              notify_check_in: notifSettings.notifyOnCheckIn,
+              notify_competing_offer: notifSettings.notifyOnCompetingOffer,
+              notify_daily_report: notifSettings.notifyDailyReport,
+            };
+            for (const [key, val] of Object.entries(toggles)) {
+              if (val !== undefined) {
+                updatedCode = updatedCode.replace(new RegExp(`${key}\\s*[:=]\\s*(true|false)`, 'g'), `${key}: ${val}`);
+              }
+            }
+          }
+
+          if (updatedCode !== code) {
+            patches.push({ nodeId: codeNode.name, path: 'parameters.jsCode', value: updatedCode });
+          }
+        }
+
+        if (patches.length > 0) {
+          const patchResult = await n8nService.patchWorkflowNodes(subNotifier.workflow_id, patches);
+          results.push({ workflow: 'SUB Notifier', ...patchResult });
+        }
+      }
+    }
+
+    // Watchdog toggle — activate/deactivate WF8
+    if (wf8 && notifSettings.watchdogEnabled !== undefined) {
+      try {
+        if (notifSettings.watchdogEnabled === false) {
+          await n8nService.deactivateWorkflow(wf8.workflow_id);
+        } else {
+          await n8nService.activateWorkflow(wf8.workflow_id);
+        }
+      } catch (e) {
+        console.error('[sync] Watchdog toggle failed:', e.message);
+      }
+    }
+
+    db.logSync('notifications', 'success', results.map(r => r.workflow), null);
+    db.logActivity('sync_notifications', `Synced notification settings to ${results.length} workflows`);
+
+    res.json({ success: true, results });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Sync budget thresholds & fallback message → WF1
+app.post('/api/v2/sync/budget', async (req, res) => {
+  try {
+    if (!n8nService.isConfigured()) {
+      return res.status(400).json({ success: false, error: 'n8n not configured' });
+    }
+
+    const deployedWorkflows = db.getDeployedWorkflows();
+    const budgetSettings = await v2Data.getSettings('budget');
+
+    // Find WF1
+    const wf1 = deployedWorkflows.find(w => w.workflow_name.includes('AI Gateway') || w.filename.includes('WF1'));
+    if (!wf1) {
+      return res.status(400).json({ success: false, error: 'WF1 AI Gateway not found' });
+    }
+
+    const wf1Result = await n8nService.getWorkflow(wf1.workflow_id);
+    if (!wf1Result.success) {
+      return res.status(500).json({ success: false, error: 'Could not read WF1' });
+    }
+
+    const patches = [];
+    const codeNodes = wf1Result.workflow.nodes.filter(n => n.type && n.type.includes('code'));
+
+    for (const codeNode of codeNodes) {
+      const code = codeNode.parameters?.jsCode || '';
+      if (!code.includes('budget') && !code.includes('monthly_limit')) continue;
+
+      let updatedCode = code;
+
+      if (budgetSettings.monthlyBudget !== undefined) {
+        updatedCode = updatedCode.replace(/monthly_limit\s*[:=]\s*\d+(\.\d+)?/g, `monthly_limit: ${budgetSettings.monthlyBudget}`);
+      }
+      if (budgetSettings.fallbackMessage) {
+        updatedCode = updatedCode.replace(/fallback_message\s*[:=]\s*['"`][^'"`]*['"`]/g, `fallback_message: '${budgetSettings.fallbackMessage.replace(/'/g, "\\'")}'`);
+      }
+
+      if (updatedCode !== code) {
+        patches.push({ nodeId: codeNode.name, path: 'parameters.jsCode', value: updatedCode });
+      }
+    }
+
+    let result = { success: true };
+    if (patches.length > 0) {
+      result = await n8nService.patchWorkflowNodes(wf1.workflow_id, patches);
+    }
+
+    db.logSync('budget', result.success ? 'success' : 'failed', ['WF1: AI Gateway'], result.error || null);
+    db.logActivity('sync_budget', `Synced budget settings (limit: $${budgetSettings.monthlyBudget || 50})`);
+
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1882,6 +2192,202 @@ app.post('/api/v2/sync/import', async (req, res) => {
 
 // ============================================
 // 404 HANDLER (Return JSON not HTML)
+// ============================================
+// M1 AFFILIATE MARKETING API ROUTES
+// ============================================
+
+const m1Data = require('./services/m1-data');
+
+// Dashboard stats
+app.get('/api/m1/dashboard', async (req, res) => {
+  try {
+    const stats = await m1Data.getDashboardStats();
+    res.json({ success: true, ...stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Affiliates CRUD
+app.get('/api/m1/affiliates', async (req, res) => {
+  try {
+    const affiliates = await m1Data.getAffiliates();
+    res.json({ success: true, affiliates });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/m1/affiliates/:id', async (req, res) => {
+  try {
+    const affiliate = await m1Data.getAffiliate(req.params.id);
+    if (!affiliate) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, affiliate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/m1/affiliates', async (req, res) => {
+  try {
+    const affiliate = await m1Data.createAffiliate(req.body);
+    res.json({ success: true, affiliate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/affiliates/:id', async (req, res) => {
+  try {
+    const affiliate = await m1Data.updateAffiliate(req.params.id, req.body);
+    if (!affiliate) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, affiliate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/m1/affiliates/:id', async (req, res) => {
+  try {
+    const ok = await m1Data.deleteAffiliate(req.params.id);
+    res.json({ success: ok, message: ok ? 'Deleted' : 'Not found' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// AI System Prompts
+app.get('/api/m1/prompts', async (req, res) => {
+  try {
+    const prompts = await m1Data.getPrompts();
+    res.json({ success: true, prompts });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/prompts/:id', async (req, res) => {
+  try {
+    const prompt = await m1Data.updatePrompt(req.params.id, req.body);
+    if (!prompt) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, prompt });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Closing Script Stages
+app.get('/api/m1/stages', async (req, res) => {
+  try {
+    const stages = await m1Data.getClosingStages();
+    res.json({ success: true, stages });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/stages/:id', async (req, res) => {
+  try {
+    const stage = await m1Data.updateClosingStage(req.params.id, req.body);
+    if (!stage) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, stage });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Closing Objections
+app.get('/api/m1/objections', async (req, res) => {
+  try {
+    const objections = await m1Data.getObjections();
+    res.json({ success: true, objections });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/objections/:id', async (req, res) => {
+  try {
+    const objection = await m1Data.updateObjection(req.params.id, req.body);
+    if (!objection) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, objection });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Marketing Leads
+app.get('/api/m1/leads', async (req, res) => {
+  try {
+    const leads = await m1Data.getLeads({
+      status: req.query.status,
+      affiliate_id: req.query.affiliate_id,
+    });
+    res.json({ success: true, leads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/m1/leads/:id', async (req, res) => {
+  try {
+    const lead = await m1Data.getLead(req.params.id);
+    if (!lead) return res.status(404).json({ success: false, error: 'Not found' });
+    const messages = await m1Data.getLeadMessages(req.params.id);
+    res.json({ success: true, lead, messages });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Niche Problems
+app.get('/api/m1/niche-problems', async (req, res) => {
+  try {
+    const problems = await m1Data.getNicheProblems();
+    res.json({ success: true, problems });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/m1/niche-problems', async (req, res) => {
+  try {
+    const problem = await m1Data.createNicheProblem(req.body);
+    res.json({ success: true, problem });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/niche-problems/:id', async (req, res) => {
+  try {
+    const problem = await m1Data.updateNicheProblem(req.params.id, req.body);
+    if (!problem) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, problem });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/m1/niche-problems/:id', async (req, res) => {
+  try {
+    const ok = await m1Data.deleteNicheProblem(req.params.id);
+    res.json({ success: ok, message: ok ? 'Deleted' : 'Not found' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Error Log
+app.get('/api/m1/errors', async (req, res) => {
+  try {
+    const errors = await m1Data.getErrors();
+    res.json({ success: true, errors });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ============================================
 
 app.use('/api/*', (req, res) => {

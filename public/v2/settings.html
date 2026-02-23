@@ -67,7 +67,6 @@
                 </button>
             </div>
             <div class="notification-list" id="notificationList">
-                <!-- Notifications will be loaded here -->
             </div>
         </div>
 
@@ -85,7 +84,6 @@
 
         <!-- n8n Connection Card -->
         <div class="n8n-card">
-            <!-- Not connected state -->
             <div id="n8nNotConnected">
                 <div class="n8n-card-title">
                     <i class="fas fa-plug"></i>
@@ -101,8 +99,6 @@
                     <i class="fas fa-plug"></i> Connect & Import Workflows
                 </button>
             </div>
-
-            <!-- Connected state (hidden initially) -->
             <div id="n8nConnected" style="display:none;">
                 <div class="n8n-connected-row">
                     <div class="n8n-connected-info">
@@ -125,11 +121,13 @@
         <!-- Form Container -->
         <div class="form-container">
             <h1><i class="fas fa-cog"></i> Account Settings</h1>
-            <p class="form-subtitle">Configure your AI assistant and manage your account</p>
+            <p class="form-subtitle">Configure your AI assistant, workflows, and business preferences</p>
 
             <form id="fillupForm" onsubmit="return handleFormSubmit(event)">
 
-                <!-- SECTION 1: Owner Information -->
+                <!-- ========================================== -->
+                <!-- SECTION 1: Owner Information               -->
+                <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
                         <h2><i class="fas fa-user"></i> 1. Owner Information</h2>
@@ -204,7 +202,9 @@
                     </button>
                 </div>
 
-                <!-- SECTION 2: API Credentials -->
+                <!-- ========================================== -->
+                <!-- SECTION 2: API Credentials                 -->
+                <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
                         <h2><i class="fas fa-key"></i> 2. API Credentials</h2>
@@ -279,21 +279,472 @@
                     </button>
                 </div>
 
-                <!-- SECTION 3: Team & Contacts -->
+                <!-- ========================================== -->
+                <!-- SECTION 3: AI Assistant (merged)           -->
+                <!-- ========================================== -->
+                <div class="form-section system-prompt-section" id="systemPromptSection">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-robot"></i> 3. AI Assistant</h2>
+                        <span class="system-prompt-badge">Syncs to WF1</span>
+                    </div>
+
+                    <p class="section-description">
+                        Control how your AI concierge behaves, what language it speaks, and its response style.
+                        Changes sync directly to the live WF1 AI Gateway workflow.
+                    </p>
+
+                    <!-- Auto-Reply Toggle -->
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-play-circle"></i> Auto-Reply Enabled</label>
+                            <small>When OFF, the AI stops responding to guest messages (WF1 deactivated)</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoReplyEnabled" name="autoReplyEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-grid">
+                        <!-- Language -->
+                        <div class="form-group">
+                            <label for="language">
+                                <i class="fas fa-language"></i> Response Language
+                            </label>
+                            <select id="language" name="language">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="tl">Tagalog / Filipino</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="ja">Japanese</option>
+                            </select>
+                        </div>
+
+                        <!-- AI Model -->
+                        <div class="form-group">
+                            <label for="aiModel">
+                                <i class="fas fa-microchip"></i> AI Model
+                            </label>
+                            <select id="aiModel" name="aiModel">
+                                <option value="gpt-4o-mini">GPT-4o Mini (fast, cheap)</option>
+                                <option value="gpt-4o">GPT-4o (smart, pricier)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Temperature Slider -->
+                    <div class="form-group full-width">
+                        <label for="aiTemperature">
+                            <i class="fas fa-thermometer-half"></i> AI Creativity (Temperature)
+                            <span class="slider-value" id="aiTempValue">0.7</span>
+                        </label>
+                        <input type="range" id="aiTemperature" name="aiTemperature"
+                               min="0" max="1" step="0.1" value="0.7"
+                               class="range-slider"
+                               oninput="document.getElementById('aiTempValue').textContent = this.value">
+                        <div class="slider-labels">
+                            <span>Precise (0.0)</span>
+                            <span>Creative (1.0)</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Notes -->
+                    <div class="form-group full-width">
+                        <label for="aiNotes">
+                            <i class="fas fa-comment-dots"></i> Special Instructions for AI
+                        </label>
+                        <textarea id="aiNotes" name="aiNotes" rows="5"
+                                  placeholder="Example:
+- Always offer early check-in if available
+- We have a cat, so mention this to guests with allergies
+- Cleaning crew arrives at 10 AM
+- Never discount below $50/night"></textarea>
+                    </div>
+
+                    <!-- Pricing Rules -->
+                    <div class="form-group full-width">
+                        <label for="pricingRules">
+                            <i class="fas fa-tags"></i> Pricing Rules
+                        </label>
+                        <textarea id="pricingRules" name="pricingRules" rows="3"
+                                  placeholder="Example:
+- Minimum price: $80/night
+- Weekend pricing +30%
+- Monthly stays -15%"></textarea>
+                    </div>
+
+                    <!-- System Prompt Editor (advanced) -->
+                    <details class="advanced-section">
+                        <summary><i class="fas fa-terminal"></i> Advanced: Edit System Prompt</summary>
+                        <div class="form-group full-width" style="margin-top:12px;">
+                            <label for="systemPromptEditor">
+                                <i class="fas fa-brain"></i> System Prompt (raw)
+                            </label>
+                            <textarea id="systemPromptEditor" rows="10" style="font-family:monospace;font-size:13px;line-height:1.5;"
+                                      placeholder="The AI concierge system prompt will appear here after connecting to n8n. You can edit it to change how your AI assistant behaves."></textarea>
+                            <small class="help-text">This controls the personality, rules, and booking flow. Changes are appended as CLIENT CUSTOMIZATIONS.</small>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="pricingRulesEditor">
+                                <i class="fas fa-dollar-sign"></i> Custom Pricing Rules (appended to prompt)
+                            </label>
+                            <textarea id="pricingRulesEditor" rows="3" style="font-family:monospace;font-size:13px;"
+                                      placeholder="These pricing rules are appended directly to the AI system prompt"></textarea>
+                        </div>
+                    </details>
+
+                    <div style="display:flex;gap:10px;margin-top:16px;">
+                        <button type="button" class="btn-save-section" onclick="saveSection('ai')">
+                            <i class="fas fa-save"></i> Save Section
+                        </button>
+                        <button type="button" id="saveSystemPromptBtn" class="btn-sync-prompt">
+                            <i class="fas fa-cloud-upload-alt"></i> Save & Sync to AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- SECTION 4: Booking & Payment Defaults      -->
+                <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-users"></i> 3. Team & Contacts</h2>
+                        <h2><i class="fas fa-calendar-check"></i> 4. Booking & Payment Defaults</h2>
+                        <span class="system-prompt-badge">Syncs to WF2 + WF4</span>
+                    </div>
+
+                    <p class="section-description">
+                        Global booking and payment settings. Per-property overrides can be set on the Properties page.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="defaultCurrency">
+                                <i class="fas fa-dollar-sign"></i> Default Currency
+                            </label>
+                            <select id="defaultCurrency" name="defaultCurrency">
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR</option>
+                                <option value="PHP">PHP (&#8369;)</option>
+                                <option value="GBP">GBP (&pound;)</option>
+                                <option value="JPY">JPY (&yen;)</option>
+                                <option value="AUD">AUD (A$)</option>
+                                <option value="MXN">MXN</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="defaultPaymentMethod">
+                                <i class="fas fa-credit-card"></i> Default Payment Method
+                            </label>
+                            <select id="defaultPaymentMethod" name="defaultPaymentMethod">
+                                <option value="">Select...</option>
+                                <option value="gcash">GCash</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="stripe">Stripe</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cash">Cash</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="defaultCheckInTime">
+                                <i class="fas fa-sign-in-alt"></i> Default Check-in Time
+                            </label>
+                            <input type="time" id="defaultCheckInTime" name="defaultCheckInTime" value="15:00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="defaultCheckOutTime">
+                                <i class="fas fa-sign-out-alt"></i> Default Check-out Time
+                            </label>
+                            <input type="time" id="defaultCheckOutTime" name="defaultCheckOutTime" value="11:00">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="globalTimezone">
+                                <i class="fas fa-globe"></i> Timezone
+                            </label>
+                            <select id="globalTimezone" name="globalTimezone">
+                                <option value="Asia/Manila">Philippines (UTC+8)</option>
+                                <option value="Asia/Singapore">Singapore (UTC+8)</option>
+                                <option value="Asia/Hong_Kong">Hong Kong (UTC+8)</option>
+                                <option value="Asia/Tokyo">Japan (UTC+9)</option>
+                                <option value="Asia/Seoul">South Korea (UTC+9)</option>
+                                <option value="Asia/Bangkok">Thailand (UTC+7)</option>
+                                <option value="Asia/Kolkata">India (UTC+5:30)</option>
+                                <option value="Asia/Dubai">UAE (UTC+4)</option>
+                                <option value="America/New_York">US Eastern (UTC-5)</option>
+                                <option value="America/Chicago">US Central (UTC-6)</option>
+                                <option value="America/Denver">US Mountain (UTC-7)</option>
+                                <option value="America/Los_Angeles">US Pacific (UTC-8)</option>
+                                <option value="Europe/London">UK (UTC+0)</option>
+                                <option value="Europe/Paris">Europe Central (UTC+1)</option>
+                                <option value="Australia/Sydney">Australia Eastern (UTC+11)</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="minBookingLeadTime">
+                                <i class="fas fa-hourglass-start"></i> Min Booking Lead Time (hours)
+                            </label>
+                            <input type="number" id="minBookingLeadTime" name="minBookingLeadTime"
+                                   min="0" max="168" value="0" placeholder="0">
+                            <small class="help-text">Reject bookings with less than X hours notice. 0 = allow same-day.</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="cancellationPolicy">
+                            <i class="fas fa-file-contract"></i> Cancellation Policy
+                        </label>
+                        <textarea id="cancellationPolicy" name="cancellationPolicy" rows="3"
+                                  placeholder="Example: Free cancellation up to 48 hours before check-in. After that, the first night is non-refundable."></textarea>
+                        <small class="help-text">The AI will communicate this policy to guests asking about cancellations.</small>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="competingOfferTimeout">
+                                <i class="fas fa-clock"></i> Competing Offer Timeout (hours)
+                            </label>
+                            <input type="number" id="competingOfferTimeout" name="competingOfferTimeout"
+                                   min="1" max="48" value="2" placeholder="2">
+                            <small class="help-text">Time you have to decide between overlapping offers.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="offerHoldDuration">
+                                <i class="fas fa-hand-paper"></i> Offer Hold Duration (hours)
+                            </label>
+                            <input type="number" id="offerHoldDuration" name="offerHoldDuration"
+                                   min="1" max="72" value="24" placeholder="24">
+                            <small class="help-text">How long to hold an offer before it expires.</small>
+                        </div>
+                    </div>
+
+                    <!-- Payment Confirmation Toggle -->
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-check-double"></i> Require Payment Confirmation</label>
+                            <small>Owner must confirm payment before booking is finalized</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="requirePaymentConfirmation" name="requirePaymentConfirmation" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('booking')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- SECTION 5: Notifications & Safety          -->
+                <!-- ========================================== -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-bell"></i> 5. Notifications & Safety</h2>
+                        <span class="system-prompt-badge">Syncs to WF8 + SUB</span>
+                    </div>
+
+                    <p class="section-description">
+                        Emergency contacts, notification preferences, and guest screening defaults.
+                    </p>
+
+                    <h3 class="subsection-title"><i class="fas fa-ambulance"></i> Emergency Contacts</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="emergencyContact1Name">
+                                <i class="fas fa-user-shield"></i> Contact 1 - Name
+                            </label>
+                            <input type="text" id="emergencyContact1Name" name="emergencyContact1Name"
+                                   placeholder="John Smith (Maintenance)">
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyContact1Phone">
+                                <i class="fas fa-phone-alt"></i> Contact 1 - Phone
+                            </label>
+                            <input type="tel" id="emergencyContact1Phone" name="emergencyContact1Phone"
+                                   placeholder="+1234567890">
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyContact2Name">
+                                <i class="fas fa-user-shield"></i> Contact 2 - Name
+                            </label>
+                            <input type="text" id="emergencyContact2Name" name="emergencyContact2Name"
+                                   placeholder="Jane Doe (Backup)">
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyContact2Phone">
+                                <i class="fas fa-phone-alt"></i> Contact 2 - Phone
+                            </label>
+                            <input type="tel" id="emergencyContact2Phone" name="emergencyContact2Phone"
+                                   placeholder="+1234567890">
+                        </div>
+                    </div>
+
+                    <h3 class="subsection-title"><i class="fas fa-envelope-open-text"></i> Notification Toggles</h3>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-calendar-plus"></i> New Booking</label>
+                            <small>Notify when a new booking is created</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notifyOnNewBooking" name="notifyOnNewBooking" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-door-open"></i> Check-In</label>
+                            <small>Notify when a guest checks in</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notifyOnCheckIn" name="notifyOnCheckIn" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-exchange-alt"></i> Competing Offer</label>
+                            <small>Notify when dates overlap with another offer</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notifyOnCompetingOffer" name="notifyOnCompetingOffer" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-chart-bar"></i> Daily Report</label>
+                            <small>Receive a daily summary of activity</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="notifyDailyReport" name="notifyDailyReport" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <h3 class="subsection-title"><i class="fas fa-user-check"></i> Guest Screening</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="guestScreeningDefault">
+                                <i class="fas fa-shield-alt"></i> Default Screening Mode
+                            </label>
+                            <select id="guestScreeningDefault" name="guestScreeningDefault">
+                                <option value="auto_approve">Auto-Approve (trust all guests)</option>
+                                <option value="flag_for_review" selected>Flag for Review (recommended)</option>
+                                <option value="always_screen">Always Screen (strictest)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Watchdog Toggle -->
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-eye"></i> Watchdog Monitoring (WF8)</label>
+                            <small>15-minute safety checks for anomalies and emergencies</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="watchdogEnabled" name="watchdogEnabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('notifications')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- SECTION 6: Budget & Usage                  -->
+                <!-- ========================================== -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-wallet"></i> 6. Budget & Usage</h2>
+                        <span class="system-prompt-badge">Syncs to WF1</span>
+                    </div>
+
+                    <p class="section-description">
+                        Control AI spending limits. When the budget is exhausted, the AI sends the fallback message instead of using OpenAI.
+                    </p>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="monthlyBudget">
+                                <i class="fas fa-money-bill-wave"></i> Monthly Budget (USD)
+                            </label>
+                            <input type="number" id="monthlyBudget" name="monthlyBudget"
+                                   min="5" max="1000" value="50" step="5" placeholder="50">
+                        </div>
+                    </div>
+
+                    <h3 class="subsection-title"><i class="fas fa-exclamation-triangle"></i> Budget Alerts</h3>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-battery-half"></i> Alert at 50%</label>
+                            <small>Notify when half the monthly budget is used</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="budgetAlert50" name="budgetAlert50" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-battery-quarter"></i> Alert at 80%</label>
+                            <small>Notify when 80% of the monthly budget is used</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="budgetAlert80" name="budgetAlert80" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <label><i class="fas fa-hand-paper"></i> Pause AI at 100%</label>
+                            <small>Stop AI responses and send fallback message when budget is exhausted</small>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="budgetAlertLimit" name="budgetAlertLimit" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group full-width" style="margin-top:12px;">
+                        <label for="fallbackMessage">
+                            <i class="fas fa-comment-slash"></i> Fallback Message (when budget exhausted)
+                        </label>
+                        <textarea id="fallbackMessage" name="fallbackMessage" rows="3"
+                                  placeholder="Thank you for your message! Our AI assistant is temporarily unavailable. Please contact us directly at [your phone/email] for immediate assistance."></textarea>
+                    </div>
+
+                    <button type="button" class="btn-save-section" onclick="saveSection('budget')">
+                        <i class="fas fa-save"></i> Save Section
+                    </button>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- SECTION 7: Team & Contacts                 -->
+                <!-- ========================================== -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-users"></i> 7. Team & Contacts</h2>
                         <button type="button" class="btn-help" onclick="showHelp('team')">
                             <i class="fas fa-info-circle"></i>
                         </button>
                     </div>
 
                     <p class="section-description">
-                        Add people who help manage your properties. The AI will know who to contact for specific tasks.
+                        Add people who help manage your properties. The AI will know who to contact for specific tasks
+                        (cleaning, maintenance, key handoff, etc.).
                     </p>
 
                     <div id="teamMembersContainer">
-                        <!-- Team members will be added here dynamically -->
                     </div>
 
                     <button type="button" class="btn-add" onclick="addTeamMember()">
@@ -305,92 +756,12 @@
                     </button>
                 </div>
 
-                <!-- SECTION 4: AI Assistant Notes -->
+                <!-- ========================================== -->
+                <!-- SECTION 8: Media & Documentation           -->
+                <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-robot"></i> 4. AI Assistant Notes</h2>
-                        <button type="button" class="btn-help" onclick="showHelp('ai')">
-                            <i class="fas fa-info-circle"></i>
-                        </button>
-                    </div>
-
-                    <p class="section-description">
-                        Tell your AI assistant anything important it should know about your business,
-                        preferences, or special situations.
-                    </p>
-
-                    <div class="form-group full-width">
-                        <label for="aiNotes">
-                            <i class="fas fa-comment-dots"></i> Special Instructions for AI
-                        </label>
-                        <textarea id="aiNotes" name="aiNotes" rows="6"
-                                  placeholder="Example:
-- Always offer early check-in if available
-- We have a cat, so mention this to guests with allergies
-- Cleaning crew arrives at 10 AM
-- Never discount below $50/night
-- Emergency maintenance contact: John 555-1234"></textarea>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="pricingRules">
-                            <i class="fas fa-dollar-sign"></i> Pricing Rules
-                        </label>
-                        <textarea id="pricingRules" name="pricingRules" rows="4"
-                                  placeholder="Example:
-- Minimum price: $80/night
-- Never go below 20% discount
-- Weekend pricing +30%
-- Monthly stays -15%"></textarea>
-                    </div>
-
-                    <button type="button" class="btn-save-section" onclick="saveSection('ai')">
-                        <i class="fas fa-save"></i> Save Section
-                    </button>
-                </div>
-
-                <!-- SECTION 5: AI System Prompt (Live) -->
-                <div class="form-section system-prompt-section" id="systemPromptSection">
-                    <div class="section-header-form">
-                        <h2><i class="fas fa-brain"></i> 5. AI System Prompt (Live)</h2>
-                        <span class="system-prompt-badge">Syncs to n8n</span>
-                    </div>
-
-                    <p class="section-description">
-                        This is the core instruction set for your AI concierge. Changes here are pushed
-                        directly to the live WF1 AI Gateway workflow. Edit how your AI behaves, responds,
-                        and handles the booking flow.
-                    </p>
-
-                    <div class="form-group full-width">
-                        <label for="systemPromptEditor">
-                            <i class="fas fa-terminal"></i> System Prompt
-                        </label>
-                        <textarea id="systemPromptEditor" rows="12" style="font-family:monospace;font-size:13px;line-height:1.5;"
-                                  placeholder="The AI concierge system prompt will appear here after first deployment. You can edit it to change how your AI assistant behaves."></textarea>
-                        <small class="help-text">This controls the personality, rules, and booking flow of your AI assistant.</small>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="pricingRulesEditor">
-                            <i class="fas fa-tags"></i> Custom Pricing Rules (appended to prompt)
-                        </label>
-                        <textarea id="pricingRulesEditor" rows="4" style="font-family:monospace;font-size:13px;"
-                                  placeholder="Example:
-- Last-minute bookings (within 48h) get 10% discount
-- Stays over 7 nights get 15% off
-- Holiday weekends are non-negotiable pricing"></textarea>
-                    </div>
-
-                    <button type="button" id="saveSystemPromptBtn" class="btn-sync-prompt">
-                        <i class="fas fa-cloud-upload-alt"></i> Save & Sync to AI
-                    </button>
-                </div>
-
-                <!-- SECTION 6: Photos & Videos -->
-                <div class="form-section">
-                    <div class="section-header-form">
-                        <h2><i class="fas fa-image"></i> 6. Photos & Videos</h2>
+                        <h2><i class="fas fa-image"></i> 8. Media & Documentation</h2>
                         <button type="button" class="btn-help" onclick="showHelp('media')">
                             <i class="fas fa-info-circle"></i>
                         </button>
@@ -428,85 +799,6 @@
                     </div>
 
                     <button type="button" class="btn-save-section" onclick="saveSection('media')">
-                        <i class="fas fa-save"></i> Save Section
-                    </button>
-                </div>
-
-                <!-- SECTION 7: Preferences -->
-                <div class="form-section">
-                    <div class="section-header-form">
-                        <h2><i class="fas fa-sliders-h"></i> 7. Preferences</h2>
-                    </div>
-
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="language">
-                                <i class="fas fa-language"></i> Language
-                            </label>
-                            <select id="language" name="language">
-                                <option value="en">English</option>
-                                <option value="es">Spanish</option>
-                                <option value="tl">Tagalog</option>
-                                <option value="fr">French</option>
-                                <option value="de">German</option>
-                                <option value="ja">Japanese</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="globalTimezone">
-                                <i class="fas fa-globe"></i> Timezone
-                            </label>
-                            <select id="globalTimezone" name="globalTimezone">
-                                <option value="Asia/Manila">Philippines (UTC+8)</option>
-                                <option value="Asia/Singapore">Singapore (UTC+8)</option>
-                                <option value="Asia/Hong_Kong">Hong Kong (UTC+8)</option>
-                                <option value="Asia/Tokyo">Japan (UTC+9)</option>
-                                <option value="Asia/Seoul">South Korea (UTC+9)</option>
-                                <option value="Asia/Bangkok">Thailand (UTC+7)</option>
-                                <option value="Asia/Kolkata">India (UTC+5:30)</option>
-                                <option value="Asia/Dubai">UAE (UTC+4)</option>
-                                <option value="America/New_York">US Eastern (UTC-5)</option>
-                                <option value="America/Chicago">US Central (UTC-6)</option>
-                                <option value="America/Denver">US Mountain (UTC-7)</option>
-                                <option value="America/Los_Angeles">US Pacific (UTC-8)</option>
-                                <option value="Europe/London">UK (UTC+0)</option>
-                                <option value="Europe/Paris">Europe Central (UTC+1)</option>
-                                <option value="Australia/Sydney">Australia Eastern (UTC+11)</option>
-                                <option value="UTC">UTC</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="currency">
-                                <i class="fas fa-dollar-sign"></i> Currency
-                            </label>
-                            <select id="currency" name="currency">
-                                <option value="USD">USD ($)</option>
-                                <option value="EUR">EUR</option>
-                                <option value="PHP">PHP</option>
-                                <option value="GBP">GBP</option>
-                                <option value="JPY">JPY</option>
-                                <option value="AUD">AUD (A$)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="paymentMethod">
-                                <i class="fas fa-credit-card"></i> Preferred Payment
-                            </label>
-                            <select id="paymentMethod" name="paymentMethod">
-                                <option value="">Select...</option>
-                                <option value="gcash">GCash</option>
-                                <option value="paypal">PayPal</option>
-                                <option value="stripe">Stripe</option>
-                                <option value="bank_transfer">Bank Transfer</option>
-                                <option value="cash">Cash</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="button" class="btn-save-section" onclick="saveSection('preferences')">
                         <i class="fas fa-save"></i> Save Section
                     </button>
                 </div>
