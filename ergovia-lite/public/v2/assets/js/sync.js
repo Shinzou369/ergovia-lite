@@ -60,7 +60,6 @@ const WorkflowSync = {
             }
         } catch (err) {
             console.error('[sync] Failed to load sync status:', err);
-            // Still update the card to show "not connected" state
             this.updateConnectionCard();
         }
     },
@@ -73,7 +72,6 @@ const WorkflowSync = {
         const urlEl = document.getElementById('n8nConnectedUrl');
 
         if (this.n8nConfigured && this.deployedCount > 0) {
-            // Connected with workflows
             if (notConnected) notConnected.style.display = 'none';
             if (connected) connected.style.display = 'block';
             if (urlEl) urlEl.textContent = this.n8nUrl || 'Connected to n8n';
@@ -83,7 +81,6 @@ const WorkflowSync = {
                 statusEl.textContent = syncText;
             }
         } else if (this.n8nConfigured) {
-            // Connected but no workflows (show connected card, prompt reimport)
             if (notConnected) notConnected.style.display = 'none';
             if (connected) connected.style.display = 'block';
             if (urlEl) urlEl.textContent = this.n8nUrl || 'Connected to n8n';
@@ -92,7 +89,6 @@ const WorkflowSync = {
             }
             if (statusEl) statusEl.textContent = '';
         } else {
-            // Not connected — show connect form
             if (notConnected) notConnected.style.display = 'block';
             if (connected) connected.style.display = 'none';
         }
@@ -117,7 +113,6 @@ const WorkflowSync = {
             return;
         }
 
-        // Show loading state
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
         btn.disabled = true;
@@ -149,7 +144,6 @@ const WorkflowSync = {
 
     disconnectN8n() {
         if (!confirm('Disconnect from n8n? You can reconnect anytime.')) return;
-        // Just reset the UI — the config stays in DB for easy reconnect
         this.n8nConfigured = false;
         this.deployedCount = 0;
         this.n8nUrl = null;
@@ -236,6 +230,15 @@ const WorkflowSync = {
             if (this.syncCategories.has('workflows')) {
                 await this.syncWorkflows();
             }
+            if (this.syncCategories.has('booking-defaults')) {
+                await this.syncBookingDefaults();
+            }
+            if (this.syncCategories.has('notifications')) {
+                await this.syncNotifications();
+            }
+            if (this.syncCategories.has('budget')) {
+                await this.syncBudget();
+            }
 
             this.showToast('Workflows synced successfully!', 'success');
             this.clearNeedsSync();
@@ -262,8 +265,6 @@ const WorkflowSync = {
         const promptEl = document.getElementById('systemPromptEditor');
         const rulesEl = document.getElementById('pricingRulesEditor');
 
-        // Send whatever custom prompt/rules exist — backend appends to existing WF1 prompt
-        // and also injects language preference from saved settings
         const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_SYSTEM_PROMPT}`, {
             method: 'POST',
             headers: this.authHeaders(),
@@ -305,6 +306,36 @@ const WorkflowSync = {
                 console.error(`[sync] Failed to sync ${cred.type}:`, result.error);
             }
         }
+    },
+
+    async syncBookingDefaults() {
+        const response = await fetch(`${CONFIG.API.BASE_URL}/sync/booking-defaults`, {
+            method: 'POST',
+            headers: this.authHeaders()
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Booking defaults sync failed');
+        return result;
+    },
+
+    async syncNotifications() {
+        const response = await fetch(`${CONFIG.API.BASE_URL}/sync/notifications`, {
+            method: 'POST',
+            headers: this.authHeaders()
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Notifications sync failed');
+        return result;
+    },
+
+    async syncBudget() {
+        const response = await fetch(`${CONFIG.API.BASE_URL}/sync/budget`, {
+            method: 'POST',
+            headers: this.authHeaders()
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Budget sync failed');
+        return result;
     },
 
     // ============================================

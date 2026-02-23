@@ -122,6 +122,10 @@ function updateTasks(tasks) {
             <div class="task-action">
                 ${task.actionLink ?
                     `<a href="${task.actionLink}" class="btn-primary">${escapeHtml(task.actionText || 'View')}</a>` :
+                  task.onAction ?
+                    `<button class="btn-primary" onclick="${task.onAction}">
+                        ${escapeHtml(task.actionText || 'View')}
+                    </button>` :
                     `<button class="btn-primary" onclick="markTaskComplete('${task.id}')">
                         <i class="fas fa-check"></i> Done
                     </button>`
@@ -224,7 +228,46 @@ function buildSetupTasks(data) {
         });
     }
 
+    // Google Maps setup task
+    if (!localStorage.getItem('ergovia_gmaps_dismissed')) {
+        tasks.push({
+            id: 'setup-gmaps',
+            title: 'Setup Google Maps Presence',
+            description: 'Get found on Google Maps and drive bookings to your AI',
+            priority: 'medium',
+            icon: 'map-marker-alt',
+            actionText: 'Start Setup',
+            onAction: 'showGoogleMapsModal()',
+        });
+    }
+
     return tasks;
+}
+
+/**
+ * Show Google Maps setup modal
+ */
+function showGoogleMapsModal() {
+    const modal = document.getElementById('googleMapsModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+/**
+ * Close Google Maps setup modal
+ */
+function closeGoogleMapsModal() {
+    const modal = document.getElementById('googleMapsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+/**
+ * Dismiss Google Maps setup task permanently
+ */
+function dismissGoogleMapsTask() {
+    localStorage.setItem('ergovia_gmaps_dismissed', 'true');
+    closeGoogleMapsModal();
+    Utils.showToast('Google Maps task dismissed!', 'success');
+    loadDashboard(); // Refresh to remove the task
 }
 
 /**

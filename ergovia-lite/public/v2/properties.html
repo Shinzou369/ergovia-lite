@@ -135,6 +135,15 @@
                                       placeholder="123 Main Street, City, State, ZIP"></textarea>
                         </div>
 
+                        <div class="form-group full-width">
+                            <label for="propertyDescription">
+                                <i class="fas fa-align-left"></i> Property Description
+                            </label>
+                            <textarea id="propertyDescription" name="propertyDescription" rows="3"
+                                      placeholder="Describe your property — location highlights, nearby attractions, what makes it special. The AI will use this when chatting with guests."></textarea>
+                            <small class="help-text">The AI concierge uses this to describe your property to guests.</small>
+                        </div>
+
                         <div class="form-group">
                             <label for="propertyType">
                                 <i class="fas fa-home"></i> Property Type
@@ -548,6 +557,34 @@
                             <input type="checkbox" name="amenity_petfriendly" value="1">
                             <i class="fas fa-paw"></i> Pet Friendly
                         </label>
+                    </div>
+                </div>
+
+                <!-- House Rules -->
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-clipboard-list"></i> House Rules</h3>
+
+                    <div class="form-group full-width">
+                        <label for="houseRules">
+                            <i class="fas fa-gavel"></i> House Rules
+                        </label>
+                        <textarea id="houseRules" name="houseRules" rows="4"
+                                  placeholder="Example: No smoking indoors. Quiet hours 10pm-8am. No parties. Maximum occupancy must be respected. Pets allowed with prior approval."></textarea>
+                        <small class="help-text">The AI will inform guests about these rules during conversation.</small>
+                    </div>
+                </div>
+
+                <!-- Photos & Media -->
+                <div class="form-section-modal">
+                    <h3><i class="fas fa-images"></i> Photos & Media</h3>
+
+                    <div class="form-group full-width">
+                        <label for="photoUrls">
+                            <i class="fas fa-camera"></i> Photo URLs
+                        </label>
+                        <textarea id="photoUrls" name="photoUrls" rows="3"
+                                  placeholder="Paste photo URLs, one per line. Example:&#10;https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"></textarea>
+                        <small class="help-text">The AI can share these photos with guests. One URL per line.</small>
                     </div>
                 </div>
 
