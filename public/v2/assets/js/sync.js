@@ -1,13 +1,10 @@
 /**
  * Workflow Sync Module - V2 Premium Dashboard
- * Handles n8n connection, workflow import, and live variable sync
+ * Handles n8n connection, workflow import, and per-section live sync
  */
 
 const WorkflowSync = {
     // State
-    needsSync: false,
-    syncCategories: new Set(),
-    isSyncing: false,
     n8nConfigured: false,
     deployedCount: 0,
     n8nUrl: null,
@@ -26,8 +23,6 @@ const WorkflowSync = {
 
     init() {
         this.loadSyncStatus();
-        this.renderSyncBanner();
-        this.setupSystemPromptEditor();
     },
 
     // ============================================
@@ -174,82 +169,38 @@ const WorkflowSync = {
     },
 
     // ============================================
-    // SYNC BANNER (shows when changes need sync)
+    // PER-SECTION SYNC DISPATCHER
     // ============================================
 
-    markNeedsSync(category) {
-        this.needsSync = true;
-        this.syncCategories.add(category);
-        this.renderSyncBanner();
-    },
-
-    clearNeedsSync() {
-        this.needsSync = false;
-        this.syncCategories.clear();
-        this.renderSyncBanner();
-    },
-
-    renderSyncBanner() {
-        let banner = document.getElementById('syncBanner');
-        if (!banner) return;
-
-        if (!this.needsSync) {
-            banner.style.display = 'none';
-            return;
-        }
-
-        const categories = Array.from(this.syncCategories).join(', ');
-        banner.style.display = 'flex';
-        banner.innerHTML = `
-            <div style="flex: 1;">
-                <strong>Unsaved workflow changes</strong>
-                <span style="opacity: 0.8; margin-left: 8px;">(${categories})</span>
-            </div>
-            <button onclick="WorkflowSync.syncAll()" class="sync-btn" ${this.isSyncing ? 'disabled' : ''}>
-                ${this.isSyncing ? '<i class="fas fa-spinner fa-spin"></i> Syncing...' : '<i class="fas fa-sync-alt"></i> Sync to Workflows'}
-            </button>
-        `;
-    },
-
-    // ============================================
-    // SYNC ACTIONS
-    // ============================================
-
-    async syncAll() {
-        if (this.isSyncing) return;
-        this.isSyncing = true;
-        this.renderSyncBanner();
-
-        try {
-            if (this.syncCategories.has('credentials')) {
-                await this.syncCredentials();
-            }
-            if (this.syncCategories.has('system-prompt')) {
-                await this.syncSystemPrompt();
-            }
-            if (this.syncCategories.has('workflows')) {
-                await this.syncWorkflows();
-            }
-            if (this.syncCategories.has('booking-defaults')) {
-                await this.syncBookingDefaults();
-            }
-            if (this.syncCategories.has('notifications')) {
-                await this.syncNotifications();
-            }
-            if (this.syncCategories.has('budget')) {
-                await this.syncBudget();
-            }
-
-            this.showToast('Workflows synced successfully!', 'success');
-            this.clearNeedsSync();
-            this.loadSyncStatus();
-        } catch (err) {
-            this.showToast(`Sync failed: ${err.message}`, 'error');
-        } finally {
-            this.isSyncing = false;
-            this.renderSyncBanner();
+    /**
+     * Sync a specific category to n8n workflows.
+     * Called by saveSection() after saving to SQLite.
+     * @param {string} category - One of: credentials, system-prompt, workflows,
+     *                            booking-defaults, notifications, budget
+     */
+    async syncByCategory(category) {
+        switch (category) {
+            case 'credentials':
+                return this.syncCredentials();
+            case 'system-prompt':
+                return this.syncSystemPrompt();
+            case 'workflows':
+                return this.syncWorkflows();
+            case 'booking-defaults':
+                return this.syncBookingDefaults();
+            case 'notifications':
+                return this.syncNotifications();
+            case 'budget':
+                return this.syncBudget();
+            default:
+                console.warn(`[sync] Unknown category: ${category}`);
+                return { success: true };
         }
     },
+
+    // ============================================
+    // INDIVIDUAL SYNC METHODS
+    // ============================================
 
     async syncWorkflows() {
         const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.SYNC_WORKFLOWS}`, {
@@ -275,9 +226,6 @@ const WorkflowSync = {
         });
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'System prompt sync failed');
-        if (result.language) {
-            this.showToast(`Language set to ${result.language}`, 'info');
-        }
         return result;
     },
 
@@ -336,37 +284,6 @@ const WorkflowSync = {
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'Budget sync failed');
         return result;
-    },
-
-    // ============================================
-    // SYSTEM PROMPT EDITOR
-    // ============================================
-
-    setupSystemPromptEditor() {
-        const saveBtn = document.getElementById('saveSystemPromptBtn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.saveAndSyncPrompt());
-        }
-    },
-
-    async saveAndSyncPrompt() {
-        const btn = document.getElementById('saveSystemPromptBtn');
-        if (!btn) return;
-
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-        btn.disabled = true;
-
-        try {
-            await this.syncSystemPrompt();
-            this.showToast('AI system prompt updated and synced!', 'success');
-            this.loadSyncStatus();
-        } catch (err) {
-            this.showToast(`Failed: ${err.message}`, 'error');
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
     },
 
     // ============================================

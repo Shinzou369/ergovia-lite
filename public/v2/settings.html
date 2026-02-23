@@ -70,18 +70,6 @@
             </div>
         </div>
 
-        <!-- Sync Banner -->
-        <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#1a365d,#2a4a7f);color:#fff;border-radius:10px;font-size:14px;box-shadow:0 2px 8px rgba(26,54,93,0.3);">
-        </div>
-
-        <!-- Progress Indicator -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <p class="progress-text" id="progressText">0% Complete</p>
-        </div>
-
         <!-- n8n Connection Card -->
         <div class="n8n-card">
             <div id="n8nNotConnected">
@@ -123,7 +111,7 @@
             <h1><i class="fas fa-cog"></i> Account Settings</h1>
             <p class="form-subtitle">Configure your AI assistant, workflows, and business preferences</p>
 
-            <form id="fillupForm" onsubmit="return handleFormSubmit(event)">
+            <form id="fillupForm">
 
                 <!-- ========================================== -->
                 <!-- SECTION 1: Owner Information               -->
@@ -197,8 +185,8 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('owner')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-owner" onclick="saveSection('owner')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -274,8 +262,8 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('credentials')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-credentials" onclick="saveSection('credentials')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -395,14 +383,9 @@
                         </div>
                     </details>
 
-                    <div style="display:flex;gap:10px;margin-top:16px;">
-                        <button type="button" class="btn-save-section" onclick="saveSection('ai')">
-                            <i class="fas fa-save"></i> Save Section
-                        </button>
-                        <button type="button" id="saveSystemPromptBtn" class="btn-sync-prompt">
-                            <i class="fas fa-cloud-upload-alt"></i> Save & Sync to AI
-                        </button>
-                    </div>
+                    <button type="button" class="btn-save-section" id="saveBtn-ai" onclick="saveSection('ai')" style="margin-top:16px;">
+                        <i class="fas fa-save"></i> Save & Apply
+                    </button>
                 </div>
 
                 <!-- ========================================== -->
@@ -537,8 +520,8 @@
                         </label>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('booking')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-booking" onclick="saveSection('booking')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -655,8 +638,8 @@
                         </label>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('notifications')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-notifications" onclick="saveSection('notifications')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -723,8 +706,8 @@
                                   placeholder="Thank you for your message! Our AI assistant is temporarily unavailable. Please contact us directly at [your phone/email] for immediate assistance."></textarea>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('budget')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-budget" onclick="saveSection('budget')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -751,8 +734,8 @@
                         <i class="fas fa-plus-circle"></i> Add Team Member
                     </button>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('team')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-team" onclick="saveSection('team')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -798,42 +781,12 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('media')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-media" onclick="saveSection('media')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
-                <!-- Activation Section -->
-                <div class="activation-section">
-                    <div class="activation-notice">
-                        <i class="fas fa-rocket"></i>
-                        <h3>Ready to Activate?</h3>
-                        <p>Once you click "Activate AI Assistant", your workflows will be configured and deployed.
-                           This may take 2-3 minutes.</p>
-                    </div>
-
-                    <button type="submit" class="btn-activate" id="activateBtn" disabled>
-                        <i class="fas fa-power-off"></i> Activate AI Assistant
-                    </button>
-
-                    <p class="completion-requirement" id="completionRequirement">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Please complete all required sections before activating
-                    </p>
-                </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Activation Loading Modal -->
-    <div class="modal" id="loadingModal" style="display:none;">
-        <div class="modal-content loading-modal activation-modal-content">
-            <div class="spinner"></div>
-            <h2>Activating Your AI Assistant</h2>
-            <p id="activationStatus">Configuring workflows...</p>
-            <div class="progress-bar-loading">
-                <div class="progress-fill-loading" id="activationProgress"></div>
-            </div>
         </div>
     </div>
 

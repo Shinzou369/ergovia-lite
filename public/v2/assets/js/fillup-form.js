@@ -1,20 +1,24 @@
 /**
  * Fillup Form JavaScript
- * Handles the comprehensive onboarding/settings form
+ * Handles the settings form — per-section save with immediate n8n sync
  */
 
 let formData = {};
 let teamMembers = [];
-let sectionsCompleted = {
-    owner: false,
-    credentials: false,
-    ai: false,
-    booking: false,
-    notifications: false,
-    budget: false,
-    team: false,
-    media: false,
-    properties: false,
+
+/**
+ * Section-to-sync category map (mirrors server.js syncSections)
+ * Each section only syncs its own category — no full-workflow rewrite.
+ */
+const SECTION_SYNC_MAP = {
+    credentials: 'credentials',
+    ai: 'system-prompt',
+    owner: 'workflows',
+    booking: 'booking-defaults',
+    notifications: 'notifications',
+    budget: 'budget',
+    team: 'workflows',
+    // media: no sync needed (no n8n workflows consume media links)
 };
 
 // Initialize form
@@ -23,7 +27,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFormListeners();
     setupPlatformToggle();
     loadDraft();
-    updateProgress();
 });
 
 /**
@@ -36,7 +39,6 @@ async function loadExistingSettings() {
         if (data.settings) {
             formData = data.settings;
             populateForm(formData);
-            checkSectionsCompletion();
         }
     } catch (error) {
         console.error('Failed to load settings:', error);
@@ -164,19 +166,16 @@ function setCheckbox(id, checked) {
 }
 
 /**
- * Setup form input listeners for auto-save
+ * Setup form input listeners for auto-draft
  */
 function setupFormListeners() {
     const form = document.getElementById('fillupForm');
     if (!form) return;
 
     const inputs = form.querySelectorAll('input, select, textarea');
-
     inputs.forEach(input => {
         input.addEventListener('change', () => {
             saveDraft();
-            checkSectionsCompletion();
-            updateProgress();
         });
     });
 }
@@ -243,41 +242,94 @@ function loadDraft() {
     });
 }
 
+// ============================================
+// SAVE & APPLY (per-section)
+// ============================================
+
 /**
- * Save specific section
+ * Save a section and immediately sync to n8n workflows.
+ * Button lifecycle: idle → Saving... → Syncing... → Saved & Applied! → idle
  */
 async function saveSection(sectionName) {
-    try {
-        const sectionData = getSectionData(sectionName);
+    const btn = document.getElementById(`saveBtn-${sectionName}`);
+    if (!btn) return;
 
-        const result = await Utils.post(CONFIG.API.SAVE_SETTINGS, {
+    const originalHTML = btn.innerHTML;
+    const syncCategory = SECTION_SYNC_MAP[sectionName];
+    const n8nConnected = typeof WorkflowSync !== 'undefined' && WorkflowSync.n8nConfigured;
+
+    try {
+        // Phase 1: Save to database
+        setBtnState(btn, 'saving');
+        const sectionData = getSectionData(sectionName);
+        await Utils.post(CONFIG.API.SAVE_SETTINGS, {
             section: sectionName,
             data: sectionData
         });
 
-        Utils.showToast(`${getSectionTitle(sectionName)} saved!`, 'success');
-        sectionsCompleted[sectionName] = true;
-        updateProgress();
-
-        // Auto-sync to live workflows if n8n is connected
-        if (result && result.needsSync && typeof WorkflowSync !== 'undefined' && WorkflowSync.n8nConfigured) {
-            Utils.showToast('Syncing changes to live workflows...', 'info');
-            try {
-                WorkflowSync.markNeedsSync(result.syncCategory);
-                await WorkflowSync.syncAll();
-            } catch (syncErr) {
-                console.error('Auto-sync failed:', syncErr);
-                WorkflowSync.markNeedsSync(result.syncCategory);
-            }
-        } else if (result && result.needsSync && typeof WorkflowSync !== 'undefined') {
-            WorkflowSync.markNeedsSync(result.syncCategory);
+        // Phase 2: Sync to n8n (if applicable and connected)
+        if (syncCategory && n8nConnected) {
+            setBtnState(btn, 'syncing');
+            await WorkflowSync.syncByCategory(syncCategory);
+            setBtnState(btn, 'success');
+        } else {
+            setBtnState(btn, 'saved-only');
         }
 
+        // Phase 3: Revert button after 2s
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            btn.classList.remove('btn-state-success', 'btn-state-saved-only');
+        }, 2000);
+
     } catch (error) {
-        console.error('Failed to save section:', error);
-        Utils.showToast('Failed to save section', 'error');
+        console.error(`Failed to save ${sectionName}:`, error);
+        setBtnState(btn, 'error');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            btn.classList.remove('btn-state-error');
+        }, 2500);
     }
 }
+
+/**
+ * Set visual button state during save/sync lifecycle
+ */
+function setBtnState(btn, state) {
+    btn.disabled = true;
+    btn.classList.remove('btn-state-saving', 'btn-state-syncing', 'btn-state-success', 'btn-state-saved-only', 'btn-state-error');
+
+    switch (state) {
+        case 'saving':
+            btn.classList.add('btn-state-saving');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            break;
+        case 'syncing':
+            btn.classList.add('btn-state-syncing');
+            btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing to workflows...';
+            break;
+        case 'success':
+            btn.classList.add('btn-state-success');
+            btn.innerHTML = '<i class="fas fa-check"></i> Saved & Applied!';
+            btn.disabled = false;
+            break;
+        case 'saved-only':
+            btn.classList.add('btn-state-saved-only');
+            btn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+            btn.disabled = false;
+            break;
+        case 'error':
+            btn.classList.add('btn-state-error');
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed - try again';
+            break;
+    }
+}
+
+// ============================================
+// SECTION DATA EXTRACTION
+// ============================================
 
 /**
  * Get data for a specific section
@@ -380,191 +432,14 @@ function getSectionTitle(sectionName) {
         budget: 'Budget & Usage',
         team: 'Team & Contacts',
         media: 'Media & Documentation',
-        properties: 'Properties',
     };
     return titles[sectionName] || sectionName;
 }
 
-/**
- * Check which sections are completed
- */
-function checkSectionsCompletion() {
-    // Owner section (required)
-    sectionsCompleted.owner =
-        !!document.getElementById('ownerName')?.value &&
-        !!document.getElementById('ownerEmail')?.value &&
-        !!document.getElementById('ownerPhone')?.value &&
-        !!document.getElementById('preferredPlatform')?.value;
+// ============================================
+// TEAM MEMBERS MANAGEMENT
+// ============================================
 
-    // Credentials section (Telegram Bot Token required)
-    sectionsCompleted.credentials =
-        !!document.getElementById('telegramBotToken')?.value;
-
-    // AI section (optional — always complete)
-    sectionsCompleted.ai = true;
-
-    // Booking (optional — always complete, has defaults)
-    sectionsCompleted.booking = true;
-
-    // Notifications (optional)
-    sectionsCompleted.notifications = true;
-
-    // Budget (always complete — has default)
-    sectionsCompleted.budget = true;
-
-    // Team (optional)
-    sectionsCompleted.team = true;
-
-    // Media (optional)
-    sectionsCompleted.media = true;
-
-    // Properties (checked from backend)
-    sectionsCompleted.properties = true;
-
-    // Enable activate button if minimum required sections are complete
-    const activateBtn = document.getElementById('activateBtn');
-    const completionRequirement = document.getElementById('completionRequirement');
-
-    const requiredComplete = sectionsCompleted.owner && sectionsCompleted.credentials;
-
-    if (activateBtn) {
-        activateBtn.disabled = !requiredComplete;
-    }
-
-    if (completionRequirement) {
-        if (requiredComplete) {
-            completionRequirement.innerHTML = `
-                <i class="fas fa-check-circle"></i>
-                All required sections completed! Ready to activate.
-            `;
-            completionRequirement.style.color = 'var(--success-green)';
-        } else {
-            completionRequirement.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i>
-                Please complete all required sections before activating
-            `;
-            completionRequirement.style.color = 'var(--text-gray)';
-        }
-    }
-}
-
-/**
- * Update progress bar
- */
-function updateProgress() {
-    const totalSections = Object.keys(sectionsCompleted).length;
-    const completedCount = Object.values(sectionsCompleted).filter(v => v).length;
-    const percentage = Math.round((completedCount / totalSections) * 100);
-
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-
-    if (progressFill) {
-        progressFill.style.width = `${percentage}%`;
-    }
-
-    if (progressText) {
-        progressText.textContent = `${percentage}% Complete`;
-    }
-}
-
-/**
- * Handle form submission (Activate button)
- */
-async function handleFormSubmit(event) {
-    event.preventDefault();
-
-    const activateBtn = document.getElementById('activateBtn');
-    if (activateBtn.disabled) {
-        Utils.showToast('Please complete all required sections', 'warning');
-        return false;
-    }
-
-    showLoadingModal();
-
-    try {
-        const allData = {
-            owner: getSectionData('owner'),
-            credentials: getSectionData('credentials'),
-            ai: getSectionData('ai'),
-            booking: getSectionData('booking'),
-            notifications: getSectionData('notifications'),
-            budget: getSectionData('budget'),
-            team: getSectionData('team'),
-            media: getSectionData('media'),
-        };
-
-        const response = await Utils.post(CONFIG.API.ACTIVATE_WORKFLOWS, allData);
-
-        updateActivationProgress(20, 'Provisioning server...');
-        await delay(2000);
-
-        updateActivationProgress(40, 'Setting up workflows...');
-        await delay(2000);
-
-        updateActivationProgress(60, 'Configuring credentials...');
-        await delay(2000);
-
-        updateActivationProgress(80, 'Deploying AI assistant...');
-        await delay(2000);
-
-        updateActivationProgress(100, 'Complete!');
-        await delay(1000);
-
-        Utils.clearDraft();
-
-        hideLoadingModal();
-        Utils.showToast('AI Assistant activated successfully!', 'success');
-
-        setTimeout(() => {
-            window.location.href = 'dashboard.html';
-        }, 1500);
-
-    } catch (error) {
-        console.error('Activation failed:', error);
-        hideLoadingModal();
-        Utils.showToast('Activation failed. Please try again.', 'error');
-    }
-
-    return false;
-}
-
-function showLoadingModal() {
-    const modal = document.getElementById('loadingModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
-    }
-}
-
-function hideLoadingModal() {
-    const modal = document.getElementById('loadingModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function updateActivationProgress(percentage, status) {
-    const progressFill = document.getElementById('activationProgress');
-    const statusText = document.getElementById('activationStatus');
-
-    if (progressFill) {
-        progressFill.style.width = `${percentage}%`;
-    }
-
-    if (statusText) {
-        statusText.textContent = status;
-    }
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Team Members Management
- */
 function addTeamMember() {
     const member = {
         id: Date.now(),
@@ -649,9 +524,10 @@ function updateTeamMember(memberId, field, value) {
     }
 }
 
-/**
- * Help modals
- */
+// ============================================
+// HELP MODALS
+// ============================================
+
 function showHelp(section) {
     const helpTexts = {
         owner: 'Enter your contact information. This is how the AI will reach you with important updates and questions.',
