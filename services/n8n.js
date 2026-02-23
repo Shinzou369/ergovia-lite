@@ -838,10 +838,17 @@ class N8NService {
       // Clean workflow before update
       const cleanWorkflow = this.cleanWorkflowForApi(workflow);
 
-      // Deactivate + update in a single PUT (avoids PATCH compatibility issues)
+      // Remove read-only fields that newer n8n versions reject
+      delete cleanWorkflow.active;
+      delete cleanWorkflow.id;
+
+      // Deactivate first via dedicated endpoint
+      await this.deactivateWorkflow(workflowId);
+
+      // PUT the updated workflow (without active/id fields)
       await axios.put(
         `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-        { ...cleanWorkflow, active: false },
+        cleanWorkflow,
         {
           headers: {
             'X-N8N-API-KEY': this.apiKey,
