@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M1 AI Config - Ergovia</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/logo.png" type="image/png">
+    <style>
+        .m1-nav-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+        .config-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-bottom: var(--spacing-xl); transition: all var(--transition-base); }
+        .config-card:hover { box-shadow: var(--shadow-md); }
+        .config-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-lg); padding-bottom: var(--spacing-md); border-bottom: 1px solid var(--border); }
+        .config-card-header h3 { margin: 0; display: flex; align-items: center; gap: 8px; }
+        .prompt-editor { width: 100%; min-height: 200px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-main); color: var(--text-primary); resize: vertical; transition: border-color var(--transition-base); }
+        .prompt-editor:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1); }
+        .prompt-meta { display: flex; gap: var(--spacing-lg); align-items: center; margin-top: var(--spacing-md); flex-wrap: wrap; }
+        .prompt-meta .meta-item { font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+        .stage-list { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+        .stage-item { display: grid; grid-template-columns: 40px 1fr 200px 80px 60px; align-items: center; gap: var(--spacing-md); padding: 12px 16px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-md); transition: all var(--transition-base); }
+        .stage-item:hover { border-color: var(--primary); }
+        .stage-order { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+        .stage-name { font-weight: 600; }
+        .stage-desc { font-size: 0.8rem; color: var(--text-secondary); }
+        .stage-msg-limit { font-size: 0.8rem; color: var(--text-muted); }
+        .objection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: var(--spacing-md); }
+        .objection-card { background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--spacing-lg); transition: all var(--transition-base); }
+        .objection-card:hover { border-color: var(--accent); }
+        .objection-type { font-weight: 700; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .objection-category { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .objection-response { font-size: 0.85rem; color: var(--text-secondary); margin: 8px 0; padding: 8px; background: var(--bg-card); border-radius: var(--radius-sm); border-left: 3px solid var(--accent); }
+        .objection-followup { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge-active { background: rgba(45, 106, 79, 0.1); color: var(--success); }
+        .badge-inactive { background: rgba(155, 44, 44, 0.1); color: var(--danger); }
+        .niche-problems-list { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+        .niche-problem-item { display: flex; align-items: center; gap: var(--spacing-md); padding: 10px 16px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius-md); }
+        .niche-problem-item .pain-level { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; color: white; }
+        .pain-low { background: var(--success); }
+        .pain-med { background: var(--warning); }
+        .pain-high { background: var(--danger); }
+        .empty-state { text-align: center; padding: 32px; color: var(--text-muted); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+        .save-indicator { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: rgba(45, 106, 79, 0.1); color: var(--success); opacity: 0; transition: opacity 0.3s; }
+        .save-indicator.show { opacity: 1; }
+        .tab-nav { display: flex; gap: 4px; margin-bottom: var(--spacing-xl); background: var(--bg-main); border-radius: var(--radius-lg); padding: 4px; border: 1px solid var(--border); }
+        .tab-btn { flex: 1; padding: 10px 16px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; font-weight: 500; font-size: 0.9rem; color: var(--text-secondary); transition: all var(--transition-base); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tab-btn:hover { color: var(--text-primary); background: rgba(26, 54, 93, 0.05); }
+        .tab-btn.active { background: var(--bg-card); color: var(--primary); box-shadow: var(--shadow-sm); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @media (max-width: 640px) {
+            .stage-item { grid-template-columns: 32px 1fr; }
+            .stage-item .stage-desc, .stage-item .stage-msg-limit, .stage-item .badge { display: none; }
+            .objection-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="/logo.png" alt="Ergovia" width="36" height="36">
+                <span>Ergovia</span>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>V2 Panel</span>
+                </a>
+                <div class="m1-nav-divider"></div>
+                <a href="m1-dashboard.html" class="nav-item">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Marketing</span>
+                </a>
+                <a href="m1-config.html" class="nav-item active">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>AI Config</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="welcome-banner">
+            <h1><i class="fas fa-sliders-h"></i> AI Configuration</h1>
+            <p>Configure AI prompts, closing scripts, and objection handlers used by M1 workflows</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('prompts')">
+                <i class="fas fa-robot"></i> AI Prompts
+            </button>
+            <button class="tab-btn" onclick="switchTab('stages')">
+                <i class="fas fa-route"></i> Closing Stages
+            </button>
+            <button class="tab-btn" onclick="switchTab('objections')">
+                <i class="fas fa-shield-alt"></i> Objections
+            </button>
+            <button class="tab-btn" onclick="switchTab('problems')">
+                <i class="fas fa-lightbulb"></i> Niche Problems
+            </button>
+        </div>
+
+        <!-- AI Prompts Tab -->
+        <div class="tab-content active" id="tab-prompts">
+            <div id="promptsContainer">
+                <div class="empty-state"><i class="fas fa-spinner fa-spin"></i>Loading prompts...</div>
+            </div>
+        </div>
+
+        <!-- Closing Stages Tab -->
+        <div class="tab-content" id="tab-stages">
+            <div class="config-card">
+                <div class="config-card-header">
+                    <h3><i class="fas fa-route"></i> Closing Script Stages</h3>
+                    <span class="save-indicator" id="stagesSaveIndicator">Saved!</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--spacing-lg);">
+                    The AI Closing Doctor follows these stages in order when conversing with leads.
+                    Each stage has a specific objective that the AI works toward.
+                </p>
+                <div class="stage-list" id="stagesContainer">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i>Loading stages...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Objections Tab -->
+        <div class="tab-content" id="tab-objections">
+            <div class="config-card">
+                <div class="config-card-header">
+                    <h3><i class="fas fa-shield-alt"></i> Objection Handlers</h3>
+                    <span class="save-indicator" id="objectionsSaveIndicator">Saved!</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--spacing-lg);">
+                    When the AI detects these common objections from leads, it uses these response strategies.
+                    Click on any card to edit the response template.
+                </p>
+                <div class="objection-grid" id="objectionsContainer">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i>Loading objections...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Niche Problems Tab -->
+        <div class="tab-content" id="tab-problems">
+            <div class="config-card">
+                <div class="config-card-header">
+                    <h3><i class="fas fa-lightbulb"></i> Niche Problems</h3>
+                    <button class="btn-add" onclick="showAddProblemModal()" style="font-size: 0.85rem; padding: 6px 14px;">
+                        <i class="fas fa-plus"></i> Add Problem
+                    </button>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--spacing-lg);">
+                    Problems used by the Content Generator AI to create engaging marketing posts.
+                    Higher pain levels get prioritized for content generation.
+                </p>
+                <div class="niche-problems-list" id="problemsContainer">
+                    <div class="empty-state"><i class="fas fa-spinner fa-spin"></i>Loading problems...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Prompt Modal -->
+    <div class="modal" id="promptModal">
+        <div class="modal-content modal-large" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="promptModalTitle"><i class="fas fa-robot"></i> Edit AI Prompt</h2>
+                <span class="modal-close" onclick="closePromptModal()">&times;</span>
+            </div>
+            <form id="promptForm" onsubmit="return handlePromptSubmit(event)">
+                <input type="hidden" id="promptEditId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Prompt Name</label>
+                        <input type="text" id="promptEditName" readonly style="background: var(--bg-main);">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-globe"></i> Niche</label>
+                        <input type="text" id="promptEditNiche" placeholder="general">
+                    </div>
+                </div>
+                <div class="form-group full-width" style="margin-top: var(--spacing-md);">
+                    <label><i class="fas fa-code"></i> System Prompt</label>
+                    <textarea class="prompt-editor" id="promptEditText" rows="15"></textarea>
+                    <small class="help-text">Use {variable_name} placeholders. The workflow injects runtime values like {lead_name}, {stage}, {problems}, etc.</small>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closePromptModal()">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Prompt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Stage Modal -->
+    <div class="modal" id="stageModal">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Edit Closing Stage</h2>
+                <span class="modal-close" onclick="closeStageModal()">&times;</span>
+            </div>
+            <form id="stageForm" onsubmit="return handleStageSubmit(event)">
+                <input type="hidden" id="stageEditId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Stage Name</label>
+                        <input type="text" id="stageEditName">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-ruler"></i> Max Message Length</label>
+                        <input type="number" id="stageEditMaxLen" min="100" max="1000">
+                    </div>
+                </div>
+                <div class="form-group full-width" style="margin-top: var(--spacing-md);">
+                    <label><i class="fas fa-align-left"></i> Description / Objective</label>
+                    <textarea id="stageEditDesc" rows="4" style="width: 100%;"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeStageModal()">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Stage</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Objection Modal -->
+    <div class="modal" id="objectionModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Edit Objection Handler</h2>
+                <span class="modal-close" onclick="closeObjectionModal()">&times;</span>
+            </div>
+            <form id="objectionForm" onsubmit="return handleObjectionSubmit(event)">
+                <input type="hidden" id="objEditId">
+                <div class="form-group" style="margin-bottom: var(--spacing-md);">
+                    <label><i class="fas fa-comment-dots"></i> Response Strategy</label>
+                    <textarea id="objEditStrategy" rows="3" style="width: 100%;"></textarea>
+                    <small class="help-text">Internal guidelines for the AI on how to handle this objection.</small>
+                </div>
+                <div class="form-group" style="margin-bottom: var(--spacing-md);">
+                    <label><i class="fas fa-reply"></i> Response Template</label>
+                    <textarea id="objEditTemplate" rows="4" style="width: 100%;"></textarea>
+                    <small class="help-text">Example response the AI uses as inspiration.</small>
+                </div>
+                <div class="form-group" style="margin-bottom: var(--spacing-md);">
+                    <label><i class="fas fa-question-circle"></i> Follow-up Question</label>
+                    <input type="text" id="objEditFollowup" style="width: 100%;">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-redo"></i> Max Attempts</label>
+                    <input type="number" id="objEditMaxAttempts" min="1" max="5" style="width: 100px;">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeObjectionModal()">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Objection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Niche Problem Modal -->
+    <div class="modal" id="problemModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="problemModalTitle"><i class="fas fa-lightbulb"></i> Add Niche Problem</h2>
+                <span class="modal-close" onclick="closeProblemModal()">&times;</span>
+            </div>
+            <form id="problemForm" onsubmit="return handleProblemSubmit(event)">
+                <input type="hidden" id="probEditId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Niche <span class="required">*</span></label>
+                        <input type="text" id="probNiche" required placeholder="vacation_rentals">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-fire"></i> Pain Level (1-10)</label>
+                        <input type="number" id="probPainLevel" min="1" max="10" value="5">
+                    </div>
+                </div>
+                <div class="form-group full-width" style="margin-top: var(--spacing-md);">
+                    <label><i class="fas fa-heading"></i> Problem Title <span class="required">*</span></label>
+                    <input type="text" id="probTitle" required placeholder="Missing guest inquiries while sleeping">
+                </div>
+                <div class="form-group full-width" style="margin-top: var(--spacing-md);">
+                    <label><i class="fas fa-align-left"></i> Description</label>
+                    <textarea id="probDescription" rows="3" placeholder="Property owners lose bookings because they can't respond to inquiries fast enough..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeProblemModal()">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Problem</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/m1-config.js"></script>
+    <script>
+    // Theme toggle
+    (function() {
+        const saved = localStorage.getItem('ergovia_theme');
+        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        const btn = document.getElementById('themeToggle');
+        function updateIcon() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+        updateIcon();
+        btn.addEventListener('click', function() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('ergovia_theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('ergovia_theme', 'dark');
+            }
+            updateIcon();
+        });
+    })();
+    </script>
+</body>
+</html>

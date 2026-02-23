@@ -1,0 +1,4063 @@
+{
+  "timestamp": "2026-02-23T07:39:56.292Z",
+  "total_workflows": 100,
+  "v4_count": 10,
+  "non_v4_count": 90,
+  "credentials": {
+    "6ltptOrFLUaZzC1C": {
+      "type": "telegramApi",
+      "name": "[Client] Telegram Bot",
+      "workflows": [
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "[v2] SUB: Universal Messenger",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[v2] WF2: AI Booking Agent",
+        "[v2] WF3: Calendar Manager",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF5: Property Operations",
+        "[v2] WF5: Property Operations",
+        "[v2] WF6: Daily Automations",
+        "[v2] WF8: Safety & Screening",
+        "[V5] SUB: Owner & Staff Notifier",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF5: Property Operations",
+        "M1 Telegram to Closer",
+        "M1 WF0 Telegram Bridge",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF2 Post Reminder",
+        "M1 WF2 Post Reminder",
+        "M1 WF3 Lead Router",
+        "M1 WF3 Lead Router",
+        "M1 WF4 Closing Conversation",
+        "M1 WF4 Closing Conversation",
+        "M1 WF5 Error Handler",
+        "M1 WF5 Error Handler",
+        "M1 WF6 Lead Followup",
+        "M1 WF6 Lead Followup",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF8 Payment Reminder",
+        "M1 WF8 Payment Reminder",
+        "My Sub-workflow",
+        "SUB: Owner & Staff Notifier",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger ✅",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: Offer Conflict Manager ✅",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations"
+      ]
+    },
+    "BWlLUMKn64aZsHi8": {
+      "type": "postgres",
+      "name": "[Client] PostgreSQL",
+      "workflows": [
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "[V5] Payment Confirmation Webhook",
+        "[V5] Payment Confirmation Webhook",
+        "[V5] Payment Confirmation Webhook",
+        "[V5] Payment Confirmation Webhook",
+        "[V5] SUB: Owner & Staff Notifier",
+        "[V5] SUB: Owner & Staff Notifier",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF5: Property Operations",
+        "[V5] WF5: Property Operations",
+        "[V5] WF5: Property Operations",
+        "[V5] WF5: Property Operations",
+        "[V5] WF5: Property Operations",
+        "[V5] WF5: Property Operations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF6: Daily Automations",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "[V5] WF7: Integration Hub",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF2 Post Reminder",
+        "M1 WF2 Post Reminder",
+        "M1 WF2 Post Reminder",
+        "M1 WF2 Post Reminder",
+        "M1 WF2 Post Reminder",
+        "M1 WF3 Lead Router",
+        "M1 WF3 Lead Router",
+        "M1 WF3 Lead Router",
+        "M1 WF3 Lead Router",
+        "M1 WF3 Lead Router",
+        "M1 WF4 Closing Conversation",
+        "M1 WF4 Closing Conversation",
+        "M1 WF4 Closing Conversation",
+        "M1 WF4 Closing Conversation",
+        "M1 WF4 Closing Conversation",
+        "M1 WF4 Closing Conversation",
+        "M1 WF5 Error Handler",
+        "M1 WF5 Error Handler",
+        "M1 WF5 Error Handler",
+        "M1 WF6 Lead Followup",
+        "M1 WF6 Lead Followup",
+        "M1 WF6 Lead Followup",
+        "M1 WF6 Lead Followup",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF7 Payment Link Sender",
+        "M1 WF8 Payment Reminder",
+        "M1 WF8 Payment Reminder",
+        "M1 WF8 Payment Reminder",
+        "M1 WF8 Payment Reminder",
+        "M1 WF8 Payment Reminder",
+        "My Sub-workflow",
+        "My Sub-workflow",
+        "My Sub-workflow",
+        "My Sub-workflow",
+        "My Sub-workflow",
+        "My Sub-workflow",
+        "My Sub-workflow",
+        "SUB: Owner & Staff Notifier",
+        "SUB: Owner & Staff Notifier",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger ✅",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF2: Offer Conflict Manager ✅",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager ✅",
+        "WF3: Calendar Manager ✅",
+        "WF3: Calendar Manager ✅",
+        "WF3: Calendar Manager ✅",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF6: Daily Automations✅",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF8: Safety & Screening✅"
+      ]
+    },
+    "slpbr7aUaU6fqTfw": {
+      "type": "openAiApi",
+      "name": "[Client] OpenAI",
+      "workflows": [
+        "(TEST) WF1: AI Gateway - Unified Entry Point",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "[V5] WF4: Payment Processor",
+        "[V5] WF5: Property Operations",
+        "[V5] WF6: Daily Automations",
+        "M1 WF1 Daily Content Generator",
+        "M1 WF3 Lead Router",
+        "M1 WF3 Lead Router",
+        "M1 WF4 Closing Conversation",
+        "M1 WF6 Lead Followup",
+        "My Sub-workflow",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager ✅",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations✅",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening✅",
+        "WF8: Safety & Screening✅"
+      ]
+    },
+    "twilio-cred": {
+      "type": "twilioApi",
+      "name": "Twilio",
+      "workflows": [
+        "[v2] SUB: Universal Messenger",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[V5] SUB: Owner & Staff Notifier",
+        "[V5] WF1: AI Gateway - Unified Entry Point",
+        "SUB: Owner & Staff Notifier",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger",
+        "SUB: Universal Messenger ✅",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: Offer Conflict Manager ✅"
+      ]
+    },
+    "sjaI08GtPbON8TLX": {
+      "type": "postgres",
+      "name": "PostgreSQL - Client",
+      "workflows": [
+        "[v2] SUB: Universal Messenger",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[v2] WF1: AI Gateway - Unified Entry Point",
+        "[v2] WF2: AI Booking Agent",
+        "[v2] WF2: AI Booking Agent",
+        "[v2] WF3: Calendar Manager",
+        "[v2] WF3: Calendar Manager",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF4: Payment Processor",
+        "[v2] WF5: Property Operations",
+        "[v2] WF5: Property Operations",
+        "[v2] WF6: Daily Automations",
+        "[v2] WF6: Daily Automations",
+        "[v2] WF6: Daily Automations",
+        "[v2] WF6: Daily Automations",
+        "[v2] WF7: Integration Hub",
+        "[v2] WF8: Safety & Screening",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening"
+      ]
+    },
+    "qVFN7tfM4HFeXVN8": {
+      "type": "postgres",
+      "name": "PostgreSQL - Client",
+      "workflows": [
+        "SUB: Universal Messenger",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations"
+      ]
+    },
+    "TofFFdyoIhmh7Bwb": {
+      "type": "postgres",
+      "name": "PostgreSQL - Client",
+      "workflows": [
+        "SUB: Universal Messenger",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub"
+      ]
+    },
+    "PTGz8aoKa3NuLpdb": {
+      "type": "telegramApi",
+      "name": "Telegram Bot - Client",
+      "workflows": [
+        "SUB: Universal Messenger",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: AI Booking Agent",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations"
+      ]
+    },
+    "whatsapp-cred": {
+      "type": "whatsAppBusinessCloudApi",
+      "name": "WhatsApp Business",
+      "workflows": [
+        "SUB: Universal Messenger"
+      ]
+    },
+    "50v6jDVUFYUN4bAF": {
+      "type": "openAiApi",
+      "name": "OpenAI - Client",
+      "workflows": [
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: AI Booking Agent",
+        "WF3: Calendar Manager",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF6: Daily Automations",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening"
+      ]
+    },
+    "aaMrKIQlD3haA8F9": {
+      "type": "postgres",
+      "name": "PostgreSQL - Client",
+      "workflows": [
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF2: AI Booking Agent",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF3: Calendar Manager",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF5: Property Operations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF6: Daily Automations",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF7: Integration Hub",
+        "WF8: Safety & Screening",
+        "WF8: Safety & Screening"
+      ]
+    },
+    "tgi4lfUuthSxw1sD": {
+      "type": "telegramApi",
+      "name": "Telegram Bot - Client",
+      "workflows": [
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor"
+      ]
+    },
+    "P2LV2Kuznw5HayBh": {
+      "type": "openAiApi",
+      "name": "OpenAI - Client",
+      "workflows": [
+        "WF1: AI Gateway - Unified Entry Point",
+        "WF4: Payment Processor",
+        "WF6: Daily Automations"
+      ]
+    },
+    "jnnXRY6znL4hi8gi": {
+      "type": "telegramApi",
+      "name": "Telegram Bot - Client",
+      "workflows": [
+        "WF2: AI Booking Agent",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF4: Payment Processor",
+        "WF5: Property Operations"
+      ]
+    },
+    "ABish4nASKLazWQ7": {
+      "type": "openAiApi",
+      "name": "OpenAI - Client",
+      "workflows": [
+        "WF2: AI Booking Agent",
+        "WF3: Calendar Manager",
+        "WF4: Payment Processor",
+        "WF5: Property Operations",
+        "WF6: Daily Automations"
+      ]
+    }
+  },
+  "placeholders": [
+    {
+      "workflow": "(TEST) WF1: AI Gateway - Unified Entry Point",
+      "id": "VuCX2W6ifXmjmEgj",
+      "items": [
+        {
+          "node": "Get Customer ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "conversations"
+          ]
+        },
+        {
+          "node": "Check Budget",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Log API Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        },
+        {
+          "node": "Save Alert Record",
+          "type": "SQL_TABLES",
+          "tables": [
+            "api_budget_alerts",
+            "api_usage_budget"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] SUB: Universal Messenger",
+      "id": "EZeZdzQSBHaI8Jbu",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "pg_proc"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF1: AI Gateway - Unified Entry Point",
+      "id": "j3Iv0YcQznLf3LUd",
+      "items": [
+        {
+          "node": "Get Customer ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "conversations"
+          ]
+        },
+        {
+          "node": "Check Budget",
+          "type": "SQL_TABLES",
+          "tables": [
+            "pg_proc",
+            "check_budget_available"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF2: AI Booking Agent",
+      "id": "MQNiiQnwNOmRcV39",
+      "items": [
+        {
+          "node": "Check Availability",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Info",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF3: Calendar Manager",
+      "id": "3BgK3DjPFk196Rsm",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF4: Payment Processor",
+      "id": "IEy41SsCdjneR05y",
+      "items": [
+        {
+          "node": "Create Pending Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "SET"
+          ]
+        },
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF5: Property Operations",
+      "id": "W95KO01XzSuw1HhI",
+      "items": [
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF6: Daily Automations",
+      "id": "7WdA9hKc6dL40hDO",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "pg_proc"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF7: Integration Hub",
+      "id": "3bW1zcIKMPJv5IaS",
+      "items": [
+        {
+          "node": "Manual Sync Request",
+          "type": "WEBHOOK_PATH",
+          "path": "integration-sync-v2"
+        },
+        {
+          "node": "Get Properties with Integrations",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[v2] WF8: Safety & Screening",
+      "id": "LMDwArc4hnC2aze6",
+      "items": [
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] Payment Confirmation Webhook",
+      "id": "Rkh0R1nZxKo3jnXr",
+      "items": [
+        {
+          "node": "Confirm Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "payment-confirm"
+        },
+        {
+          "node": "Cancel Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "payment-cancel"
+        },
+        {
+          "node": "Validate Token",
+          "type": "SQL_TABLES",
+          "tables": [
+            "payment_action_tokens",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Execute Confirm",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Execute Cancel",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Mark Token Used",
+          "type": "SQL_TABLES",
+          "tables": [
+            "payment_action_tokens"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] SUB: Owner & Staff Notifier",
+      "id": "XbsadMKJriaLV7zC",
+      "items": [
+        {
+          "node": "Resolve Recipients",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "cleaners",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] WF1: AI Gateway - Unified Entry Point",
+      "id": "Bv9lyo7Y894L0dD3",
+      "items": [
+        {
+          "node": "Get Customer ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "conversations"
+          ]
+        },
+        {
+          "node": "Load Conversation",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations"
+          ]
+        },
+        {
+          "node": "Check Budget",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Save Conversation State",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations",
+            "SET"
+          ]
+        },
+        {
+          "node": "Log API Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        },
+        {
+          "node": "Save Alert Record",
+          "type": "SQL_TABLES",
+          "tables": [
+            "api_budget_alerts",
+            "api_usage_budget"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] WF4: Payment Processor",
+      "id": "0UQQGkWyxVq9ZwGR",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Prepare Owner Notification",
+          "type": "HARDCODED",
+          "values": [
+            "Hardcoded domain: ergovia-ai.com"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "=Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_n...",
+          "length": 632
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Tokens",
+          "type": "SQL_TABLES",
+          "tables": [
+            "payment_action_tokens"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] WF5: Property Operations",
+      "id": "PSfwf6rt0pC7I8S1",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "=You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json...",
+          "length": 419
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Schedule Cleaning",
+          "type": "SQL_TABLES",
+          "tables": [
+            "cleaning_schedules",
+            "fix_seq"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Complete Cleaning Task",
+          "type": "SQL_TABLES",
+          "tables": [
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Get Pending Tasks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets",
+            "property_configurations",
+            "vendors"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] WF6: Daily Automations",
+      "id": "eP8wmLlkwaQREy5g",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks",
+            "conversations",
+            "scheduled_messages",
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Check Budget (Morning)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Check Budget (Evening)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Check Budget (Weekly)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reset_monthly_budgets"
+          ]
+        },
+        {
+          "node": "Get Last Month Summary",
+          "type": "SQL_TABLES",
+          "tables": [
+            "customers",
+            "property_configurations",
+            "api_usage_budget"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "=Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data')....",
+          "length": 556
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "=Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data'...",
+          "length": 460
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "=Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 d...",
+          "length": 612
+        },
+        {
+          "node": "Log Execution",
+          "type": "SQL_TABLES",
+          "tables": [
+            "automation_log",
+            "NOW",
+            "fix_seq"
+          ]
+        },
+        {
+          "node": "Nightly Maintenance",
+          "type": "SQL_TABLES",
+          "tables": [
+            "n8n_chat_histories",
+            "automation_log",
+            "scheduled_messages",
+            "chat_cleanup",
+            "log_cleanup",
+            "msg_cleanup",
+            "bookings",
+            "deals",
+            "maintenance_tickets",
+            "cleaning_schedules",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Conversations Needing Followup",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Update Followup Count",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations"
+          ]
+        },
+        {
+          "node": "Log Followup Sent",
+          "type": "SQL_TABLES",
+          "tables": [
+            "activity_log"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "[V5] WF7: Integration Hub",
+      "id": "41gByKW7qGkBpmU6",
+      "items": [
+        {
+          "node": "Add External Booking",
+          "type": "WEBHOOK_PATH",
+          "path": "add-external-booking"
+        },
+        {
+          "node": "Check Conflicts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Insert External Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "SET"
+          ]
+        },
+        {
+          "node": "Get Property Info",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Insert Blocking Task",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks"
+          ]
+        },
+        {
+          "node": "Complete Blocking Task",
+          "type": "WEBHOOK_PATH",
+          "path": "complete-blocking-task"
+        },
+        {
+          "node": "Mark Task Complete",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks"
+          ]
+        },
+        {
+          "node": "Get Pending Tasks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Unanalyzed Reviews",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reviews",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Update Review",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reviews"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 Telegram to Closer",
+      "id": "mK6n5hWPAQcNCHC7",
+      "items": [
+        {
+          "node": "Call Closing Conversation",
+          "type": "HARDCODED",
+          "values": [
+            "Hardcoded domain: ergovia-ai.com"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF0 Telegram Bridge",
+      "id": "9DVVyNM7MLBfLZxM",
+      "items": [
+        {
+          "node": "Forward to Lead Router",
+          "type": "HARDCODED",
+          "values": [
+            "Hardcoded domain: ergovia-ai.com"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF1 Daily Content Generator",
+      "id": "Uiu7iYqYRkVBI1qr",
+      "items": [
+        {
+          "node": "Get Affiliates Due for Action",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliates",
+            "affiliate_daily_content"
+          ]
+        },
+        {
+          "node": "Get 3 Problems for Content",
+          "type": "SQL_TABLES",
+          "tables": [
+            "niche_problems"
+          ]
+        },
+        {
+          "node": "Get Content Generator Prompt",
+          "type": "SQL_TABLES",
+          "tables": [
+            "ai_system_prompts"
+          ]
+        },
+        {
+          "node": "Save Content to Database",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliate_daily_content"
+          ]
+        },
+        {
+          "node": "Update Problems Last Used",
+          "type": "SQL_TABLES",
+          "tables": [
+            "niche_problems"
+          ]
+        },
+        {
+          "node": "Mark Post as Sent",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliate_daily_content"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF2 Post Reminder",
+      "id": "AuYchJhChKipbGSw",
+      "items": [
+        {
+          "node": "Get Affiliates Due for Reminder",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliates",
+            "affiliate_daily_content"
+          ]
+        },
+        {
+          "node": "Mark Reminder as Sent",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliate_daily_content"
+          ]
+        },
+        {
+          "node": "Affiliate Response Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "marketing/affiliate-response"
+        },
+        {
+          "node": "Find Affiliate by Chat ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliates",
+            "affiliate_daily_content"
+          ]
+        },
+        {
+          "node": "Update as Posted",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliate_daily_content"
+          ]
+        },
+        {
+          "node": "Update as Partial",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliate_daily_content"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF3 Lead Router",
+      "id": "5QI4Fk2z0WL4p9Pl",
+      "items": [
+        {
+          "node": "Telegram Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "marketing/telegram-webhook"
+        },
+        {
+          "node": "WhatsApp Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "marketing/whatsapp-webhook"
+        },
+        {
+          "node": "Check for Existing Lead",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads"
+          ]
+        },
+        {
+          "node": "Reactivate Cold Lead",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads"
+          ]
+        },
+        {
+          "node": "Find Affiliate by Contact",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliates"
+          ]
+        },
+        {
+          "node": "Create New Lead in DB",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads"
+          ]
+        },
+        {
+          "node": "Call Closing Conversation Workflow",
+          "type": "HARDCODED",
+          "values": [
+            "Hardcoded domain: ergovia-ai.com"
+          ]
+        },
+        {
+          "node": "Log Inbound Message",
+          "type": "SQL_TABLES",
+          "tables": [
+            "lead_messages"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF4 Closing Conversation",
+      "id": "n4YFcvvVQqXF49dX",
+      "items": [
+        {
+          "node": "Closing Conversation Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "marketing/closing-conversation"
+        },
+        {
+          "node": "Get All Closing Stages",
+          "type": "SQL_TABLES",
+          "tables": [
+            "closing_script_stages"
+          ]
+        },
+        {
+          "node": "Get Closing Doctor Prompt",
+          "type": "SQL_TABLES",
+          "tables": [
+            "ai_system_prompts"
+          ]
+        },
+        {
+          "node": "Get Objection Handlers",
+          "type": "SQL_TABLES",
+          "tables": [
+            "closing_objections"
+          ]
+        },
+        {
+          "node": "Update Lead Record",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads"
+          ]
+        },
+        {
+          "node": "Log Outbound Message",
+          "type": "SQL_TABLES",
+          "tables": [
+            "lead_messages"
+          ]
+        },
+        {
+          "node": "Update Affiliate Stats",
+          "type": "SQL_TABLES",
+          "tables": [
+            "affiliates"
+          ]
+        },
+        {
+          "node": "Mark as Payment Sent",
+          "type": "HARDCODED",
+          "values": [
+            "Hardcoded domain: ergovia-ai.com"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF5 Error Handler",
+      "id": "1elN5Sq7hGa093wJ",
+      "items": [
+        {
+          "node": "Log Error to DB",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_error_log"
+          ]
+        },
+        {
+          "node": "Update Retry Count",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_error_log"
+          ]
+        },
+        {
+          "node": "Mark as Unrecoverable",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_error_log"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF6 Lead Followup",
+      "id": "GlZgQB8OnJXbdLBp",
+      "items": [
+        {
+          "node": "Get Leads Due for Follow-up",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads",
+            "lead_messages"
+          ]
+        },
+        {
+          "node": "Get Closing Doctor Prompt",
+          "type": "SQL_TABLES",
+          "tables": [
+            "ai_system_prompts"
+          ]
+        },
+        {
+          "node": "Update Lead Follow-up Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads"
+          ]
+        },
+        {
+          "node": "Log Follow-up Message",
+          "type": "SQL_TABLES",
+          "tables": [
+            "lead_messages"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF7 Payment Link Sender",
+      "id": "f6P8rc9VsiCC9vp4",
+      "items": [
+        {
+          "node": "Send Payment Link Webhook",
+          "type": "WEBHOOK_PATH",
+          "path": "marketing/send-payment-link"
+        },
+        {
+          "node": "Update Lead Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "marketing_leads"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "M1 WF8 Payment Reminder",
+      "id": "pxcMCoG4OVK0ZhE9",
+      "items": [
+        {
+          "node": "Get Due Reminders",
+          "type": "SQL_TABLES",
+          "tables": [
+            "scheduled_followups",
+            "marketing_leads",
+            "affiliates"
+          ]
+        },
+        {
+          "node": "Mark Reminder Sent",
+          "type": "SQL_TABLES",
+          "tables": [
+            "scheduled_followups",
+            "lead",
+            "marketing_leads"
+          ]
+        },
+        {
+          "node": "Cancel (Over Limit)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "scheduled_followups"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "My Sub-workflow",
+      "id": "1x7fesP7F4XaeWvB",
+      "items": [
+        {
+          "node": "AI Booking Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a friendly and professional vacation rental booking assistant for {{ $json.property_name || 'our properties' }}.\n\n## Current Conversation Cont...",
+          "length": 1684
+        },
+        {
+          "node": "Load Conversation Context",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Check Competing Offers",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Owner & Staff Notifier",
+      "id": "0L7HOkqENABlbPtT",
+      "items": [
+        {
+          "node": "Resolve Recipients",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "cleaners",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "6BRUe111JfnfNSFx",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "Bo4SCpG63Ma3b5sH",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "IaxtifdV2aoT54vz",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "L2ia7BUrNkd4FbmN",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "RGNamEFzTqJRTXpg",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "WYyT8WAPrskaB5Zd",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger",
+      "id": "kmB3vfIS5QiLhMtH",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "SUB: Universal Messenger ✅",
+      "id": "UZMWfhnV6JmuwJXC",
+      "items": [
+        {
+          "node": "Log Messaging Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "TEST WF7: Integration Hub TEST",
+      "id": "A-JwmNbQ-3ca5Ms5IpjVg",
+      "items": [
+        {
+          "node": "Create Block Dates Task",
+          "type": "SQL_TABLES",
+          "tables": [
+            "owner_tasks",
+            "NOW"
+          ]
+        },
+        {
+          "node": "Get Pending Block Tasks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "owner_tasks",
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF1: AI Gateway - Unified Entry Point",
+      "id": "LP7YknAVPiQsidWq",
+      "items": [
+        {
+          "node": "Get Customer ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "conversations"
+          ]
+        },
+        {
+          "node": "Check Budget",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Log API Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        },
+        {
+          "node": "Save Alert Record",
+          "type": "SQL_TABLES",
+          "tables": [
+            "api_budget_alerts",
+            "api_usage_budget"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF1: AI Gateway - Unified Entry Point",
+      "id": "RVN6b8gBkNNxPKXJ",
+      "items": [
+        {
+          "node": "Get Customer ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "conversations"
+          ]
+        },
+        {
+          "node": "Check Budget",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Log API Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        },
+        {
+          "node": "Save Alert Record",
+          "type": "SQL_TABLES",
+          "tables": [
+            "api_budget_alerts",
+            "api_usage_budget"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF1: AI Gateway - Unified Entry Point",
+      "id": "RcV96aQdRqofZyQX",
+      "items": [
+        {
+          "node": "Get Customer ID",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "conversations"
+          ]
+        },
+        {
+          "node": "Check Budget",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Log API Cost",
+          "type": "SQL_TABLES",
+          "tables": [
+            "log_api_usage"
+          ]
+        },
+        {
+          "node": "Save Alert Record",
+          "type": "SQL_TABLES",
+          "tables": [
+            "api_budget_alerts",
+            "api_usage_budget"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF2: AI Booking Agent",
+      "id": "0VB7HJi3a6or8s2C",
+      "items": [
+        {
+          "node": "Owner Decision Callback",
+          "type": "WEBHOOK_PATH",
+          "path": "owner-decision-callback"
+        },
+        {
+          "node": "Load Conversation Context",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Check Competing Offers",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        },
+        {
+          "node": "AI Booking Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a friendly and professional vacation rental booking assistant for {{ $json.property_name || 'our properties' }}.\n\n## Current Conversation Cont...",
+          "length": 1684
+        },
+        {
+          "node": "Process Accept Decision",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals",
+            "accepted",
+            "declined"
+          ]
+        },
+        {
+          "node": "Update Conflict Resolved",
+          "type": "SQL_TABLES",
+          "tables": [
+            "offer_conflicts"
+          ]
+        },
+        {
+          "node": "Process Decline All",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        },
+        {
+          "node": "Process Hold Request",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF2: AI Booking Agent",
+      "id": "eZrq9oRN9leArf0w",
+      "items": [
+        {
+          "node": "Owner Decision Callback",
+          "type": "WEBHOOK_PATH",
+          "path": "owner-decision-callback"
+        },
+        {
+          "node": "Load Conversation Context",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Check Competing Offers",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        },
+        {
+          "node": "AI Booking Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a friendly and professional vacation rental booking assistant for {{ $json.property_name || 'our properties' }}.\n\n## Current Conversation Cont...",
+          "length": 1684
+        },
+        {
+          "node": "Process Accept Decision",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals",
+            "accepted",
+            "declined"
+          ]
+        },
+        {
+          "node": "Update Conflict Resolved",
+          "type": "SQL_TABLES",
+          "tables": [
+            "offer_conflicts"
+          ]
+        },
+        {
+          "node": "Process Decline All",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        },
+        {
+          "node": "Process Hold Request",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF2: Offer Conflict Manager ✅",
+      "id": "NPInwpKv4Oriq04F",
+      "items": [
+        {
+          "node": "Owner Decision Callback",
+          "type": "WEBHOOK_PATH",
+          "path": "owner-decision-callback"
+        },
+        {
+          "node": "Load Conversation Context",
+          "type": "SQL_TABLES",
+          "tables": [
+            "conversations",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Check Competing Offers",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        },
+        {
+          "node": "Process Accept Decision",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals",
+            "accepted",
+            "declined"
+          ]
+        },
+        {
+          "node": "Update Conflict Resolved",
+          "type": "SQL_TABLES",
+          "tables": [
+            "offer_conflicts"
+          ]
+        },
+        {
+          "node": "Process Decline All",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        },
+        {
+          "node": "Process Hold Request",
+          "type": "SQL_TABLES",
+          "tables": [
+            "deals"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager",
+      "id": "73CoyTQqShGCSdmq",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager",
+      "id": "NT7RB1sxff33R8AR",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager",
+      "id": "PvNneAGcTXFYYN6b",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager",
+      "id": "R2xUzSX6cVAI3qeB",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager",
+      "id": "drBqckGANuN1WrcI",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager",
+      "id": "nosVaBRwOkqo95wX",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        }
+      ]
+    },
+    {
+      "workflow": "WF3: Calendar Manager ✅",
+      "id": "pEn69kwNtCEQ21y9",
+      "items": [
+        {
+          "node": "Get Properties",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Get Property Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Alert",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, urgent alert message about calendar conflicts for property {{ $json.property_name }}.\n\nConflicts detected:\n{{ JSON.stringify($json.c...",
+          "length": 342
+        },
+        {
+          "node": "Check Availability",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "2fOIaSm1908FR6jm",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "2s96aSBqT8Wv4ujA",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "5loDH75zrEDh9x5H",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "I630kikd76biZXsE",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "VDFqMH09i69Ui4cj",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "WjJFLWcsxwjQ5okn",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "bnIMEYeqaNXeEgNs",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "dqKFEiOEBvGTGfTj",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF4: Payment Processor",
+      "id": "hzOeOgXB1IOHHe3d",
+      "items": [
+        {
+          "node": "Get Property & Owner",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "owners"
+          ]
+        },
+        {
+          "node": "Confirm Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Confirmation",
+          "type": "AI_PROMPT",
+          "preview": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_na...",
+          "length": 631
+        },
+        {
+          "node": "Cancel Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "3cOdwbYbzsVhsutG",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json....",
+          "length": 418
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "47GzrBw2WkUXrhOZ",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and crea...",
+          "length": 854
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "4JDgNj6ZGzVrNVKY",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and crea...",
+          "length": 854
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "JWEu9Uz2JJ5XZeIX",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json....",
+          "length": 418
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Schedule Cleaning",
+          "type": "SQL_TABLES",
+          "tables": [
+            "cleaning_schedules",
+            "fix_seq"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Complete Cleaning Task",
+          "type": "SQL_TABLES",
+          "tables": [
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Get Pending Tasks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets",
+            "property_configurations",
+            "vendors"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "L56nP7IhjyTwYyz6",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property operations assistant. Analyze this maintenance report and create a ticket.\n\nReport: {{ $json.data.message }}\nProperty ID: {{ $json....",
+          "length": 418
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "N4tDwKJRyjm7KEUZ",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and crea...",
+          "length": 854
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "jpG06lM1x4rQumhb",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and crea...",
+          "length": 854
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF5: Property Operations",
+      "id": "n0CkIPMOG88p5r1a",
+      "items": [
+        {
+          "node": "AI Maintenance Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are a property maintenance data processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Analyze maintenance reports and crea...",
+          "length": 854
+        },
+        {
+          "node": "Get Today's Checkouts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "property_configurations",
+            "vendors"
+          ]
+        },
+        {
+          "node": "Update Ticket Status",
+          "type": "SQL_TABLES",
+          "tables": [
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Property Details",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "Hog9AUIwcU4MQUi5",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Check Budget (Morning)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Check Budget (Evening)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Check Budget (Weekly)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reset_monthly_budgets"
+          ]
+        },
+        {
+          "node": "Get Last Month Summary",
+          "type": "SQL_TABLES",
+          "tables": [
+            "customers",
+            "property_configurations",
+            "api_usage_budget"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').i...",
+          "length": 555
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data')...",
+          "length": 459
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 da...",
+          "length": 611
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "KPD9Lpa8Mg9tHHCW",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Check Budget (Morning)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Check Budget (Evening)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Check Budget (Weekly)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reset_monthly_budgets"
+          ]
+        },
+        {
+          "node": "Get Last Month Summary",
+          "type": "SQL_TABLES",
+          "tables": [
+            "customers",
+            "property_configurations",
+            "api_usage_budget"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').i...",
+          "length": 555
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data')...",
+          "length": 459
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 da...",
+          "length": 611
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "WZt0VRtNnS4pdAGC",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $json.owner_name }}:\n\nProperty: {{ $json.property_name }}\nCheck-ins Today: {{ $json....",
+          "length": 425
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $json.property_name }}\nGuest: {{ $json.guest_name }} checking in today\nCleaning ...",
+          "length": 355
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $json.property_name }}\nTotal Bookings (30 days): {{ $json.total_booki...",
+          "length": 486
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "XTEjzKKLcTfoLXtx",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $json.owner_name }}:\n\nProperty: {{ $json.property_name }}\nCheck-ins Today: {{ $json....",
+          "length": 425
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $json.property_name }}\nGuest: {{ $json.guest_name }} checking in today\nCleaning ...",
+          "length": 355
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $json.property_name }}\nTotal Bookings (30 days): {{ $json.total_booki...",
+          "length": 486
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "e1S1EjVy7tJbPdFZ",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Check Budget (Morning)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Check Budget (Evening)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Check Budget (Weekly)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reset_monthly_budgets"
+          ]
+        },
+        {
+          "node": "Get Last Month Summary",
+          "type": "SQL_TABLES",
+          "tables": [
+            "customers",
+            "property_configurations",
+            "api_usage_budget"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').i...",
+          "length": 555
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data')...",
+          "length": 459
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 da...",
+          "length": 611
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "eEBxFva1o415eKm7",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $json.owner_name }}:\n\nProperty: {{ $json.property_name }}\nCheck-ins Today: {{ $json....",
+          "length": 425
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $json.property_name }}\nGuest: {{ $json.guest_name }} checking in today\nCleaning ...",
+          "length": 355
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $json.property_name }}\nTotal Bookings (30 days): {{ $json.total_booki...",
+          "length": 486
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations",
+      "id": "pQsE1UvMPAei6jye",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Check Budget (Morning)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Check Budget (Evening)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Check Budget (Weekly)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reset_monthly_budgets"
+          ]
+        },
+        {
+          "node": "Get Last Month Summary",
+          "type": "SQL_TABLES",
+          "tables": [
+            "customers",
+            "property_configurations",
+            "api_usage_budget"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').i...",
+          "length": 555
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data')...",
+          "length": 459
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 da...",
+          "length": 611
+        }
+      ]
+    },
+    {
+      "workflow": "WF6: Daily Automations✅",
+      "id": "ccEOaNnIwY6eeJOn",
+      "items": [
+        {
+          "node": "Get Morning Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks",
+            "conversations",
+            "scheduled_messages",
+            "property_configurations",
+            "bookings",
+            "maintenance_tickets"
+          ]
+        },
+        {
+          "node": "Check Budget (Morning)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Evening Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations",
+            "bookings",
+            "cleaning_schedules"
+          ]
+        },
+        {
+          "node": "Check Budget (Evening)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Get Weekly Data",
+          "type": "SQL_TABLES",
+          "tables": [
+            "b",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Check Budget (Weekly)",
+          "type": "SQL_TABLES",
+          "tables": [
+            "check_budget_available"
+          ]
+        },
+        {
+          "node": "Reset Monthly Budgets",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reset_monthly_budgets"
+          ]
+        },
+        {
+          "node": "Get Last Month Summary",
+          "type": "SQL_TABLES",
+          "tables": [
+            "customers",
+            "property_configurations",
+            "api_usage_budget"
+          ]
+        },
+        {
+          "node": "Generate Morning Brief",
+          "type": "AI_PROMPT",
+          "preview": "Generate a brief, friendly morning briefing for property owner {{ $('Get Morning Data').item.json.owner_name }}:\n\nProperty: {{ $('Get Morning Data').i...",
+          "length": 555
+        },
+        {
+          "node": "Generate Evening Update",
+          "type": "AI_PROMPT",
+          "preview": "Generate an evening status update for property manager:\n\nProperty: {{ $('Get Evening Data').item.json.property_name }}\nGuest: {{ $('Get Evening Data')...",
+          "length": 459
+        },
+        {
+          "node": "Generate Weekly Report",
+          "type": "AI_PROMPT",
+          "preview": "Generate a professional weekly business report for property owner:\n\nProperty: {{ $('Get Weekly Data').item.json.property_name }}\nTotal Bookings (30 da...",
+          "length": 611
+        },
+        {
+          "node": "Log Execution",
+          "type": "SQL_TABLES",
+          "tables": [
+            "automation_log",
+            "NOW",
+            "fix_seq"
+          ]
+        },
+        {
+          "node": "Nightly Maintenance",
+          "type": "SQL_TABLES",
+          "tables": [
+            "n8n_chat_histories",
+            "automation_log",
+            "scheduled_messages",
+            "chat_cleanup",
+            "log_cleanup",
+            "msg_cleanup",
+            "bookings",
+            "deals",
+            "maintenance_tickets",
+            "cleaning_schedules",
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF7: Integration Hub",
+      "id": "Ay5QOyGAHG2l40s7",
+      "items": [
+        {
+          "node": "Add External Booking",
+          "type": "WEBHOOK_PATH",
+          "path": "add-external-booking"
+        },
+        {
+          "node": "Check Conflicts",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings"
+          ]
+        },
+        {
+          "node": "Insert External Booking",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "SET"
+          ]
+        },
+        {
+          "node": "Get Property Info",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Insert Blocking Task",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks"
+          ]
+        },
+        {
+          "node": "Complete Blocking Task",
+          "type": "WEBHOOK_PATH",
+          "path": "complete-blocking-task"
+        },
+        {
+          "node": "Mark Task Complete",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks"
+          ]
+        },
+        {
+          "node": "Get Pending Tasks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "manual_tasks",
+            "property_configurations",
+            "bookings"
+          ]
+        },
+        {
+          "node": "Get Unanalyzed Reviews",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reviews",
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Update Review",
+          "type": "SQL_TABLES",
+          "tables": [
+            "reviews"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF7: Integration Hub",
+      "id": "AzV3sXEdPAlw8WNM",
+      "items": [
+        {
+          "node": "Manual Sync Request",
+          "type": "WEBHOOK_PATH",
+          "path": "integration-sync"
+        },
+        {
+          "node": "Get Properties with Integrations",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Upsert External Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "jsonb_to_recordset",
+            "SET"
+          ]
+        },
+        {
+          "node": "Update Sync Time",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF7: Integration Hub",
+      "id": "KLZffEnpwewgLLdr",
+      "items": [
+        {
+          "node": "Manual Sync Request",
+          "type": "WEBHOOK_PATH",
+          "path": "integration-sync"
+        },
+        {
+          "node": "Get Properties with Integrations",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Upsert External Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "jsonb_to_recordset",
+            "SET"
+          ]
+        },
+        {
+          "node": "Update Sync Time",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF7: Integration Hub",
+      "id": "UbWTe0YcCeym4d9h",
+      "items": [
+        {
+          "node": "Manual Sync Request",
+          "type": "WEBHOOK_PATH",
+          "path": "integration-sync"
+        },
+        {
+          "node": "Get Properties with Integrations",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Upsert External Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "jsonb_to_recordset",
+            "SET"
+          ]
+        },
+        {
+          "node": "Update Sync Time",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF7: Integration Hub",
+      "id": "UifGb7ORagzlX5aM",
+      "items": [
+        {
+          "node": "Manual Sync Request",
+          "type": "WEBHOOK_PATH",
+          "path": "integration-sync"
+        },
+        {
+          "node": "Get Properties with Integrations",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Upsert External Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "jsonb_to_recordset",
+            "SET"
+          ]
+        },
+        {
+          "node": "Update Sync Time",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF7: Integration Hub",
+      "id": "bVQNRMXebVBdGiBT",
+      "items": [
+        {
+          "node": "Manual Sync Request",
+          "type": "WEBHOOK_PATH",
+          "path": "integration-sync"
+        },
+        {
+          "node": "Get Properties with Integrations",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        },
+        {
+          "node": "Upsert External Bookings",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "jsonb_to_recordset",
+            "SET"
+          ]
+        },
+        {
+          "node": "Update Sync Time",
+          "type": "SQL_TABLES",
+          "tables": [
+            "property_configurations"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF8: Safety & Screening",
+      "id": "0r8F6QV6iiELg24t",
+      "items": [
+        {
+          "node": "AI Emergency Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are an emergency assessment processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Assess emergency situations and determin...",
+          "length": 1015
+        },
+        {
+          "node": "AI Screening Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a guest screening data processor. You are called as a tool by the system.\n\n## Your Role\n- Review booking requests and perform risk assessment\n...",
+          "length": 795
+        },
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "conversations",
+            "maintenance_tickets"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF8: Safety & Screening",
+      "id": "3xYeXAACQESNUUFl",
+      "items": [
+        {
+          "node": "AI Emergency Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are an emergency assessment processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Assess emergency situations and determin...",
+          "length": 1015
+        },
+        {
+          "node": "AI Screening Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a guest screening data processor. You are called as a tool by the system.\n\n## Your Role\n- Review booking requests and perform risk assessment\n...",
+          "length": 795
+        },
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "conversations",
+            "maintenance_tickets"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF8: Safety & Screening",
+      "id": "Ehv6Je5zIYPDUuuX",
+      "items": [
+        {
+          "node": "AI Emergency Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are an emergency assessment processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Assess emergency situations and determin...",
+          "length": 1015
+        },
+        {
+          "node": "AI Screening Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a guest screening data processor. You are called as a tool by the system.\n\n## Your Role\n- Review booking requests and perform risk assessment\n...",
+          "length": 795
+        },
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "conversations",
+            "maintenance_tickets"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF8: Safety & Screening",
+      "id": "Guj99CfVTQg21eSa",
+      "items": [
+        {
+          "node": "AI Emergency Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are an emergency response coordinator. A guest has reported an urgent issue:\n\nMessage: {{ $json.data.message }}\nProperty ID: {{ $json.data.propert...",
+          "length": 515
+        },
+        {
+          "node": "AI Screening Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a guest screening specialist. Review this booking request:\n\nGuest Name: {{ $json.data.guest_name }}\nEmail: {{ $json.data.guest_email }}\nPhone:...",
+          "length": 482
+        },
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "conversations",
+            "maintenance_tickets"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF8: Safety & Screening",
+      "id": "ounY3kEFCwyfCei7",
+      "items": [
+        {
+          "node": "AI Emergency Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are an emergency assessment processor. You are called as a tool by the main AI concierge.\n\n## Your Role\n- Assess emergency situations and determin...",
+          "length": 1015
+        },
+        {
+          "node": "AI Screening Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a guest screening data processor. You are called as a tool by the system.\n\n## Your Role\n- Review booking requests and perform risk assessment\n...",
+          "length": 795
+        },
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "conversations",
+            "maintenance_tickets"
+          ]
+        }
+      ]
+    },
+    {
+      "workflow": "WF8: Safety & Screening✅",
+      "id": "mLm2HaIRzNfIX5uh",
+      "items": [
+        {
+          "node": "AI Emergency Handler",
+          "type": "AI_PROMPT",
+          "preview": "You are an internal emergency assessment system for a property management company. A guest has reported an issue. Your job is to ASSESS the situation ...",
+          "length": 1108
+        },
+        {
+          "node": "AI Screening Agent",
+          "type": "AI_PROMPT",
+          "preview": "You are a guest screening system for a vacation rental property. Assess this booking request and produce a risk evaluation for the property owner.\n\nBO...",
+          "length": 988
+        },
+        {
+          "node": "Run Watchdog Checks",
+          "type": "SQL_TABLES",
+          "tables": [
+            "bookings",
+            "conversations",
+            "maintenance_tickets",
+            "cleaning_schedules"
+          ]
+        }
+      ]
+    }
+  ]
+}

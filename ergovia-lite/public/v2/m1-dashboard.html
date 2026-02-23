@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M1 Marketing - Ergovia</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/logo.png" type="image/png">
+    <style>
+        .m1-nav-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+        .pipeline-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-md); margin-top: var(--spacing-lg); }
+        .pipeline-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--spacing-lg); text-align: center; transition: all var(--transition-base); }
+        .pipeline-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .pipeline-card .count { font-size: 2rem; font-weight: 700; color: var(--primary); }
+        .pipeline-card .label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+        .pipeline-card.highlight { border-color: var(--accent); background: linear-gradient(135deg, var(--bg-card), rgba(201, 169, 98, 0.05)); }
+        .affiliates-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .affiliates-table th { background: var(--bg-main); color: var(--text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border); }
+        .affiliates-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .affiliates-table tr:hover td { background: var(--primary-light); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge-active { background: rgba(45, 106, 79, 0.1); color: var(--success); }
+        .badge-inactive { background: rgba(155, 44, 44, 0.1); color: var(--danger); }
+        .badge-new { background: rgba(26, 54, 93, 0.1); color: var(--primary); }
+        .badge-conversation { background: rgba(184, 134, 11, 0.1); color: var(--warning); }
+        .badge-qualified { background: rgba(45, 106, 79, 0.1); color: var(--success); }
+        .badge-won { background: rgba(45, 106, 79, 0.15); color: var(--success); font-weight: 700; }
+        .badge-lost { background: rgba(155, 44, 44, 0.1); color: var(--danger); }
+        .revenue-highlight { font-size: 1.8rem; font-weight: 700; color: var(--success); }
+        .empty-state { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
+        .leads-list { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+        .lead-row { display: flex; align-items: center; gap: var(--spacing-md); padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); transition: all var(--transition-base); }
+        .lead-row:hover { border-color: var(--primary); transform: translateX(4px); }
+        .lead-name { font-weight: 600; min-width: 140px; }
+        .lead-stage { font-size: 0.8rem; color: var(--text-secondary); min-width: 100px; }
+        .lead-time { font-size: 0.8rem; color: var(--text-muted); margin-left: auto; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="/logo.png" alt="Ergovia" width="36" height="36">
+                <span>Ergovia</span>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>V2 Panel</span>
+                </a>
+                <div class="m1-nav-divider"></div>
+                <a href="m1-dashboard.html" class="nav-item active">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>Marketing</span>
+                </a>
+                <a href="m1-config.html" class="nav-item">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>AI Config</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- Welcome Banner -->
+        <div class="welcome-banner">
+            <h1><i class="fas fa-bullhorn"></i> Affiliate Marketing Dashboard</h1>
+            <p>M1 Marketing Engine &mdash; Content, Leads, Conversions</p>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                <div class="stat-content">
+                    <h3 id="statAffiliates">0</h3>
+                    <p>Active Affiliates</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(184, 134, 11, 0.1); color: var(--warning);"><i class="fas fa-user-plus"></i></div>
+                <div class="stat-content">
+                    <h3 id="statLeads">0</h3>
+                    <p>Total Leads</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fas fa-handshake"></i></div>
+                <div class="stat-content">
+                    <h3 id="statClosed">0</h3>
+                    <p>Deals Closed</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(45, 106, 79, 0.1); color: var(--success);"><i class="fas fa-dollar-sign"></i></div>
+                <div class="stat-content">
+                    <h3 id="statRevenue" class="revenue-highlight">$0</h3>
+                    <p>Total Revenue</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Pipeline -->
+        <div class="tasks-section">
+            <div class="section-header">
+                <h2><i class="fas fa-funnel-dollar"></i> Lead Pipeline</h2>
+            </div>
+            <div class="pipeline-section" id="pipelineSection">
+                <div class="pipeline-card">
+                    <div class="count" id="pipeNew">0</div>
+                    <div class="label">New Leads</div>
+                </div>
+                <div class="pipeline-card">
+                    <div class="count" id="pipeConversation">0</div>
+                    <div class="label">In Conversation</div>
+                </div>
+                <div class="pipeline-card">
+                    <div class="count" id="pipeQualified">0</div>
+                    <div class="label">Qualified</div>
+                </div>
+                <div class="pipeline-card highlight">
+                    <div class="count" id="pipeWon">0</div>
+                    <div class="label">Closed Won</div>
+                </div>
+                <div class="pipeline-card">
+                    <div class="count" id="pipeLost">0</div>
+                    <div class="label">Closed Lost</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two-column layout: Affiliates + Recent Leads -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl); margin-top: var(--spacing-xl);">
+
+            <!-- Affiliates -->
+            <div class="tasks-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-tie"></i> Affiliates</h2>
+                    <button class="btn-add" onclick="showAddAffiliateModal()" style="font-size: 0.85rem; padding: 6px 14px;">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+                <div id="affiliatesContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Leads -->
+            <div class="tasks-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-tag"></i> Recent Leads</h2>
+                </div>
+                <div id="leadsContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Errors -->
+        <div class="tasks-section" id="errorsSection" style="display: none; margin-top: var(--spacing-xl);">
+            <div class="section-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> Recent Errors</h2>
+            </div>
+            <div id="errorsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Add Affiliate Modal -->
+    <div class="modal" id="affiliateModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="affiliateModalTitle"><i class="fas fa-user-plus"></i> Add Affiliate</h2>
+                <span class="modal-close" onclick="closeAffiliateModal()">&times;</span>
+            </div>
+            <form id="affiliateForm" onsubmit="return handleAffiliateSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="affName"><i class="fas fa-user"></i> Name <span class="required">*</span></label>
+                        <input type="text" id="affName" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label for="affEmail"><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" id="affEmail" placeholder="john@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="affPhone"><i class="fas fa-phone"></i> Phone</label>
+                        <input type="text" id="affPhone" placeholder="+1234567890">
+                    </div>
+                    <div class="form-group">
+                        <label for="affTelegram"><i class="fab fa-telegram"></i> Telegram Chat ID</label>
+                        <input type="text" id="affTelegram" placeholder="123456789">
+                    </div>
+                    <div class="form-group">
+                        <label for="affChannel"><i class="fas fa-paper-plane"></i> Preferred Channel</label>
+                        <select id="affChannel">
+                            <option value="telegram">Telegram</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="sms">SMS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="affNiche"><i class="fas fa-tag"></i> Niche</label>
+                        <input type="text" id="affNiche" placeholder="vacation_rentals" value="general">
+                    </div>
+                    <div class="form-group">
+                        <label for="affTimezone"><i class="fas fa-globe"></i> Timezone</label>
+                        <select id="affTimezone">
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">Eastern (US)</option>
+                            <option value="America/Chicago">Central (US)</option>
+                            <option value="America/Denver">Mountain (US)</option>
+                            <option value="America/Los_Angeles">Pacific (US)</option>
+                            <option value="Europe/London">London</option>
+                            <option value="Europe/Madrid">Madrid</option>
+                            <option value="Asia/Manila">Manila</option>
+                            <option value="Asia/Tokyo">Tokyo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAffiliateModal()">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Affiliate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/m1-dashboard.js"></script>
+    <script>
+    // Theme toggle
+    (function() {
+        const saved = localStorage.getItem('ergovia_theme');
+        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        const btn = document.getElementById('themeToggle');
+        function updateIcon() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        }
+        updateIcon();
+        btn.addEventListener('click', function() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('ergovia_theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('ergovia_theme', 'dark');
+            }
+            updateIcon();
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -2193,6 +2193,202 @@ app.post('/api/v2/sync/import', async (req, res) => {
 // ============================================
 // 404 HANDLER (Return JSON not HTML)
 // ============================================
+// M1 AFFILIATE MARKETING API ROUTES
+// ============================================
+
+const m1Data = require('./services/m1-data');
+
+// Dashboard stats
+app.get('/api/m1/dashboard', async (req, res) => {
+  try {
+    const stats = await m1Data.getDashboardStats();
+    res.json({ success: true, ...stats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Affiliates CRUD
+app.get('/api/m1/affiliates', async (req, res) => {
+  try {
+    const affiliates = await m1Data.getAffiliates();
+    res.json({ success: true, affiliates });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/m1/affiliates/:id', async (req, res) => {
+  try {
+    const affiliate = await m1Data.getAffiliate(req.params.id);
+    if (!affiliate) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, affiliate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/m1/affiliates', async (req, res) => {
+  try {
+    const affiliate = await m1Data.createAffiliate(req.body);
+    res.json({ success: true, affiliate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/affiliates/:id', async (req, res) => {
+  try {
+    const affiliate = await m1Data.updateAffiliate(req.params.id, req.body);
+    if (!affiliate) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, affiliate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/m1/affiliates/:id', async (req, res) => {
+  try {
+    const ok = await m1Data.deleteAffiliate(req.params.id);
+    res.json({ success: ok, message: ok ? 'Deleted' : 'Not found' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// AI System Prompts
+app.get('/api/m1/prompts', async (req, res) => {
+  try {
+    const prompts = await m1Data.getPrompts();
+    res.json({ success: true, prompts });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/prompts/:id', async (req, res) => {
+  try {
+    const prompt = await m1Data.updatePrompt(req.params.id, req.body);
+    if (!prompt) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, prompt });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Closing Script Stages
+app.get('/api/m1/stages', async (req, res) => {
+  try {
+    const stages = await m1Data.getClosingStages();
+    res.json({ success: true, stages });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/stages/:id', async (req, res) => {
+  try {
+    const stage = await m1Data.updateClosingStage(req.params.id, req.body);
+    if (!stage) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, stage });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Closing Objections
+app.get('/api/m1/objections', async (req, res) => {
+  try {
+    const objections = await m1Data.getObjections();
+    res.json({ success: true, objections });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/objections/:id', async (req, res) => {
+  try {
+    const objection = await m1Data.updateObjection(req.params.id, req.body);
+    if (!objection) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, objection });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Marketing Leads
+app.get('/api/m1/leads', async (req, res) => {
+  try {
+    const leads = await m1Data.getLeads({
+      status: req.query.status,
+      affiliate_id: req.query.affiliate_id,
+    });
+    res.json({ success: true, leads });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/m1/leads/:id', async (req, res) => {
+  try {
+    const lead = await m1Data.getLead(req.params.id);
+    if (!lead) return res.status(404).json({ success: false, error: 'Not found' });
+    const messages = await m1Data.getLeadMessages(req.params.id);
+    res.json({ success: true, lead, messages });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Niche Problems
+app.get('/api/m1/niche-problems', async (req, res) => {
+  try {
+    const problems = await m1Data.getNicheProblems();
+    res.json({ success: true, problems });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/m1/niche-problems', async (req, res) => {
+  try {
+    const problem = await m1Data.createNicheProblem(req.body);
+    res.json({ success: true, problem });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/m1/niche-problems/:id', async (req, res) => {
+  try {
+    const problem = await m1Data.updateNicheProblem(req.params.id, req.body);
+    if (!problem) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, problem });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/m1/niche-problems/:id', async (req, res) => {
+  try {
+    const ok = await m1Data.deleteNicheProblem(req.params.id);
+    res.json({ success: ok, message: ok ? 'Deleted' : 'Not found' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Error Log
+app.get('/api/m1/errors', async (req, res) => {
+  try {
+    const errors = await m1Data.getErrors();
+    res.json({ success: true, errors });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================
 
 app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, error: `API endpoint not found: ${req.originalUrl}` });
