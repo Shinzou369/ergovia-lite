@@ -737,7 +737,7 @@ class N8NService {
   // Activate a workflow in n8n
   async activateWorkflow(workflowId) {
     try {
-      // Use POST to /activate endpoint (universally supported across n8n versions)
+      // Try POST /activate (newer n8n versions)
       try {
         await axios.post(
           `${this.baseUrl}/api/v1/workflows/${workflowId}/activate`,
@@ -751,13 +751,10 @@ class N8NService {
         );
         return { success: true };
       } catch (postErr) {
-        // Fallback: PUT with active flag (works on older n8n versions)
-        const getResult = await this.getWorkflow(workflowId);
-        if (!getResult.success) throw postErr;
-        const clean = this.cleanWorkflowForApi(getResult.workflow);
-        await axios.put(
+        // Fallback: PATCH with active flag (avoids read-only error on PUT)
+        await axios.patch(
           `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-          { ...clean, active: true },
+          { active: true },
           {
             headers: {
               'X-N8N-API-KEY': this.apiKey,
@@ -775,6 +772,7 @@ class N8NService {
 
   async deactivateWorkflow(workflowId) {
     try {
+      // Try POST /deactivate (newer n8n versions)
       try {
         await axios.post(
           `${this.baseUrl}/api/v1/workflows/${workflowId}/deactivate`,
@@ -788,13 +786,10 @@ class N8NService {
         );
         return { success: true };
       } catch (postErr) {
-        // Fallback: PUT with active: false
-        const getResult = await this.getWorkflow(workflowId);
-        if (!getResult.success) throw postErr;
-        const clean = this.cleanWorkflowForApi(getResult.workflow);
-        await axios.put(
+        // Fallback: PATCH with active flag
+        await axios.patch(
           `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-          { ...clean, active: false },
+          { active: false },
           {
             headers: {
               'X-N8N-API-KEY': this.apiKey,
@@ -858,9 +853,12 @@ class N8NService {
       );
 
       // Reactivate
-      await this.activateWorkflow(workflowId);
+      const activateResult = await this.activateWorkflow(workflowId);
+      if (!activateResult.success) {
+        console.error('Warning: workflow updated but reactivation failed:', activateResult.error);
+      }
 
-      return { success: true };
+      return { success: true, activated: activateResult.success };
     } catch (error) {
       console.error('Update workflow error:', error.response?.data || error.message);
       return { success: false, error: error.message };
