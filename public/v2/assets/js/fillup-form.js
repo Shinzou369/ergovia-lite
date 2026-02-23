@@ -99,6 +99,8 @@ function populateForm(data) {
         setVal('competingOfferTimeout', data.booking.competingOfferTimeout);
         setVal('offerHoldDuration', data.booking.offerHoldDuration);
         setCheckbox('requirePaymentConfirmation', data.booking.requirePaymentConfirmation !== false);
+        setVal('serviceFeePercent', data.booking.serviceFeePercent);
+        setVal('weeklyDiscountPercent', data.booking.weeklyDiscountPercent);
     }
 
     // Fallback: load timezone/currency from preferences if not in booking section
@@ -377,6 +379,8 @@ function getSectionData(sectionName) {
                 competingOfferTimeout: document.getElementById('competingOfferTimeout').value,
                 offerHoldDuration: document.getElementById('offerHoldDuration').value,
                 requirePaymentConfirmation: document.getElementById('requirePaymentConfirmation').checked,
+                serviceFeePercent: document.getElementById('serviceFeePercent').value,
+                weeklyDiscountPercent: document.getElementById('weeklyDiscountPercent').value,
             };
 
         case 'notifications':
