@@ -337,6 +337,21 @@
                         </div>
                     </div>
 
+                    <!-- Response Speed -->
+                    <div class="form-group full-width">
+                        <label for="responseSpeed">
+                            <i class="fas fa-clock"></i> Response Speed
+                        </label>
+                        <select id="responseSpeed" name="responseSpeed" class="form-control">
+                            <option value="instant">Instant (bot-like)</option>
+                            <option value="natural" selected>Natural (8-25 sec delay)</option>
+                            <option value="slow">Slow (20-60 sec, very human)</option>
+                        </select>
+                        <small style="color: var(--text-muted); margin-top: 4px; display: block;">
+                            Adds a random delay before replying so guests feel they're texting a real person
+                        </small>
+                    </div>
+
                     <!-- AI Notes -->
                     <div class="form-group full-width">
                         <label for="aiNotes">

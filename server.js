@@ -1619,6 +1619,71 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
     appendix += `\n- Response Language: ${languageName}`;
     appendix += `\n- ALWAYS respond to guests in ${languageName}. If the guest writes in another language, still reply in ${languageName} unless they explicitly ask otherwise.`;
 
+    // ── Conversation Flow (6-step structured selling) ──
+    appendix += `\n\n## CONVERSATION FLOW — Follow These Steps In Order`;
+    appendix += `\nYou are a friendly vacation rental assistant. Build a RELATIONSHIP, not a transaction. `;
+    appendix += `Make guests feel they are BUYING, not being SOLD to. Follow these steps in order:\n`;
+    appendix += `\n### Step 1 — Welcome`;
+    appendix += `\nGreet warmly. Let them know you're here to help them find the perfect stay. `;
+    appendix += `Keep it casual and inviting. Example: "Hey! Welcome 😊 I'd love to help you find the perfect place to stay!"\n`;
+    appendix += `\n### Step 2 — Get Their Name`;
+    appendix += `\nAsk their name so you can address them personally. Be friendly and informal. `;
+    appendix += `Example: "By the way, what's your name so I can make this more personal?"\n`;
+    appendix += `\n### Step 3 — Get Their Dates`;
+    appendix += `\nAsk what dates they want to stay and if they're looking for a long stay. `;
+    appendix += `Do NOT reveal pricing yet. If they ask for price before giving dates, say something like: `;
+    appendix += `"I'd love to get that info for you! Could you share your dates first so I can check what's available and give you the exact price?"\n`;
+    appendix += `\n### Step 4 — Show Available Options`;
+    appendix += `\nOnce you have dates, check availability and present the matching properties. `;
+    appendix += `If the owner has multiple properties in the same area, suggest alternatives when the first choice has date conflicts. `;
+    appendix += `If a property is unavailable, share its next free dates for the month. `;
+    appendix += `Include property details: name, type, bedrooms, bathrooms, max guests, and description.\n`;
+    appendix += `\n### Step 5 — Reveal Price`;
+    appendix += `\nOnly after Steps 1-4 are complete, share the price. Frame it positively: `;
+    appendix += `"From [check-in] to [check-out] that would be [price]. How do you feel about it?" `;
+    appendix += `Always end with a question that moves closer to closing the deal.\n`;
+    appendix += `\n### Step 6 — Follow-Up If No Reply`;
+    appendix += `\nIf the guest stops responding, follow up based on time since their LAST message:`;
+    appendix += `\n- After 1 hour: Gentle nudge ("Hey [name], just checking — still interested in those dates?")`;
+    appendix += `\n- After 5 hours: Add value ("Just a heads up [name], those dates are getting popular!")`;
+    appendix += `\n- After 24 hours: Soft reminder ("Hi [name]! Wanted to make sure you saw my message about [property]")`;
+    appendix += `\n- After 48 hours: Final reach-out ("Hey [name], no worries if plans changed! I'm here whenever you're ready 😊")\n`;
+    appendix += `\n### Conversation Rules`;
+    appendix += `\n- ALWAYS end your message with a question that moves toward closing`;
+    appendix += `\n- Answer guest questions if you have the answer`;
+    appendix += `\n- If you DON'T have the answer, tell the guest you'll check with the property manager and get back to them`;
+    appendix += `\n- Never skip steps — complete Steps 1-4 before revealing price in Step 5`;
+    appendix += `\n- Keep tone warm, casual, and helpful — like texting a friend who happens to know great places to stay`;
+
+    // ── Property Information (for AI context) ──
+    try {
+      const properties = v2Data ? await v2Data.getProperties() : [];
+      if (properties.length > 0) {
+        appendix += `\n\n## YOUR PROPERTIES — Use This When Answering Guests`;
+        for (const p of properties) {
+          appendix += `\n\n### ${p.name || 'Unnamed Property'}`;
+          if (p.address) appendix += `\n- Address: ${p.address}`;
+          if (p.locationDescription) appendix += `\n- Description: ${p.locationDescription}`;
+          if (p.type) appendix += `\n- Type: ${p.type}`;
+          if (p.bedrooms) appendix += `\n- Bedrooms: ${p.bedrooms}`;
+          if (p.bathrooms) appendix += `\n- Bathrooms: ${p.bathrooms}`;
+          if (p.maxGuests) appendix += `\n- Max Guests: ${p.maxGuests}`;
+          if (p.basePrice) appendix += `\n- Base Price: $${p.basePrice}/night`;
+          if (p.weekendPrice) appendix += `\n- Weekend Price: $${p.weekendPrice}/night`;
+          if (p.cleaningFee) appendix += `\n- Cleaning Fee: $${p.cleaningFee}`;
+          if (p.minStayNights > 1) appendix += `\n- Minimum Stay: ${p.minStayNights} nights`;
+          if (p.checkInTime) appendix += `\n- Check-in: ${p.checkInTime}`;
+          if (p.checkOutTime) appendix += `\n- Check-out: ${p.checkOutTime}`;
+          if (p.houseRules) appendix += `\n- House Rules: ${p.houseRules}`;
+          if (p.amenities && p.amenities.length > 0) appendix += `\n- Amenities: ${Array.isArray(p.amenities) ? p.amenities.join(', ') : p.amenities}`;
+          if (p.photos) appendix += `\n- Photos: ${p.photos}`;
+          if (p.notes) appendix += `\n- Notes: ${p.notes}`;
+        }
+      }
+    } catch (e) {
+      console.error('[sync] Could not load properties for prompt:', e.message);
+    }
+
     if (aiNotes.trim()) {
       appendix += `\n\n## Owner's Custom Instructions\n${aiNotes.trim()}`;
     }
@@ -1668,6 +1733,21 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
         }
       } catch (e) {
         console.error('[sync] Auto-reply toggle failed:', e.message);
+      }
+    }
+
+    // Insert/update human-like response delay in WF1
+    const responseSpeed = aiSettings?.responseSpeed || 'natural';
+    if (responseSpeed !== 'instant') {
+      try {
+        const delayMap = { natural: [8, 25], slow: [20, 60] };
+        const [min, max] = delayMap[responseSpeed] || [8, 25];
+        const delayResult = await n8nService.insertResponseDelay(wf1Id, min, max);
+        if (delayResult.success) {
+          console.log(`[sync] Response delay set: ${min}-${max}s (${responseSpeed})`);
+        }
+      } catch (e) {
+        console.error('[sync] Response delay failed:', e.message);
       }
     }
 

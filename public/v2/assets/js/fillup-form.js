@@ -75,6 +75,7 @@ function populateForm(data) {
         setVal('language', data.ai.language);
         setVal('aiModel', data.ai.aiModel);
         setCheckbox('autoReplyEnabled', data.ai.autoReplyEnabled !== false);
+        setVal('responseSpeed', data.ai.responseSpeed || 'natural');
         if (data.ai.aiTemperature !== undefined) {
             setVal('aiTemperature', data.ai.aiTemperature);
             const tempLabel = document.getElementById('aiTempValue');
@@ -364,6 +365,7 @@ function getSectionData(sectionName) {
                 language: document.getElementById('language').value,
                 aiModel: document.getElementById('aiModel').value,
                 aiTemperature: document.getElementById('aiTemperature').value,
+                responseSpeed: document.getElementById('responseSpeed').value,
                 autoReplyEnabled: document.getElementById('autoReplyEnabled').checked,
             };
 

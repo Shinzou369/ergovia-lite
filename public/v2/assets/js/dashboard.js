@@ -202,6 +202,19 @@ function buildSetupTasks(data) {
     const owner = data.owner || {};
     const stats = data.stats || {};
 
+    // Google Maps setup task — FIRST PRIORITY (drives traffic to the AI)
+    if (!localStorage.getItem('ergovia_gmaps_dismissed')) {
+        tasks.push({
+            id: 'setup-gmaps',
+            title: 'Setup Google Maps Presence',
+            description: 'Get found on Google Maps and drive bookings to your AI — this is the #1 way to get guests messaging you',
+            priority: 'high',
+            icon: 'map-marker-alt',
+            actionText: 'Start Setup',
+            onAction: 'showGoogleMapsModal()',
+        });
+    }
+
     // Check if owner info is missing
     if (!owner.ownerName && !owner.name) {
         tasks.push({
@@ -225,19 +238,6 @@ function buildSetupTasks(data) {
             icon: 'building',
             actionLink: 'properties.html',
             actionText: 'Add Property',
-        });
-    }
-
-    // Google Maps setup task
-    if (!localStorage.getItem('ergovia_gmaps_dismissed')) {
-        tasks.push({
-            id: 'setup-gmaps',
-            title: 'Setup Google Maps Presence',
-            description: 'Get found on Google Maps and drive bookings to your AI',
-            priority: 'medium',
-            icon: 'map-marker-alt',
-            actionText: 'Start Setup',
-            onAction: 'showGoogleMapsModal()',
         });
     }
 

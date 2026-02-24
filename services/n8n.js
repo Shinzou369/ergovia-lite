@@ -1465,6 +1465,70 @@ class N8NService {
     };
   }
 
+  /**
+   * Insert or update a Wait node before the Telegram/WhatsApp response in a workflow.
+   * This adds a human-like delay so the AI doesn't reply instantly.
+   * @param {string} workflowId
+   * @param {number} minSeconds - minimum delay (default 8)
+   * @param {number} maxSeconds - maximum delay (default 25)
+   */
+  async insertResponseDelay(workflowId, minSeconds = 8, maxSeconds = 25) {
+    const getResult = await this.getWorkflow(workflowId);
+    if (!getResult.success) return getResult;
+
+    const workflow = getResult.workflow;
+    const waitNodeName = 'Human-Like Delay';
+
+    // Check if Wait node already exists
+    const existingWait = workflow.nodes.find(n => n.name === waitNodeName);
+    if (existingWait) {
+      // Update the existing delay code
+      existingWait.parameters.jsCode = `const min = ${minSeconds};\nconst max = ${maxSeconds};\nconst delay = Math.floor(Math.random() * (max - min + 1)) + min;\nawait new Promise(r => setTimeout(r, delay * 1000));\nreturn $input.all();`;
+      const updateResult = await this.updateWorkflow(workflowId, workflow);
+      return { ...updateResult, action: 'updated', delay: `${minSeconds}-${maxSeconds}s` };
+    }
+
+    // Find the AI Agent node (output goes to response)
+    const agentNode = workflow.nodes.find(n =>
+      n.type && n.type.includes('agent') && !n.type.includes('tool')
+    );
+    if (!agentNode) {
+      return { success: false, error: 'AI Agent node not found in workflow' };
+    }
+
+    // Find what the Agent connects to (the response/send node)
+    const agentConnections = workflow.connections[agentNode.name];
+    if (!agentConnections || !agentConnections.main || !agentConnections.main[0] || agentConnections.main[0].length === 0) {
+      return { success: false, error: 'Agent node has no output connections' };
+    }
+
+    const nextNodes = agentConnections.main[0]; // [{node: "Send Message", type: "main", index: 0}]
+
+    // Create the Wait (Code) node — positioned between Agent and Send
+    const agentPos = agentNode.position || [0, 0];
+    const waitNode = {
+      id: 'wait-delay-' + Date.now(),
+      name: waitNodeName,
+      type: 'n8n-nodes-base.code',
+      typeVersion: 2,
+      position: [agentPos[0] + 250, agentPos[1]],
+      parameters: {
+        jsCode: `const min = ${minSeconds};\nconst max = ${maxSeconds};\nconst delay = Math.floor(Math.random() * (max - min + 1)) + min;\nawait new Promise(r => setTimeout(r, delay * 1000));\nreturn $input.all();`,
+        mode: 'runOnceForAllItems'
+      }
+    };
+
+    // Add node to workflow
+    workflow.nodes.push(waitNode);
+
+    // Rewire: Agent → Wait → original next nodes
+    workflow.connections[agentNode.name].main[0] = [{ node: waitNodeName, type: 'main', index: 0 }];
+    workflow.connections[waitNodeName] = { main: [nextNodes] };
+
+    const updateResult = await this.updateWorkflow(workflowId, workflow);
+    return { ...updateResult, action: 'inserted', delay: `${minSeconds}-${maxSeconds}s` };
+  }
+
   // Update an n8n credential (delete old + create new, since n8n API doesn't support PATCH on credentials)
   async replaceCredential(oldCredentialId, type, name, data) {
     console.log(`  Replacing credential ${oldCredentialId} (${type})...`);
