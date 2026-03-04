@@ -19,7 +19,7 @@ const pool = new Pool({
   database: process.env.PG_DATABASE || 'ergovia_db',
   user: process.env.PG_USER || 'ergovia_user',
   password: process.env.PG_PASSWORD || 'ergovia_secure_2026',
-  ssl: pgSsl ? { rejectUnauthorized: false } : false,
+  ssl: (pgSsl && pgSsl !== 'disable' && pgSsl !== 'false' && pgSsl !== '0') ? { rejectUnauthorized: false } : false,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
