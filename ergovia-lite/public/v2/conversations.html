@@ -14,6 +14,7 @@
         })();
     </script>
     <style>
+        /* ===== LAYOUT ===== */
         .conversations-layout {
             display: grid;
             grid-template-columns: 320px 1fr;
@@ -21,6 +22,8 @@
             height: calc(100vh - 70px);
             overflow: hidden;
         }
+
+        /* ===== SIDEBAR (light defaults) ===== */
         .conv-sidebar {
             background: #ffffff;
             border-right: 1px solid #e8ecf1;
@@ -31,10 +34,10 @@
         .conv-sidebar-header {
             padding: 16px 20px;
             border-bottom: 1px solid #e8ecf1;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #ffffff;
             position: sticky;
             top: 0;
             z-index: 10;
@@ -42,29 +45,48 @@
         .conv-sidebar-header h3 {
             font-size: 15px;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #1a202c;
             margin: 0;
         }
-        .conv-list {
-            flex: 1;
-            overflow-y: auto;
+        .conv-search {
+            padding: 10px 16px;
+            border-bottom: 1px solid #e8ecf1;
         }
+        .conv-search input {
+            width: 100%;
+            background: #fafbfc;
+            border: 1px solid #e8ecf1;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #1a202c;
+            font-size: 13px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .conv-search input::placeholder { color: #4a5568; }
+        .conv-search input:focus { border-color: #c9a84c; }
+        .conv-list { flex: 1; overflow-y: auto; }
+
+        /* ===== CONVERSATION ITEMS (single definition) ===== */
         .conv-item {
-            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
             border-bottom: 1px solid #e8ecf1;
             cursor: pointer;
             transition: background 0.15s;
         }
-        .conv-item:hover, .conv-item.active {
-            background: #f5f7fa;
-        }
+        .conv-item:hover { background: #f5f7fa; }
         .conv-item.active {
+            background: #f5f7fa;
             border-left: 3px solid #c9a84c;
         }
+        .conv-item-body { flex: 1; min-width: 0; }
         .conv-item-name {
             font-weight: 600;
             font-size: 14px;
-            color: var(--text-primary);
+            color: #1a202c;
             margin-bottom: 4px;
             white-space: nowrap;
             overflow: hidden;
@@ -72,10 +94,27 @@
         }
         .conv-item-meta {
             font-size: 12px;
-            color: var(--text-secondary);
+            color: #4a5568;
             display: flex;
             justify-content: space-between;
         }
+        .conv-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, #c9a84c, #a07830);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: 700; color: #0f1922; flex-shrink: 0;
+        }
+        .channel-badge {
+            font-size: 10px; padding: 1px 6px; border-radius: 10px;
+            font-weight: 600; background: #e8f4ff; color: #1a56db;
+        }
+        .msg-count-badge {
+            background: #c9a84c; color: #0f1922;
+            font-size: 11px; font-weight: 700;
+            padding: 2px 7px; border-radius: 20px;
+        }
+
+        /* ===== MESSAGE PANEL (light defaults) ===== */
         .conv-messages {
             flex: 1;
             display: flex;
@@ -94,7 +133,7 @@
         .conv-messages-header h3 {
             font-size: 15px;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #1a202c;
             margin: 0;
         }
         .conv-messages-body {
@@ -105,108 +144,20 @@
             flex-direction: column;
             gap: 12px;
         }
-        .msg-bubble {
-            max-width: 70%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .msg-bubble.human {
-            align-self: flex-end;
-            background: #c9a84c;
-            color: #0f1922;
-            border-bottom-right-radius: 4px;
-        }
-        .msg-bubble.ai {
-            align-self: flex-start;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-bottom-left-radius: 4px;
-        }
-        .msg-time {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-        .msg-wrapper {
-            display: flex;
-            flex-direction: column;
-        }
-        .msg-wrapper.human { align-items: flex-end; }
-        .msg-wrapper.ai { align-items: flex-start; }
         .conv-empty {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            gap: 12px;
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: #4a5568; gap: 12px;
         }
         .conv-empty i { font-size: 48px; opacity: 0.3; }
         .conv-empty p { font-size: 14px; text-align: center; }
-        .refresh-btn {
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            border-radius: 6px;
-            padding: 6px 10px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.15s;
+
+        /* ===== MESSAGES (single definition each) ===== */
+        .msg-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
         }
-        .refresh-btn:hover {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-        }
-        .msg-count-badge {
-            background: #c9a84c;
-            color: #0f1922;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 7px;
-            border-radius: 20px;
-        }
-        .conv-search {
-            padding: 10px 16px;
-            border-bottom: 1px solid #e8ecf1;
-        }
-        .conv-search input {
-            width: 100%;
-            background: #fafbfc;
-            border: 1px solid #e8ecf1;
-            border-radius: 8px;
-            padding: 8px 12px;
-            color: #1a202c;
-            font-size: 13px;
-            outline: none;
-            box-sizing: border-box;
-        }
-        .conv-search input::placeholder { color: var(--text-secondary); }
-        .conv-search input:focus { border-color: #c9a84c; }
-        .conv-avatar {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: linear-gradient(135deg, #c9a84c, #a07830);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; font-weight: 700; color: #0f1922; flex-shrink: 0;
-        }
-        .conv-item {
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 16px; border-bottom: 1px solid var(--border);
-            cursor: pointer; transition: background 0.15s;
-        }
-        .conv-item-body { flex: 1; min-width: 0; }
-        /* Channel badge — light mode default */
-        .channel-badge {
-            font-size: 10px; padding: 1px 6px; border-radius: 10px;
-            font-weight: 600; background: #e8f4ff; color: #1a56db;
-        }
-        [data-theme="dark"] .channel-badge {
-            background: #1e4a7a; color: #90cdf4;
-        }
-        .msg-wrapper { display: flex; align-items: flex-start; gap: 8px; }
         .msg-wrapper.human { flex-direction: row-reverse; }
         .msg-inner { display: flex; flex-direction: column; }
         .msg-inner.human { align-items: flex-end; }
@@ -216,61 +167,118 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 12px; flex-shrink: 0; margin-top: 2px;
         }
-        /* Message avatars — light mode default */
         .msg-avatar.ai { background: #d1e8ff; color: #1a56db; }
         .msg-avatar.human { background: #fef3c7; color: #92400e; }
-        [data-theme="dark"] .msg-avatar.ai { background: #1e4a7a; color: #90cdf4; }
-        [data-theme="dark"] .msg-avatar.human { background: #744210; color: #f6e05e; }
-        .msg-bubble.human { border-bottom-right-radius: 4px; border-bottom-left-radius: 12px; }
-        .msg-bubble.ai { border-bottom-left-radius: 4px; border-bottom-right-radius: 12px; }
+        .msg-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .msg-bubble.human {
+            background: #c9a84c;
+            color: #0f1922;
+            border-bottom-right-radius: 4px;
+            border-bottom-left-radius: 12px;
+        }
+        .msg-bubble.ai {
+            background: #ffffff;
+            color: #1a202c;
+            border: 1px solid #e8ecf1;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 12px;
+        }
+        .msg-time {
+            font-size: 11px;
+            color: #4a5568;
+            margin-top: 4px;
+        }
 
-        /* Explicit dark-mode overrides for layout backgrounds */
-        [data-theme="dark"] .conv-sidebar {
-            background: #132847;
-            border-right-color: #2a4a7f;
+        /* ===== MISC ===== */
+        .refresh-btn {
+            background: none;
+            border: 1px solid #e8ecf1;
+            color: #4a5568;
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.15s;
         }
-        [data-theme="dark"] .conv-sidebar-header {
-            background: #132847;
-            border-bottom-color: #2a4a7f;
-        }
-        [data-theme="dark"] .conv-messages {
-            background: #0a1628;
-        }
-        [data-theme="dark"] .conv-messages-header {
-            background: #132847;
-            border-bottom-color: #2a4a7f;
-        }
-        [data-theme="dark"] .conv-messages-header h3 { color: #f7fafc; }
-        [data-theme="dark"] .conv-item {
-            border-bottom-color: #2a4a7f;
-        }
-        [data-theme="dark"] .conv-item:hover,
-        [data-theme="dark"] .conv-item.active {
-            background: #1a365d;
-        }
+        .refresh-btn:hover { background: #f5f7fa; color: #1a202c; }
+
+        /* ===== UTILITY CLASSES ===== */
+        .muted-text { color: #4a5568; }
+        .error-text { color: #c53030; }
+        .session-label { font-size: 12px; color: #4a5568; margin-left: auto; }
+
+        /* ===== DARK MODE OVERRIDES ===== */
+        [data-theme="dark"] .conv-sidebar { background: #132847; border-right-color: #2a4a7f; }
+        [data-theme="dark"] .conv-sidebar-header { background: #132847; border-bottom-color: #2a4a7f; }
+        [data-theme="dark"] .conv-sidebar-header h3 { color: #f7fafc; }
+        [data-theme="dark"] .conv-search { border-bottom-color: #2a4a7f; }
+        [data-theme="dark"] .conv-search input { background: #0a1628; border-color: #2a4a7f; color: #f7fafc; }
+        [data-theme="dark"] .conv-search input::placeholder { color: #718096; }
+        [data-theme="dark"] .conv-item { border-bottom-color: #2a4a7f; }
+        [data-theme="dark"] .conv-item:hover { background: #1a365d; }
+        [data-theme="dark"] .conv-item.active { background: #1a365d; }
         [data-theme="dark"] .conv-item-name { color: #f7fafc; }
         [data-theme="dark"] .conv-item-meta { color: #cbd5e0; }
-        [data-theme="dark"] .conv-search { border-bottom-color: #2a4a7f; }
-        [data-theme="dark"] .conv-search input {
-            background: #0a1628;
-            border-color: #2a4a7f;
-            color: #f7fafc;
-        }
-        [data-theme="dark"] .msg-bubble.ai {
-            background: #1e3a5f;
-            color: #e2e8f0;
-            border-color: #2d5a8a;
-        }
+        [data-theme="dark"] .channel-badge { background: #1e4a7a; color: #90cdf4; }
+        [data-theme="dark"] .conv-messages { background: #0a1628; }
+        [data-theme="dark"] .conv-messages-header { background: #132847; border-bottom-color: #2a4a7f; }
+        [data-theme="dark"] .conv-messages-header h3 { color: #f7fafc; }
+        [data-theme="dark"] .msg-bubble.ai { background: #1e3a5f; color: #e2e8f0; border-color: #2d5a8a; }
+        [data-theme="dark"] .msg-avatar.ai { background: #1e4a7a; color: #90cdf4; }
+        [data-theme="dark"] .msg-avatar.human { background: #744210; color: #f6e05e; }
         [data-theme="dark"] .msg-time { color: #718096; }
-
-        /* Theme-aware utility classes (used in JS-rendered HTML) */
-        .muted-text { color: var(--text-secondary); }
-        .error-text { color: #c53030; }
+        [data-theme="dark"] .refresh-btn { border-color: #2a4a7f; color: #cbd5e0; }
+        [data-theme="dark"] .refresh-btn:hover { background: #1a365d; color: #f7fafc; }
+        [data-theme="dark"] .muted-text { color: #718096; }
         [data-theme="dark"] .error-text { color: #fc8181; }
-        .session-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-left: auto;
+        [data-theme="dark"] .session-label { color: #718096; }
+        [data-theme="dark"] .conv-empty { color: #718096; }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .conversations-layout {
+                grid-template-columns: 1fr;
+                height: calc(100vh - 60px);
+                position: relative;
+            }
+            .conv-sidebar {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                z-index: 20;
+                transform: translateX(0);
+                transition: transform 0.25s ease;
+            }
+            .conv-sidebar.hidden {
+                transform: translateX(-100%);
+            }
+            .conv-messages {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                z-index: 10;
+            }
+            .conv-messages-header {
+                padding: 12px 16px;
+            }
+            .conv-messages-header::before {
+                content: "←";
+                font-size: 18px;
+                cursor: pointer;
+                margin-right: 8px;
+                color: #c9a84c;
+                flex-shrink: 0;
+            }
+            [data-theme="dark"] .conv-messages-header::before { color: #c9a84c; }
+            .conv-messages-body { padding: 12px 16px; }
+            .msg-bubble { max-width: 85%; }
+            .session-label { display: none; }
         }
     </style>
 </head>
@@ -333,7 +341,7 @@
     <!-- Conversations Layout -->
     <div class="conversations-layout">
         <!-- Left sidebar: conversation list -->
-        <div class="conv-sidebar">
+        <div class="conv-sidebar" id="convSidebar">
             <div class="conv-sidebar-header">
                 <h3><i class="fas fa-comments" style="color:#c9a84c;margin-right:8px;"></i>Conversations</h3>
                 <button class="refresh-btn" id="refreshBtn" title="Refresh"><i class="fas fa-sync-alt"></i></button>
@@ -453,7 +461,7 @@
 
             const panel = document.getElementById('convMessages');
             panel.innerHTML = `
-                <div class="conv-messages-header">
+                <div class="conv-messages-header" id="msgHeader">
                     <i class="fas fa-user-circle" style="color:#c9a84c;font-size:18px;"></i>
                     <h3>${displayName}</h3>
                     <span class="session-label">Session: ${sessionId}</span>
@@ -462,6 +470,16 @@
                     <div class="muted-text" style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
                 </div>
             `;
+
+            // Mobile: hide sidebar, show messages; back arrow click to return
+            if (window.innerWidth <= 768) {
+                document.getElementById('convSidebar').classList.add('hidden');
+                document.getElementById('msgHeader').addEventListener('click', function(e) {
+                    if (e.offsetX < 40) { // click on the ← pseudo-element area
+                        document.getElementById('convSidebar').classList.remove('hidden');
+                    }
+                });
+            }
 
             try {
                 const resp = await fetch(`/api/v2/conversations/${encodeURIComponent(sessionId)}`, { headers: authHeaders() });
