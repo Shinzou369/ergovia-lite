@@ -10,19 +10,19 @@
     // Auth-aware redirect
     const token = localStorage.getItem('ergovia_token');
     if (!token) {
-      window.location.href = '/login.html';
+      window.location.href = '/login';
     } else {
       fetch('/api/auth/verify', { headers: { Authorization: 'Bearer ' + token } })
         .then(r => r.json())
         .then(d => {
           if (d.success) {
-            window.location.href = '/v2/dashboard.html';
+            window.location.href = '/airb/dashboard';
           } else {
             localStorage.removeItem('ergovia_token');
-            window.location.href = '/login.html';
+            window.location.href = '/login';
           }
         })
-        .catch(() => { window.location.href = '/login.html'; });
+        .catch(() => { window.location.href = '/login'; });
     }
   </script>
 </body>

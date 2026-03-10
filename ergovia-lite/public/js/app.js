@@ -174,7 +174,7 @@ function populateForm(formId, data) {
 class OnboardingWizard {
   constructor() {
     this.currentStep = 1;
-    this.totalSteps = 5;
+    this.totalSteps = 6;
     this.data = {};
   }
 
@@ -190,6 +190,7 @@ class OnboardingWizard {
     if (this.data.property) this.currentStep = 3;
     if (this.data.guestAccess) this.currentStep = 4;
     if (this.data.calendars) this.currentStep = 5;
+    if (this.data.integrations) this.currentStep = 6;
 
     this.render();
     this.bindEvents();
@@ -236,7 +237,7 @@ class OnboardingWizard {
   }
 
   getStepData() {
-    const sections = ['owner', 'property', 'guestAccess', 'calendars', 'integrations'];
+    const sections = ['owner', 'property', 'guestAccess', 'calendars', 'integrations', 'google'];
     return this.data[sections[this.currentStep - 1]];
   }
 
@@ -359,7 +360,7 @@ class OnboardingWizard {
   }
 
   async saveCurrentStep() {
-    const sections = ['owner', 'property', 'guestAccess', 'calendars', 'integrations'];
+    const sections = ['owner', 'property', 'guestAccess', 'calendars', 'integrations', 'google'];
     const section = sections[this.currentStep - 1];
     const formData = getFormData(`step${this.currentStep}-form`);
 
@@ -391,7 +392,7 @@ class OnboardingWizard {
     if (await this.saveCurrentStep()) {
       showAlert('Onboarding complete!', 'success');
       setTimeout(() => {
-        window.location.href = '/dashboard.html';
+        window.location.href = '/airb/dashboard';
       }, 1500);
     } else {
       showAlert('Failed to save. Please try again.', 'danger');
@@ -743,7 +744,7 @@ class Automations {
       workflowList.innerHTML = `
         <div class="text-center py-4">
           <p class="text-muted mb-3">No automations deployed yet.</p>
-          <a href="/dashboard.html" class="btn btn-primary">Go to Dashboard to Deploy</a>
+          <a href="/airb/dashboard" class="btn btn-primary">Go to Dashboard to Deploy</a>
         </div>
       `;
     }
