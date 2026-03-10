@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Ergovia</title>
+    <title>Dashboard - AIRB by Ergovia</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="/logo.png" type="image/png">
@@ -13,21 +13,29 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <img src="/logo.png" alt="Ergovia" width="36" height="36">
-                <span>Ergovia</span>
+                <img src="/logo.png" alt="AIRB by Ergovia" width="36" height="36">
+                <span>AIRB</span>
             </div>
             <div class="nav-menu">
-                <a href="dashboard.html" class="nav-item active">
+                <a href="dashboard" class="nav-item active">
                     <i class="fas fa-th-large"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="settings.html" class="nav-item">
+                <a href="settings" class="nav-item">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Settings</span>
                 </a>
-                <a href="properties.html" class="nav-item">
+                <a href="properties" class="nav-item">
                     <i class="fas fa-building"></i>
                     <span>Properties</span>
+                </a>
+                <a href="conversations" class="nav-item">
+                    <i class="fas fa-comments"></i>
+                    <span>Conversations</span>
+                </a>
+                <a href="calendar" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
                 </a>
             </div>
             <div class="nav-user">
@@ -47,7 +55,7 @@
                             <h4 id="dropdownUserName">Owner</h4>
                             <p id="dropdownUserEmail">owner@ergovia.com</p>
                         </div>
-                        <a class="user-dropdown-item" href="settings.html"><i class="fas fa-cog"></i> Account Settings</a>
+                        <a class="user-dropdown-item" href="settings"><i class="fas fa-cog"></i> Account Settings</a>
                         <a class="user-dropdown-item" href="#" onclick="window.open('https://ergovia-ai.com','_blank')"><i class="fas fa-globe"></i> Visit Website</a>
                         <div class="user-dropdown-divider"></div>
                         <button class="user-dropdown-item danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Log Out</button>
@@ -93,6 +101,31 @@
             <div class="tasks-container" id="tasksContainer">
                 <div class="task-item" style="justify-content: center; color: var(--text-gray);">
                     <i class="fas fa-spinner fa-spin"></i>&nbsp; Loading tasks...
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Tasks Section (hidden when empty) -->
+        <div class="tasks-section" id="paymentTasksSection" style="display:none;">
+            <div class="section-header">
+                <h2><i class="fas fa-money-check-alt"></i> Pending Payments</h2>
+            </div>
+            <div class="tasks-container" id="paymentTasksContainer"></div>
+        </div>
+
+        <!-- Payment Confirmation Modal -->
+        <div class="modal" id="paymentConfirmModal" style="display:none;">
+            <div class="modal-content" style="max-width: 480px;">
+                <div class="modal-header">
+                    <h2 id="paymentModalTitle">Confirm Action</h2>
+                    <span class="modal-close" onclick="closePaymentModal()">&times;</span>
+                </div>
+                <div style="padding: 24px;">
+                    <p id="paymentModalMessage" style="line-height: 1.7; margin-bottom: 24px;"></p>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button class="btn-secondary" onclick="closePaymentModal()">Go Back</button>
+                        <button id="paymentModalConfirmBtn" class="btn-primary" onclick="executePaymentAction()">Proceed</button>
+                    </div>
                 </div>
             </div>
         </div>

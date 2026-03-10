@@ -1,0 +1,313 @@
+{
+  "name": "WF2: AI Booking Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "entry-webhook",
+      "name": "Booking Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "booking-agent-entry"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.conversation_id,\n  c.contact_id,\n  c.property_id,\n  c.conversation_stage,\n  c.conversation_history,\n  c.collected_data,\n  c.updated_at,\n  p.property_name,\n  p.property_type,\n  p.base_price,\n  p.max_guests,\n  p.bedrooms,\n  p.amenities,\n  p.house_rules,\n  p.check_in_time,\n  p.check_out_time,\n  p.location_description,\n  p.owner_name,\n  p.preferred_platform\nFROM conversations c\nLEFT JOIN property_configurations p ON c.property_id = p.property_id\nWHERE c.contact_id = $1\nORDER BY c.updated_at DESC\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.sender_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "load-context",
+      "name": "Load Conversation Context",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [220, 0],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Merge incoming data with loaded context\nconst input = $('Booking Request').item.json;\nconst context = $input.item.json;\n\nlet conversationHistory = [];\ntry {\n  conversationHistory = context.conversation_history ? JSON.parse(context.conversation_history) : [];\n} catch (e) {\n  conversationHistory = [];\n}\n\nlet collectedData = {};\ntry {\n  collectedData = context.collected_data ? JSON.parse(context.collected_data) : {};\n} catch (e) {\n  collectedData = {};\n}\n\nreturn {\n  // Session info\n  conversation_id: context.conversation_id || `conv_${Date.now()}`,\n  contact_id: input.sender_id,\n  channel: input.channel,\n  \n  // Current message\n  user_message: input.message_text,\n  is_callback: input.is_callback || false,\n  callback_data: input.callback_data || null,\n  \n  // Conversation state\n  stage: context.conversation_stage || 'greeting',\n  history: conversationHistory,\n  collected: collectedData,\n  \n  // Property info (if associated)\n  property_id: context.property_id || input.property_id || null,\n  property_name: context.property_name || null,\n  property_type: context.property_type || null,\n  base_price: context.base_price || null,\n  max_guests: context.max_guests || null,\n  amenities: context.amenities || null,\n  house_rules: context.house_rules || null,\n  check_in_time: context.check_in_time || '15:00',\n  check_out_time: context.check_out_time || '11:00',\n  \n  // AI context\n  ai_category: input.category || 'BOOKING_INQUIRY',\n  ai_confidence: input.confidence || 0.8,\n  suggested_response: input.suggested_response || null\n};"
+      },
+      "id": "prepare-context",
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "agent": "toolsAgent",
+        "promptType": "define",
+        "text": "You are a friendly and professional vacation rental booking assistant for {{ $json.property_name || 'our properties' }}.\n\n## Current Conversation Context\n- Stage: {{ $json.stage }}\n- Guest Name: {{ $json.collected.guest_name || 'Not provided' }}\n- Requested Dates: {{ $json.collected.check_in || 'Not provided' }} to {{ $json.collected.check_out || 'Not provided' }}\n- Number of Guests: {{ $json.collected.guests || 'Not provided' }}\n\n## Property Information\n- Property: {{ $json.property_name || 'Multiple properties available' }}\n- Type: {{ $json.property_type || 'Vacation rental' }}\n- Base Price: ${{ $json.base_price || 'varies' }}/night\n- Max Guests: {{ $json.max_guests || 'varies' }}\n- Check-in: {{ $json.check_in_time }}\n- Check-out: {{ $json.check_out_time }}\n- Amenities: {{ $json.amenities || 'Contact for details' }}\n\n## Previous Conversation\n{{ $json.history.slice(-5).map(m => m.role + ': ' + m.content).join('\\n') || 'New conversation' }}\n\n## Current User Message\n{{ $json.user_message }}\n\n## Your Tasks\n1. If greeting/new inquiry: Welcome warmly, ask about their travel dates and party size\n2. If dates mentioned: Use check_availability tool to verify availability\n3. If asking about property: Provide relevant details from property info\n4. If ready to book: Collect guest name, email, phone, then use create_booking_hold tool\n5. If payment related: Explain that a payment link will be sent\n6. Always be helpful, concise, and professional\n\n## Response Guidelines\n- Keep responses under 200 words\n- Use friendly emojis sparingly\n- If dates unavailable, suggest alternatives\n- Always confirm understanding before proceeding\n- End with a clear call-to-action or question",
+        "hasOutputParser": false,
+        "options": {
+          "systemMessage": "You are a helpful vacation rental booking assistant. Use tools when needed to check availability and create bookings. Be conversational and helpful.",
+          "maxIterations": 5,
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Booking Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-chat",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [660, 220],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Prepare Context').item.json.contact_id }}"
+      },
+      "id": "memory",
+      "name": "Postgres Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [800, 220],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "check_availability",
+        "description": "Check if a property is available for specific dates. Returns available dates and pricing.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF3: Calendar Manager"
+        },
+        "responsePropertyName": "availability_result",
+        "fields": {
+          "values": [
+            { "name": "property_id", "description": "The property ID to check", "type": "string" },
+            { "name": "check_in_date", "description": "Desired check-in date (YYYY-MM-DD)", "type": "string" },
+            { "name": "check_out_date", "description": "Desired check-out date (YYYY-MM-DD)", "type": "string" }
+          ]
+        }
+      },
+      "id": "tool-availability",
+      "name": "Check Availability Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [940, 220]
+    },
+    {
+      "parameters": {
+        "name": "get_property_details",
+        "description": "Get detailed information about a specific property including amenities, rules, and photos.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF5: Property Operations"
+        },
+        "responsePropertyName": "property_details",
+        "fields": {
+          "values": [
+            { "name": "property_id", "description": "The property ID", "type": "string" },
+            { "name": "detail_type", "description": "Type of details: 'full', 'amenities', 'rules', 'location'", "type": "string" }
+          ]
+        }
+      },
+      "id": "tool-property",
+      "name": "Get Property Details Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [1080, 220]
+    },
+    {
+      "parameters": {
+        "name": "calculate_price",
+        "description": "Calculate the total price for a stay including any discounts or fees.",
+        "code": "const { property_id, check_in, check_out, guests } = $input.item.json;\n\n// Get property pricing from context or database\nconst basePrice = 150; // Default, would query DB\nconst cleaningFee = 75;\nconst serviceFee = 0.12; // 12%\n\nconst checkIn = new Date(check_in);\nconst checkOut = new Date(check_out);\nconst nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n\nif (nights <= 0) {\n  return { error: 'Invalid date range' };\n}\n\nconst nightsTotal = basePrice * nights;\nconst subtotal = nightsTotal + cleaningFee;\nconst serviceFeeAmount = subtotal * serviceFee;\nconst total = subtotal + serviceFeeAmount;\n\n// Weekly discount\nlet discount = 0;\nif (nights >= 7) discount = 0.10;\nif (nights >= 28) discount = 0.20;\n\nconst discountAmount = nightsTotal * discount;\nconst finalTotal = total - discountAmount;\n\nreturn {\n  property_id,\n  nights,\n  base_price_per_night: basePrice,\n  nights_total: nightsTotal,\n  cleaning_fee: cleaningFee,\n  service_fee: serviceFeeAmount.toFixed(2),\n  discount_percent: discount * 100,\n  discount_amount: discountAmount.toFixed(2),\n  total: finalTotal.toFixed(2),\n  currency: 'USD'\n};"
+      },
+      "id": "tool-pricing",
+      "name": "Calculate Price Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [1220, 220]
+    },
+    {
+      "parameters": {
+        "name": "create_booking_hold",
+        "description": "Create a temporary booking hold and generate a payment link. Use when guest confirms they want to book.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF4: Payment Processor"
+        },
+        "responsePropertyName": "booking_result",
+        "fields": {
+          "values": [
+            { "name": "property_id", "description": "The property ID", "type": "string" },
+            { "name": "guest_name", "description": "Guest's full name", "type": "string" },
+            { "name": "guest_email", "description": "Guest's email address", "type": "string" },
+            { "name": "guest_phone", "description": "Guest's phone number", "type": "string" },
+            { "name": "check_in_date", "description": "Check-in date (YYYY-MM-DD)", "type": "string" },
+            { "name": "check_out_date", "description": "Check-out date (YYYY-MM-DD)", "type": "string" },
+            { "name": "num_guests", "description": "Number of guests", "type": "number" },
+            { "name": "total_amount", "description": "Total amount to charge", "type": "number" }
+          ]
+        }
+      },
+      "id": "tool-booking",
+      "name": "Create Booking Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 1.2,
+      "position": [1360, 220]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Process AI Agent response and prepare for saving\nconst context = $('Prepare Context').item.json;\nconst aiResponse = $input.item.json;\n\n// Extract the AI's response text\nconst responseText = aiResponse.output || aiResponse.text || 'I apologize, I encountered an issue. Please try again.';\n\n// Update conversation history\nconst history = context.history || [];\nhistory.push({ role: 'user', content: context.user_message, timestamp: new Date().toISOString() });\nhistory.push({ role: 'assistant', content: responseText, timestamp: new Date().toISOString() });\n\n// Keep only last 20 messages to prevent overflow\nconst trimmedHistory = history.slice(-20);\n\n// Determine new stage based on conversation\nlet newStage = context.stage;\nif (responseText.toLowerCase().includes('payment link')) {\n  newStage = 'payment_pending';\n} else if (responseText.toLowerCase().includes('check-in') || responseText.toLowerCase().includes('check out')) {\n  newStage = 'collecting_dates';\n} else if (responseText.toLowerCase().includes('confirm') && responseText.toLowerCase().includes('book')) {\n  newStage = 'confirming_booking';\n}\n\n// Extract any collected data from AI response (simplified)\nconst collected = context.collected || {};\n\n// Look for dates in AI intermediate steps if available\nif (aiResponse.intermediateSteps) {\n  for (const step of aiResponse.intermediateSteps) {\n    if (step.action?.tool === 'check_availability') {\n      collected.check_in = step.action.toolInput?.check_in_date;\n      collected.check_out = step.action.toolInput?.check_out_date;\n    }\n    if (step.action?.tool === 'create_booking_hold') {\n      collected.guest_name = step.action.toolInput?.guest_name;\n      collected.guest_email = step.action.toolInput?.guest_email;\n      newStage = 'booking_created';\n    }\n  }\n}\n\nreturn {\n  // Response to send\n  response_text: responseText,\n  \n  // Conversation state to save\n  conversation_id: context.conversation_id,\n  contact_id: context.contact_id,\n  property_id: context.property_id,\n  stage: newStage,\n  history: trimmedHistory,\n  collected: collected,\n  \n  // Messaging info\n  channel: context.channel,\n  recipient: context.contact_id\n};"
+      },
+      "id": "process-response",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": "conversations",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $json.conversation_id }}",
+            "contact_id": "={{ $json.contact_id }}",
+            "property_id": "={{ $json.property_id }}",
+            "conversation_stage": "={{ $json.stage }}",
+            "conversation_history": "={{ JSON.stringify($json.history) }}",
+            "collected_data": "={{ JSON.stringify($json.collected) }}",
+            "updated_at": "={{ $now.toISO() }}"
+          }
+        },
+        "conflictColumns": ["conversation_id"],
+        "options": {}
+      },
+      "id": "save-context",
+      "name": "Save Conversation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1100, 0],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "options": {}
+      },
+      "id": "send-response",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message_sent: true, conversation_id: $('Process AI Response').item.json.conversation_id } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 0]
+    }
+  ],
+  "connections": {
+    "Booking Request": {
+      "main": [[{ "node": "Load Conversation Context", "type": "main", "index": 0 }]]
+    },
+    "Load Conversation Context": {
+      "main": [[{ "node": "Prepare Context", "type": "main", "index": 0 }]]
+    },
+    "Prepare Context": {
+      "main": [[{ "node": "AI Booking Agent", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Booking Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Postgres Memory": {
+      "ai_memory": [[{ "node": "AI Booking Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "Check Availability Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Get Property Details Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Calculate Price Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Create Booking Tool": {
+      "ai_tool": [[{ "node": "AI Booking Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "AI Booking Agent": {
+      "main": [[{ "node": "Process AI Response", "type": "main", "index": 0 }]]
+    },
+    "Process AI Response": {
+      "main": [[{ "node": "Save Conversation", "type": "main", "index": 0 }]]
+    },
+    "Save Conversation": {
+      "main": [[{ "node": "Send Response", "type": "main", "index": 0 }]]
+    },
+    "Send Response": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "AI-powered booking agent with tools for availability, pricing, and booking creation. Replaces WF5, WF6, WF24."
+  },
+  "tags": ["booking", "ai-agent", "optimized"]
+}

@@ -63,7 +63,7 @@ function buildWorkflowConfig(client, settings, server, assignedApiKey = null) {
     dbUser: server?.db_user || client.client_id?.substring(0, 20) || 'client',
     dbPassword: server?.db_password || '',
     subdomain: client.subdomain || '',
-    domain: server?.domain || `${client.subdomain || 'app'}.prismity.ai`
+    domain: server?.domain || `${client.subdomain || 'app'}.ergovia-ai.com`
   };
 }
 

@@ -1,0 +1,1040 @@
+{
+  "updatedAt": "2026-03-06T05:41:39.000Z",
+  "createdAt": "2026-02-24T05:42:15.086Z",
+  "id": "j1ieQAwOyye2cPYD",
+  "name": "[V6] Payment Confirmation Webhook",
+  "description": null,
+  "active": true,
+  "isArchived": true,
+  "nodes": [
+    {
+      "id": "webhook-confirm",
+      "name": "Confirm Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "payment-confirm-webhook",
+      "parameters": {
+        "path": "payment-confirm",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "webhook-cancel",
+      "name": "Cancel Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "payment-cancel-webhook",
+      "parameters": {
+        "path": "payment-cancel",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "extract-confirm-token",
+      "name": "Extract Confirm Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Extract token from query parameter\nconst token = $input.item.json.query?.token || '';\nreturn { token, action: 'confirm' };"
+      }
+    },
+    {
+      "id": "extract-cancel-token",
+      "name": "Extract Cancel Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Extract token from query parameter\nconst token = $input.item.json.query?.token || '';\nreturn { token, action: 'cancel' };"
+      }
+    },
+    {
+      "id": "merge-paths",
+      "name": "Merge Paths",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        500,
+        150
+      ],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "id": "validate-token",
+      "name": "Validate Token",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        750,
+        150
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT t.*, b.booking_id, b.guest_name, b.guest_phone, b.property_id,\n  b.property_name, b.check_in_date, b.check_out_date, b.total_amount,\n  b.booking_status, b.payment_status\nFROM payment_action_tokens t\nJOIN bookings b ON b.booking_id = t.booking_id\nWHERE t.token = '{{ $json.token }}'\n  AND t.action = '{{ $json.action }}'",
+        "options": {}
+      }
+    },
+    {
+      "id": "check-valid",
+      "name": "Check Valid",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        150
+      ],
+      "parameters": {
+        "jsCode": "// Validate the token\nconst token = $input.item.json;\nconst requestAction = $('Merge Paths').item.json.action;\n\nif (!token || !token.token) {\n  return {\n    valid: false,\n    error: 'Token not found or invalid',\n    action: requestAction\n  };\n}\n\nif (token.used_at) {\n  return {\n    valid: false,\n    error: 'This link has already been used',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nconst now = new Date();\nconst expires = new Date(token.expires_at);\nif (now > expires) {\n  return {\n    valid: false,\n    error: 'This link has expired. Please contact the property manager.',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nif (token.booking_status === 'confirmed' && requestAction === 'confirm') {\n  return {\n    valid: false,\n    error: 'This booking has already been confirmed',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nif (token.booking_status === 'cancelled') {\n  return {\n    valid: false,\n    error: 'This booking has already been cancelled',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nreturn {\n  valid: true,\n  action: requestAction,\n  token_id: token.id,\n  token_uuid: token.token,\n  booking_id: token.booking_id,\n  guest_name: token.guest_name,\n  guest_phone: token.guest_phone,\n  property_id: token.property_id,\n  property_name: token.property_name,\n  check_in_date: token.check_in_date,\n  check_out_date: token.check_out_date,\n  total_amount: token.total_amount\n};"
+      }
+    },
+    {
+      "id": "route-valid",
+      "name": "Route Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "valid-check",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "execute-confirm",
+      "name": "Execute Confirm",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1500,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE bookings\nSET booking_status = 'confirmed',\n    payment_status = 'paid',\n    notes = COALESCE(notes, '') || 'Payment confirmed via link at ' || CURRENT_TIMESTAMP::text || '. ',\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = '{{ $json.booking_id }}'\nRETURNING *",
+        "options": {}
+      }
+    },
+    {
+      "id": "execute-cancel",
+      "name": "Execute Cancel",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1500,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE bookings\nSET booking_status = 'cancelled',\n    payment_status = 'cancelled',\n    notes = COALESCE(notes, '') || 'Cancelled via link at ' || CURRENT_TIMESTAMP::text || '. ',\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = '{{ $json.booking_id }}'\nRETURNING *",
+        "options": {}
+      }
+    },
+    {
+      "id": "route-action",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1500,
+        150
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "confirm",
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "confirm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "cancel",
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "cancel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "mark-token-used",
+      "name": "Mark Token Used",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1800,
+        150
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE payment_action_tokens\nSET used_at = CURRENT_TIMESTAMP\nWHERE token = '{{ $('Check Valid').item.json.token_uuid }}'",
+        "options": {}
+      }
+    },
+    {
+      "id": "build-success",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2050,
+        150
+      ],
+      "parameters": {
+        "jsCode": "// Build HTML success response\nconst data = $('Check Valid').item.json;\nconst action = data.action;\nconst isConfirm = action === 'confirm';\n\nconst emoji = isConfirm ? '&#10004;' : '&#10060;';\nconst title = isConfirm ? 'Payment Confirmed!' : 'Booking Cancelled';\nconst color = isConfirm ? '#22c55e' : '#ef4444';\nconst statusText = isConfirm ? 'confirmed and paid' : 'cancelled';\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Ergovia - ${title}</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8fafc; }\n    .card { background: white; border-radius: 12px; padding: 40px; max-width: 480px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n    .icon { font-size: 64px; margin-bottom: 16px; }\n    h1 { color: ${color}; margin: 0 0 12px; }\n    .details { background: #f1f5f9; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: left; }\n    .row { display: flex; justify-content: space-between; padding: 4px 0; }\n    .label { color: #64748b; }\n    .value { font-weight: 600; }\n    .footer { color: #94a3b8; font-size: 14px; margin-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <div class=\"icon\">${emoji}</div>\n    <h1>${title}</h1>\n    <p>Booking <strong>${data.booking_id}</strong> has been ${statusText}.</p>\n    <div class=\"details\">\n      <div class=\"row\"><span class=\"label\">Guest:</span><span class=\"value\">${data.guest_name}</span></div>\n      <div class=\"row\"><span class=\"label\">Property:</span><span class=\"value\">${data.property_name}</span></div>\n      <div class=\"row\"><span class=\"label\">Dates:</span><span class=\"value\">${data.check_in_date} to ${data.check_out_date}</span></div>\n      <div class=\"row\"><span class=\"label\">Amount:</span><span class=\"value\">$${data.total_amount}</span></div>\n    </div>\n    ${isConfirm ? '<p>The guest will receive a confirmation message shortly.</p>' : '<p>The guest has been notified of the cancellation.</p>'}\n    <p class=\"footer\">Powered by Ergovia AI</p>\n  </div>\n</body>\n</html>`;\n\nreturn { html, statusCode: 200, contentType: 'text/html' };"
+      }
+    },
+    {
+      "id": "build-error",
+      "name": "Build Error Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        450
+      ],
+      "parameters": {
+        "jsCode": "// Build HTML error response\nconst data = $input.item.json;\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Ergovia - Error</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8fafc; }\n    .card { background: white; border-radius: 12px; padding: 40px; max-width: 480px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n    .icon { font-size: 64px; margin-bottom: 16px; }\n    h1 { color: #f59e0b; }\n    .footer { color: #94a3b8; font-size: 14px; margin-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <div class=\"icon\">&#9888;</div>\n    <h1>Unable to Process</h1>\n    <p>${data.error || 'An error occurred processing your request.'}</p>\n    ${data.booking_id ? '<p>Booking: <strong>' + data.booking_id + '</strong></p>' : ''}\n    <p>Please contact the property manager directly.</p>\n    <p class=\"footer\">Powered by Ergovia AI</p>\n  </div>\n</body>\n</html>`;\n\nreturn { html, statusCode: 400, contentType: 'text/html' };"
+      }
+    },
+    {
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2300,
+        150
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        450
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Confirm Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Confirm Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Cancel Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Confirm Token": {
+      "main": [
+        [
+          {
+            "node": "Merge Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Cancel Token": {
+      "main": [
+        [
+          {
+            "node": "Merge Paths",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Paths": {
+      "main": [
+        [
+          {
+            "node": "Validate Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Token": {
+      "main": [
+        [
+          {
+            "node": "Check Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Valid": {
+      "main": [
+        [
+          {
+            "node": "Route Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Valid": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Execute Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Cancel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Confirm": {
+      "main": [
+        [
+          {
+            "node": "Mark Token Used",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Cancel": {
+      "main": [
+        [
+          {
+            "node": "Mark Token Used",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Token Used": {
+      "main": [
+        [
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "c98a359e-4b93-43be-ac37-ed308c76212b",
+  "activeVersionId": "c98a359e-4b93-43be-ac37-ed308c76212b",
+  "versionCounter": 5,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2026-02-24T05:42:15.089Z",
+      "createdAt": "2026-02-24T05:42:15.089Z",
+      "role": "workflow:owner",
+      "workflowId": "j1ieQAwOyye2cPYD",
+      "projectId": "JX3CVPOuNBbCCU8b",
+      "project": {
+        "updatedAt": "2026-02-23T14:15:37.185Z",
+        "createdAt": "2026-02-02T06:27:43.829Z",
+        "id": "JX3CVPOuNBbCCU8b",
+        "name": "Gabriel Marius <gabrielmarius2077@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-02-02T06:27:43.829Z",
+            "createdAt": "2026-02-02T06:27:43.829Z",
+            "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+            "projectId": "JX3CVPOuNBbCCU8b",
+            "user": {
+              "updatedAt": "2026-03-07T05:01:43.000Z",
+              "createdAt": "2026-02-02T06:27:43.413Z",
+              "id": "953ba085-e3b3-41f0-8479-98dd4f06f8a7",
+              "email": "gabrielmarius2077@gmail.com",
+              "firstName": "Gabriel",
+              "lastName": "Marius",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-02-02T07:09:47.938Z",
+                "personalization_survey_n8n_version": "2.4.8"
+              },
+              "settings": {
+                "userActivated": true,
+                "easyAIWorkflowOnboarded": true,
+                "firstSuccessfulWorkflowId": "JWEu9Uz2JJ5XZeIX",
+                "userActivatedAt": 1770621057501,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1772603044923
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-03-07",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-03-06T05:41:39.598Z",
+    "createdAt": "2026-03-06T05:41:39.598Z",
+    "versionId": "c98a359e-4b93-43be-ac37-ed308c76212b",
+    "workflowId": "j1ieQAwOyye2cPYD",
+    "nodes": [
+      {
+        "id": "webhook-confirm",
+        "name": "Confirm Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "payment-confirm-webhook",
+        "parameters": {
+          "path": "payment-confirm",
+          "httpMethod": "GET",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "webhook-cancel",
+        "name": "Cancel Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          300
+        ],
+        "webhookId": "payment-cancel-webhook",
+        "parameters": {
+          "path": "payment-cancel",
+          "httpMethod": "GET",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "extract-confirm-token",
+        "name": "Extract Confirm Token",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          250,
+          0
+        ],
+        "parameters": {
+          "jsCode": "// Extract token from query parameter\nconst token = $input.item.json.query?.token || '';\nreturn { token, action: 'confirm' };"
+        }
+      },
+      {
+        "id": "extract-cancel-token",
+        "name": "Extract Cancel Token",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "jsCode": "// Extract token from query parameter\nconst token = $input.item.json.query?.token || '';\nreturn { token, action: 'cancel' };"
+        }
+      },
+      {
+        "id": "merge-paths",
+        "name": "Merge Paths",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          500,
+          150
+        ],
+        "parameters": {
+          "mode": "append"
+        }
+      },
+      {
+        "id": "validate-token",
+        "name": "Validate Token",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          750,
+          150
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT t.*, b.booking_id, b.guest_name, b.guest_phone, b.property_id,\n  b.property_name, b.check_in_date, b.check_out_date, b.total_amount,\n  b.booking_status, b.payment_status\nFROM payment_action_tokens t\nJOIN bookings b ON b.booking_id = t.booking_id\nWHERE t.token = '{{ $json.token }}'\n  AND t.action = '{{ $json.action }}'",
+          "options": {}
+        }
+      },
+      {
+        "id": "check-valid",
+        "name": "Check Valid",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1000,
+          150
+        ],
+        "parameters": {
+          "jsCode": "// Validate the token\nconst token = $input.item.json;\nconst requestAction = $('Merge Paths').item.json.action;\n\nif (!token || !token.token) {\n  return {\n    valid: false,\n    error: 'Token not found or invalid',\n    action: requestAction\n  };\n}\n\nif (token.used_at) {\n  return {\n    valid: false,\n    error: 'This link has already been used',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nconst now = new Date();\nconst expires = new Date(token.expires_at);\nif (now > expires) {\n  return {\n    valid: false,\n    error: 'This link has expired. Please contact the property manager.',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nif (token.booking_status === 'confirmed' && requestAction === 'confirm') {\n  return {\n    valid: false,\n    error: 'This booking has already been confirmed',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nif (token.booking_status === 'cancelled') {\n  return {\n    valid: false,\n    error: 'This booking has already been cancelled',\n    action: requestAction,\n    booking_id: token.booking_id\n  };\n}\n\nreturn {\n  valid: true,\n  action: requestAction,\n  token_id: token.id,\n  token_uuid: token.token,\n  booking_id: token.booking_id,\n  guest_name: token.guest_name,\n  guest_phone: token.guest_phone,\n  property_id: token.property_id,\n  property_name: token.property_name,\n  check_in_date: token.check_in_date,\n  check_out_date: token.check_out_date,\n  total_amount: token.total_amount\n};"
+        }
+      },
+      {
+        "id": "route-valid",
+        "name": "Route Valid",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1250,
+          150
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": ""
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "valid-check",
+                "leftValue": "={{ $json.valid }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "execute-confirm",
+        "name": "Execute Confirm",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1500,
+          0
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=UPDATE bookings\nSET booking_status = 'confirmed',\n    payment_status = 'paid',\n    notes = COALESCE(notes, '') || 'Payment confirmed via link at ' || CURRENT_TIMESTAMP::text || '. ',\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = '{{ $json.booking_id }}'\nRETURNING *",
+          "options": {}
+        }
+      },
+      {
+        "id": "execute-cancel",
+        "name": "Execute Cancel",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1500,
+          300
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=UPDATE bookings\nSET booking_status = 'cancelled',\n    payment_status = 'cancelled',\n    notes = COALESCE(notes, '') || 'Cancelled via link at ' || CURRENT_TIMESTAMP::text || '. ',\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = '{{ $json.booking_id }}'\nRETURNING *",
+          "options": {}
+        }
+      },
+      {
+        "id": "route-action",
+        "name": "Route Action",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          1500,
+          150
+        ],
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "outputKey": "confirm",
+                "conditions": {
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "confirm",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "outputKey": "cancel",
+                "conditions": {
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.action }}",
+                      "rightValue": "cancel",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "mark-token-used",
+        "name": "Mark Token Used",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1800,
+          150
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=UPDATE payment_action_tokens\nSET used_at = CURRENT_TIMESTAMP\nWHERE token = '{{ $('Check Valid').item.json.token_uuid }}'",
+          "options": {}
+        }
+      },
+      {
+        "id": "build-success",
+        "name": "Build Success Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2050,
+          150
+        ],
+        "parameters": {
+          "jsCode": "// Build HTML success response\nconst data = $('Check Valid').item.json;\nconst action = data.action;\nconst isConfirm = action === 'confirm';\n\nconst emoji = isConfirm ? '&#10004;' : '&#10060;';\nconst title = isConfirm ? 'Payment Confirmed!' : 'Booking Cancelled';\nconst color = isConfirm ? '#22c55e' : '#ef4444';\nconst statusText = isConfirm ? 'confirmed and paid' : 'cancelled';\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Ergovia - ${title}</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8fafc; }\n    .card { background: white; border-radius: 12px; padding: 40px; max-width: 480px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n    .icon { font-size: 64px; margin-bottom: 16px; }\n    h1 { color: ${color}; margin: 0 0 12px; }\n    .details { background: #f1f5f9; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: left; }\n    .row { display: flex; justify-content: space-between; padding: 4px 0; }\n    .label { color: #64748b; }\n    .value { font-weight: 600; }\n    .footer { color: #94a3b8; font-size: 14px; margin-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <div class=\"icon\">${emoji}</div>\n    <h1>${title}</h1>\n    <p>Booking <strong>${data.booking_id}</strong> has been ${statusText}.</p>\n    <div class=\"details\">\n      <div class=\"row\"><span class=\"label\">Guest:</span><span class=\"value\">${data.guest_name}</span></div>\n      <div class=\"row\"><span class=\"label\">Property:</span><span class=\"value\">${data.property_name}</span></div>\n      <div class=\"row\"><span class=\"label\">Dates:</span><span class=\"value\">${data.check_in_date} to ${data.check_out_date}</span></div>\n      <div class=\"row\"><span class=\"label\">Amount:</span><span class=\"value\">$${data.total_amount}</span></div>\n    </div>\n    ${isConfirm ? '<p>The guest will receive a confirmation message shortly.</p>' : '<p>The guest has been notified of the cancellation.</p>'}\n    <p class=\"footer\">Powered by Ergovia AI</p>\n  </div>\n</body>\n</html>`;\n\nreturn { html, statusCode: 200, contentType: 'text/html' };"
+        }
+      },
+      {
+        "id": "build-error",
+        "name": "Build Error Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1500,
+          450
+        ],
+        "parameters": {
+          "jsCode": "// Build HTML error response\nconst data = $input.item.json;\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Ergovia - Error</title>\n  <style>\n    body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8fafc; }\n    .card { background: white; border-radius: 12px; padding: 40px; max-width: 480px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n    .icon { font-size: 64px; margin-bottom: 16px; }\n    h1 { color: #f59e0b; }\n    .footer { color: #94a3b8; font-size: 14px; margin-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <div class=\"icon\">&#9888;</div>\n    <h1>Unable to Process</h1>\n    <p>${data.error || 'An error occurred processing your request.'}</p>\n    ${data.booking_id ? '<p>Booking: <strong>' + data.booking_id + '</strong></p>' : ''}\n    <p>Please contact the property manager directly.</p>\n    <p class=\"footer\">Powered by Ergovia AI</p>\n  </div>\n</body>\n</html>`;\n\nreturn { html, statusCode: 400, contentType: 'text/html' };"
+        }
+      },
+      {
+        "id": "respond-success",
+        "name": "Respond Success",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          2300,
+          150
+        ],
+        "parameters": {
+          "respondWith": "text",
+          "responseBody": "={{ $json.html }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "text/html; charset=utf-8"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "respond-error",
+        "name": "Respond Error",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1800,
+          450
+        ],
+        "parameters": {
+          "respondWith": "text",
+          "responseBody": "={{ $json.html }}",
+          "options": {
+            "responseCode": 400,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "text/html; charset=utf-8"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Confirm Webhook": {
+        "main": [
+          [
+            {
+              "node": "Extract Confirm Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cancel Webhook": {
+        "main": [
+          [
+            {
+              "node": "Extract Cancel Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Confirm Token": {
+        "main": [
+          [
+            {
+              "node": "Merge Paths",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Cancel Token": {
+        "main": [
+          [
+            {
+              "node": "Merge Paths",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Merge Paths": {
+        "main": [
+          [
+            {
+              "node": "Validate Token",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Token": {
+        "main": [
+          [
+            {
+              "node": "Check Valid",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Valid": {
+        "main": [
+          [
+            {
+              "node": "Route Valid",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Valid": {
+        "main": [
+          [
+            {
+              "node": "Route Action",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Build Error Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Action": {
+        "main": [
+          [
+            {
+              "node": "Execute Confirm",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Execute Cancel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute Confirm": {
+        "main": [
+          [
+            {
+              "node": "Mark Token Used",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute Cancel": {
+        "main": [
+          [
+            {
+              "node": "Mark Token Used",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mark Token Used": {
+        "main": [
+          [
+            {
+              "node": "Build Success Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Success Response": {
+        "main": [
+          [
+            {
+              "node": "Respond Success",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Error Response": {
+        "main": [
+          [
+            {
+              "node": "Respond Error",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Gabriel Marius",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-03-07T05:34:47.703Z",
+        "id": 555,
+        "workflowId": "j1ieQAwOyye2cPYD",
+        "versionId": "c98a359e-4b93-43be-ac37-ed308c76212b",
+        "event": "activated",
+        "userId": "953ba085-e3b3-41f0-8479-98dd4f06f8a7"
+      }
+    ]
+  }
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar - AIRB by Ergovia</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/logo.png" type="image/png">
+    <script>
+        // Apply saved theme immediately to prevent flash
+        (function() {
+            const saved = localStorage.getItem('ergovia_theme');
+            if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+    </script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="/logo.png" alt="AIRB by Ergovia" style="width:28px;height:auto;margin-right:4px;">
+                <span>AIRB</span>
+            </div>
+            <div class="nav-menu">
+                <a href="dashboard" class="nav-item">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="settings" class="nav-item">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="properties" class="nav-item">
+                    <i class="fas fa-building"></i>
+                    <span>Properties</span>
+                </a>
+                <a href="conversations" class="nav-item">
+                    <i class="fas fa-comments"></i>
+                    <span>Conversations</span>
+                </a>
+                <a href="calendar" class="nav-item active">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
+                </a>
+            </div>
+            <div class="nav-user">
+                <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="notification-bell" id="notificationBell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount">0</span>
+                </div>
+                <div class="user-profile" id="userProfileBtn">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userName">Owner</span>
+                    <i class="fas fa-chevron-down" style="font-size:11px;color:#a0aec0;"></i>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-dropdown-header">
+                            <h4 id="dropdownUserName">Owner</h4>
+                            <p id="dropdownUserEmail">owner@ergovia.com</p>
+                        </div>
+                        <a class="user-dropdown-item" href="settings"><i class="fas fa-cog"></i> Account Settings</a>
+                        <div class="user-dropdown-divider"></div>
+                        <button class="user-dropdown-item danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Log Out</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Info Modal (required by calendar.js) -->
+    <div id="infoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;padding:24px;">
+        <div style="background:var(--bg-card,#1e2a3a);border-radius:16px;max-width:560px;width:100%;margin:auto;margin-top:10vh;padding:28px;position:relative;border:1px solid var(--border,#2d3748);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h2 id="modalTitle" style="margin:0;font-size:18px;color:var(--text-primary,#e2e8f0);"></h2>
+                <span class="modal-close" onclick="closeModal()" style="cursor:pointer;font-size:22px;color:var(--text-secondary,#a0aec0);">&times;</span>
+            </div>
+            <div id="modalText"></div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="notification-panel" id="notificationPanel">
+            <div class="notification-header">
+                <h3><i class="fas fa-bell"></i> Notifications</h3>
+                <button class="btn-close" onclick="closeNotifications()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="notification-list" id="notificationList"></div>
+        </div>
+
+        <!-- Calendar Section -->
+        <div class="calendar-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt"></i> Booking Calendar</h2>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <button class="btn-add" onclick="openNewBookingModal ? openNewBookingModal() : null">
+                        <i class="fas fa-plus"></i> New Booking
+                    </button>
+                </div>
+            </div>
+
+            <!-- Property Filter & Legend -->
+            <div class="property-filter">
+                <label><i class="fas fa-filter"></i> Show:</label>
+                <select id="propertyFilter" onchange="filterCalendar()">
+                    <option value="all">All Properties</option>
+                </select>
+                <div id="propertyLegend" class="property-legend"></div>
+            </div>
+
+            <!-- Calendar View -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="btn-calendar-nav" onclick="previousMonth()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3 id="currentMonth">March 2026</h3>
+                    <button class="btn-calendar-nav" onclick="nextMonth()">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+
+            <!-- Upcoming Check-ins -->
+            <div class="upcoming-bookings">
+                <h3><i class="fas fa-list"></i> Upcoming Check-ins</h3>
+                <div class="booking-list" id="upcomingBookings"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/calendar.js"></script>
+    <script>
+        // Theme toggle — synced with ergovia_theme key (same as all other pages)
+        (function() {
+            const btn = document.getElementById('themeToggle');
+            function updateIcon() {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            }
+            updateIcon();
+            btn.addEventListener('click', function() {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.setItem('ergovia_theme', 'light');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('ergovia_theme', 'dark');
+                }
+                updateIcon();
+            });
+        })();
+
+        // User profile dropdown
+        document.getElementById('userProfileBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('userDropdown').classList.toggle('show');
+        });
+        document.addEventListener('click', () => document.getElementById('userDropdown').classList.remove('show'));
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('ergovia_user');
+            window.location.href = '/login.html';
+        });
+
+        const user = JSON.parse(localStorage.getItem('ergovia_user') || '{}');
+        if (user.username) {
+            document.getElementById('userName').textContent = user.username;
+            document.getElementById('dropdownUserName').textContent = user.username;
+            document.getElementById('dropdownUserEmail').textContent = user.email || '';
+        }
+    </script>
+</body>
+</html>

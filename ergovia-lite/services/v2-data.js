@@ -89,6 +89,33 @@ async function ensureTables() {
     await pool.query(`
       ALTER TABLE property_configurations ADD COLUMN IF NOT EXISTS location_description TEXT
     `).catch(() => {});
+
+    // payment_tasks: dual-channel (Telegram + Control Panel) payment confirmation
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_tasks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        booking_id VARCHAR(255) NOT NULL,
+        customer_id VARCHAR(255),
+        property_id VARCHAR(255),
+        guest_name VARCHAR(255) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        currency VARCHAR(10) DEFAULT 'USD',
+        check_in_date DATE,
+        check_out_date DATE,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'declined')),
+        decision_channel VARCHAR(20),
+        decided_by VARCHAR(255),
+        decided_at TIMESTAMP,
+        telegram_message_id BIGINT,
+        telegram_chat_id BIGINT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_payment_tasks_booking ON payment_tasks(booking_id)
+    `).catch(() => {});
+
     console.log('[v2-data] Tables ensured');
   } catch (err) {
     console.error('[v2-data] ensureTables error:', err.message);
@@ -283,12 +310,20 @@ const V2DataService = {
       return checkOut >= new Date();
     });
 
+    let activeConversations = 0;
+    try {
+      const convResult = await pool.query(
+        "SELECT COUNT(DISTINCT session_id) FROM n8n_chat_histories WHERE created_at > NOW() - INTERVAL '24 hours'"
+      );
+      activeConversations = parseInt(convResult.rows[0].count || '0', 10);
+    } catch (_e) {}
+
     return {
       owner,
       stats: {
         totalBookings: activeBookings.length,
         totalProperties: properties.length,
-        activeConversations: 0,
+        activeConversations,
         monthlyRevenue: activeBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0),
       },
       upcomingBookings: activeBookings.slice(0, 5),
@@ -311,10 +346,18 @@ const V2DataService = {
       return checkOut >= new Date();
     });
 
+    let activeConversations = 0;
+    try {
+      const convResult = await pool.query(
+        "SELECT COUNT(DISTINCT session_id) FROM n8n_chat_histories WHERE created_at > NOW() - INTERVAL '24 hours'"
+      );
+      activeConversations = parseInt(convResult.rows[0].count || '0', 10);
+    } catch (_e) {}
+
     return {
       totalBookings: activeBookings.length,
       totalProperties: properties.length,
-      activeConversations: 0,
+      activeConversations,
       monthlyRevenue: activeBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0),
     };
   },
@@ -919,6 +962,141 @@ const V2DataService = {
 
     console.log(`[seed] Created ${propsCreated} properties and ${bookingsCreated} bookings`);
     return { success: true, properties: propsCreated, bookings: bookingsCreated };
+  },
+
+  // ============================================
+  // PAYMENT TASKS (dual-channel: Telegram + Control Panel)
+  // ============================================
+
+  async getPaymentTasks(status = 'pending') {
+    try {
+      const params = [];
+      let where = '';
+      if (status) {
+        where = 'WHERE pt.status = $1';
+        params.push(status);
+      }
+      const result = await pool.query(`
+        SELECT pt.*, b.booking_status, b.payment_status
+        FROM payment_tasks pt
+        LEFT JOIN bookings b ON b.booking_id = pt.booking_id
+        ${where}
+        ORDER BY pt.created_at DESC
+        LIMIT 50
+      `, params);
+      return result.rows.map(r => ({
+        id: r.id,
+        bookingId: r.booking_id,
+        propertyId: r.property_id,
+        guestName: r.guest_name,
+        amount: parseFloat(r.amount || 0),
+        currency: r.currency || 'USD',
+        checkIn: r.check_in_date,
+        checkOut: r.check_out_date,
+        status: r.status,
+        decisionChannel: r.decision_channel,
+        decidedBy: r.decided_by,
+        decidedAt: r.decided_at,
+        createdAt: r.created_at,
+      }));
+    } catch (err) {
+      console.error('[v2-data] getPaymentTasks error:', err.message);
+      return [];
+    }
+  },
+
+  async acceptPaymentTask(taskId) {
+    try {
+      // Get task info first
+      const task = await pool.query('SELECT * FROM payment_tasks WHERE id = $1 AND status = $2', [taskId, 'pending']);
+      if (task.rowCount === 0) {
+        return { success: false, error: 'Task not found or already decided' };
+      }
+      const t = task.rows[0];
+
+      // Update payment_tasks
+      await pool.query(
+        `UPDATE payment_tasks SET status = 'confirmed', decision_channel = 'control_panel',
+         decided_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [taskId]
+      );
+
+      // Update booking
+      await pool.query(
+        `UPDATE bookings SET booking_status = 'confirmed', payment_status = 'paid',
+         updated_at = NOW() WHERE booking_id = $1`,
+        [t.booking_id]
+      );
+
+      return { success: true, bookingId: t.booking_id, guestName: t.guest_name };
+    } catch (err) {
+      console.error('[v2-data] acceptPaymentTask error:', err.message);
+      return { success: false, error: err.message };
+    }
+  },
+
+  async declinePaymentTask(taskId) {
+    try {
+      const task = await pool.query('SELECT * FROM payment_tasks WHERE id = $1 AND status = $2', [taskId, 'pending']);
+      if (task.rowCount === 0) {
+        return { success: false, error: 'Task not found or already decided' };
+      }
+      const t = task.rows[0];
+
+      await pool.query(
+        `UPDATE payment_tasks SET status = 'declined', decision_channel = 'control_panel',
+         decided_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [taskId]
+      );
+
+      await pool.query(
+        `UPDATE bookings SET booking_status = 'cancelled', payment_status = 'cancelled',
+         updated_at = NOW() WHERE booking_id = $1`,
+        [t.booking_id]
+      );
+
+      return { success: true, bookingId: t.booking_id, guestName: t.guest_name };
+    } catch (err) {
+      console.error('[v2-data] declinePaymentTask error:', err.message);
+      return { success: false, error: err.message };
+    }
+  },
+
+  // Conversations - list all sessions (grouped from n8n_chat_histories)
+  async getConversations() {
+    try {
+      const result = await pool.query(`
+        SELECT
+          session_id,
+          MIN(created_at) AS started_at,
+          MAX(created_at) AS last_message_at,
+          COUNT(*) AS message_count
+        FROM n8n_chat_histories
+        GROUP BY session_id
+        ORDER BY last_message_at DESC
+        LIMIT 100
+      `);
+      return { success: true, conversations: result.rows };
+    } catch (err) {
+      console.error('[v2Data] getConversations error:', err.message);
+      return { success: false, conversations: [], error: err.message };
+    }
+  },
+
+  // Conversations - messages for a specific session
+  async getConversationMessages(sessionId) {
+    try {
+      const result = await pool.query(`
+        SELECT id, session_id, message, created_at
+        FROM n8n_chat_histories
+        WHERE session_id = $1
+        ORDER BY created_at ASC
+      `, [sessionId]);
+      return { success: true, messages: result.rows };
+    } catch (err) {
+      console.error('[v2Data] getConversationMessages error:', err.message);
+      return { success: false, messages: [], error: err.message };
+    }
   },
 };
 

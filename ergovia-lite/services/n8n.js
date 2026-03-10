@@ -737,7 +737,7 @@ class N8NService {
   // Activate a workflow in n8n
   async activateWorkflow(workflowId) {
     try {
-      // Use POST to /activate endpoint (universally supported across n8n versions)
+      // Try POST /activate (newer n8n versions)
       try {
         await axios.post(
           `${this.baseUrl}/api/v1/workflows/${workflowId}/activate`,
@@ -751,13 +751,10 @@ class N8NService {
         );
         return { success: true };
       } catch (postErr) {
-        // Fallback: PUT with active flag (works on older n8n versions)
-        const getResult = await this.getWorkflow(workflowId);
-        if (!getResult.success) throw postErr;
-        const clean = this.cleanWorkflowForApi(getResult.workflow);
-        await axios.put(
+        // Fallback: PATCH with active flag (avoids read-only error on PUT)
+        await axios.patch(
           `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-          { ...clean, active: true },
+          { active: true },
           {
             headers: {
               'X-N8N-API-KEY': this.apiKey,
@@ -775,6 +772,7 @@ class N8NService {
 
   async deactivateWorkflow(workflowId) {
     try {
+      // Try POST /deactivate (newer n8n versions)
       try {
         await axios.post(
           `${this.baseUrl}/api/v1/workflows/${workflowId}/deactivate`,
@@ -788,13 +786,10 @@ class N8NService {
         );
         return { success: true };
       } catch (postErr) {
-        // Fallback: PUT with active: false
-        const getResult = await this.getWorkflow(workflowId);
-        if (!getResult.success) throw postErr;
-        const clean = this.cleanWorkflowForApi(getResult.workflow);
-        await axios.put(
+        // Fallback: PATCH with active flag
+        await axios.patch(
           `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-          { ...clean, active: false },
+          { active: false },
           {
             headers: {
               'X-N8N-API-KEY': this.apiKey,
@@ -838,10 +833,17 @@ class N8NService {
       // Clean workflow before update
       const cleanWorkflow = this.cleanWorkflowForApi(workflow);
 
-      // Deactivate + update in a single PUT (avoids PATCH compatibility issues)
+      // Remove read-only fields that newer n8n versions reject
+      delete cleanWorkflow.active;
+      delete cleanWorkflow.id;
+
+      // Deactivate first via dedicated endpoint
+      await this.deactivateWorkflow(workflowId);
+
+      // PUT the updated workflow (without active/id fields)
       await axios.put(
         `${this.baseUrl}/api/v1/workflows/${workflowId}`,
-        { ...cleanWorkflow, active: false },
+        cleanWorkflow,
         {
           headers: {
             'X-N8N-API-KEY': this.apiKey,
@@ -851,9 +853,12 @@ class N8NService {
       );
 
       // Reactivate
-      await this.activateWorkflow(workflowId);
+      const activateResult = await this.activateWorkflow(workflowId);
+      if (!activateResult.success) {
+        console.error('Warning: workflow updated but reactivation failed:', activateResult.error);
+      }
 
-      return { success: true };
+      return { success: true, activated: activateResult.success };
     } catch (error) {
       console.error('Update workflow error:', error.response?.data || error.message);
       return { success: false, error: error.message };
@@ -1458,6 +1463,70 @@ class N8NService {
       ...updateResult,
       patchedNodes: patchCount
     };
+  }
+
+  /**
+   * Insert or update a Wait node before the Telegram/WhatsApp response in a workflow.
+   * This adds a human-like delay so the AI doesn't reply instantly.
+   * @param {string} workflowId
+   * @param {number} minSeconds - minimum delay (default 8)
+   * @param {number} maxSeconds - maximum delay (default 25)
+   */
+  async insertResponseDelay(workflowId, minSeconds = 8, maxSeconds = 25) {
+    const getResult = await this.getWorkflow(workflowId);
+    if (!getResult.success) return getResult;
+
+    const workflow = getResult.workflow;
+    const waitNodeName = 'Human-Like Delay';
+
+    // Check if Wait node already exists
+    const existingWait = workflow.nodes.find(n => n.name === waitNodeName);
+    if (existingWait) {
+      // Update the existing delay code
+      existingWait.parameters.jsCode = `const min = ${minSeconds};\nconst max = ${maxSeconds};\nconst delay = Math.floor(Math.random() * (max - min + 1)) + min;\nawait new Promise(r => setTimeout(r, delay * 1000));\nreturn $input.all();`;
+      const updateResult = await this.updateWorkflow(workflowId, workflow);
+      return { ...updateResult, action: 'updated', delay: `${minSeconds}-${maxSeconds}s` };
+    }
+
+    // Find the AI Agent node (output goes to response)
+    const agentNode = workflow.nodes.find(n =>
+      n.type && n.type.includes('agent') && !n.type.includes('tool')
+    );
+    if (!agentNode) {
+      return { success: false, error: 'AI Agent node not found in workflow' };
+    }
+
+    // Find what the Agent connects to (the response/send node)
+    const agentConnections = workflow.connections[agentNode.name];
+    if (!agentConnections || !agentConnections.main || !agentConnections.main[0] || agentConnections.main[0].length === 0) {
+      return { success: false, error: 'Agent node has no output connections' };
+    }
+
+    const nextNodes = agentConnections.main[0]; // [{node: "Send Message", type: "main", index: 0}]
+
+    // Create the Wait (Code) node — positioned between Agent and Send
+    const agentPos = agentNode.position || [0, 0];
+    const waitNode = {
+      id: 'wait-delay-' + Date.now(),
+      name: waitNodeName,
+      type: 'n8n-nodes-base.code',
+      typeVersion: 2,
+      position: [agentPos[0] + 250, agentPos[1]],
+      parameters: {
+        jsCode: `const min = ${minSeconds};\nconst max = ${maxSeconds};\nconst delay = Math.floor(Math.random() * (max - min + 1)) + min;\nawait new Promise(r => setTimeout(r, delay * 1000));\nreturn $input.all();`,
+        mode: 'runOnceForAllItems'
+      }
+    };
+
+    // Add node to workflow
+    workflow.nodes.push(waitNode);
+
+    // Rewire: Agent → Wait → original next nodes
+    workflow.connections[agentNode.name].main[0] = [{ node: waitNodeName, type: 'main', index: 0 }];
+    workflow.connections[waitNodeName] = { main: [nextNodes] };
+
+    const updateResult = await this.updateWorkflow(workflowId, workflow);
+    return { ...updateResult, action: 'inserted', delay: `${minSeconds}-${maxSeconds}s` };
   }
 
   // Update an n8n credential (delete old + create new, since n8n API doesn't support PATCH on credentials)

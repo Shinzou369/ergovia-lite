@@ -1,0 +1,532 @@
+{
+  "name": "WF4: Payment Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stripe-webhook",
+        "options": {}
+      },
+      "id": "stripe-webhook",
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "stripe-events"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-payment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "create-payment",
+      "name": "Create Payment Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "create-payment"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $input.item.json;\n\n// Internal create-checkout request (called by WF1)\nif (input.event_type === 'create_checkout' || !input.meta) {\n  return [{ json: {\n    event_type: 'create_checkout',\n    booking_id: input.booking_id,\n    property_id: input.property_id,\n    guest_name: input.guest_name,\n    guest_email: input.guest_email || '',\n    amount: input.amount || 0,\n    check_in: input.check_in,\n    check_out: input.check_out,\n  }}];\n}\n\n// Lemon Squeezy order_created webhook\nconst attrs = input.data?.attributes || {};\nconst custom = attrs.custom_data || {};\nreturn [{ json: {\n  event_type: 'payment_success',\n  booking_id: custom.booking_id,\n  payment_id: String(input.data?.id || ''),\n  amount: (attrs.total || 0) / 100,\n  guest_email: attrs.user_email || '',\n} }];"
+      },
+      "id": "normalize-event",
+      "name": "Normalize Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "create_checkout",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "payment_intent.succeeded",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "success"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.event_type }}",
+                    "rightValue": "payment_intent.payment_failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "failed"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-event",
+      "name": "Route by Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "id": "create-stripe-session",
+      "name": "Build Payment URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -100
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const LS_BASE = 'https://ergovia-ai.lemonsqueezy.com/checkout/buy/00ee131b-da5f-4eef-bf32-7c12aa28a11d';\nconst d = $input.item.json;\nconst params = [\n  'checkout[email]=' + encodeURIComponent(d.guest_email || ''),\n  'checkout[name]=' + encodeURIComponent(d.guest_name || ''),\n  'checkout[custom][booking_id]=' + encodeURIComponent(d.booking_id || ''),\n  'checkout[custom][property_id]=' + encodeURIComponent(d.property_id || ''),\n  'checkout[custom][amount]=' + encodeURIComponent(String(d.amount || 0)),\n].join('&');\nreturn [{ json: { ...d, url: LS_BASE + '?' + params } }];"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "bookings",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "booking_id": "={{ $('Normalize Event').item.json.booking_id }}",
+            "property_id": "={{ $('Normalize Event').item.json.property_id }}",
+            "guest_name": "={{ $('Normalize Event').item.json.guest_name }}",
+            "guest_email": "={{ $('Normalize Event').item.json.guest_email }}",
+            "guest_phone": "={{ $('Normalize Event').item.json.guest_phone }}",
+            "check_in_date": "={{ $('Normalize Event').item.json.check_in_date }}",
+            "check_out_date": "={{ $('Normalize Event').item.json.check_out_date }}",
+            "num_guests": "={{ $('Normalize Event').item.json.num_guests }}",
+            "total_amount": "={{ $('Normalize Event').item.json.amount }}",
+            "booking_status": "pending_payment",
+            "stripe_session_id": "={{ $json.id }}",
+            "payment_link": "={{ $json.url }}",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "create-booking-hold",
+      "name": "Create Booking Hold",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        880,
+        -100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE bookings\nSET booking_status = 'confirmed',\n    payment_status = 'paid',\n    payment_id = $2,\n    payment_amount = $3,\n    confirmed_at = CURRENT_TIMESTAMP,\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = $1\nRETURNING *",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.booking_id, $json.payment_intent_id, $json.amount] } }}"
+        },
+        "options": {}
+      },
+      "id": "confirm-booking",
+      "name": "Confirm Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        660,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.* FROM property_configurations p\nJOIN bookings b ON b.property_id = p.property_id\nWHERE b.booking_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.booking_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "get-property-for-confirm",
+      "name": "Get Property Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        880,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Generate a warm, professional booking confirmation message for:\n\nGuest: {{ $('Confirm Booking').item.json.guest_name }}\nProperty: {{ $json.property_name }}\nCheck-in: {{ $('Confirm Booking').item.json.check_in_date }} at {{ $json.check_in_time }}\nCheck-out: {{ $('Confirm Booking').item.json.check_out_date }} at {{ $json.check_out_time }}\nTotal Paid: ${{ $('Confirm Booking').item.json.payment_amount }}\n\nInclude:\n1. Thank you for booking\n2. Confirmation of dates\n3. Mention they'll receive check-in instructions closer to arrival\n4. Contact info if questions\n\nKeep under 150 words. Use appropriate emojis.",
+        "hasOutputParser": false,
+        "options": {}
+      },
+      "id": "generate-confirmation",
+      "name": "Generate Confirmation",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "confirm-model",
+      "name": "Confirmation Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "options": {}
+      },
+      "id": "send-guest-confirm",
+      "name": "Send Guest Confirmation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "options": {}
+      },
+      "id": "notify-owner",
+      "name": "Notify Owner",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE bookings\nSET booking_status = 'payment_failed',\n    payment_status = 'failed',\n    updated_at = CURRENT_TIMESTAMP\nWHERE booking_id = $1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.booking_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "handle-failed",
+      "name": "Handle Failed Payment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SUB: Universal Messenger"
+        },
+        "options": {}
+      },
+      "id": "notify-failed",
+      "name": "Notify Payment Failed",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, booking_id: $('Normalize Event').item.json.booking_id, payment_url: $('Build Payment URL').item.json.url } }}",
+        "options": {}
+      },
+      "id": "respond-create",
+      "name": "Respond Create",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -100
+      ]
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Payment Request": {
+      "main": [
+        [
+          {
+            "node": "Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Event": {
+      "main": [
+        [
+          {
+            "node": "Route by Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Event": {
+      "main": [
+        [
+          {
+            "node": "Create Stripe Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirm Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Failed Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Stripe Session": {
+      "main": [
+        [
+          {
+            "node": "Create Booking Hold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking Hold": {
+      "main": [
+        [
+          {
+            "node": "Respond Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Booking": {
+      "main": [
+        [
+          {
+            "node": "Get Property Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Property Details": {
+      "main": [
+        [
+          {
+            "node": "Generate Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Confirmation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Send Guest Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Guest Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Failed Payment": {
+      "main": [
+        [
+          {
+            "node": "Notify Payment Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Unified payment processing: Stripe integration, booking confirmation, notifications. Replaces WF7, WF8, WF9."
+  },
+  "tags": [
+    "payment",
+    "stripe",
+    "booking",
+    "optimized"
+  ]
+}

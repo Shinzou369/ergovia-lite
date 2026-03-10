@@ -137,15 +137,23 @@
     },
     {
       "parameters": {
-        "chatId": "={{ $('Normalize Input').item.json.recipient }}",
-        "text": "={{ $('Normalize Input').item.json.message }}",
-        "replyMarkup": "={{ $json.buttons ? 'inlineKeyboard' : 'none' }}",
-        "forceReply": {},
-        "inlineKeyboard": {
-          "rows": []
-        },
-        "replyKeyboardOptions": {},
-        "replyKeyboardRemove": {},
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Strip all markdown to prevent Telegram entity parse errors\nconst item = $input.item.json;\n\nfunction stripMarkdown(text) {\n  if (typeof text !== 'string') return String(text ?? '');\n  return text\n    .replace(/\\*\\*?(.*?)\\*\\*?/g, '$1')\n    .replace(/__(.*?)__/g, '$1')\n    .replace(/_(.*?)_/g, '$1')\n    .replace(/`{1,3}([\\s\\S]*?)`{1,3}/g, '$1')\n    .replace(/~~(.*?)~~/g, '$1')\n    .replace(/\\[([^\\]]+)\\]\\([^\\)]+\\)/g, '$1')\n    .replace(/^#{1,6}\\s+/gm, '')\n    .replace(/^>\\s+/gm, '')\n    .replace(/^[-*_]{3,}$/gm, '')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nreturn {\n  ...item,\n  message: stripMarkdown(item.message ?? item.text ?? ''),\n  parse_mode: ''\n};"
+      },
+      "id": "sanitize-message",
+      "name": "Sanitize Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.recipient }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "none",
         "additionalFields": {
           "appendAttribution": false
         }
@@ -155,7 +163,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        672,
+        784,
         -96
       ],
       "credentials": {
@@ -361,11 +369,22 @@
         ]
       ]
     },
-    "Route by Channel": {
+    "Sanitize Message": {
       "main": [
         [
           {
             "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Channel": {
+      "main": [
+        [
+          {
+            "node": "Sanitize Message",
             "type": "main",
             "index": 0
           }

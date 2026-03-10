@@ -3,31 +3,462 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Onboarding - Ergovia</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title>Setup - AIRB by Ergovia</title>
+  <link rel="icon" href="/logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #030712;
+      --card-bg: rgba(255,255,255,0.03);
+      --card-border: rgba(255,255,255,0.08);
+      --primary: #1a365d;
+      --accent: #c9a962;
+      --success: #10b981;
+      --error: #ef4444;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --input-bg: rgba(255,255,255,0.05);
+      --input-border: rgba(255,255,255,0.12);
+      --input-focus: rgba(201,169,98,0.4);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+    }
+
+    /* Navbar */
+    .navbar {
+      background: rgba(3,7,18,0.95);
+      border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0 24px;
+    }
+    .nav-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .nav-brand {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .nav-links { display: flex; gap: 8px; }
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    /* Container */
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* Page Header */
+    .page-header { margin-bottom: 32px; }
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .page-subtitle { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* Step Indicators */
+    .steps {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      margin-bottom: 36px;
+      position: relative;
+      gap: 0;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex: 1;
+      cursor: pointer;
+    }
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: calc(50% + 20px);
+      width: calc(100% - 40px);
+      height: 2px;
+      background: rgba(255,255,255,0.08);
+      z-index: 0;
+    }
+    .step.completed:not(:last-child)::after {
+      background: var(--success);
+    }
+    .step-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 700;
+      border: 2px solid rgba(255,255,255,0.12);
+      color: var(--text-dim);
+      background: var(--bg);
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s;
+    }
+    .step.active .step-number {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 12px rgba(201,169,98,0.25);
+    }
+    .step.completed .step-number {
+      border-color: var(--success);
+      background: var(--success);
+      color: #fff;
+      font-size: 0;
+    }
+    .step.completed .step-number::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      font-size: 0.8rem;
+    }
+    .step-label {
+      margin-top: 8px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .step.active .step-label { color: var(--accent); }
+    .step.completed .step-label { color: var(--success); }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .card-body { padding: 24px; }
+
+    /* Tier Badges */
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .tier-badge i { font-size: 0.65rem; }
+    .tier-1 { background: var(--accent); color: #1a1a1a; }
+    .tier-2 { background: var(--primary); color: #fff; }
+    .tier-3 { background: rgba(255,255,255,0.1); color: var(--text-muted); }
+
+    /* Section headers inside card */
+    .section-header {
+      margin-top: 28px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .section-header:first-child { margin-top: 0; }
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 6px;
+    }
+
+    /* Forms */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.875rem;
+      font-family: 'Inter', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--input-focus);
+    }
+    .form-input::placeholder, .form-textarea::placeholder {
+      color: var(--text-dim);
+    }
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .form-select option {
+      background: #111827;
+      color: var(--text);
+    }
+    .form-textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    .form-hint {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .form-hint a { color: var(--accent); text-decoration: none; }
+    .form-hint a:hover { text-decoration: underline; }
+
+    /* Checkbox */
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+      cursor: pointer;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--input-border);
+      transition: all 0.2s;
+    }
+    .checkbox-label:hover { background: rgba(255,255,255,0.03); }
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .alert-info {
+      background: rgba(26,54,93,0.25);
+      border: 1px solid rgba(26,54,93,0.5);
+      color: #93c5fd;
+    }
+    .alert-info i { color: #60a5fa; margin-right: 6px; }
+    .alert-warning {
+      background: rgba(234,179,8,0.1);
+      border: 1px solid rgba(234,179,8,0.25);
+      color: #fbbf24;
+    }
+
+    /* Credential sections */
+    .credential-section {
+      padding: 20px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .credential-section h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .credential-section h4 i { color: var(--accent); font-size: 1rem; }
+
+    /* Step Actions */
+    .step-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-top: 1px solid var(--card-border);
+      background: rgba(255,255,255,0.01);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #1e4175; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+    }
+    .btn-success {
+      background: var(--accent);
+      color: #1a1a1a;
+    }
+    .btn-success:hover { background: #d4b46e; }
+    .btn-lg {
+      padding: 14px 36px;
+      font-size: 1rem;
+    }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+    .step-content { display: none; }
+    .step-content.active { display: block; }
+
+    /* Utility */
+    .mb-2 { margin-bottom: 8px; }
+    .mb-3 { margin-bottom: 16px; }
+    .mt-4 { margin-top: 24px; }
+
+    /* Info box (Google Business) */
+    .info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(26,54,93,0.15);
+      border: 1px solid rgba(26,54,93,0.3);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .info-box i {
+      color: var(--accent);
+      font-size: 1.25rem;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .info-box p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .container { padding: 20px 14px 60px; }
+      .form-row { grid-template-columns: 1fr; gap: 0; }
+      .steps { gap: 0; }
+      .step-label { font-size: 0.6rem; }
+      .step-number { width: 30px; height: 30px; font-size: 0.75rem; }
+      .step:not(:last-child)::after { top: 14px; left: calc(50% + 16px); width: calc(100% - 32px); }
+      .card-body { padding: 18px 16px; }
+      .step-actions { padding: 14px 16px; }
+      .checkbox-group { flex-direction: column; }
+    }
+  </style>
 </head>
 <body data-page="onboarding">
   <!-- Navigation -->
   <nav class="navbar">
     <div class="nav-content">
-      <a href="/dashboard.html" class="nav-brand">Ergovia</a>
+      <a href="/dashboard.html" class="nav-brand">AIRB by Ergovia</a>
       <div class="nav-links">
-        <a href="/dashboard.html" class="nav-link">Dashboard</a>
+        <a href="/dashboard.html" class="nav-link"><i class="fas fa-arrow-left" style="margin-right:4px"></i> Dashboard</a>
       </div>
     </div>
   </nav>
 
   <div class="container">
     <div class="page-header">
-      <div>
-        <h1 class="page-title">Property Setup</h1>
-        <p class="page-subtitle">Let's get your property automation configured</p>
-      </div>
+      <h1 class="page-title">Property Setup</h1>
+      <p class="page-subtitle">Let's get your property automation configured</p>
     </div>
 
     <!-- Step Indicators -->
     <div class="steps">
-      <div class="step" data-step="1">
+      <div class="step active" data-step="1">
         <div class="step-number">1</div>
         <span class="step-label">Owner Info</span>
       </div>
@@ -47,15 +478,22 @@
         <div class="step-number">5</div>
         <span class="step-label">Integrations</span>
       </div>
+      <div class="step" data-step="6">
+        <div class="step-number">6</div>
+        <span class="step-label">Google</span>
+      </div>
     </div>
 
     <!-- Step 1: Owner Info -->
-    <div class="step-content" data-step="1">
+    <div class="step-content active" data-step="1">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Owner Information</h3>
+          <h3 class="card-title"><i class="fas fa-user" style="color:var(--accent);margin-right:8px"></i>Owner Information</h3>
         </div>
         <div class="card-body">
+          <div class="section-header" style="margin-top:0">
+            <span class="tier-badge tier-1"><i class="fas fa-star"></i> Required for Website</span>
+          </div>
           <form id="step1-form">
             <div class="form-row">
               <div class="form-group">
@@ -79,15 +517,15 @@
               <div class="checkbox-group">
                 <label class="checkbox-label">
                   <input type="checkbox" name="hasTelegram" value="telegram" checked>
-                  <span>Telegram</span>
+                  <span><i class="fab fa-telegram" style="color:#229ED9"></i> Telegram</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" name="hasWhatsapp" value="whatsapp">
-                  <span>WhatsApp</span>
+                  <span><i class="fab fa-whatsapp" style="color:#25D366"></i> WhatsApp</span>
                 </label>
                 <label class="checkbox-label">
                   <input type="checkbox" name="hasSms" value="sms">
-                  <span>SMS (Twilio)</span>
+                  <span><i class="fas fa-sms" style="color:#60a5fa"></i> SMS (Twilio)</span>
                 </label>
               </div>
             </div>
@@ -105,7 +543,7 @@
             <div id="telegram-field" class="form-group">
               <label class="form-label">Telegram Chat ID</label>
               <input type="text" name="telegramChatId" class="form-input" placeholder="123456789">
-              <p class="form-hint">Your Telegram numeric chat ID. Send /start to @userinfobot to find it.</p>
+              <p class="form-hint">Your Telegram numeric chat ID. Send /start to <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to find it.</p>
             </div>
 
             <div id="whatsapp-field" class="form-group hidden">
@@ -117,7 +555,7 @@
         </div>
         <div class="step-actions">
           <div></div>
-          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step <i class="fas fa-arrow-right"></i></button>
         </div>
       </div>
     </div>
@@ -126,10 +564,16 @@
     <div class="step-content" data-step="2">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Property Details</h3>
+          <h3 class="card-title"><i class="fas fa-home" style="color:var(--accent);margin-right:8px"></i>Property Details</h3>
         </div>
         <div class="card-body">
           <form id="step2-form">
+            <!-- Tier 1 -->
+            <div class="section-header" style="margin-top:0">
+              <span class="tier-badge tier-1"><i class="fas fa-star"></i> Required for Website</span>
+              <div class="section-title">Core Property Info</div>
+            </div>
+
             <div class="form-group">
               <label class="form-label">Property Name *</label>
               <input type="text" name="propertyName" class="form-input" required placeholder="Beach House Paradise">
@@ -140,22 +584,26 @@
               <input type="text" name="propertyAddress" class="form-input" required placeholder="123 Ocean Drive">
             </div>
 
+            <div class="form-group">
+              <label class="form-label">City *</label>
+              <input type="text" name="propertyCity" class="form-input" required placeholder="Miami Beach">
+            </div>
+
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">City *</label>
-                <input type="text" name="propertyCity" class="form-input" required placeholder="Miami Beach">
+                <label class="form-label">Base Price (per night) *</label>
+                <input type="number" name="basePrice" class="form-input" value="150" min="0" step="0.01">
               </div>
               <div class="form-group">
-                <label class="form-label">Timezone</label>
-                <select name="timezone" class="form-select">
-                  <option value="America/New_York">Eastern Time (ET)</option>
-                  <option value="America/Chicago">Central Time (CT)</option>
-                  <option value="America/Denver">Mountain Time (MT)</option>
-                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                  <option value="Europe/London">London (GMT)</option>
-                  <option value="Europe/Paris">Paris (CET)</option>
-                </select>
+                <label class="form-label">Cleaning Fee *</label>
+                <input type="number" name="cleaningFee" class="form-input" placeholder="75" min="0" step="0.01">
               </div>
+            </div>
+
+            <!-- Tier 2 -->
+            <div class="section-header">
+              <span class="tier-badge tier-2"><i class="fas fa-robot"></i> Required for AI</span>
+              <div class="section-title">Property Specs</div>
             </div>
 
             <div class="form-row">
@@ -187,25 +635,32 @@
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Base Price (per night) *</label>
-                <input type="number" name="basePrice" class="form-input" value="150" min="0" step="0.01">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Weekend Price (per night)</label>
-                <input type="number" name="weekendPrice" class="form-input" placeholder="180" min="0" step="0.01">
-              </div>
+            <div class="form-group">
+              <label class="form-label">Timezone</label>
+              <select name="timezone" class="form-select">
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="Europe/London">London (GMT)</option>
+                <option value="Europe/Paris">Paris (CET)</option>
+              </select>
+            </div>
+
+            <!-- Tier 3 -->
+            <div class="section-header">
+              <span class="tier-badge tier-3"><i class="fas fa-thumbs-up"></i> Recommended</span>
+              <div class="section-title">Additional Pricing &amp; Rules</div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Holiday Price (per night)</label>
-                <input type="number" name="holidayPrice" class="form-input" placeholder="200" min="0" step="0.01">
+                <label class="form-label">Weekend Price (per night)</label>
+                <input type="number" name="weekendPrice" class="form-input" placeholder="180" min="0" step="0.01">
               </div>
               <div class="form-group">
-                <label class="form-label">Cleaning Fee *</label>
-                <input type="number" name="cleaningFee" class="form-input" placeholder="75" min="0" step="0.01">
+                <label class="form-label">Holiday Price (per night)</label>
+                <input type="number" name="holidayPrice" class="form-input" placeholder="200" min="0" step="0.01">
               </div>
             </div>
 
@@ -222,7 +677,7 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Owner Contact (Chat ID) *</label>
+                <label class="form-label">Owner Contact (Chat ID)</label>
                 <input type="text" name="ownerContact" class="form-input" placeholder="Auto-filled from Step 1">
                 <p class="form-hint">Used for workflow notifications. Defaults to your Telegram Chat ID.</p>
               </div>
@@ -249,8 +704,8 @@
           </form>
         </div>
         <div class="step-actions">
-          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
-          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+          <button type="button" class="btn btn-secondary btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step <i class="fas fa-arrow-right"></i></button>
         </div>
       </div>
     </div>
@@ -259,19 +714,31 @@
     <div class="step-content" data-step="3">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Guest Access Information</h3>
+          <h3 class="card-title"><i class="fas fa-key" style="color:var(--accent);margin-right:8px"></i>Guest Access Information</h3>
         </div>
         <div class="card-body">
           <form id="step3-form">
+            <!-- Tier 2 -->
+            <div class="section-header" style="margin-top:0">
+              <span class="tier-badge tier-2"><i class="fas fa-robot"></i> Required for AI</span>
+              <div class="section-title">Check-in / Check-out</div>
+            </div>
+
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Check-in Time</label>
-                <input type="time" name="checkInTime" class="form-input" value="15:00">
+                <label class="form-label">Check-in Time *</label>
+                <input type="time" name="checkInTime" class="form-input" value="15:00" required>
               </div>
               <div class="form-group">
-                <label class="form-label">Check-out Time</label>
-                <input type="time" name="checkOutTime" class="form-input" value="11:00">
+                <label class="form-label">Check-out Time *</label>
+                <input type="time" name="checkOutTime" class="form-input" value="11:00" required>
               </div>
+            </div>
+
+            <!-- Tier 3 -->
+            <div class="section-header">
+              <span class="tier-badge tier-3"><i class="fas fa-thumbs-up"></i> Recommended</span>
+              <div class="section-title">Access Details &amp; House Info</div>
             </div>
 
             <div class="form-row">
@@ -307,8 +774,8 @@
           </form>
         </div>
         <div class="step-actions">
-          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
-          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+          <button type="button" class="btn btn-secondary btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step <i class="fas fa-arrow-right"></i></button>
         </div>
       </div>
     </div>
@@ -317,12 +784,18 @@
     <div class="step-content" data-step="4">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Calendar Integration</h3>
+          <h3 class="card-title"><i class="fas fa-calendar-alt" style="color:var(--accent);margin-right:8px"></i>Calendar Integration</h3>
         </div>
         <div class="card-body">
+          <div class="section-header" style="margin-top:0">
+            <span class="tier-badge tier-3"><i class="fas fa-thumbs-up"></i> Recommended</span>
+          </div>
+
           <div class="alert alert-info mb-3">
+            <i class="fas fa-info-circle"></i>
             Enter your iCal URLs to sync bookings from different platforms. These are usually found in your platform's settings under "Calendar" or "Sync".
           </div>
+
           <form id="step4-form">
             <div class="form-group">
               <label class="form-label">Airbnb Calendar URL</label>
@@ -357,8 +830,8 @@
           </form>
         </div>
         <div class="step-actions">
-          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
-          <button type="button" class="btn btn-primary btn-next">Next Step</button>
+          <button type="button" class="btn btn-secondary btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step <i class="fas fa-arrow-right"></i></button>
         </div>
       </div>
     </div>
@@ -367,17 +840,23 @@
     <div class="step-content" data-step="5">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Integrations & Credentials</h3>
+          <h3 class="card-title"><i class="fas fa-plug" style="color:var(--accent);margin-right:8px"></i>Integrations &amp; Credentials</h3>
         </div>
         <div class="card-body">
           <form id="step5-form">
+            <div class="section-header" style="margin-top:0">
+              <span class="tier-badge tier-2"><i class="fas fa-robot"></i> Required for AI</span>
+              <div class="section-title">Messaging Platform Credentials</div>
+            </div>
+
             <div class="alert alert-info mb-3">
+              <i class="fas fa-info-circle"></i>
               Enter your API credentials for the messaging platforms you selected. These are required to send messages to guests.
             </div>
 
             <!-- Telegram Credentials (conditional) -->
             <div id="telegram-credentials" class="credential-section hidden">
-              <h4 class="mb-2">Telegram Bot Credentials</h4>
+              <h4><i class="fab fa-telegram"></i> Telegram Bot Credentials</h4>
               <div class="form-group">
                 <label class="form-label">Telegram Bot Token *</label>
                 <input type="password" name="telegramBotToken" class="form-input" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
@@ -387,7 +866,7 @@
 
             <!-- WhatsApp Credentials (conditional) -->
             <div id="whatsapp-credentials" class="credential-section hidden">
-              <h4 class="mb-2">WhatsApp Business Credentials</h4>
+              <h4><i class="fab fa-whatsapp"></i> WhatsApp Business Credentials</h4>
               <div class="form-group">
                 <label class="form-label">WhatsApp Phone Number ID *</label>
                 <input type="text" name="whatsappPhoneNumberId" class="form-input" placeholder="1234567890123456">
@@ -407,7 +886,7 @@
 
             <!-- Twilio/SMS Credentials (conditional) -->
             <div id="twilio-credentials" class="credential-section hidden">
-              <h4 class="mb-2">Twilio Credentials (SMS &amp; WhatsApp)</h4>
+              <h4><i class="fas fa-sms"></i> Twilio Credentials (SMS &amp; WhatsApp)</h4>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Twilio Account SID *</label>
@@ -429,19 +908,27 @@
 
             <!-- No platforms selected message -->
             <div id="no-platforms-message" class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>
               No messaging platforms selected. Go back to Step 1 to select at least one platform (Telegram, WhatsApp, or SMS).
             </div>
 
-            <h4 class="mt-4 mb-2">Monthly AI Budget</h4>
+            <div class="section-header">
+              <span class="tier-badge tier-2"><i class="fas fa-robot"></i> Required for AI</span>
+              <div class="section-title">Monthly AI Budget</div>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Monthly Budget (USD)</label>
                 <input type="number" name="monthlyBudget" class="form-input" value="50" min="5" max="500" step="5">
                 <p class="form-hint">Default: $50/month. Alerts at 50%, 80%, and 100% usage.</p>
               </div>
+              <div class="form-group"></div>
             </div>
 
-            <h4 class="mt-4 mb-2">Manager/Team Lead (Optional)</h4>
+            <div class="section-header">
+              <span class="tier-badge tier-3"><i class="fas fa-thumbs-up"></i> Recommended</span>
+              <div class="section-title">Manager / Team Lead</div>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Manager Name</label>
@@ -465,8 +952,55 @@
           </form>
         </div>
         <div class="step-actions">
-          <button type="button" class="btn btn-secondary btn-prev">Previous</button>
-          <button type="button" class="btn btn-success btn-lg btn-complete">Complete Setup</button>
+          <button type="button" class="btn btn-secondary btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-primary btn-next">Next Step <i class="fas fa-arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6: Google Business -->
+    <div class="step-content" data-step="6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><i class="fab fa-google" style="color:var(--accent);margin-right:8px"></i>Google Business Profile</h3>
+        </div>
+        <div class="card-body">
+          <form id="step6-form">
+            <div class="section-header" style="margin-top:0">
+              <span class="tier-badge tier-3"><i class="fas fa-thumbs-up"></i> Recommended</span>
+            </div>
+
+            <div class="info-box">
+              <i class="fas fa-map-marker-alt"></i>
+              <p>Get found on Google Maps. Guests searching for stays in your area will find you and contact your AI assistant directly.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Google Maps URL</label>
+              <input type="url" name="googleMapsUrl" class="form-input" placeholder="https://maps.app.goo.gl/...">
+              <p class="form-hint">Your Google Maps listing link. Search for your property on Google Maps and copy the share link.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Google Review URL</label>
+              <input type="url" name="googleReviewUrl" class="form-input" placeholder="https://g.page/r/.../review">
+              <p class="form-hint">Direct link for guests to leave a review. Found in Google Business Profile > Share review form.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Google Verification Status</label>
+              <select name="googleVerificationStatus" class="form-select">
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="verified">Verified</option>
+              </select>
+              <p class="form-hint">Has your Google Business Profile been verified? We can help you set it up if needed.</p>
+            </div>
+          </form>
+        </div>
+        <div class="step-actions">
+          <button type="button" class="btn btn-secondary btn-prev"><i class="fas fa-arrow-left"></i> Previous</button>
+          <button type="button" class="btn btn-success btn-lg btn-complete"><i class="fas fa-check-circle"></i> Complete Setup</button>
         </div>
       </div>
     </div>

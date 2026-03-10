@@ -1,0 +1,1044 @@
+{
+  "updatedAt": "2026-02-10T06:04:51.000Z",
+  "createdAt": "2026-02-06T08:45:13.801Z",
+  "id": "UZMWfhnV6JmuwJXC",
+  "name": "SUB: Universal Messenger",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "channel"
+            },
+            {
+              "name": "sender_id"
+            },
+            {
+              "name": "input"
+            },
+            {
+              "name": "customer_id"
+            }
+          ]
+        }
+      },
+      "id": "b19b5b03-fbcb-469e-9f23-7087a82c155a",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Universal Message Sender - ONE node handles ALL channels\nconst input = $input.item.json;\n\nconst channel = (input.channel || input.preferred_platform || 'telegram').toLowerCase();\nconst recipient = input.recipient || input.chat_id || input.phone || input.sender_id;\nconst message = input.message || input.text || input.body || input.input;\nconst buttons = input.buttons || input.inline_keyboard || null;\nconst mediaUrl = input.media_url || null;\nconst customerId = input.customer_id || null;\n\n// Validate required fields\nif (!recipient || !message) {\n  return {\n    success: false,\n    error: 'Missing recipient or message',\n    channel: channel\n  };\n}\n\n// Return standardized output for the appropriate channel\nreturn {\n  channel: channel,\n  recipient: recipient,\n  message: message,\n  buttons: buttons,\n  mediaUrl: mediaUrl,\n  customer_id: customerId,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "8aa89e4a-cd64-42a4-909b-fbf150f18240",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "5a83612a-8fbf-46a7-a696-32209c1775c2",
+      "name": "Route by Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalize Input').item.json.recipient }}",
+        "text": "={{ $('Normalize Input').item.json.message }}",
+        "replyMarkup": "={{ $json.buttons ? 'inlineKeyboard' : 'none' }}",
+        "forceReply": {},
+        "inlineKeyboard": {
+          "rows": []
+        },
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "id": "cd6ad434-671e-4367-b85e-59fed4642cba",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        -96
+      ],
+      "webhookId": "96267dfa-3acb-4573-80ed-9a1d0886a59f",
+      "credentials": {
+        "telegramApi": {
+          "id": "6ltptOrFLUaZzC1C",
+          "name": "[Client] Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Log Telegram send - FREE, no cost\nconst normalized = $('Normalize Input').item.json;\nconst result = $input.item.json;\n\nreturn {\n  success: true,\n  channel: 'telegram',\n  recipient: normalized.recipient,\n  message_id: result.message_id || result.result?.message_id,\n  customer_id: normalized.customer_id,\n  cost_usd: 0.00,\n  cost_type: 'free'\n};"
+      },
+      "id": "log-telegram",
+      "name": "Log Telegram Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.recipient }}",
+        "textBody": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "0804c6c0-3675-42bf-8182-86c17b1054f2",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        112
+      ],
+      "webhookId": "d80b5294-3745-41d6-8e6f-8721363f4f63",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Calculate WhatsApp cost and log\nconst normalized = $('Normalize Input').item.json;\nconst result = $input.item.json;\n\n// WhatsApp pricing (template message): $0.005 per message\nconst costUsd = 0.005;\n\nreturn {\n  success: true,\n  channel: 'whatsapp',\n  recipient: normalized.recipient,\n  message_id: result.messages?.[0]?.id || result.message_id,\n  customer_id: normalized.customer_id,\n  cost_usd: costUsd,\n  cost_type: 'twilio_whatsapp'\n};"
+      },
+      "id": "calc-whatsapp-cost",
+      "name": "Calculate WhatsApp Cost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "to": "={{ $json.recipient }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "e0c78c03-63be-4276-88ad-bfb613aebdcf",
+      "name": "Send SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        672,
+        304
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-cred",
+          "name": "Twilio"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Calculate SMS cost and log\nconst normalized = $('Normalize Input').item.json;\nconst result = $input.item.json;\n\n// Twilio SMS pricing: $0.0079 per outbound SMS (US)\n// Use actual price from Twilio response if available\nconst costUsd = result.price ? Math.abs(parseFloat(result.price)) : 0.0079;\n\nreturn {\n  success: true,\n  channel: 'sms',\n  recipient: normalized.recipient,\n  message_id: result.sid || result.message_sid,\n  customer_id: normalized.customer_id,\n  cost_usd: costUsd,\n  cost_type: 'twilio_sms'\n};"
+      },
+      "id": "calc-sms-cost",
+      "name": "Calculate SMS Cost",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "caba4b2c-17c4-422a-a76a-e355bffdd7b8",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-cost",
+              "leftValue": "={{ $json.cost_usd }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "has-customer",
+              "leftValue": "={{ $json.customer_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-cost",
+      "name": "Has Messaging Cost?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM log_api_usage($1::uuid, $2, $3, $4, $5::int, $6::int, $7::decimal, $8, $9, $10)",
+        "options": {
+          "queryParameters": "={{ [$json.customer_id, $json.cost_type, $json.channel, 'send_message', 0, 0, $json.cost_usd, 'SUB_Universal_Messenger', 'Send ' + $json.channel, $runId] }}"
+        }
+      },
+      "id": "log-messaging-cost",
+      "name": "Log Messaging Cost",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1560,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sjaI08GtPbON8TLX",
+          "name": "PostgreSQL - Client"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Format successful response\nconst input = $input.item.json;\nreturn {\n  success: true,\n  channel: input.channel || 'unknown',\n  recipient: input.recipient || input.chat_id || input.to,\n  messageId: input.message_id || input.id || null,\n  cost_tracked: (input.cost_usd || 0) > 0,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "e6362e95-44d0-4a9e-8394-f027249cc613",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Route by Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Channel": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram": {
+      "main": [
+        [
+          {
+            "node": "Log Telegram Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Telegram Result": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Calculate WhatsApp Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate WhatsApp Cost": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS": {
+      "main": [
+        [
+          {
+            "node": "Calculate SMS Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate SMS Cost": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Has Messaging Cost?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Messaging Cost?": {
+      "main": [
+        [
+          {
+            "node": "Log Messaging Cost",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Messaging Cost": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "7a0b5a08-db13-4638-a397-8b63938c78cb",
+  "activeVersionId": "4d4c08e6-024b-4341-b243-5d8b08a2eea7",
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T08:45:13.809Z",
+      "createdAt": "2026-02-06T08:45:13.809Z",
+      "role": "workflow:owner",
+      "workflowId": "UZMWfhnV6JmuwJXC",
+      "projectId": "JX3CVPOuNBbCCU8b"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-10T01:20:40.786Z",
+    "createdAt": "2026-02-10T01:20:40.786Z",
+    "versionId": "4d4c08e6-024b-4341-b243-5d8b08a2eea7",
+    "workflowId": "UZMWfhnV6JmuwJXC",
+    "nodes": [
+      {
+        "parameters": {
+          "workflowInputs": {
+            "values": [
+              {
+                "name": "channel"
+              },
+              {
+                "name": "sender_id"
+              },
+              {
+                "name": "input"
+              },
+              {
+                "name": "customer_id"
+              }
+            ]
+          }
+        },
+        "id": "b19b5b03-fbcb-469e-9f23-7087a82c155a",
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          0
+        ],
+        "retryOnFail": false
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Universal Message Sender - ONE node handles ALL channels\nconst input = $input.item.json;\n\nconst channel = (input.channel || input.preferred_platform || 'telegram').toLowerCase();\nconst recipient = input.recipient || input.chat_id || input.phone || input.sender_id;\nconst message = input.message || input.text || input.body || input.input;\nconst buttons = input.buttons || input.inline_keyboard || null;\nconst mediaUrl = input.media_url || null;\nconst customerId = input.customer_id || null;\n\n// Validate required fields\nif (!recipient || !message) {\n  return {\n    success: false,\n    error: 'Missing recipient or message',\n    channel: channel\n  };\n}\n\n// Return standardized output for the appropriate channel\nreturn {\n  channel: channel,\n  recipient: recipient,\n  message: message,\n  buttons: buttons,\n  mediaUrl: mediaUrl,\n  customer_id: customerId,\n  timestamp: new Date().toISOString()\n};"
+        },
+        "id": "8aa89e4a-cd64-42a4-909b-fbf150f18240",
+        "name": "Normalize Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.channel }}",
+                      "rightValue": "telegram",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "telegram"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.channel }}",
+                      "rightValue": "whatsapp",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "whatsapp"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": false,
+                    "leftValue": "",
+                    "typeValidation": "loose"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.channel }}",
+                      "rightValue": "sms",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "sms"
+              }
+            ]
+          },
+          "options": {
+            "fallbackOutput": "extra"
+          }
+        },
+        "id": "5a83612a-8fbf-46a7-a696-32209c1775c2",
+        "name": "Route by Channel",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          448,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $('Normalize Input').item.json.recipient }}",
+          "text": "={{ $('Normalize Input').item.json.message }}",
+          "replyMarkup": "={{ $json.buttons ? 'inlineKeyboard' : 'none' }}",
+          "forceReply": {},
+          "inlineKeyboard": {
+            "rows": []
+          },
+          "replyKeyboardOptions": {},
+          "replyKeyboardRemove": {},
+          "additionalFields": {}
+        },
+        "id": "cd6ad434-671e-4367-b85e-59fed4642cba",
+        "name": "Send Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          672,
+          -96
+        ],
+        "webhookId": "96267dfa-3acb-4573-80ed-9a1d0886a59f",
+        "credentials": {
+          "telegramApi": {
+            "id": "6ltptOrFLUaZzC1C",
+            "name": "[Client] Telegram Bot"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Log Telegram send - FREE, no cost\nconst normalized = $('Normalize Input').item.json;\nconst result = $input.item.json;\n\nreturn {\n  success: true,\n  channel: 'telegram',\n  recipient: normalized.recipient,\n  message_id: result.message_id || result.result?.message_id,\n  customer_id: normalized.customer_id,\n  cost_usd: 0.00,\n  cost_type: 'free'\n};"
+        },
+        "id": "log-telegram",
+        "name": "Log Telegram Result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          896,
+          -96
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "send",
+          "recipientPhoneNumber": "={{ $json.recipient }}",
+          "textBody": "={{ $json.message }}",
+          "additionalFields": {}
+        },
+        "id": "0804c6c0-3675-42bf-8182-86c17b1054f2",
+        "name": "Send WhatsApp",
+        "type": "n8n-nodes-base.whatsApp",
+        "typeVersion": 1.1,
+        "position": [
+          672,
+          112
+        ],
+        "webhookId": "d80b5294-3745-41d6-8e6f-8721363f4f63",
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Calculate WhatsApp cost and log\nconst normalized = $('Normalize Input').item.json;\nconst result = $input.item.json;\n\n// WhatsApp pricing (template message): $0.005 per message\nconst costUsd = 0.005;\n\nreturn {\n  success: true,\n  channel: 'whatsapp',\n  recipient: normalized.recipient,\n  message_id: result.messages?.[0]?.id || result.message_id,\n  customer_id: normalized.customer_id,\n  cost_usd: costUsd,\n  cost_type: 'twilio_whatsapp'\n};"
+        },
+        "id": "calc-whatsapp-cost",
+        "name": "Calculate WhatsApp Cost",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          896,
+          112
+        ]
+      },
+      {
+        "parameters": {
+          "to": "={{ $json.recipient }}",
+          "message": "={{ $json.message }}",
+          "options": {}
+        },
+        "id": "e0c78c03-63be-4276-88ad-bfb613aebdcf",
+        "name": "Send SMS",
+        "type": "n8n-nodes-base.twilio",
+        "typeVersion": 1,
+        "position": [
+          672,
+          304
+        ],
+        "credentials": {
+          "twilioApi": {
+            "id": "twilio-cred",
+            "name": "Twilio"
+          }
+        },
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Calculate SMS cost and log\nconst normalized = $('Normalize Input').item.json;\nconst result = $input.item.json;\n\n// Twilio SMS pricing: $0.0079 per outbound SMS (US)\n// Use actual price from Twilio response if available\nconst costUsd = result.price ? Math.abs(parseFloat(result.price)) : 0.0079;\n\nreturn {\n  success: true,\n  channel: 'sms',\n  recipient: normalized.recipient,\n  message_id: result.sid || result.message_sid,\n  customer_id: normalized.customer_id,\n  cost_usd: costUsd,\n  cost_type: 'twilio_sms'\n};"
+        },
+        "id": "calc-sms-cost",
+        "name": "Calculate SMS Cost",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          896,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "combineBy": "combineAll",
+          "options": {}
+        },
+        "id": "caba4b2c-17c4-422a-a76a-e355bffdd7b8",
+        "name": "Merge Results",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3,
+        "position": [
+          1120,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "has-cost",
+                "leftValue": "={{ $json.cost_usd }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              },
+              {
+                "id": "has-customer",
+                "leftValue": "={{ $json.customer_id }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "check-cost",
+        "name": "Has Messaging Cost?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1340,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT * FROM log_api_usage($1::uuid, $2, $3, $4, $5::int, $6::int, $7::decimal, $8, $9, $10)",
+          "options": {
+            "queryParameters": "={{ [$json.customer_id, $json.cost_type, $json.channel, 'send_message', 0, 0, $json.cost_usd, 'SUB_Universal_Messenger', 'Send ' + $json.channel, $runId] }}"
+          }
+        },
+        "id": "log-messaging-cost",
+        "name": "Log Messaging Cost",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1560,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sjaI08GtPbON8TLX",
+            "name": "PostgreSQL - Client"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Format successful response\nconst input = $input.item.json;\nreturn {\n  success: true,\n  channel: input.channel || 'unknown',\n  recipient: input.recipient || input.chat_id || input.to,\n  messageId: input.message_id || input.id || null,\n  cost_tracked: (input.cost_usd || 0) > 0,\n  timestamp: new Date().toISOString()\n};"
+        },
+        "id": "e6362e95-44d0-4a9e-8394-f027249cc613",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1780,
+          100
+        ]
+      }
+    ],
+    "connections": {
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Normalize Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Input": {
+        "main": [
+          [
+            {
+              "node": "Route by Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route by Channel": {
+        "main": [
+          [
+            {
+              "node": "Send Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Send SMS",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Telegram": {
+        "main": [
+          [
+            {
+              "node": "Log Telegram Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Telegram Result": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send WhatsApp": {
+        "main": [
+          [
+            {
+              "node": "Calculate WhatsApp Cost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate WhatsApp Cost": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send SMS": {
+        "main": [
+          [
+            {
+              "node": "Calculate SMS Cost",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Calculate SMS Cost": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Results": {
+        "main": [
+          [
+            {
+              "node": "Has Messaging Cost?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Messaging Cost?": {
+        "main": [
+          [
+            {
+              "node": "Log Messaging Cost",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log Messaging Cost": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Gabriel Erna",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": [
+    {
+      "updatedAt": "2026-02-03T05:39:35.942Z",
+      "createdAt": "2026-02-03T05:39:35.942Z",
+      "id": "OKLSzMJzAZ0oQPQn",
+      "name": "Client"
+    },
+    {
+      "updatedAt": "2026-02-03T04:47:28.019Z",
+      "createdAt": "2026-02-03T04:47:28.019Z",
+      "id": "S1No1aOoGQFCywsd",
+      "name": "Sub-Workflow"
+    }
+  ]
+}

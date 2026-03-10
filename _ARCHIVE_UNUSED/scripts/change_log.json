@@ -1,0 +1,198 @@
+[
+  {
+    "workflow": "WF1",
+    "node": "Telegram Trigger",
+    "field": "credential telegramApi",
+    "old": "m5CO4ySXIhlnUNcp (Telegram Bot - Client)",
+    "new": "6ltptOrFLUaZzC1C ([Client] Telegram Bot)"
+  },
+  {
+    "workflow": "WF1",
+    "node": "Get Customer ID",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF1",
+    "node": "OpenAI Embeddings",
+    "field": "credential openAiApi",
+    "old": "sCKJDGWd6f8LxAw1 (OpenAI - Client)",
+    "new": "slpbr7aUaU6fqTfw ([Client] OpenAI)"
+  },
+  {
+    "workflow": "WF1",
+    "node": "Get Customer ID",
+    "field": "queryParameters",
+    "old": "MISSING",
+    "new": "={{ [$json.sender_id] }}"
+  },
+  {
+    "workflow": "WF1",
+    "node": "Check Budget",
+    "field": "queryParameters",
+    "old": "MISSING",
+    "new": "={{ [$json.customer_id] }}"
+  },
+  {
+    "workflow": "WF1",
+    "node": "Log API Cost",
+    "field": "queryParameters",
+    "old": "MISSING",
+    "new": "={{ [customer_id, openai, gpt-4o-mini, chat, tokens..., cost, wf_name, node_name, exec_id] }}"
+  },
+  {
+    "workflow": "WF1",
+    "node": "Save Alert Record",
+    "field": "queryParameters",
+    "old": "MISSING",
+    "new": "={{ [$json.customer_id, $json.alert_type] }}"
+  },
+  {
+    "workflow": "SUB",
+    "node": "Log Messaging Cost",
+    "field": "queryParameters",
+    "old": "MISSING",
+    "new": "={{ [customer_id, provider, model, operation, 0, 0, cost_usd, wf_name, node_name, exec_id] }}"
+  },
+  {
+    "workflow": "WF2",
+    "node": "Load Conversation Context",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF2",
+    "node": "Notify Owner Telegram",
+    "field": "credential telegramApi",
+    "old": "m5CO4ySXIhlnUNcp (Telegram Bot - Client)",
+    "new": "6ltptOrFLUaZzC1C ([Client] Telegram Bot)"
+  },
+  {
+    "workflow": "WF2",
+    "node": "OpenAI Chat Model",
+    "field": "credential openAiApi",
+    "old": "sCKJDGWd6f8LxAw1 (OpenAI - Client)",
+    "new": "slpbr7aUaU6fqTfw ([Client] OpenAI)"
+  },
+  {
+    "workflow": "WF3",
+    "node": "Get Properties",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF3",
+    "node": "Get Property Bookings",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF3",
+    "node": "Log Conflicts",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF4",
+    "node": "Create Pending Booking",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF4",
+    "node": "Get Property & Owner",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF4",
+    "node": "Confirm Booking",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF4",
+    "node": "Get Property Details",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF4",
+    "node": "Cancel Booking",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF5",
+    "node": "Get Today's Checkouts",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF5",
+    "node": "Schedule Cleaning",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF5",
+    "node": "Update Ticket Status",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF5",
+    "node": "Get Property Details",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF7",
+    "node": "Get Properties with Integrations",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF7",
+    "node": "Upsert External Bookings",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF7",
+    "node": "Update Sync Time",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF8",
+    "node": "Run Watchdog Checks",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  },
+  {
+    "workflow": "WF8",
+    "node": "Log Security Event",
+    "field": "credential postgres",
+    "old": "BWlLUMKn64aZsHi8 ([Client] PostgreSQL)",
+    "new": "sjaI08GtPbON8TLX (PostgreSQL - Client)"
+  }
+]

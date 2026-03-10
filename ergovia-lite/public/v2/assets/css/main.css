@@ -233,11 +233,6 @@
 [data-theme="dark"] .security-notice { background: var(--accent-glow); border-left-color: var(--accent); }
 [data-theme="dark"] .security-notice strong { color: var(--text-primary); }
 
-[data-theme="dark"] .activation-section {
-    background: linear-gradient(135deg, #0d2137 0%, #1a365d 50%, #0a1628 100%);
-    border-color: var(--accent);
-}
-
 [data-theme="dark"] .tasks-container { background: var(--bg-card); border-color: var(--border); }
 [data-theme="dark"] .task-item { border-bottom-color: var(--border); color: var(--text-primary); }
 [data-theme="dark"] .empty-state h2 { color: var(--text-primary); }
@@ -709,8 +704,7 @@ body {
 .btn-secondary,
 .btn-help,
 .btn-add,
-.btn-save-section,
-.btn-activate {
+.btn-save-section {
     padding: 10px var(--spacing-lg);
     border-radius: var(--radius-md);
     border: none;
@@ -787,27 +781,38 @@ body {
     margin-top: var(--spacing-xl);
 }
 
-.btn-activate {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-    color: var(--primary-dark);
-    font-size: 16px;
-    font-weight: 600;
-    padding: var(--spacing-md) var(--spacing-2xl);
-    width: 100%;
-    justify-content: center;
-    box-shadow: var(--shadow-accent);
+/* ===== SAVE BUTTON STATES ===== */
+.btn-save-section.btn-state-saving {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    opacity: 0.85;
+    cursor: wait;
+}
+.btn-save-section.btn-state-syncing {
+    background: linear-gradient(135deg, #3182ce 0%, #2b6cb0 100%);
+    opacity: 0.85;
+    cursor: wait;
+}
+.btn-save-section.btn-state-success,
+.btn-save-section.btn-state-saved-only {
+    background: linear-gradient(135deg, #38a169 0%, #2d6a4f 100%);
+    cursor: default;
+    box-shadow: 0 2px 12px rgba(45, 106, 79, 0.3);
+}
+.btn-save-section.btn-state-error {
+    background: linear-gradient(135deg, #e53e3e 0%, #9b2c2c 100%);
+    cursor: default;
+    box-shadow: 0 2px 12px rgba(155, 44, 44, 0.3);
 }
 
-.btn-activate:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(201, 169, 98, 0.4);
+[data-theme="dark"] .btn-save-section.btn-state-success,
+[data-theme="dark"] .btn-save-section.btn-state-saved-only {
+    background: linear-gradient(135deg, #48bb78 0%, #2d6a4f 100%);
 }
-
-.btn-activate:disabled {
-    background: var(--border);
-    cursor: not-allowed;
-    opacity: 0.6;
-    box-shadow: none;
+[data-theme="dark"] .btn-save-section.btn-state-error {
+    background: linear-gradient(135deg, #fc8181 0%, #9b2c2c 100%);
+}
+[data-theme="dark"] .btn-save-section.btn-state-syncing {
+    background: linear-gradient(135deg, #4299e1 0%, #2b6cb0 100%);
 }
 
 /* ===== TASKS ===== */
@@ -1436,72 +1441,6 @@ body {
 .security-notice i {
     font-size: 22px;
     color: var(--success);
-}
-
-/* ===== PROGRESS BAR ===== */
-.progress-container {
-    margin-bottom: var(--spacing-xl);
-    background: var(--bg-card);
-    padding: var(--spacing-lg);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-xs);
-}
-
-.progress-bar {
-    height: 8px;
-    background-color: var(--border-light);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: var(--spacing-md);
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
-    transition: width var(--transition-slow);
-    width: 0%;
-    border-radius: 4px;
-}
-
-.progress-text {
-    text-align: center;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-/* ===== ACTIVATION SECTION ===== */
-.activation-section {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-    padding: var(--spacing-2xl);
-    border-radius: var(--radius-2xl);
-    color: var(--primary-dark);
-    text-align: center;
-    margin-top: var(--spacing-2xl);
-    box-shadow: var(--shadow-accent);
-}
-
-.activation-notice {
-    margin-bottom: var(--spacing-xl);
-}
-
-.activation-notice i {
-    font-size: 48px;
-    margin-bottom: var(--spacing-lg);
-    opacity: 0.9;
-}
-
-.activation-notice h3 {
-    font-size: 22px;
-    font-weight: 600;
-    margin-bottom: var(--spacing-sm);
-}
-
-.completion-requirement {
-    margin-top: var(--spacing-lg);
-    font-size: 14px;
-    opacity: 0.85;
 }
 
 /* ===== PROPERTIES GRID ===== */
@@ -2269,9 +2208,6 @@ textarea:focus-visible {
 .toast.info { background: linear-gradient(135deg, #1a365d, #0d2137); }
 
 /* ===== SYNC BANNER ===== */
-#syncBanner { display: none; align-items: center; padding: 14px 24px; background: linear-gradient(135deg, #1a365d 0%, #0d2137 100%); color: white; border-radius: 16px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(26, 54, 93, 0.2); }
-.sync-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 20px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; font-family: var(--font-main); }
-.sync-btn:hover { background: rgba(255,255,255,0.25); }
 
 /* ===== N8N CONNECTION CARD ===== */
 .n8n-card { background: white; border-radius: 20px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #edf0f4; }

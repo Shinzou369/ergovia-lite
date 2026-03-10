@@ -4,3 +4,7 @@ node_modules/
 .DS_Store
 sessions/
 attached_assets/
+.claude/
+.config/
+*.db
+.git.backup.*

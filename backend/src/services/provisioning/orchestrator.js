@@ -65,14 +65,14 @@ class ProvisioningOrchestrator {
   }
 
   async runProvisioning(jobId, clientId, clientData, progressCallback = null) {
-    const domain = `${clientData.subdomain}.prismity.ai`;
+    const domain = `${clientData.subdomain}.ergovia-ai.com`;
     let serverInfo = null;
 
     try {
       await this.updateJobStatus(jobId, PROVISIONING_STATUS.CREATING_SERVER, 'creating_server', 5, 'Creating Hetzner server...');
       if (progressCallback) progressCallback({ step: 'creating_server', percent: 5 });
 
-      const serverName = `prismity-${clientData.subdomain}`;
+      const serverName = `ergovia-${clientData.subdomain}`;
       serverInfo = await this.hetzner.createServer({
         name: serverName,
         serverType: clientData.serverType || HETZNER.DEFAULT_SERVER_TYPE,
@@ -114,7 +114,7 @@ class ProvisioningOrchestrator {
       await this.updateJobStatus(jobId, PROVISIONING_STATUS.CREATING_DATABASE, 'creating_database', 50, 'Creating database and applying schema...');
       if (progressCallback) progressCallback({ step: 'creating_database', percent: 50 });
 
-      const dbName = `prismity_${clientData.subdomain.replace(/-/g, '_')}`;
+      const dbName = `ergovia_${clientData.subdomain.replace(/-/g, '_')}`;
       const dbUser = `user_${clientData.subdomain.replace(/-/g, '_').substring(0, 20)}`;
       const dbPassword = generateSecurePassword(32);
 

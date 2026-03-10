@@ -36,6 +36,9 @@ async function loadDashboard() {
         const allTasks = [...setupTasks, ...(dashboardData.tasks || [])];
         updateTasks(allTasks);
 
+        // Load payment tasks separately
+        loadPaymentTasks();
+
         updateUpcomingBookings(dashboardData.upcomingBookings || []);
 
         // Update user info in navbar
@@ -202,6 +205,19 @@ function buildSetupTasks(data) {
     const owner = data.owner || {};
     const stats = data.stats || {};
 
+    // Google Maps setup task — FIRST PRIORITY (drives traffic to the AI)
+    if (!localStorage.getItem('ergovia_gmaps_dismissed')) {
+        tasks.push({
+            id: 'setup-gmaps',
+            title: 'Setup Google Maps Presence',
+            description: 'Get found on Google Maps and drive bookings to your AI — this is the #1 way to get guests messaging you',
+            priority: 'high',
+            icon: 'map-marker-alt',
+            actionText: 'Start Setup',
+            onAction: 'showGoogleMapsModal()',
+        });
+    }
+
     // Check if owner info is missing
     if (!owner.ownerName && !owner.name) {
         tasks.push({
@@ -225,19 +241,6 @@ function buildSetupTasks(data) {
             icon: 'building',
             actionLink: 'properties.html',
             actionText: 'Add Property',
-        });
-    }
-
-    // Google Maps setup task
-    if (!localStorage.getItem('ergovia_gmaps_dismissed')) {
-        tasks.push({
-            id: 'setup-gmaps',
-            title: 'Setup Google Maps Presence',
-            description: 'Get found on Google Maps and drive bookings to your AI',
-            priority: 'medium',
-            icon: 'map-marker-alt',
-            actionText: 'Start Setup',
-            onAction: 'showGoogleMapsModal()',
         });
     }
 
@@ -449,6 +452,131 @@ document.addEventListener('click', (e) => {
 
 // Stop refresh when user leaves page
 window.addEventListener('beforeunload', stopAutoRefresh);
+
+// ============================================
+// PAYMENT TASKS — Pending Payments Section
+// ============================================
+
+let _pendingPaymentAction = null; // { taskId, type: 'accept'|'decline' }
+
+async function loadPaymentTasks() {
+    try {
+        const response = await Utils.get('/api/v2/payment-tasks?status=pending');
+        const tasks = (response && response.tasks) ? response.tasks : [];
+
+        const section = document.getElementById('paymentTasksSection');
+        const container = document.getElementById('paymentTasksContainer');
+        if (!section || !container) return;
+
+        if (tasks.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = '';
+        container.innerHTML = tasks.map(t => {
+            const checkIn = t.checkIn ? new Date(t.checkIn).toLocaleDateString() : '—';
+            const checkOut = t.checkOut ? new Date(t.checkOut).toLocaleDateString() : '—';
+            const age = t.createdAt ? timeAgo(new Date(t.createdAt)) : '';
+            return `
+            <div class="task-item urgent" data-payment-task-id="${escapeHtml(t.id)}" style="flex-wrap: wrap; gap: 12px;">
+                <div class="task-icon" style="background: rgba(201,169,98,0.15); color: var(--accent);">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="task-content" style="flex: 1; min-width: 200px;">
+                    <h4>Transaction payment of ${escapeHtml(t.guestName)} on process</h4>
+                    <p>📋 ${escapeHtml(t.bookingId)} &nbsp;|&nbsp; 📅 ${checkIn} → ${checkOut} &nbsp;|&nbsp; 💰 $${t.amount} ${t.currency}</p>
+                    <p style="font-size: 12px; color: var(--text-secondary);">⏱️ ${age}</p>
+                </div>
+                <div class="task-action" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn-primary" style="background: var(--success); border-color: var(--success);"
+                        onclick="promptAcceptPayment('${escapeHtml(t.id)}', '${escapeHtml(t.guestName)}', '${escapeHtml(t.bookingId)}')">
+                        <i class="fas fa-check"></i> Payment Accepted
+                    </button>
+                    <button class="btn-secondary" style="color: var(--danger); border-color: var(--danger);"
+                        onclick="promptDeclinePayment('${escapeHtml(t.id)}', '${escapeHtml(t.guestName)}', '${escapeHtml(t.bookingId)}')">
+                        <i class="fas fa-times"></i> Declined
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('[Dashboard] loadPaymentTasks error:', err);
+    }
+}
+
+function promptAcceptPayment(taskId, guestName, bookingId) {
+    _pendingPaymentAction = { taskId, type: 'accept' };
+    document.getElementById('paymentModalTitle').textContent = '⚠️ Confirm Payment Received';
+    document.getElementById('paymentModalMessage').innerHTML =
+        `<strong>Reminder:</strong> The system will now assume that you have received the customer's due payment for:<br><br>
+        <strong>Booking:</strong> ${escapeHtml(bookingId)}<br>
+        <strong>Guest:</strong> ${escapeHtml(guestName)}<br><br>
+        If you have received the payment, click <strong>Proceed</strong>.`;
+    const btn = document.getElementById('paymentModalConfirmBtn');
+    btn.textContent = 'Proceed';
+    btn.style.background = '';
+    document.getElementById('paymentConfirmModal').style.display = 'flex';
+}
+
+function promptDeclinePayment(taskId, guestName, bookingId) {
+    _pendingPaymentAction = { taskId, type: 'decline' };
+    document.getElementById('paymentModalTitle').textContent = '⚠️ Warning — Decline Booking';
+    document.getElementById('paymentModalMessage').innerHTML =
+        `<strong>Warning:</strong> The system will recognize that you or the client has decided to not proceed. The system will no longer pursue this client.<br><br>
+        <strong>Booking:</strong> ${escapeHtml(bookingId)}<br>
+        <strong>Guest:</strong> ${escapeHtml(guestName)}<br><br>
+        Are you sure you want to decline this booking?`;
+    const btn = document.getElementById('paymentModalConfirmBtn');
+    btn.textContent = 'Yes, Decline';
+    btn.style.background = 'var(--danger)';
+    document.getElementById('paymentConfirmModal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentConfirmModal').style.display = 'none';
+    _pendingPaymentAction = null;
+}
+
+async function executePaymentAction() {
+    if (!_pendingPaymentAction) return;
+    const { taskId, type } = _pendingPaymentAction;
+    closePaymentModal();
+
+    const endpoint = type === 'accept'
+        ? '/api/v2/payment-tasks/accept'
+        : '/api/v2/payment-tasks/decline';
+
+    try {
+        const response = await Utils.post(endpoint, { taskId });
+        if (response && response.success) {
+            Utils.showToast(
+                type === 'accept' ? 'Payment confirmed!' : 'Booking declined.',
+                type === 'accept' ? 'success' : 'info'
+            );
+            await loadPaymentTasks();
+            await loadDashboard(); // Refresh booking counts
+        } else {
+            Utils.showToast((response && response.error) || 'Action failed', 'error');
+        }
+    } catch (err) {
+        console.error('[Dashboard] payment action error:', err);
+        Utils.showToast('Request failed', 'error');
+    }
+}
+
+function timeAgo(date) {
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+}
+
+// Close payment modal on outside click
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'paymentConfirmModal') closePaymentModal();
+});
 
 // Close modal on outside click
 document.addEventListener('click', (e) => {

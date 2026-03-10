@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ergovia Lite | AI-Powered Vacation Rental Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.lordicon.com/lordicon.js"></script>
+</head>
+<body>
+    <!-- Floating Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span class="logo-text">Ergovia<span class="logo-lite">Lite</span></span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#testimonials">Reviews</a>
+            </div>
+            <a href="#pricing" class="nav-cta">Get Started</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg-effects">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+            <div class="grid-overlay"></div>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                <span>Trusted by 200+ Property Owners</span>
+            </div>
+
+            <h1 class="hero-title">
+                Your 24/7 AI Concierge
+                <span class="title-gradient">That Never Sleeps</span>
+            </h1>
+
+            <p class="hero-subtitle">
+                Stop losing bookings to slow responses. Our AI handles guest inquiries,
+                manages bookings, and processes payments — all while you sleep.
+            </p>
+
+            <div class="hero-cta-group">
+                <a href="#pricing" class="btn btn-primary btn-large">
+                    <span>Start Free Trial</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <a href="#demo" class="btn btn-secondary btn-large">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    <span>Watch Demo</span>
+                </a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-number">3x</span>
+                    <span class="stat-label">More Bookings</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-number">&lt;30s</span>
+                    <span class="stat-label">Response Time</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-number">24/7</span>
+                    <span class="stat-label">Availability</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="phone-mockup">
+                <div class="phone-frame">
+                    <div class="phone-notch"></div>
+                    <div class="phone-screen">
+                        <div class="chat-interface">
+                            <div class="chat-header">
+                                <div class="chat-avatar">🏠</div>
+                                <div class="chat-info">
+                                    <span class="chat-name">Villa Sunset AI</span>
+                                    <span class="chat-status">● Online</span>
+                                </div>
+                            </div>
+                            <div class="chat-messages">
+                                <div class="message guest">
+                                    <p>Hi! Is the villa available March 15-20?</p>
+                                    <span class="time">2:34 PM</span>
+                                </div>
+                                <div class="message ai">
+                                    <p>Hello! 👋 Great news — Villa Sunset is available March 15-20!</p>
+                                    <p>📅 5 nights<br>💰 ₱12,500 total (₱2,500/night)<br>✨ Includes: Pool, WiFi, Parking</p>
+                                    <p>Would you like me to reserve these dates for you?</p>
+                                    <span class="time">2:34 PM ✓✓</span>
+                                </div>
+                                <div class="message guest">
+                                    <p>Yes please! How do I pay?</p>
+                                    <span class="time">2:35 PM</span>
+                                </div>
+                                <div class="message ai typing">
+                                    <div class="typing-indicator">
+                                        <span></span><span></span><span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="phone-glow"></div>
+            </div>
+
+            <div class="floating-cards">
+                <div class="float-card card-booking">
+                    <div class="card-icon green">✓</div>
+                    <div class="card-content">
+                        <span class="card-title">New Booking!</span>
+                        <span class="card-text">₱12,500 • Mar 15-20</span>
+                    </div>
+                </div>
+                <div class="float-card card-alert">
+                    <div class="card-icon blue">💬</div>
+                    <div class="card-content">
+                        <span class="card-title">Guest Message</span>
+                        <span class="card-text">Responded in 8 seconds</span>
+                    </div>
+                </div>
+                <div class="float-card card-payment">
+                    <div class="card-icon purple">💳</div>
+                    <div class="card-content">
+                        <span class="card-title">Payment Received</span>
+                        <span class="card-text">GCash • Just now</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">The Problem</span>
+                <h2 class="section-title">Tired of Being Tied to Your Phone?</h2>
+            </div>
+
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">😴</div>
+                    <h3>3 AM Inquiries</h3>
+                    <p>Guests message at all hours. Miss one, lose the booking to a competitor who responded faster.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">📱</div>
+                    <h3>Constant Notifications</h3>
+                    <p>Your phone never stops buzzing. Same questions, over and over. "Is it available?" "How much?"</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">📅</div>
+                    <h3>Double Bookings</h3>
+                    <p>Managing multiple platforms manually leads to calendar conflicts and angry guests.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">💸</div>
+                    <h3>Lost Revenue</h3>
+                    <p>Studies show 78% of bookings go to the first property that responds. Speed wins.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="solution-section" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">The Solution</span>
+                <h2 class="section-title">Meet Your AI Property Manager</h2>
+                <p class="section-subtitle">Everything you need to automate your vacation rental business</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card featured">
+                    <div class="feature-icon-wrap">
+                        <div class="feature-icon">🤖</div>
+                    </div>
+                    <h3>AI-Powered Guest Communication</h3>
+                    <p>Natural conversations via Telegram, WhatsApp, or SMS. Your AI understands context, answers questions, and guides guests to booking.</p>
+                    <ul class="feature-list">
+                        <li>Instant responses 24/7</li>
+                        <li>Handles availability & pricing questions</li>
+                        <li>Multi-language support</li>
+                        <li>Learns your property details</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <div class="feature-icon">📅</div>
+                    </div>
+                    <h3>Smart Calendar Management</h3>
+                    <p>Real-time availability sync across all platforms. No more double bookings, ever.</p>
+                    <ul class="feature-list">
+                        <li>Airbnb, Booking.com sync</li>
+                        <li>Automatic conflict detection</li>
+                        <li>Block dates instantly</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <div class="feature-icon">💳</div>
+                    </div>
+                    <h3>Seamless Payment Processing</h3>
+                    <p>Generate payment links, track deposits, and send confirmations automatically.</p>
+                    <ul class="feature-list">
+                        <li>GCash, Bank Transfer, Cards</li>
+                        <li>Automatic receipts</li>
+                        <li>Payment reminders</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <div class="feature-icon">🔧</div>
+                    </div>
+                    <h3>Maintenance & Operations</h3>
+                    <p>Guests report issues directly. AI creates tickets and notifies your team instantly.</p>
+                    <ul class="feature-list">
+                        <li>Issue prioritization</li>
+                        <li>Cleaning scheduling</li>
+                        <li>Vendor coordination</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <div class="feature-icon">🚨</div>
+                    </div>
+                    <h3>Emergency Response</h3>
+                    <p>Safety first. AI detects emergencies and escalates immediately with proper protocols.</p>
+                    <ul class="feature-list">
+                        <li>24/7 monitoring</li>
+                        <li>Instant owner alerts</li>
+                        <li>Emergency contacts</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon-wrap">
+                        <div class="feature-icon">📊</div>
+                    </div>
+                    <h3>Owner Dashboard</h3>
+                    <p>See everything at a glance. Bookings, revenue, messages — all in one place.</p>
+                    <ul class="feature-list">
+                        <li>Daily/weekly reports</li>
+                        <li>Revenue analytics</li>
+                        <li>Guest insights</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Simple Setup</span>
+                <h2 class="section-title">Up and Running in 24 Hours</h2>
+            </div>
+
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3>Sign Up & Connect</h3>
+                        <p>Create your account and connect your Telegram or WhatsApp business number. Takes 5 minutes.</p>
+                    </div>
+                    <div class="step-visual">
+                        <div class="step-icon">🔗</div>
+                    </div>
+                </div>
+
+                <div class="step-connector"></div>
+
+                <div class="step">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3>Add Your Property</h3>
+                        <p>Enter your property details, pricing, and house rules. Our AI learns everything about your rental.</p>
+                    </div>
+                    <div class="step-visual">
+                        <div class="step-icon">🏠</div>
+                    </div>
+                </div>
+
+                <div class="step-connector"></div>
+
+                <div class="step">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3>Go Live</h3>
+                        <p>Share your AI-powered contact. Watch bookings come in while you focus on what matters.</p>
+                    </div>
+                    <div class="step-visual">
+                        <div class="step-icon">🚀</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison-section" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">The Math</span>
+                <h2 class="section-title">Why This Makes Financial Sense</h2>
+            </div>
+
+            <div class="comparison-wrapper">
+                <div class="comparison-card va-card">
+                    <div class="comparison-header">
+                        <span class="comparison-tag">Traditional Option</span>
+                        <h3>Hiring a VA</h3>
+                    </div>
+                    <div class="comparison-price">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">320</span>
+                        <span class="price-period">/month</span>
+                    </div>
+                    <div class="price-breakdown">
+                        <p>$4/hour × 4 hours × 5 days × 4 weeks</p>
+                    </div>
+                    <ul class="comparison-list">
+                        <li class="negative">
+                            <span class="icon">✗</span>
+                            <span>Only 4 hours/day coverage</span>
+                        </li>
+                        <li class="negative">
+                            <span class="icon">✗</span>
+                            <span>No weekends or holidays</span>
+                        </li>
+                        <li class="negative">
+                            <span class="icon">✗</span>
+                            <span>Training required</span>
+                        </li>
+                        <li class="negative">
+                            <span class="icon">✗</span>
+                            <span>Human errors & sick days</span>
+                        </li>
+                        <li class="negative">
+                            <span class="icon">✗</span>
+                            <span>Slow response during off-hours</span>
+                        </li>
+                        <li class="negative">
+                            <span class="icon">✗</span>
+                            <span>May quit unexpectedly</span>
+                        </li>
+                    </ul>
+                    <div class="coverage-visual">
+                        <span class="coverage-label">Coverage</span>
+                        <div class="coverage-bar">
+                            <div class="coverage-fill" style="width: 12%"></div>
+                        </div>
+                        <span class="coverage-text">~12% of the week</span>
+                    </div>
+                </div>
+
+                <div class="vs-badge">VS</div>
+
+                <div class="comparison-card ai-card">
+                    <div class="popular-badge">BEST VALUE</div>
+                    <div class="comparison-header">
+                        <span class="comparison-tag">Smart Choice</span>
+                        <h3>Ergovia Lite AI</h3>
+                    </div>
+                    <div class="comparison-price">
+                        <span class="price-currency">$</span>
+                        <span class="price-amount">297</span>
+                        <span class="price-period">/month</span>
+                    </div>
+                    <div class="price-breakdown highlight">
+                        <p>Less than $10/day for 24/7 coverage</p>
+                    </div>
+                    <ul class="comparison-list">
+                        <li class="positive">
+                            <span class="icon">✓</span>
+                            <span><strong>24/7/365</strong> instant responses</span>
+                        </li>
+                        <li class="positive">
+                            <span class="icon">✓</span>
+                            <span>Works holidays & weekends</span>
+                        </li>
+                        <li class="positive">
+                            <span class="icon">✓</span>
+                            <span>Zero training needed</span>
+                        </li>
+                        <li class="positive">
+                            <span class="icon">✓</span>
+                            <span>Never makes mistakes</span>
+                        </li>
+                        <li class="positive">
+                            <span class="icon">✓</span>
+                            <span>Responds in seconds, always</span>
+                        </li>
+                        <li class="positive">
+                            <span class="icon">✓</span>
+                            <span>Scales with your business</span>
+                        </li>
+                    </ul>
+                    <div class="coverage-visual">
+                        <span class="coverage-label">Coverage</span>
+                        <div class="coverage-bar full">
+                            <div class="coverage-fill" style="width: 100%"></div>
+                        </div>
+                        <span class="coverage-text highlight">100% of the week</span>
+                    </div>
+
+                    <a href="#checkout" class="btn btn-primary btn-full">
+                        Start 14-Day Free Trial
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <p class="trial-note">No credit card required • Cancel anytime</p>
+                </div>
+            </div>
+
+            <div class="savings-callout">
+                <div class="savings-icon">💡</div>
+                <div class="savings-content">
+                    <h4>The Real ROI</h4>
+                    <p>One extra booking per month from faster response times pays for the entire service. Most users see 3-5x more bookings.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials-section" id="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Success Stories</span>
+                <h2 class="section-title">Property Owners Love Us</h2>
+            </div>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">★★★★★</div>
+                    <p class="testimonial-text">"I used to wake up at 3 AM to answer inquiries from abroad. Now I sleep peacefully knowing Ergovia handles everything. Bookings increased by 40% in the first month!"</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">MR</div>
+                        <div class="author-info">
+                            <span class="author-name">Maria Reyes</span>
+                            <span class="author-title">3 Properties in Tagaytay</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">★★★★★</div>
+                    <p class="testimonial-text">"The AI responds exactly like I would — friendly, professional, and always accurate about my property. Guests don't even realize they're talking to an AI until I tell them!"</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">JC</div>
+                        <div class="author-info">
+                            <span class="author-name">Juan Carlos</span>
+                            <span class="author-title">Beach House in Batangas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-rating">★★★★★</div>
+                    <p class="testimonial-text">"Finally, I can take a vacation myself! The system handles inquiries, confirms payments, and even manages maintenance issues. Worth every peso."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">AS</div>
+                        <div class="author-info">
+                            <span class="author-name">Ana Santos</span>
+                            <span class="author-title">Condo Rentals in BGC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">FAQ</span>
+                <h2 class="section-title">Common Questions</h2>
+            </div>
+
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h4>How does the AI know about my property?</h4>
+                    <p>During setup, you'll fill out a simple form about your property — amenities, pricing, rules, etc. The AI uses this to answer guest questions accurately.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>What if the AI can't answer a question?</h4>
+                    <p>For complex questions, the AI will notify you immediately and hold the conversation. You can jump in anytime via Telegram.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Can I customize the AI's personality?</h4>
+                    <p>Absolutely! You can set the tone (formal, casual, friendly), language preferences, and specific phrases you want the AI to use.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>What platforms does it work with?</h4>
+                    <p>Currently supports Telegram, WhatsApp Business, and SMS. We're adding Viber and Facebook Messenger soon.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>Is there a contract or lock-in?</h4>
+                    <p>No contracts. Pay monthly, cancel anytime. We're confident you'll stay because you love the service, not because you're locked in.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h4>How secure is my data?</h4>
+                    <p>We use bank-level encryption and never share your data. Your property info and guest conversations are completely private.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final-cta" id="checkout">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Automate Your Rental Business?</h2>
+                <p>Join 200+ property owners who've reclaimed their time and increased their bookings.</p>
+
+                <div class="checkout-card">
+                    <div class="checkout-header">
+                        <h3>Ergovia Lite</h3>
+                        <div class="checkout-price">
+                            <span class="price-currency">$</span>
+                            <span class="price-amount">297</span>
+                            <span class="price-period">/month</span>
+                        </div>
+                    </div>
+
+                    <ul class="checkout-features">
+                        <li>✓ Unlimited AI conversations</li>
+                        <li>✓ Calendar sync (Airbnb, Booking.com)</li>
+                        <li>✓ Payment processing</li>
+                        <li>✓ Maintenance ticketing</li>
+                        <li>✓ Owner dashboard & reports</li>
+                        <li>✓ Emergency response system</li>
+                        <li>✓ Multi-channel support</li>
+                        <li>✓ Priority support</li>
+                    </ul>
+
+                    <button class="btn btn-primary btn-full btn-checkout" id="checkout-btn">
+                        <span>Start 14-Day Free Trial</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+
+                    <div class="checkout-trust">
+                        <div class="trust-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <circle cx="12" cy="16" r="1"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Secure checkout</span>
+                        </div>
+                        <div class="trust-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            <span>30-day money back</span>
+                        </div>
+                        <div class="trust-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                <line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                            <span>Cancel anytime</span>
+                        </div>
+                    </div>
+
+                    <div class="powered-by">
+                        <span>Powered by</span>
+                        <img src="https://www.lemonsqueezy.com/images/logo-light.svg" alt="Lemon Squeezy" class="lemon-logo">
+                    </div>
+                </div>
+
+                <p class="cta-note">Questions? Email us at <a href="mailto:hello@ergovia.ai">hello@ergovia.ai</a></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <span class="logo-icon">◈</span>
+                        <span class="logo-text">Ergovia<span class="logo-lite">Lite</span></span>
+                    </div>
+                    <p>AI-powered vacation rental management for property owners who value their time.</p>
+                </div>
+
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#pricing">Pricing</a>
+                        <a href="#how-it-works">How It Works</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Company</h4>
+                        <a href="#">About</a>
+                        <a href="#">Blog</a>
+                        <a href="#">Contact</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Legal</h4>
+                        <a href="#">Privacy Policy</a>
+                        <a href="#">Terms of Service</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2026 Ergovia Lite. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

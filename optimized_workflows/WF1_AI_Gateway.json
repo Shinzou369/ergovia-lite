@@ -1,0 +1,472 @@
+{
+  "name": "WF1: AI Gateway - Unified Entry Point",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message", "callback_query"],
+        "additionalFields": {}
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [0, -100],
+      "webhookId": "gateway-telegram",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": ["messages"],
+        "options": {}
+      },
+      "id": "whatsapp-trigger",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [0, 100],
+      "webhookId": "gateway-whatsapp",
+      "credentials": {
+        "whatsAppBusinessCloudApi": {
+          "id": "whatsapp-cred",
+          "name": "WhatsApp Business"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": ["com.twilio.messaging.inbound-message.received"]
+      },
+      "id": "sms-trigger",
+      "name": "SMS Trigger",
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "webhookId": "gateway-sms",
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-cred",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "id": "merge-triggers",
+      "name": "Merge All Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [220, 100]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize input from any channel into standard format\nconst input = $input.item.json;\nlet normalized = {\n  channel: 'unknown',\n  sender_id: null,\n  sender_name: null,\n  message_text: '',\n  message_type: 'text',\n  voice_file_id: null,\n  is_callback: false,\n  callback_data: null,\n  raw_data: input\n};\n\n// Telegram message\nif (input.message?.text) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.message.chat.id);\n  normalized.sender_name = input.message.from?.first_name || 'Guest';\n  normalized.message_text = input.message.text;\n  normalized.message_type = 'text';\n}\n// Telegram voice message\nelse if (input.message?.voice) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.message.chat.id);\n  normalized.sender_name = input.message.from?.first_name || 'Guest';\n  normalized.message_text = '[voice message - transcribing...]';\n  normalized.message_type = 'voice';\n  normalized.voice_file_id = input.message.voice.file_id;\n}\n// Telegram photo\nelse if (input.message?.photo) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.message.chat.id);\n  normalized.sender_name = input.message.from?.first_name || 'Guest';\n  normalized.message_text = '[image received]';\n  normalized.message_type = 'image';\n}\n// Telegram callback\nelse if (input.callback_query) {\n  normalized.channel = 'telegram';\n  normalized.sender_id = String(input.callback_query.message.chat.id);\n  normalized.sender_name = input.callback_query.from?.first_name || 'Guest';\n  normalized.is_callback = true;\n  normalized.callback_data = input.callback_query.data;\n  normalized.message_text = input.callback_query.data;\n}\n// WhatsApp\nelse if (input.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {\n  const msg = input.entry[0].changes[0].value.messages[0];\n  const contact = input.entry[0].changes[0].value.contacts?.[0];\n  normalized.channel = 'whatsapp';\n  normalized.sender_id = msg.from;\n  normalized.sender_name = contact?.profile?.name || 'Guest';\n  normalized.message_text = msg.text?.body || msg.interactive?.button_reply?.title || '';\n  normalized.message_type = msg.type || 'text';\n  normalized.is_callback = !!msg.interactive;\n  normalized.callback_data = msg.interactive?.button_reply?.id || null;\n}\n// Twilio SMS\nelse if (input.Body && input.From) {\n  normalized.channel = 'sms';\n  normalized.sender_id = input.From;\n  normalized.sender_name = 'Guest';\n  normalized.message_text = input.Body;\n}\n\nnormalized.timestamp = new Date().toISOString();\nnormalized.delay_seconds = Math.floor(Math.random() * 6) + 3;\nreturn normalized;"
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT c.*, p.property_name, p.owner_name, p.preferred_platform\nFROM conversations c\nLEFT JOIN property_configurations p ON c.property_id = p.property_id\nWHERE c.contact_id = $1\nORDER BY c.updated_at DESC\nLIMIT 1",
+        "additionalFields": {
+          "queryParameters": "={{ { \"parameters\": [$json.sender_id] } }}"
+        },
+        "options": {}
+      },
+      "id": "get-context",
+      "name": "Get Conversation Context",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [660, 100],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are an intelligent message router for a vacation rental management system.\n\nAnalyze this incoming message and determine the appropriate action:\n\nMessage: {{ $('Normalize Input').item.json.message_text }}\nSender: {{ $('Normalize Input').item.json.sender_name }}\nChannel: {{ $('Normalize Input').item.json.channel }}\nIs Callback: {{ $('Normalize Input').item.json.is_callback }}\nExisting Context: {{ $json.conversation_stage || 'none' }}\n\nClassify into ONE of these categories:\n1. BOOKING_INQUIRY - Questions about availability, pricing, or making a reservation\n2. BOOKING_FOLLOWUP - Continuing an existing booking conversation\n3. PAYMENT_RELATED - Payment questions, confirmation, issues\n4. PROPERTY_QUESTION - Questions about property amenities, location, rules\n5. MAINTENANCE_REPORT - Guest reporting an issue or problem\n6. CHECK_IN_OUT - Arrival instructions, key codes, checkout questions\n7. EMERGENCY - Urgent safety or security issue\n8. OWNER_ACTION - Property owner managing their listing\n9. GENERAL_GREETING - Hello, hi, general conversation start\n10. UNKNOWN - Cannot determine intent\n\nRespond with ONLY a JSON object:\n{\n  \"category\": \"CATEGORY_NAME\",\n  \"confidence\": 0.0-1.0,\n  \"extracted_data\": {\n    \"dates\": null,\n    \"property_id\": null,\n    \"issue_type\": null\n  },\n  \"suggested_response\": \"Brief friendly response if you can provide one\"\n}",
+        "hasOutputParser": true,
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "ai-router",
+      "name": "AI Router",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [880, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "json-parser",
+      "name": "JSON Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [1020, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse AI Router response and prepare routing\nconst normalized = $('Normalize Input').item.json;\nconst context = $('Get Conversation Context').item.json;\nlet aiResult;\n\ntry {\n  aiResult = typeof $json.text === 'string' ? JSON.parse($json.text) : $json;\n} catch (e) {\n  aiResult = { category: 'UNKNOWN', confidence: 0.5 };\n}\n\n// Determine which workflow to call\nconst routingMap = {\n  'BOOKING_INQUIRY': 'WF2_AI_Booking_Agent',\n  'BOOKING_FOLLOWUP': 'WF2_AI_Booking_Agent',\n  'PAYMENT_RELATED': 'WF4_Payment_Processor',\n  'PROPERTY_QUESTION': 'WF2_AI_Booking_Agent',\n  'MAINTENANCE_REPORT': 'WF5_Property_Operations',\n  'CHECK_IN_OUT': 'WF2_AI_Booking_Agent',\n  'EMERGENCY': 'WF8_Safety_Screening',\n  'OWNER_ACTION': 'WF5_Property_Operations',\n  'GENERAL_GREETING': 'WF2_AI_Booking_Agent',\n  'UNKNOWN': 'WF2_AI_Booking_Agent'\n};\n\nreturn {\n  // Routing info\n  target_workflow: routingMap[aiResult.category] || 'WF2_AI_Booking_Agent',\n  category: aiResult.category,\n  confidence: aiResult.confidence,\n  \n  // Pass through data\n  channel: normalized.channel,\n  sender_id: normalized.sender_id,\n  sender_name: normalized.sender_name,\n  message_text: normalized.message_text,\n  is_callback: normalized.is_callback,\n  callback_data: normalized.callback_data,\n  \n  // Context\n  conversation_id: context.conversation_id || null,\n  property_id: context.property_id || aiResult.extracted_data?.property_id || null,\n  conversation_stage: context.conversation_stage || 'new',\n  \n  // AI suggestions\n  extracted_data: aiResult.extracted_data || {},\n  suggested_response: aiResult.suggested_response || null,\n  \n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "prepare-routing",
+      "name": "Prepare Routing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.target_workflow }}", "rightValue": "WF2_AI_Booking_Agent", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "booking"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.target_workflow }}", "rightValue": "WF4_Payment_Processor", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "payment"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.target_workflow }}", "rightValue": "WF5_Property_Operations", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "operations"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.target_workflow }}", "rightValue": "WF8_Safety_Screening", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "emergency"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "route-to-workflow",
+      "name": "Route to Workflow",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1320, 100]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF2: AI Booking Agent"
+        },
+        "options": {}
+      },
+      "id": "call-booking",
+      "name": "Call Booking Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1540, -100]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF4: Payment Processor"
+        },
+        "options": {}
+      },
+      "id": "call-payment",
+      "name": "Call Payment Processor",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1540, 50]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF5: Property Operations"
+        },
+        "options": {}
+      },
+      "id": "call-operations",
+      "name": "Call Property Operations",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1540, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "WF8: Safety & Screening"
+        },
+        "options": {}
+      },
+      "id": "call-emergency",
+      "name": "Call Emergency Handler",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1540, 350]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{ "leftValue": "={{ $json.message_type }}", "rightValue": "voice", "operator": { "type": "string", "operation": "equals" } }],
+          "combinator": "and"
+        }
+      },
+      "id": "is-voice-msg",
+      "name": "Is Voice Message?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [440, -300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/getFile?file_id={{ $json.voice_file_id }}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "get-voice-file",
+      "name": "Get Voice File Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, -300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot{{ $env.TELEGRAM_BOT_TOKEN }}/{{ $json.result.file_path }}",
+        "options": { "timeout": 30000, "response": { "response": { "responseFormat": "file" } } }
+      },
+      "id": "download-voice",
+      "name": "Download Voice File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, -300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "whisper-1" },
+            { "name": "file", "parameterType": "formBinaryData", "inputDataFieldName": "data" }
+          ]
+        },
+        "options": { "timeout": 60000 }
+      },
+      "id": "whisper-transcribe",
+      "name": "Whisper Transcribe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -300],
+      "credentials": { "openAiApi": { "id": "openai-cred", "name": "OpenAI" } }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Merge transcription result back into the normalized message\nconst transcription = $input.item.json;\nconst originalData = $('Normalize Input').item.json;\nreturn {\n  ...originalData,\n  message_text: transcription.text || '[could not transcribe voice]',\n  message_type: 'voice_transcribed'\n};"
+      },
+      "id": "set-transcribed-text",
+      "name": "Set Transcribed Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, -300]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {}
+      },
+      "id": "merge-voice-branch",
+      "name": "Merge Voice Branch",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [660, -100]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $json.delay_seconds || 4 }}",
+        "unit": "seconds",
+        "options": {}
+      },
+      "id": "typing-delay",
+      "name": "Typing Delay",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [880, -100],
+      "webhookId": "typing-delay-resume"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "activity_log",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "log_id": "={{ $runId }}",
+            "event_type": "message_routed",
+            "contact_id": "={{ $('Normalize Input').item.json.sender_id }}",
+            "channel": "={{ $('Normalize Input').item.json.channel }}",
+            "category": "={{ $('Prepare Routing').item.json.category }}",
+            "target_workflow": "={{ $('Prepare Routing').item.json.target_workflow }}",
+            "confidence": "={{ $('Prepare Routing').item.json.confidence }}",
+            "created_at": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "log-activity",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1320, 350],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-cred",
+          "name": "PostgreSQL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Merge All Triggers", "type": "main", "index": 0 }]]
+    },
+    "WhatsApp Trigger": {
+      "main": [[{ "node": "Merge All Triggers", "type": "main", "index": 1 }]]
+    },
+    "SMS Trigger": {
+      "main": [[{ "node": "Merge All Triggers", "type": "main", "index": 2 }]]
+    },
+    "Merge All Triggers": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "Normalize Input": {
+      "main": [[
+        { "node": "Is Voice Message?", "type": "main", "index": 0 },
+        { "node": "Merge Voice Branch", "type": "main", "index": 0 }
+      ]]
+    },
+    "Is Voice Message?": {
+      "main": [[{ "node": "Get Voice File Info", "type": "main", "index": 0 }]]
+    },
+    "Get Voice File Info": {
+      "main": [[{ "node": "Download Voice File", "type": "main", "index": 0 }]]
+    },
+    "Download Voice File": {
+      "main": [[{ "node": "Whisper Transcribe", "type": "main", "index": 0 }]]
+    },
+    "Whisper Transcribe": {
+      "main": [[{ "node": "Set Transcribed Text", "type": "main", "index": 0 }]]
+    },
+    "Set Transcribed Text": {
+      "main": [[{ "node": "Merge Voice Branch", "type": "main", "index": 1 }]]
+    },
+    "Merge Voice Branch": {
+      "main": [[{ "node": "Typing Delay", "type": "main", "index": 0 }]]
+    },
+    "Typing Delay": {
+      "main": [[{ "node": "Get Conversation Context", "type": "main", "index": 0 }]]
+    },
+    "Get Conversation Context": {
+      "main": [[{ "node": "AI Router", "type": "main", "index": 0 }]]
+    },
+    "AI Router": {
+      "main": [[{ "node": "Prepare Routing", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Model": {
+      "ai_languageModel": [[{ "node": "AI Router", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "JSON Parser": {
+      "ai_outputParser": [[{ "node": "AI Router", "type": "ai_outputParser", "index": 0 }]]
+    },
+    "Prepare Routing": {
+      "main": [[
+        { "node": "Route to Workflow", "type": "main", "index": 0 },
+        { "node": "Log Activity", "type": "main", "index": 0 }
+      ]]
+    },
+    "Route to Workflow": {
+      "main": [
+        [{ "node": "Call Booking Agent", "type": "main", "index": 0 }],
+        [{ "node": "Call Payment Processor", "type": "main", "index": 0 }],
+        [{ "node": "Call Property Operations", "type": "main", "index": 0 }],
+        [{ "node": "Call Emergency Handler", "type": "main", "index": 0 }],
+        [{ "node": "Call Booking Agent", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Unified entry point for all incoming messages. Uses AI to classify and route to appropriate handler."
+  },
+  "tags": ["gateway", "ai-powered", "optimized"]
+}

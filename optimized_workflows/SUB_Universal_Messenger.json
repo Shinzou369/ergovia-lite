@@ -1,0 +1,207 @@
+{
+  "name": "SUB: Universal Messenger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "entry-webhook",
+      "name": "Message Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "universal-messenger-entry"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Universal Message Sender - ONE node handles ALL channels\nconst input = $input.item.json;\n\nconst channel = (input.channel || input.preferred_platform || 'telegram').toLowerCase();\nconst recipient = input.recipient || input.chat_id || input.phone;\nconst message = input.message || input.text || input.body;\nconst buttons = input.buttons || input.inline_keyboard || null;\nconst mediaUrl = input.media_url || null;\n\n// Validate required fields\nif (!recipient || !message) {\n  return {\n    success: false,\n    error: 'Missing recipient or message',\n    channel: channel\n  };\n}\n\n// Return standardized output for the appropriate channel\nreturn {\n  channel: channel,\n  recipient: recipient,\n  message: message,\n  buttons: buttons,\n  mediaUrl: mediaUrl,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "telegram", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "whatsapp", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "leftValue": "={{ $json.channel }}", "rightValue": "sms", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sms"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "route-channel",
+      "name": "Route by Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.recipient }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "={{ $json.buttons ? 'inlineKeyboard' : 'none' }}",
+        "inlineKeyboard": {
+          "rows": "={{ $json.buttons || [] }}"
+        },
+        "additionalFields": {}
+      },
+      "id": "send-telegram",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [660, -100],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "recipientPhoneNumber": "={{ $json.recipient }}",
+        "textBody": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [660, 100],
+      "credentials": {
+        "whatsAppBusinessCloudApi": {
+          "id": "whatsapp-cred",
+          "name": "WhatsApp Business"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.recipient }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "send-sms",
+      "name": "Send SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [660, 300],
+      "credentials": {
+        "twilioApi": {
+          "id": "twilio-cred",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Format successful response\nconst input = $input.item.json;\nreturn {\n  success: true,\n  channel: input.channel || 'unknown',\n  recipient: input.recipient || input.chat_id || input.to,\n  messageId: input.message_id || input.id || null,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 0]
+    }
+  ],
+  "connections": {
+    "Message Request": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "Normalize Input": {
+      "main": [[{ "node": "Route by Channel", "type": "main", "index": 0 }]]
+    },
+    "Route by Channel": {
+      "main": [
+        [{ "node": "Send Telegram", "type": "main", "index": 0 }],
+        [{ "node": "Send WhatsApp", "type": "main", "index": 0 }],
+        [{ "node": "Send SMS", "type": "main", "index": 0 }],
+        [{ "node": "Format Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Telegram": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]]
+    },
+    "Send WhatsApp": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]]
+    },
+    "Send SMS": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]]
+    },
+    "Merge Results": {
+      "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]]
+    },
+    "Format Response": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "optimized-v2",
+    "description": "Universal messaging sub-workflow. Call via Execute Workflow with: channel, recipient, message, buttons (optional)"
+  },
+  "tags": ["sub-workflow", "messaging", "optimized"]
+}

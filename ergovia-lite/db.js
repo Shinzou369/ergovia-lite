@@ -94,6 +94,16 @@ function initDb() {
       data TEXT NOT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS team_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      telegram_chat_id TEXT,
+      timezone TEXT DEFAULT 'UTC',
+      status TEXT DEFAULT 'active',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Seed initial deployment status
@@ -427,6 +437,27 @@ function getAllV2Settings() {
   return result;
 }
 
+// ============================================
+// TEAM MEMBERS
+// ============================================
+
+function getTeamMembers() {
+  return db.prepare('SELECT * FROM team_members WHERE status = ? ORDER BY created_at ASC').all('active');
+}
+
+function addTeamMember({ name, role, telegramChatId, timezone }) {
+  const stmt = db.prepare(`
+    INSERT INTO team_members (name, role, telegram_chat_id, timezone)
+    VALUES (?, ?, ?, ?)
+  `);
+  const result = stmt.run(name, role, telegramChatId || null, timezone || 'UTC');
+  return db.prepare('SELECT * FROM team_members WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function removeTeamMember(id) {
+  return db.prepare("UPDATE team_members SET status = 'removed' WHERE id = ?").run(id);
+}
+
 module.exports = {
   initDb,
   // Client data
@@ -482,4 +513,8 @@ module.exports = {
   getV2Setting,
   saveV2Setting,
   getAllV2Settings,
+  // Team members
+  getTeamMembers,
+  addTeamMember,
+  removeTeamMember,
 };

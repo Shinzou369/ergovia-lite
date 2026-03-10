@@ -83,7 +83,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+
+// Route alias: /airb/* serves the same files as /v2/*
+app.use('/airb', express.static(path.join(__dirname, 'public', 'v2'), { extensions: ['html'] }));
 
 // Load n8n config from DB if env vars are missing
 n8nService.loadConfigFromDb(db);
@@ -115,7 +118,7 @@ app.get('/', (req, res) => {
     return res.redirect('/login.html');
   }
   if (db.isOnboardingComplete()) {
-    res.redirect('/v2/dashboard.html');
+    res.redirect('/airb/dashboard.html');
   } else {
     res.redirect('/onboarding.html');
   }
@@ -1438,6 +1441,26 @@ app.delete('/api/v2/bookings/:id', async (req, res) => {
   }
 });
 
+// Conversations - GET list of all sessions
+app.get('/api/v2/conversations', async (req, res) => {
+  try {
+    const result = await v2Data.getConversations();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Conversations - GET messages for a specific session
+app.get('/api/v2/conversations/:sessionId', async (req, res) => {
+  try {
+    const result = await v2Data.getConversationMessages(req.params.sessionId);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Tasks - GET
 app.get('/api/v2/tasks', async (req, res) => {
   try {
@@ -1458,6 +1481,77 @@ app.post('/api/v2/tasks/complete', async (req, res) => {
     }
     const result = await v2Data.completeTask(taskId);
     res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Payment Tasks - GET pending
+app.get('/api/v2/payment-tasks', async (req, res) => {
+  try {
+    const status = req.query.status || 'pending';
+    const tasks = await v2Data.getPaymentTasks(status);
+    res.json({ success: true, tasks });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Payment Tasks - Accept (owner confirmed receiving payment)
+app.post('/api/v2/payment-tasks/accept', async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    if (!taskId) return res.status(400).json({ success: false, error: 'taskId required' });
+
+    const result = await v2Data.acceptPaymentTask(taskId);
+    if (!result.success) return res.status(400).json(result);
+
+    // Best-effort: call n8n to trigger post-confirmation notifications
+    try {
+      const n8nUrl = process.env.N8N_URL || 'http://116.203.115.12:5678';
+      const http = require('http');
+      const payload = JSON.stringify({
+        action: 'confirmed', booking_id: result.bookingId,
+        channel: 'control_panel', guest_name: result.guestName,
+      });
+      const u = new URL(n8nUrl + '/webhook/payment-action');
+      const req2 = http.request({ hostname: u.hostname, port: u.port || 80, path: u.pathname, method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } });
+      req2.write(payload);
+      req2.end();
+    } catch (_e) { /* non-blocking */ }
+
+    res.json({ success: true, message: 'Payment confirmed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Payment Tasks - Decline (owner rejected booking)
+app.post('/api/v2/payment-tasks/decline', async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    if (!taskId) return res.status(400).json({ success: false, error: 'taskId required' });
+
+    const result = await v2Data.declinePaymentTask(taskId);
+    if (!result.success) return res.status(400).json(result);
+
+    // Best-effort: call n8n to trigger cancellation notifications
+    try {
+      const n8nUrl = process.env.N8N_URL || 'http://116.203.115.12:5678';
+      const http = require('http');
+      const payload = JSON.stringify({
+        action: 'cancelled', booking_id: result.bookingId,
+        channel: 'control_panel', guest_name: result.guestName,
+      });
+      const u = new URL(n8nUrl + '/webhook/payment-action');
+      const req2 = http.request({ hostname: u.hostname, port: u.port || 80, path: u.pathname, method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } });
+      req2.write(payload);
+      req2.end();
+    } catch (_e) { /* non-blocking */ }
+
+    res.json({ success: true, message: 'Booking declined' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1619,6 +1713,71 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
     appendix += `\n- Response Language: ${languageName}`;
     appendix += `\n- ALWAYS respond to guests in ${languageName}. If the guest writes in another language, still reply in ${languageName} unless they explicitly ask otherwise.`;
 
+    // ── Conversation Flow (6-step structured selling) ──
+    appendix += `\n\n## CONVERSATION FLOW — Follow These Steps In Order`;
+    appendix += `\nYou are a friendly vacation rental assistant. Build a RELATIONSHIP, not a transaction. `;
+    appendix += `Make guests feel they are BUYING, not being SOLD to. Follow these steps in order:\n`;
+    appendix += `\n### Step 1 — Welcome`;
+    appendix += `\nGreet warmly. Let them know you're here to help them find the perfect stay. `;
+    appendix += `Keep it casual and inviting. Example: "Hey! Welcome 😊 I'd love to help you find the perfect place to stay!"\n`;
+    appendix += `\n### Step 2 — Get Their Name`;
+    appendix += `\nAsk their name so you can address them personally. Be friendly and informal. `;
+    appendix += `Example: "By the way, what's your name so I can make this more personal?"\n`;
+    appendix += `\n### Step 3 — Get Their Dates`;
+    appendix += `\nAsk what dates they want to stay and if they're looking for a long stay. `;
+    appendix += `Do NOT reveal pricing yet. If they ask for price before giving dates, say something like: `;
+    appendix += `"I'd love to get that info for you! Could you share your dates first so I can check what's available and give you the exact price?"\n`;
+    appendix += `\n### Step 4 — Show Available Options`;
+    appendix += `\nOnce you have dates, check availability and present the matching properties. `;
+    appendix += `If the owner has multiple properties in the same area, suggest alternatives when the first choice has date conflicts. `;
+    appendix += `If a property is unavailable, share its next free dates for the month. `;
+    appendix += `Include property details: name, type, bedrooms, bathrooms, max guests, and description.\n`;
+    appendix += `\n### Step 5 — Reveal Price`;
+    appendix += `\nOnly after Steps 1-4 are complete, share the price. Frame it positively: `;
+    appendix += `"From [check-in] to [check-out] that would be [price]. How do you feel about it?" `;
+    appendix += `Always end with a question that moves closer to closing the deal.\n`;
+    appendix += `\n### Step 6 — Follow-Up If No Reply`;
+    appendix += `\nIf the guest stops responding, follow up based on time since their LAST message:`;
+    appendix += `\n- After 1 hour: Gentle nudge ("Hey [name], just checking — still interested in those dates?")`;
+    appendix += `\n- After 5 hours: Add value ("Just a heads up [name], those dates are getting popular!")`;
+    appendix += `\n- After 24 hours: Soft reminder ("Hi [name]! Wanted to make sure you saw my message about [property]")`;
+    appendix += `\n- After 48 hours: Final reach-out ("Hey [name], no worries if plans changed! I'm here whenever you're ready 😊")\n`;
+    appendix += `\n### Conversation Rules`;
+    appendix += `\n- ALWAYS end your message with a question that moves toward closing`;
+    appendix += `\n- Answer guest questions if you have the answer`;
+    appendix += `\n- If you DON'T have the answer, tell the guest you'll check with the property manager and get back to them`;
+    appendix += `\n- Never skip steps — complete Steps 1-4 before revealing price in Step 5`;
+    appendix += `\n- Keep tone warm, casual, and helpful — like texting a friend who happens to know great places to stay`;
+
+    // ── Property Information (for AI context) ──
+    try {
+      const properties = v2Data ? await v2Data.getProperties() : [];
+      if (properties.length > 0) {
+        appendix += `\n\n## YOUR PROPERTIES — Use This When Answering Guests`;
+        for (const p of properties) {
+          appendix += `\n\n### ${p.name || 'Unnamed Property'}`;
+          if (p.address) appendix += `\n- Address: ${p.address}`;
+          if (p.locationDescription) appendix += `\n- Description: ${p.locationDescription}`;
+          if (p.type) appendix += `\n- Type: ${p.type}`;
+          if (p.bedrooms) appendix += `\n- Bedrooms: ${p.bedrooms}`;
+          if (p.bathrooms) appendix += `\n- Bathrooms: ${p.bathrooms}`;
+          if (p.maxGuests) appendix += `\n- Max Guests: ${p.maxGuests}`;
+          if (p.basePrice) appendix += `\n- Base Price: $${p.basePrice}/night`;
+          if (p.weekendPrice) appendix += `\n- Weekend Price: $${p.weekendPrice}/night`;
+          if (p.cleaningFee) appendix += `\n- Cleaning Fee: $${p.cleaningFee}`;
+          if (p.minStayNights > 1) appendix += `\n- Minimum Stay: ${p.minStayNights} nights`;
+          if (p.checkInTime) appendix += `\n- Check-in: ${p.checkInTime}`;
+          if (p.checkOutTime) appendix += `\n- Check-out: ${p.checkOutTime}`;
+          if (p.houseRules) appendix += `\n- House Rules: ${p.houseRules}`;
+          if (p.amenities && p.amenities.length > 0) appendix += `\n- Amenities: ${Array.isArray(p.amenities) ? p.amenities.join(', ') : p.amenities}`;
+          if (p.photos) appendix += `\n- Photos: ${p.photos}`;
+          if (p.notes) appendix += `\n- Notes: ${p.notes}`;
+        }
+      }
+    } catch (e) {
+      console.error('[sync] Could not load properties for prompt:', e.message);
+    }
+
     if (aiNotes.trim()) {
       appendix += `\n\n## Owner's Custom Instructions\n${aiNotes.trim()}`;
     }
@@ -1668,6 +1827,21 @@ app.post('/api/v2/sync/system-prompt', async (req, res) => {
         }
       } catch (e) {
         console.error('[sync] Auto-reply toggle failed:', e.message);
+      }
+    }
+
+    // Insert/update human-like response delay in WF1
+    const responseSpeed = aiSettings?.responseSpeed || 'natural';
+    if (responseSpeed !== 'instant') {
+      try {
+        const delayMap = { natural: [8, 25], slow: [20, 60] };
+        const [min, max] = delayMap[responseSpeed] || [8, 25];
+        const delayResult = await n8nService.insertResponseDelay(wf1Id, min, max);
+        if (delayResult.success) {
+          console.log(`[sync] Response delay set: ${min}-${max}s (${responseSpeed})`);
+        }
+      } catch (e) {
+        console.error('[sync] Response delay failed:', e.message);
       }
     }
 
@@ -2385,6 +2559,87 @@ app.get('/api/m1/errors', async (req, res) => {
     res.json({ success: true, errors });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================
+// Team Management
+// ============================================
+
+app.get('/api/v2/team', (req, res) => {
+  try {
+    const members = db.getTeamMembers ? db.getTeamMembers() : [];
+    res.json({ success: true, members });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/v2/team', (req, res) => {
+  try {
+    const { name, role, telegramChatId, timezone } = req.body;
+    if (!name || !role) return res.status(400).json({ success: false, error: 'name and role required' });
+    const member = db.addTeamMember ? db.addTeamMember({ name, role, telegramChatId, timezone }) : null;
+    res.json({ success: true, member });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/v2/team/:id', (req, res) => {
+  try {
+    const result = db.removeTeamMember ? db.removeTeamMember(req.params.id) : { changes: 0 };
+    res.json({ success: true, removed: result.changes > 0 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Validate Telegram Bot Token
+app.post('/api/v2/validate/telegram-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ valid: false, error: 'token required' });
+    const https = require('https');
+    const url = `https://api.telegram.org/bot${token}/getMe`;
+    const result = await new Promise((resolve) => {
+      https.get(url, (r) => {
+        let d = '';
+        r.on('data', c => d += c);
+        r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({ ok: false }); } });
+      }).on('error', () => resolve({ ok: false }));
+    });
+    if (result.ok) {
+      res.json({ valid: true, botName: result.result.username });
+    } else {
+      res.json({ valid: false });
+    }
+  } catch (error) {
+    res.json({ valid: false, error: error.message });
+  }
+});
+
+// Properties - Preview AI Description
+app.post('/api/v2/properties/preview-description', async (req, res) => {
+  try {
+    const { propertyName, address, bedrooms, maxGuests, basePrice, amenities, description } = req.body;
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const prompt = `You are the AI assistant for the vacation property "${propertyName}". ` +
+      `A guest asks: "Tell me about this place." ` +
+      `Property details: ${bedrooms} bedrooms, max ${maxGuests} guests, $${basePrice}/night, located at ${address}. ` +
+      `Amenities: ${amenities || 'standard amenities'}. ` +
+      `${description ? 'Owner notes: ' + description : ''} ` +
+      `Respond in 2-3 sentences as the property AI assistant would in a real conversation.`;
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 150,
+    });
+    const preview = completion.choices[0].message.content;
+    res.json({ success: true, preview });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

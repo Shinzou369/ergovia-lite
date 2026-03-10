@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Ergovia Prestige</title>
+    <title>Settings - AIRB by Ergovia</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" href="/logo.png" type="image/png">
@@ -13,21 +13,29 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <img src="/logo.png" alt="Ergovia" style="width:28px;height:auto;margin-right:4px;">
-                <span>Ergovia</span>
+                <img src="/logo.png" alt="AIRB by Ergovia" style="width:28px;height:auto;margin-right:4px;">
+                <span>AIRB</span>
             </div>
             <div class="nav-menu">
-                <a href="dashboard.html" class="nav-item">
+                <a href="dashboard" class="nav-item">
                     <i class="fas fa-th-large"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="settings.html" class="nav-item active">
+                <a href="settings" class="nav-item active">
                     <i class="fas fa-clipboard-list"></i>
                     <span>Settings</span>
                 </a>
-                <a href="properties.html" class="nav-item">
+                <a href="properties" class="nav-item">
                     <i class="fas fa-building"></i>
                     <span>Properties</span>
+                </a>
+                <a href="conversations" class="nav-item">
+                    <i class="fas fa-comments"></i>
+                    <span>Conversations</span>
+                </a>
+                <a href="calendar" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
                 </a>
             </div>
             <div class="nav-user">
@@ -47,7 +55,7 @@
                             <h4 id="dropdownUserName">Owner</h4>
                             <p id="dropdownUserEmail">owner@ergovia.com</p>
                         </div>
-                        <a class="user-dropdown-item" href="settings.html"><i class="fas fa-cog"></i> Account Settings</a>
+                        <a class="user-dropdown-item" href="settings"><i class="fas fa-cog"></i> Account Settings</a>
                         <div class="user-dropdown-divider"></div>
                         <button class="user-dropdown-item danger" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Log Out</button>
                     </div>
@@ -68,18 +76,6 @@
             </div>
             <div class="notification-list" id="notificationList">
             </div>
-        </div>
-
-        <!-- Sync Banner -->
-        <div id="syncBanner" style="display:none;align-items:center;gap:12px;padding:14px 20px;margin-bottom:16px;background:linear-gradient(135deg,#1a365d,#2a4a7f);color:#fff;border-radius:10px;font-size:14px;box-shadow:0 2px 8px rgba(26,54,93,0.3);">
-        </div>
-
-        <!-- Progress Indicator -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <p class="progress-text" id="progressText">0% Complete</p>
         </div>
 
         <!-- n8n Connection Card -->
@@ -123,7 +119,7 @@
             <h1><i class="fas fa-cog"></i> Account Settings</h1>
             <p class="form-subtitle">Configure your AI assistant, workflows, and business preferences</p>
 
-            <form id="fillupForm" onsubmit="return handleFormSubmit(event)">
+            <form id="fillupForm">
 
                 <!-- ========================================== -->
                 <!-- SECTION 1: Owner Information               -->
@@ -197,8 +193,8 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('owner')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-owner" onclick="saveSection('owner')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
@@ -274,17 +270,193 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('credentials')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-credentials" onclick="saveSection('credentials')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SECTION 3: AI Assistant (merged)           -->
+                <!-- SECTION 3: Property & Guest Details        -->
+                <!-- ========================================== -->
+                <div class="form-section">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-building"></i> 3. Property & Guest Details</h2>
+                        <button type="button" class="btn-help" onclick="showHelp('property')">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="propertyName"><i class="fas fa-home"></i> Property Name <span class="required">*</span></label>
+                            <input type="text" id="propertyName" name="propertyName" placeholder="Beach House Paradise">
+                        </div>
+                        <div class="form-group">
+                            <label for="propertyAddress"><i class="fas fa-map-marker-alt"></i> Address <span class="required">*</span></label>
+                            <input type="text" id="propertyAddress" name="propertyAddress" placeholder="123 Ocean Drive">
+                        </div>
+                        <div class="form-group">
+                            <label for="propertyCity"><i class="fas fa-city"></i> City <span class="required">*</span></label>
+                            <input type="text" id="propertyCity" name="propertyCity" placeholder="Miami Beach">
+                        </div>
+                        <div class="form-group">
+                            <label for="propertyType"><i class="fas fa-tag"></i> Property Type</label>
+                            <select id="propertyType" name="propertyType">
+                                <option value="apartment">Apartment</option>
+                                <option value="house">House</option>
+                                <option value="condo">Condo</option>
+                                <option value="villa">Villa</option>
+                                <option value="cabin">Cabin</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bedrooms"><i class="fas fa-bed"></i> Bedrooms</label>
+                            <input type="number" id="bedrooms" name="bedrooms" value="2" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="bathrooms"><i class="fas fa-bath"></i> Bathrooms</label>
+                            <input type="number" id="bathrooms" name="bathrooms" value="1" min="0" step="0.5">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxGuests"><i class="fas fa-users"></i> Max Guests</label>
+                            <input type="number" id="maxGuests" name="maxGuests" value="4" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="timezone"><i class="fas fa-clock"></i> Timezone</label>
+                            <select id="timezone" name="timezone">
+                                <option value="America/New_York">Eastern Time (ET)</option>
+                                <option value="America/Chicago">Central Time (CT)</option>
+                                <option value="America/Denver">Mountain Time (MT)</option>
+                                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                                <option value="Europe/London">London (GMT)</option>
+                                <option value="Europe/Paris">Paris (CET)</option>
+                                <option value="Asia/Manila">Manila (PHT)</option>
+                                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="basePrice"><i class="fas fa-dollar-sign"></i> Base Price/Night <span class="required">*</span></label>
+                            <input type="number" id="basePrice" name="basePrice" value="150" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="cleaningFee"><i class="fas fa-broom"></i> Cleaning Fee <span class="required">*</span></label>
+                            <input type="number" id="cleaningFee" name="cleaningFee" placeholder="75" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="weekendPrice"><i class="fas fa-calendar-week"></i> Weekend Price/Night</label>
+                            <input type="number" id="weekendPrice" name="weekendPrice" placeholder="180" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="holidayPrice"><i class="fas fa-star"></i> Holiday Price/Night</label>
+                            <input type="number" id="holidayPrice" name="holidayPrice" placeholder="200" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="minStayNights"><i class="fas fa-moon"></i> Min Stay (nights)</label>
+                            <input type="number" id="minStayNights" name="minStayNights" value="1" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxStayNights"><i class="fas fa-calendar-alt"></i> Max Stay (nights)</label>
+                            <input type="number" id="maxStayNights" name="maxStayNights" value="30" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="checkInTime"><i class="fas fa-sign-in-alt"></i> Check-in Time</label>
+                            <input type="time" id="checkInTime" name="checkInTime" value="15:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="checkOutTime"><i class="fas fa-sign-out-alt"></i> Check-out Time</label>
+                            <input type="time" id="checkOutTime" name="checkOutTime" value="11:00">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="doorCode"><i class="fas fa-key"></i> Door/Lock Code</label>
+                            <input type="text" id="doorCode" name="doorCode" placeholder="1234">
+                        </div>
+                        <div class="form-group">
+                            <label for="wifiNetwork"><i class="fas fa-wifi"></i> WiFi Network</label>
+                            <input type="text" id="wifiNetwork" name="wifiNetwork" placeholder="BeachHouse_WiFi">
+                        </div>
+                        <div class="form-group">
+                            <label for="wifiPassword"><i class="fas fa-lock"></i> WiFi Password</label>
+                            <input type="text" id="wifiPassword" name="wifiPassword" placeholder="password123">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="houseRules"><i class="fas fa-clipboard-list"></i> House Rules</label>
+                            <textarea id="houseRules" name="houseRules" rows="3" placeholder="No smoking, no parties, quiet hours after 10 PM..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="parkingInstructions"><i class="fas fa-parking"></i> Parking Instructions</label>
+                            <textarea id="parkingInstructions" name="parkingInstructions" rows="2" placeholder="Park in the driveway..."></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="localRecommendations"><i class="fas fa-map-signs"></i> Local Recommendations</label>
+                            <textarea id="localRecommendations" name="localRecommendations" rows="2" placeholder="Best restaurants, beaches, attractions..."></textarea>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px;"><i class="fas fa-calendar-check"></i> Calendar Integration</h3>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="airbnbCalendarUrl"><i class="fab fa-airbnb"></i> Airbnb iCal URL</label>
+                            <input type="url" id="airbnbCalendarUrl" name="airbnbCalendarUrl" placeholder="https://www.airbnb.com/calendar/ical/...">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="vrboCalendarUrl"><i class="fas fa-home"></i> VRBO iCal URL</label>
+                            <input type="url" id="vrboCalendarUrl" name="vrboCalendarUrl" placeholder="https://www.vrbo.com/icalendar/...">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="bookingCalendarUrl"><i class="fas fa-globe"></i> Booking.com iCal URL</label>
+                            <input type="url" id="bookingCalendarUrl" name="bookingCalendarUrl" placeholder="https://admin.booking.com/...">
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 16px;"><i class="fab fa-google"></i> Google Business</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="googleMapsUrl"><i class="fas fa-map-marker-alt"></i> Google Maps Link</label>
+                            <input type="url" id="googleMapsUrl" name="googleMapsUrl" placeholder="https://maps.app.goo.gl/...">
+                            <small class="help-text">Search for your property on Google Maps → Share → Copy link</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="googleReviewUrl"><i class="fas fa-star"></i> Google Review Link</label>
+                            <input type="url" id="googleReviewUrl" name="googleReviewUrl" placeholder="https://g.page/r/.../review">
+                            <small class="help-text">Google Business dashboard → Get more reviews → Copy link</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="googleVerificationStatus"><i class="fas fa-check-circle"></i> Verification Status</label>
+                            <select id="googleVerificationStatus" name="googleVerificationStatus">
+                                <option value="not_started">Not Started</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="autoApproveBookings" name="autoApproveBookings">
+                                <span>Auto-approve Bookings</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="requireScreening" name="requireScreening" checked>
+                                <span>Require Guest Screening</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" id="saveBtn-property" onclick="saveSection('property')">
+                        <i class="fas fa-save"></i> Save & Apply
+                    </button>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- SECTION 4: AI Assistant (merged)           -->
                 <!-- ========================================== -->
                 <div class="form-section system-prompt-section" id="systemPromptSection">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-robot"></i> 3. AI Assistant</h2>
+                        <h2><i class="fas fa-robot"></i> 4. AI Assistant</h2>
                         <span class="system-prompt-badge">Syncs to WF1</span>
                     </div>
 
@@ -349,6 +521,21 @@
                         </div>
                     </div>
 
+                    <!-- Response Speed -->
+                    <div class="form-group full-width">
+                        <label for="responseSpeed">
+                            <i class="fas fa-clock"></i> Response Speed
+                        </label>
+                        <select id="responseSpeed" name="responseSpeed" class="form-control">
+                            <option value="instant">Instant (bot-like)</option>
+                            <option value="natural" selected>Natural (8-25 sec delay)</option>
+                            <option value="slow">Slow (20-60 sec, very human)</option>
+                        </select>
+                        <small style="color: var(--text-muted); margin-top: 4px; display: block;">
+                            Adds a random delay before replying so guests feel they're texting a real person
+                        </small>
+                    </div>
+
                     <!-- AI Notes -->
                     <div class="form-group full-width">
                         <label for="aiNotes">
@@ -395,22 +582,17 @@
                         </div>
                     </details>
 
-                    <div style="display:flex;gap:10px;margin-top:16px;">
-                        <button type="button" class="btn-save-section" onclick="saveSection('ai')">
-                            <i class="fas fa-save"></i> Save Section
-                        </button>
-                        <button type="button" id="saveSystemPromptBtn" class="btn-sync-prompt">
-                            <i class="fas fa-cloud-upload-alt"></i> Save & Sync to AI
-                        </button>
-                    </div>
+                    <button type="button" class="btn-save-section" id="saveBtn-ai" onclick="saveSection('ai')" style="margin-top:16px;">
+                        <i class="fas fa-save"></i> Save & Apply
+                    </button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SECTION 4: Booking & Payment Defaults      -->
+                <!-- SECTION 5: Booking & Payment Defaults      -->
                 <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-calendar-check"></i> 4. Booking & Payment Defaults</h2>
+                        <h2><i class="fas fa-calendar-check"></i> 5. Booking & Payment Defaults</h2>
                         <span class="system-prompt-badge">Syncs to WF2 + WF4</span>
                     </div>
 
@@ -440,7 +622,6 @@
                             </label>
                             <select id="defaultPaymentMethod" name="defaultPaymentMethod">
                                 <option value="">Select...</option>
-                                <option value="gcash">GCash</option>
                                 <option value="paypal">PayPal</option>
                                 <option value="stripe">Stripe</option>
                                 <option value="bank_transfer">Bank Transfer</option>
@@ -537,17 +718,38 @@
                         </label>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('booking')">
-                        <i class="fas fa-save"></i> Save Section
+                    <h3 class="subsection-title"><i class="fas fa-percent"></i> Pricing & Discounts</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="serviceFeePercent">
+                                <i class="fas fa-hand-holding-usd"></i> Service Fee (%)
+                            </label>
+                            <input type="number" id="serviceFeePercent" name="serviceFeePercent"
+                                   min="0" max="50" step="0.5" value="12" placeholder="12">
+                            <small class="help-text">Platform service fee added on top of the nightly rate.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="weeklyDiscountPercent">
+                                <i class="fas fa-tags"></i> Weekly Discount (%)
+                            </label>
+                            <input type="number" id="weeklyDiscountPercent" name="weeklyDiscountPercent"
+                                   min="0" max="50" step="0.5" value="10" placeholder="10">
+                            <small class="help-text">Discount applied for stays of 7+ nights.</small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-save-section" id="saveBtn-booking" onclick="saveSection('booking')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SECTION 5: Notifications & Safety          -->
+                <!-- SECTION 6: Notifications & Safety          -->
                 <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-bell"></i> 5. Notifications & Safety</h2>
+                        <h2><i class="fas fa-bell"></i> 6. Notifications & Safety</h2>
                         <span class="system-prompt-badge">Syncs to WF8 + SUB</span>
                     </div>
 
@@ -655,17 +857,17 @@
                         </label>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('notifications')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-notifications" onclick="saveSection('notifications')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SECTION 6: Budget & Usage                  -->
+                <!-- SECTION 7: Budget & Usage                  -->
                 <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-wallet"></i> 6. Budget & Usage</h2>
+                        <h2><i class="fas fa-wallet"></i> 7. Budget & Usage</h2>
                         <span class="system-prompt-badge">Syncs to WF1</span>
                     </div>
 
@@ -723,17 +925,17 @@
                                   placeholder="Thank you for your message! Our AI assistant is temporarily unavailable. Please contact us directly at [your phone/email] for immediate assistance."></textarea>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('budget')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-budget" onclick="saveSection('budget')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SECTION 7: Team & Contacts                 -->
+                <!-- SECTION 8: Team & Contacts                 -->
                 <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-users"></i> 7. Team & Contacts</h2>
+                        <h2><i class="fas fa-users"></i> 8. Team & Contacts</h2>
                         <button type="button" class="btn-help" onclick="showHelp('team')">
                             <i class="fas fa-info-circle"></i>
                         </button>
@@ -751,17 +953,17 @@
                         <i class="fas fa-plus-circle"></i> Add Team Member
                     </button>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('team')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-team" onclick="saveSection('team')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
                 <!-- ========================================== -->
-                <!-- SECTION 8: Media & Documentation           -->
+                <!-- SECTION 9: Media & Documentation           -->
                 <!-- ========================================== -->
                 <div class="form-section">
                     <div class="section-header-form">
-                        <h2><i class="fas fa-image"></i> 8. Media & Documentation</h2>
+                        <h2><i class="fas fa-image"></i> 9. Media & Documentation</h2>
                         <button type="button" class="btn-help" onclick="showHelp('media')">
                             <i class="fas fa-info-circle"></i>
                         </button>
@@ -798,42 +1000,46 @@
                         </div>
                     </div>
 
-                    <button type="button" class="btn-save-section" onclick="saveSection('media')">
-                        <i class="fas fa-save"></i> Save Section
+                    <button type="button" class="btn-save-section" id="saveBtn-media" onclick="saveSection('media')">
+                        <i class="fas fa-save"></i> Save & Apply
                     </button>
                 </div>
 
-                <!-- Activation Section -->
-                <div class="activation-section">
-                    <div class="activation-notice">
-                        <i class="fas fa-rocket"></i>
-                        <h3>Ready to Activate?</h3>
-                        <p>Once you click "Activate AI Assistant", your workflows will be configured and deployed.
-                           This may take 2-3 minutes.</p>
+                <!-- ========================================== -->
+                <!-- DEPLOY AIRB SYSTEM                         -->
+                <!-- ========================================== -->
+                <div class="form-section" id="deploySection" style="border: 2px solid var(--prestige-accent, #c9a962); background: linear-gradient(135deg, rgba(201,169,98,0.05), rgba(26,54,93,0.05));">
+                    <div class="section-header-form">
+                        <h2><i class="fas fa-rocket"></i> Deploy AIRB System</h2>
                     </div>
 
-                    <button type="submit" class="btn-activate" id="activateBtn" disabled>
-                        <i class="fas fa-power-off"></i> Activate AI Assistant
-                    </button>
-
-                    <p class="completion-requirement" id="completionRequirement">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Please complete all required sections before activating
+                    <p class="section-description" style="margin-bottom: 20px;">
+                        Launch your AI-powered property management system. All required fields must be completed before deployment.
                     </p>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Activation Loading Modal -->
-    <div class="modal" id="loadingModal" style="display:none;">
-        <div class="modal-content loading-modal activation-modal-content">
-            <div class="spinner"></div>
-            <h2>Activating Your AI Assistant</h2>
-            <p id="activationStatus">Configuring workflows...</p>
-            <div class="progress-bar-loading">
-                <div class="progress-fill-loading" id="activationProgress"></div>
-            </div>
+                    <div id="deployReadiness" style="margin-bottom: 20px;">
+                        <div id="deployChecklist" style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button type="button" id="deployBtn" class="btn-save-section" disabled
+                                style="background: #c9a962; color: #1a365d; font-weight: 700; font-size: 16px; padding: 16px 32px; border-radius: 12px; flex: 1;"
+                                onclick="deployAIRBSystem()">
+                            <i class="fas fa-rocket"></i> Deploy AIRB System
+                        </button>
+                    </div>
+
+                    <div id="deployProgress" style="display:none; margin-top: 16px;">
+                        <div style="background: rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; height: 8px;">
+                            <div id="deployProgressBar" style="height: 100%; background: linear-gradient(90deg, #c9a962, #1a365d); width: 0%; transition: width 0.5s;"></div>
+                        </div>
+                        <p id="deployStatus" style="font-size: 13px; color: var(--prestige-text-muted, #a0aec0); margin-top: 8px;"></p>
+                    </div>
+                </div>
+
+            </form>
         </div>
     </div>
 
@@ -881,6 +1087,87 @@
                 updateIcon();
             });
         })();
+
+        // Deploy readiness check
+        function checkDeployReadiness() {
+            const checks = [
+                { label: 'Owner Name', field: 'ownerName', ok: false },
+                { label: 'Owner Email', field: 'ownerEmail', ok: false },
+                { label: 'Property Name', field: 'propertyName', ok: false },
+                { label: 'Property Address', field: 'propertyAddress', ok: false },
+                { label: 'Property City', field: 'propertyCity', ok: false },
+                { label: 'Base Price', field: 'basePrice', ok: false },
+                { label: 'Cleaning Fee', field: 'cleaningFee', ok: false },
+                { label: 'Contact Platform', field: 'preferredPlatform', ok: false },
+            ];
+
+            const checklist = document.getElementById('deployChecklist');
+            let allReady = true;
+
+            checks.forEach(c => {
+                const el = document.getElementById(c.field);
+                c.ok = el && el.value && el.value.trim() !== '' && el.value !== 'Select platform...';
+                if (!c.ok) allReady = false;
+            });
+
+            if (checklist) {
+                checklist.innerHTML = checks.map(c =>
+                    `<div style="display:flex;align-items:center;gap:8px;">
+                        <i class="fas ${c.ok ? 'fa-check-circle' : 'fa-times-circle'}" style="color:${c.ok ? '#10b981' : '#ef4444'};"></i>
+                        <span style="color:${c.ok ? 'var(--prestige-text, #e2e8f0)' : '#ef4444'};">${c.label}</span>
+                    </div>`
+                ).join('');
+            }
+
+            const btn = document.getElementById('deployBtn');
+            if (btn) btn.disabled = !allReady;
+            return allReady;
+        }
+
+        async function deployAIRBSystem() {
+            const btn = document.getElementById('deployBtn');
+            const progress = document.getElementById('deployProgress');
+            const bar = document.getElementById('deployProgressBar');
+            const status = document.getElementById('deployStatus');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deploying...';
+            progress.style.display = 'block';
+
+            try {
+                status.textContent = 'Starting deployment...';
+                bar.style.width = '20%';
+
+                const res = await fetch('/api/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                bar.style.width = '60%';
+                status.textContent = 'Configuring workflows...';
+
+                const result = await res.json();
+                bar.style.width = '100%';
+
+                if (result.success) {
+                    status.textContent = 'AIRB System deployed successfully!';
+                    btn.innerHTML = '<i class="fas fa-check"></i> Deployed';
+                    btn.style.background = '#10b981';
+                } else {
+                    throw new Error(result.error || 'Deployment failed');
+                }
+            } catch (err) {
+                status.textContent = 'Deployment failed: ' + err.message;
+                btn.innerHTML = '<i class="fas fa-rocket"></i> Retry Deploy';
+                btn.disabled = false;
+                bar.style.width = '0%';
+            }
+        }
+
+        // Run readiness check on page load and on input changes
+        document.addEventListener('DOMContentLoaded', function() {
+            checkDeployReadiness();
+            document.querySelectorAll('#fillupForm input, #fillupForm select').forEach(el => {
+                el.addEventListener('change', checkDeployReadiness);
+                el.addEventListener('input', checkDeployReadiness);
+            });
+        });
     </script>
 </body>
 </html>

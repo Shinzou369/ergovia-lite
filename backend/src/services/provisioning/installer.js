@@ -298,7 +298,7 @@ EOF
     logger.provisioning(this.serverIp, 'nginx', 'completed');
   }
 
-  async provisionSSL(domain, email = 'admin@prismity.ai') {
+  async provisionSSL(domain, email = 'admin@ergovia-ai.com') {
     logger.provisioning(this.serverIp, 'ssl', 'starting');
     
     const script = `
