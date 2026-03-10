@@ -1586,23 +1586,12 @@ app.post('/api/v2/notifications/read', (req, res) => {
 });
 
 // Reset to demo data (for testing)
-app.post('/api/v2/reset-demo', async (req, res) => {
-  try {
-    const result = await v2Data.resetToDemo();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Demo endpoints disabled in production — no mock data
+app.post('/api/v2/reset-demo', (req, res) => {
+  res.status(403).json({ success: false, error: 'Demo endpoints are disabled in production' });
 });
-
-// Seed demo data (properties + bookings)
-app.post('/api/v2/seed', async (req, res) => {
-  try {
-    const result = await v2Data.seedDemoData();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+app.post('/api/v2/seed', (req, res) => {
+  res.status(403).json({ success: false, error: 'Demo endpoints are disabled in production' });
 });
 
 // ============================================

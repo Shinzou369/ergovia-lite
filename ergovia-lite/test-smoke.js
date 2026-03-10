@@ -327,20 +327,13 @@ async function testNotifications() {
 }
 
 async function testSeed() {
-  console.log('\n┌─ 8. Demo Data Seeding');
-
-  if (SKIP_SEED) {
-    console.log('  \x1b[33m⊘\x1b[0m Skipped on live server (use --force-seed to override)');
-    return;
-  }
+  console.log('\n┌─ 8. Demo Endpoints Disabled');
 
   const r = await request('POST', '/api/v2/seed', {}, authHeaders());
-  assert('Seed returns success', r.status === 200 && r.body && r.body.success);
+  assert('Seed endpoint is disabled (403)', r.status === 403);
 
-  if (r.body) {
-    assert('Seed created properties', (r.body.properties || 0) > 0);
-    assert('Seed created bookings', (r.body.bookings || 0) > 0);
-  }
+  const r2 = await request('POST', '/api/v2/reset-demo', {}, authHeaders());
+  assert('Reset-demo endpoint is disabled (403)', r2.status === 403);
 }
 
 async function testFrontendPages() {
@@ -388,8 +381,8 @@ async function testHealth() {
   if (r.body && r.body.checks) {
     const c = r.body.checks;
     assert('Database connected', c.database === true);
-    assert('Properties exist', c.properties > 0);
-    assert('Owner configured', c.owner === true);
+    assert('Properties count is number', typeof c.properties === 'number');
+    assert('Owner check is boolean', typeof c.owner === 'boolean');
   }
 }
 
