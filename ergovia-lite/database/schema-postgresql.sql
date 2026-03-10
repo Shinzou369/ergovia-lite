@@ -75,6 +75,38 @@ CREATE INDEX idx_payment_tokens_expires ON payment_action_tokens(expires_at) WHE
 CREATE INDEX idx_payment_tokens_booking ON payment_action_tokens(booking_id);
 
 -- ============================================================================
+-- TABLE: payment_tasks
+-- Used by: WF4 (Payment Processor) + Control Panel Tasks tab
+-- Dual-channel payment confirmation (Telegram conversational + Control Panel buttons)
+-- Owner manually confirms they received payment (bank transfer, GCash, cash, etc.)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS payment_tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_id VARCHAR(50) NOT NULL REFERENCES bookings(booking_id),
+    customer_id UUID NOT NULL,
+    property_id VARCHAR(50) NOT NULL,
+    guest_name VARCHAR(255) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'USD',
+    check_in_date DATE NOT NULL,
+    check_out_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'declined')),
+    decision_channel VARCHAR(20),
+    decided_by VARCHAR(255),
+    decided_at TIMESTAMP,
+    telegram_message_id BIGINT,
+    telegram_chat_id BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_payment_tasks_customer_status ON payment_tasks(customer_id, status);
+CREATE INDEX idx_payment_tasks_booking ON payment_tasks(booking_id);
+
+CREATE TRIGGER update_payment_tasks_updated_at BEFORE UPDATE ON payment_tasks
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
 -- TABLE: inquiries
 -- Used by: Workflow 05 (Inquiry Handler)
 -- ============================================================================
@@ -893,6 +925,9 @@ CREATE TABLE IF NOT EXISTS conversations (
     collected_data JSONB DEFAULT '{}',
     channel VARCHAR(50),
     is_active BOOLEAN DEFAULT true,
+    followup_count INTEGER DEFAULT 0,
+    followup_exhausted BOOLEAN DEFAULT false,
+    last_followup_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

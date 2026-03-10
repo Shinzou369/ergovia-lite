@@ -425,6 +425,53 @@
       line-height: 1.5;
     }
 
+    /* Google Business step extras */
+    .google-section { margin-bottom: 28px; }
+    .google-section h4 {
+      font-size: 1rem; font-weight: 600; color: var(--text-primary);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .google-section h4 .icon { font-size: 1.2rem; }
+    .google-section p.desc {
+      font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;
+    }
+    .info-box.warning { background: rgba(251,188,4,0.12); border-color: rgba(251,188,4,0.4); }
+    .info-box.success { background: rgba(52,168,83,0.12); border-color: rgba(52,168,83,0.4); }
+    .info-box h5 { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .g-checklist { list-style: none; padding: 0; margin: 0 0 16px 0; }
+    .g-checklist li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.85rem; color: var(--text-muted);
+    }
+    .g-checklist li:last-child { border-bottom: none; }
+    .g-checklist li i { color: var(--accent); margin-top: 3px; flex-shrink: 0; }
+    .g-checklist li strong { color: var(--text-primary); }
+    .copy-box {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 14px 14px 14px 16px; position: relative;
+      margin: 12px 0 20px 0;
+    }
+    .copy-box pre {
+      margin: 0; white-space: pre-wrap; word-wrap: break-word;
+      font-size: 0.8rem; line-height: 1.5; color: var(--text-muted); font-family: inherit;
+    }
+    .copy-box .copy-btn {
+      position: absolute; top: 8px; right: 8px; padding: 4px 10px;
+      font-size: 0.7rem; background: var(--accent); color: #fff;
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .copy-box .copy-btn.copied { background: #34a853; }
+    .g-divider {
+      border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 24px 0;
+    }
+    .g-flow {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      font-size: 0.8rem; color: var(--text-muted); margin: 12px 0 16px 0;
+    }
+    .g-flow span { padding: 4px 10px; background: rgba(26,54,93,0.2); border-radius: 6px; }
+    .g-flow .arrow { background: none; color: var(--accent); font-weight: bold; }
+
     /* Responsive */
     @media (max-width: 640px) {
       .container { padding: 20px 14px 60px; }
@@ -958,7 +1005,7 @@
       </div>
     </div>
 
-    <!-- Step 6: Google Business -->
+    <!-- Step 6: Google Business Profile -->
     <div class="step-content" data-step="6">
       <div class="card">
         <div class="card-header">
@@ -970,32 +1017,158 @@
               <span class="tier-badge tier-3"><i class="fas fa-thumbs-up"></i> Recommended</span>
             </div>
 
-            <div class="info-box">
-              <i class="fas fa-map-marker-alt"></i>
-              <p>Get found on Google Maps. Guests searching for stays in your area will find you and contact your AI assistant directly.</p>
+            <!-- Why it matters -->
+            <div class="info-box success">
+              <i class="fas fa-lightbulb"></i>
+              <div>
+                <h5>Why This Matters</h5>
+                <p>Airbnb charges 15-20% per booking. With a Google Business Profile, guests find your WhatsApp number on Google Maps and book directly through your AI assistant — you keep 100% of the booking.</p>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Google Maps URL</label>
-              <input type="url" name="googleMapsUrl" class="form-input" placeholder="https://maps.app.goo.gl/...">
-              <p class="form-hint">Your Google Maps listing link. Search for your property on Google Maps and copy the share link.</p>
+            <!-- The Flow -->
+            <div class="g-flow">
+              <span>Guest finds you on Airbnb</span>
+              <span class="arrow">&rarr;</span>
+              <span>You share Google Maps link</span>
+              <span class="arrow">&rarr;</span>
+              <span>Guest sees WhatsApp number</span>
+              <span class="arrow">&rarr;</span>
+              <span>AI handles the booking</span>
+              <span class="arrow">&rarr;</span>
+              <span>You save 15-20% fees</span>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Google Review URL</label>
-              <input type="url" name="googleReviewUrl" class="form-input" placeholder="https://g.page/r/.../review">
-              <p class="form-hint">Direct link for guests to leave a review. Found in Google Business Profile > Share review form.</p>
+            <hr class="g-divider">
+
+            <!-- Section 1: Create Your Profile -->
+            <div class="google-section">
+              <h4><span class="icon"><i class="fas fa-plus-circle"></i></span> Create Your Profile</h4>
+              <p class="desc">If you don't have a Google Business Profile yet, create one at <a href="https://business.google.com" target="_blank" style="color:var(--accent)">business.google.com</a>.</p>
+              <ul class="g-checklist">
+                <li><i class="fas fa-check-circle"></i> <div><strong>Name your business</strong> — use format: "[Property Name] - Vacation Rental"</div></li>
+                <li><i class="fas fa-check-circle"></i> <div><strong>Select category</strong> — choose "Vacation home rental"</div></li>
+                <li><i class="fas fa-check-circle"></i> <div><strong>Add your address</strong> — use the exact property address</div></li>
+                <li><i class="fas fa-check-circle"></i> <div><strong>Add your WhatsApp number</strong> — the one connected to ERGOVIA (this is how guests contact you directly)</div></li>
+                <li><i class="fas fa-check-circle"></i> <div><strong>Set hours to "Open 24 hours"</strong> — ERGOVIA AI responds instantly, any time</div></li>
+                <li><i class="fas fa-check-circle"></i> <div><strong>Upload 5+ photos</strong> — exterior first, then living room, bedrooms, kitchen, bathroom</div></li>
+              </ul>
+
+              <div class="info-box warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                  <h5>Already have a profile?</h5>
+                  <p>Great! Just make sure your WhatsApp number is listed as the contact phone and skip to the links section below.</p>
+                </div>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Google Verification Status</label>
-              <select name="googleVerificationStatus" class="form-select">
-                <option value="not_started">Not Started</option>
-                <option value="in_progress">In Progress</option>
-                <option value="verified">Verified</option>
-              </select>
-              <p class="form-hint">Has your Google Business Profile been verified? We can help you set it up if needed.</p>
+            <hr class="g-divider">
+
+            <!-- Section 2: Description Template -->
+            <div class="google-section">
+              <h4><span class="icon"><i class="fas fa-file-alt"></i></span> Business Description Template</h4>
+              <p class="desc">Copy this template and customize it for your property's Google Business description:</p>
+              <div class="copy-box">
+                <button type="button" class="copy-btn" onclick="copyGoogleTemplate(this)">Copy</button>
+                <pre>[Property Name] - Your perfect [City] getaway!
+
+🏠 [X] bedrooms | 🛏️ Sleeps [X] guests
+📍 [Neighborhood/Landmark]
+
+✨ Features:
+• [Feature 1 - e.g., Ocean view]
+• [Feature 2 - e.g., Private pool]
+• [Feature 3 - e.g., Walking distance to beach]
+
+📱 Book direct via WhatsApp for best rates!
+Message us anytime - we respond instantly.
+
+💰 Save money by booking direct - no platform fees!</pre>
+              </div>
             </div>
+
+            <hr class="g-divider">
+
+            <!-- Section 3: Verification -->
+            <div class="google-section">
+              <h4><span class="icon"><i class="fas fa-shield-alt"></i></span> Verify Your Business</h4>
+              <p class="desc">Google verifies you own/manage the property. Most common: a postcard mailed to the property (5-14 days). You can continue setup while waiting.</p>
+              <div class="form-group">
+                <label class="form-label">Verification Status</label>
+                <select name="googleVerificationStatus" class="form-select">
+                  <option value="not_started">Not Started</option>
+                  <option value="in_progress">Waiting for postcard / In Progress</option>
+                  <option value="verified">Verified</option>
+                </select>
+              </div>
+            </div>
+
+            <hr class="g-divider">
+
+            <!-- Section 4: Your Links -->
+            <div class="google-section">
+              <h4><span class="icon"><i class="fas fa-link"></i></span> Save Your Google Links</h4>
+              <p class="desc">These links are used to redirect guests and request reviews automatically.</p>
+
+              <div class="form-group">
+                <label class="form-label">Google Maps URL</label>
+                <input type="url" name="googleMapsUrl" class="form-input" placeholder="https://maps.app.goo.gl/...">
+                <p class="form-hint">Search for your business on Google Maps > click "Share" > copy the link.</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Google Review URL</label>
+                <input type="url" name="googleReviewUrl" class="form-input" placeholder="https://g.page/r/.../review">
+                <p class="form-hint">In Google Business dashboard > click "Get more reviews" > copy the short link.</p>
+              </div>
+            </div>
+
+            <hr class="g-divider">
+
+            <!-- Section 5: Airbnb Redirect Messages -->
+            <div class="google-section">
+              <h4><span class="icon"><i class="fas fa-comments"></i></span> Airbnb Redirect Messages</h4>
+              <div class="info-box">
+                <i class="fas fa-info-circle"></i>
+                <div>
+                  <h5>The Strategy</h5>
+                  <p>You can't say "message me on WhatsApp" on Airbnb (they block it). But you CAN say "check out our Google reviews!" — and that's where guests find your WhatsApp number.</p>
+                </div>
+              </div>
+              <p class="desc">Save these as Airbnb Quick Replies (Inbox > Quick Replies > Add New):</p>
+
+              <p class="desc" style="margin-bottom:4px"><strong>Template 1 — Early Conversation:</strong></p>
+              <div class="copy-box">
+                <button type="button" class="copy-btn" onclick="copyGoogleTemplate(this)">Copy</button>
+                <pre>Thanks for your interest! We have lots of happy guests - you can see their reviews on Google Maps:
+
+[YOUR GOOGLE MAPS LINK]
+
+Feel free to reach out if you have any questions!</pre>
+              </div>
+
+              <p class="desc" style="margin-bottom:4px"><strong>Template 2 — Discussing Details:</strong></p>
+              <div class="copy-box">
+                <button type="button" class="copy-btn" onclick="copyGoogleTemplate(this)">Copy</button>
+                <pre>Great question! Many guests find it helpful to check our Google reviews for more details about the neighborhood:
+
+[YOUR GOOGLE MAPS LINK]
+
+Let me know what else I can help with!</pre>
+              </div>
+
+              <p class="desc" style="margin-bottom:4px"><strong>Template 3 — Serious Inquiries:</strong></p>
+              <div class="copy-box">
+                <button type="button" class="copy-btn" onclick="copyGoogleTemplate(this)">Copy</button>
+                <pre>I'd love to host you! We're also on Google Maps with lots of detailed reviews from past guests:
+
+[YOUR GOOGLE MAPS LINK]
+
+You can even message us directly there for a quicker response!</pre>
+              </div>
+            </div>
+
           </form>
         </div>
         <div class="step-actions">
@@ -1008,5 +1181,15 @@
 
   <script src="/js/auth-guard.js"></script>
   <script src="/js/app.js"></script>
+  <script>
+    function copyGoogleTemplate(btn) {
+      const pre = btn.parentElement.querySelector('pre');
+      navigator.clipboard.writeText(pre.textContent).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+  </script>
 </body>
 </html>

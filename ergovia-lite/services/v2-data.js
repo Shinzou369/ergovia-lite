@@ -12,6 +12,7 @@ const { Pool } = require('pg');
 const localDb = require('../db');
 
 // PostgreSQL connection (same DB as n8n workflows)
+// PG_* env vars are for direct control panel connection; POSTGRES_* are for n8n credential config
 const pgSsl = process.env.PG_SSL || process.env.POSTGRES_SSL;
 const pool = new Pool({
   host: process.env.PG_HOST || '116.203.115.12',
@@ -19,7 +20,7 @@ const pool = new Pool({
   database: process.env.PG_DATABASE || 'ergovia_db',
   user: process.env.PG_USER || 'ergovia_user',
   password: process.env.PG_PASSWORD || 'ergovia_secure_2026',
-  ssl: (pgSsl && pgSsl !== 'disable' && pgSsl !== 'false' && pgSsl !== '0') ? { rejectUnauthorized: false } : false,
+  ssl: (pgSsl && pgSsl !== 'disable' && pgSsl !== 'false' && pgSsl !== '0' && pgSsl !== 'allow') ? { rejectUnauthorized: false } : false,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
@@ -85,10 +86,25 @@ async function ensureTables() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    // Add location_description column if missing (for existing databases)
+    // Add missing columns if they don't exist (for existing databases)
+    await pool.query(`ALTER TABLE property_configurations ADD COLUMN IF NOT EXISTS location_description TEXT`).catch(() => {});
+    await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS channel_type VARCHAR(50) DEFAULT 'manual'`).catch(() => {});
+    await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'none'`).catch(() => {});
+
+    // Ensure owners table exists
     await pool.query(`
-      ALTER TABLE property_configurations ADD COLUMN IF NOT EXISTS location_description TEXT
-    `).catch(() => {});
+      CREATE TABLE IF NOT EXISTS owners (
+        id SERIAL PRIMARY KEY,
+        owner_id VARCHAR(255) UNIQUE NOT NULL,
+        owner_name VARCHAR(255),
+        owner_email VARCHAR(255),
+        owner_phone VARCHAR(50),
+        owner_chat_id VARCHAR(100),
+        preferred_platform VARCHAR(50) DEFAULT 'telegram',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     // payment_tasks: dual-channel (Telegram + Control Panel) payment confirmation
     await pool.query(`
@@ -958,6 +974,21 @@ const V2DataService = {
       } catch (err) {
         console.error('[seed] booking error:', bookingId, err.message);
       }
+    }
+
+    // Seed a default owner if none exists
+    try {
+      const ownerCheck = await pool.query('SELECT owner_id FROM owners LIMIT 1');
+      if (ownerCheck.rows.length === 0) {
+        await pool.query(`
+          INSERT INTO owners (owner_id, owner_name, owner_email, owner_phone, preferred_platform)
+          VALUES ('owner-1', 'Demo Owner', 'demo@ergovia-ai.com', '+1555000000', 'telegram')
+          ON CONFLICT (owner_id) DO NOTHING
+        `);
+        console.log('[seed] Created default owner');
+      }
+    } catch (err) {
+      console.error('[seed] owner error:', err.message);
     }
 
     console.log(`[seed] Created ${propsCreated} properties and ${bookingsCreated} bookings`);
