@@ -35,7 +35,7 @@ function checkAndCreateSetupReminders() {
       type: 'reminder',
       title: 'Complete Your Profile',
       message: 'Add your name, email, and phone so the AI assistant can contact you.',
-      actionLink: '/v2/settings',
+      actionLink: '/airb/settings',
     });
   }
 
@@ -45,7 +45,7 @@ function checkAndCreateSetupReminders() {
       type: 'reminder',
       title: 'Add API Credentials',
       message: 'Connect your Telegram bot and OpenAI key to activate the AI assistant.',
-      actionLink: '/v2/settings',
+      actionLink: '/airb/settings',
     });
   }
 }
@@ -55,15 +55,15 @@ checkAndCreateSetupReminders();
 // STATIC FILE SERVING WITH AUTH PROTECTION
 // ============================================
 
-// Public files (no auth required)
-const PUBLIC_PATHS = ['/login.html', '/favicon.ico', '/api/auth/'];
+// Public files (no auth required) — landing page, login, and static assets
+const PUBLIC_PATHS = ['/login.html', '/login', '/favicon.ico', '/api/auth/', '/landing-styles.css', '/landing-script.js'];
 
 // Serve login.html without auth
 app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Protect all other HTML pages — redirect to login if no valid session
+// Protect dashboard pages — landing page and login are public
 app.use((req, res, next) => {
   // Skip API routes (handled by requireAuth middleware per-route)
   if (req.path.startsWith('/api/')) return next();
@@ -72,11 +72,13 @@ app.use((req, res, next) => {
   if (PUBLIC_PATHS.some(p => req.path.startsWith(p))) return next();
   if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/i.test(req.path)) return next();
 
+  // Landing page (root) is public
+  if (req.path === '/' || req.path === '/index.html') return next();
+
   // For HTML pages, check if setup is needed (no users yet)
   const userCount = db.getUserCount();
   if (userCount === 0 && req.path !== '/login.html') {
-    // First-time setup — let them through to login page which has register
-    return res.redirect('/login.html');
+    return res.redirect('/login');
   }
 
   // All other pages served normally — frontend JS handles auth check
@@ -84,9 +86,6 @@ app.use((req, res, next) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
-
-// Route alias: /airb/* serves the same files as /v2/*
-app.use('/airb', express.static(path.join(__dirname, 'public', 'v2'), { extensions: ['html'] }));
 
 // Load n8n config from DB if env vars are missing
 n8nService.loadConfigFromDb(db);
@@ -111,18 +110,8 @@ function getPostgresConfig() {
 // ROUTES
 // ============================================
 
-// Redirect root to dashboard or onboarding
-app.get('/', (req, res) => {
-  const userCount = db.getUserCount();
-  if (userCount === 0) {
-    return res.redirect('/login.html');
-  }
-  if (db.isOnboardingComplete()) {
-    res.redirect('/airb/dashboard');
-  } else {
-    res.redirect('/onboarding');
-  }
-});
+// Root serves the landing page (index.html via static middleware)
+// No redirect needed — Express static serves it automatically
 
 // ============================================
 // AUTH API

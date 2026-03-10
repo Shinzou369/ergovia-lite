@@ -353,20 +353,20 @@ async function testFrontendPages() {
   assert('Login page has password field', r.raw && r.raw.includes('type="password"'));
 
   // V2 pages (require token cookie or served as static)
-  r = await request('GET', '/v2/dashboard.html', null, authHeaders());
-  assert('V2 Dashboard page loads', r.status === 200);
+  r = await request('GET', '/airb/dashboard', null, authHeaders());
+  assert('AIRB Dashboard page loads', r.status === 200);
   assert('Dashboard has tasksContainer (Fix 5)', r.raw && r.raw.includes('tasksContainer'));
 
-  r = await request('GET', '/v2/settings.html', null, authHeaders());
-  assert('V2 Settings page loads', r.status === 200);
+  r = await request('GET', '/airb/settings', null, authHeaders());
+  assert('AIRB Settings page loads', r.status === 200);
   assert('Settings has language field (Fix 4)', r.raw && r.raw.includes('id="language"'));
 
-  r = await request('GET', '/v2/properties.html', null, authHeaders());
-  assert('V2 Properties page loads', r.status === 200);
+  r = await request('GET', '/airb/properties', null, authHeaders());
+  assert('AIRB Properties page loads', r.status === 200);
 
-  // Root page
+  // Root page (landing page)
   r = await request('GET', '/');
-  assert('Root serves page with auth redirect', r.status === 200 && r.raw && r.raw.includes('auth/verify'));
+  assert('Root serves landing page', r.status === 200 && r.raw && r.raw.includes('AI-Powered Vacation Rental'));
 
   // V1 pages
   r = await request('GET', '/onboarding.html');

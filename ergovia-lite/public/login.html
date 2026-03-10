@@ -351,7 +351,7 @@
                     });
                     const data = await resp.json();
                     if (data.success) {
-                        window.location.href = '/v2/dashboard.html';
+                        window.location.href = '/airb/dashboard';
                         return;
                     }
                 } catch (e) {
@@ -476,7 +476,7 @@
                     if (data.success) {
                         localStorage.setItem('ergovia_token', data.token);
                         localStorage.setItem('ergovia_user', JSON.stringify(data.user));
-                        window.location.href = '/v2/dashboard.html';
+                        window.location.href = '/airb/dashboard';
                     } else {
                         showError(data.error || 'Registration failed');
                     }
@@ -500,7 +500,7 @@
                     if (data.success) {
                         localStorage.setItem('ergovia_token', data.token);
                         localStorage.setItem('ergovia_user', JSON.stringify(data.user));
-                        window.location.href = '/v2/dashboard.html';
+                        window.location.href = '/airb/dashboard';
                     } else {
                         showError(data.error || 'Login failed');
                     }
