@@ -1,4 +1,4 @@
-# Welcome to Your Property Automation System
+# Welcome to AIRB by Ergovia
 ## Client Getting Started Guide
 
 **Congratulations!** Your property management automation is ready. This guide walks you through everything step-by-step.
@@ -10,19 +10,18 @@
 # STEP 1: Your First Login
 
 ## What You Received
-You should have received an email with:
-- Your dashboard link (looks like: `https://yourname.n8n.cloud` or similar)
-- Your login email
-- Instructions to set your password
+You should have received:
+- Your dashboard link (looks like: `https://yourname.ergovia-ai.com/airb/dashboard`)
+- Your login credentials
+- Instructions to get started
 
 ## Logging In
 
-1. **Open the link** from your welcome email
-2. **Click "Set Password"** if this is your first time
-3. **Create a strong password** (save it somewhere safe!)
-4. **Click "Sign In"**
+1. **Open the link** from your welcome message
+2. **Enter your credentials** on the login page
+3. **You'll land on your dashboard** at `/airb/dashboard`
 
-You're now in your automation dashboard!
+You're now in your AIRB control panel!
 
 ---
 
@@ -30,24 +29,38 @@ You're now in your automation dashboard!
 
 ## What You See
 
-When you log in, you'll see a list of your automations. These are the "robots" that handle your property tasks automatically.
+When you log in, you'll see your AIRB dashboard with an overview of your property operations — bookings, conversations, tasks, and quick stats.
 
-**Quick tip:** Look at the colored tags to understand what each automation does:
-- 🟢 `trigger:webhook` = Responds to guest messages
-- 🔵 `trigger:scheduled` = Runs automatically at set times
-- 🟡 `trigger:event` = Responds to owner commands
+**Quick tip:** Your automation system uses a hub-and-spoke architecture with 10 workflows (2 SUB helpers + WF1-WF8). WF1 is the AI Gateway that routes everything to the right place automatically.
 
 ## Main Areas
 
 | Area | Where to Find | What It Does |
 |------|---------------|--------------|
-| **Automations** | Left sidebar → "Workflows" | Your automation list |
-| **Activity Log** | Left sidebar → "Executions" | See what ran and when |
-| **Connected Services** | Gear icon → "Credentials" | Your Telegram, Stripe, etc. |
+| **Dashboard** | `/airb/dashboard` | Overview of stats, bookings, tasks |
+| **Conversations** | `/airb/conversations` | Guest communication threads |
+| **Calendar** | `/airb/calendar` | Booking calendar view |
+| **Properties** | `/airb/properties` | Your property listings |
+| **Settings** | `/airb/settings` | Configuration and credentials |
 
 ---
 
-# STEP 3: Connect Your Telegram Bot
+# STEP 3: Complete Onboarding (6 Steps)
+
+Your onboarding wizard at `/airb/onboarding` walks you through 6 steps:
+
+| Step | What You Provide |
+|------|-----------------|
+| **1. Owner Info** | Your name, email, phone, timezone, preferred contact method |
+| **2. Property** | Property name, address, rates, check-in/out times |
+| **3. Guest Access** | Access codes, WiFi details, house rules |
+| **4. Calendars** | Connect your booking calendars (Airbnb, Booking.com, etc.) |
+| **5. Integrations** | Telegram bot token, WhatsApp, other service connections |
+| **6. Google Business** | Connect your Google Business profile for reviews |
+
+---
+
+# STEP 4: Connect Your Telegram Bot
 
 This is how your guests and you will communicate with the system.
 
@@ -71,88 +84,45 @@ This is how your guests and you will communicate with the system.
 3. **It will reply with your ID** (a number like `123456789`)
 4. **Write this down** - this is YOUR owner ID
 
-**Why you need this:** This ID tells the system where to send your alerts and notifications. Share this with your support team so they can add it to your property settings.
+**Why you need this:** This ID tells the system where to send your alerts and notifications. You'll enter it during onboarding Step 5 (Integrations).
 
-## Part C: Add to Your Dashboard
+## Part C: Add to Your Settings
 
-1. **In your dashboard**, click the **gear icon** (top right)
-2. **Click "Credentials"** in the menu
-3. **Find "Telegram"** in the list
-4. **Click to edit**
-5. **Paste your bot token** where it says "Access Token"
-6. **Click "Save"**
-
----
-
-# STEP 4: Connect Your Payment System (Stripe)
-
-## Part A: Get Your Stripe Keys
-
-1. **Go to** [dashboard.stripe.com](https://dashboard.stripe.com)
-2. **Log in** (or create account if you don't have one)
-3. **Click "Developers"** in the left menu
-4. **Click "API Keys"**
-5. **Copy the "Secret key"** (starts with `sk_live_...` or `sk_test_...`)
-
-**For testing, use the TEST keys first** (toggle "Test mode" on)
-
-## Part B: Add to Your Dashboard
-
-1. **In your dashboard**, click the **gear icon** → **"Credentials"**
-2. **Find "Stripe"** in the list
-3. **Click to edit**
-4. **Paste your secret key**
+1. **Go to** `/airb/settings` in your dashboard
+2. **Find the Credentials section**
+3. **Paste your bot token** in the Telegram Bot Token field
+4. **Enter your Chat ID** in the Telegram Chat ID field
 5. **Click "Save"**
 
 ---
 
-# STEP 5: Add Your Property Details
+# STEP 5: Activate Your System
 
-## Option A: Quick Setup (We Did It For You)
+Once onboarding is complete, your 10 workflows deploy automatically:
 
-If we set up your property during onboarding, it's already configured! Skip to Step 6.
+| Workflow | Purpose |
+|----------|---------|
+| **SUB Universal Messenger** | Handles message delivery across channels |
+| **SUB Server Setup** | Database and server configuration helper |
+| **WF1 AI Gateway** | Routes all incoming messages to the right handler |
+| **WF2 Control Panel** | Processes your owner commands |
+| **WF3 Inquiry Handler** | Responds to guest questions with AI |
+| **WF4 Booking Manager** | Handles reservations and availability |
+| **WF5 Guest Journey** | Automated guest messages (pre-arrival, check-in, checkout) |
+| **WF6 Morning Report** | Daily operations summary and budget check |
+| **WF7 Payment Handler** | Processes payment confirmations via Telegram |
+| **WF8 Maintenance** | Creates and tracks repair tickets |
 
-## Option B: Add Property Yourself
-
-Contact your support team with:
-- Property name
-- Property address
-- Your minimum nightly rate
-- Check-in time
-- Check-out time
-- Your emergency contact number
-
-We'll add it to your system within 24 hours.
-
----
-
-# STEP 6: Activate Your Automations
-
-Now let's turn everything on!
-
-## Activation Steps
-
-1. **Go to "Workflows"** (left sidebar)
-2. **Click on the first workflow** (Workflow 0: Message Router)
-3. **Look at the top right** - you'll see a toggle switch
-4. **Click to turn it ON** (should turn green)
-5. **Repeat for all workflows**
-
-**Recommended order:** Start with these most important ones first:
-1. Workflow 0: Message Router (receives all messages)
-2. Workflow 24: Watchdog (monitors for errors)
-3. Workflow 5: Inquiry Handler (responds to guest questions)
-4. Workflow 6: AI Sales (handles negotiations)
-5. All others
+Workflows are deployed in the correct order automatically. No manual activation needed!
 
 ---
 
-# STEP 7: Test Your System
+# STEP 6: Test Your System
 
 ## Test 1: Send Yourself a Message
 
 1. **Open Telegram** on your phone
-2. **Search for your bot** (the one you created in Step 3)
+2. **Search for your bot** (the one you created in Step 4)
 3. **Tap "Start"**
 4. **Send this message:** "Is the property available next weekend?"
 5. **Wait 10-20 seconds**
@@ -166,12 +136,9 @@ Now let's turn everything on!
 
 ## Test 2: Check Your Dashboard
 
-1. **Go to "Executions"** (left sidebar)
-2. **You should see recent activity** with green checkmarks
-3. **Click on any row** to see what happened
-
-**Green checkmark** = Success
-**Red X** = Something went wrong (click to see details)
+1. **Go to** `/airb/dashboard`
+2. **You should see recent activity** in the stats and conversations
+3. **Check** `/airb/conversations` to see the message thread
 
 ---
 
@@ -186,24 +153,24 @@ Now let's turn everything on!
 
 ---
 
-# STEP 8: Go-Live Checklist
+# STEP 7: Go-Live Checklist
 
 Before you're fully live, confirm these are complete:
 
 | Item | Check |
 |------|-------|
-| Telegram bot token added | ☐ |
-| Your owner Chat ID shared with support | ☐ |
-| Stripe connected (test mode is fine to start) | ☐ |
-| All automations turned ON (green toggles) | ☐ |
-| Test message sent and received response | ☐ |
-| Owner commands working (`/dashboard`) | ☐ |
+| Onboarding completed (all 6 steps) | ? |
+| Telegram bot token added | ? |
+| Your owner Chat ID entered | ? |
+| Test message sent and received response | ? |
+| Owner commands working (`/dashboard`) | ? |
+| Properties configured in `/airb/properties` | ? |
 
 **All checked?** You're ready!
 
 ---
 
-# STEP 9: You're Live!
+# STEP 8: You're Live!
 
 Your automation system is now running. Here's what happens automatically:
 
@@ -211,7 +178,7 @@ Your automation system is now running. Here's what happens automatically:
 |-------------------|----------------------|
 | Guest asks about availability | AI checks and responds with pricing |
 | Guest wants to negotiate | AI handles it within your limits |
-| Guest books and pays | Creates booking, sends confirmation |
+| Guest confirms booking | Creates booking, sends confirmation via Telegram |
 | 3 days before check-in | Sends guest pre-arrival info |
 | Day of check-in | Sends access codes and instructions |
 | Day before checkout | Sends checkout reminder |
@@ -227,28 +194,20 @@ Your automation system is now running. Here's what happens automatically:
 
 | Check | How to Fix |
 |-------|-----------|
-| Is your bot token correct? | Credentials → Telegram → Verify token |
-| Are workflows active? | Check all toggles are green |
-| Did it run? | Executions → Look for recent entries |
-
-## "I see red X in executions"
-
-1. **Click on the failed execution**
-2. **Look for the error message** (usually highlighted in red)
-3. **Common fixes:**
-   - "Credential not found" → Go to Credentials and reconnect
-   - "Timeout" → Just a slow response, usually fixes itself
+| Is your bot token correct? | Settings -> Credentials -> Verify Telegram token |
+| Are workflows deployed? | Check `/airb/settings` workflow section |
+| Is OpenAI working? | OpenAI key is managed by Ergovia - contact support |
 
 ## "Guest messages aren't routing correctly"
 
-1. **Check Workflow 0** is active (green toggle)
+1. **Check WF1 (AI Gateway)** is active
 2. **Verify your Telegram credential** is connected
 3. **Try sending another test message**
 
 ## Need Help?
 
 Contact your support team:
-- Email: [your support email]
+- Telegram: Message your account manager directly
 - Response time: Within 24 hours
 
 ---
@@ -259,9 +218,11 @@ Contact your support team:
 
 | What | Where |
 |------|-------|
-| Dashboard | `https://your-n8n-url.com` |
-| Executions | Dashboard → Executions |
-| Credentials | Dashboard → Gear icon → Credentials |
+| Dashboard | `https://yourname.ergovia-ai.com/airb/dashboard` |
+| Conversations | `https://yourname.ergovia-ai.com/airb/conversations` |
+| Properties | `https://yourname.ergovia-ai.com/airb/properties` |
+| Settings | `https://yourname.ergovia-ai.com/airb/settings` |
+| Onboarding | `https://yourname.ergovia-ai.com/airb/onboarding` |
 
 ## Owner Telegram Commands
 
@@ -272,19 +233,6 @@ Contact your support team:
 | `/tasks` | Pending tasks |
 | `/deals` | Active negotiations |
 | `/help` | Show all commands |
-
-## What Each Workflow Does
-
-| Name | Purpose |
-|------|---------|
-| Message Router | Directs incoming messages to the right place |
-| Control Panel | Handles your owner commands |
-| AI Sales | Negotiates with potential guests |
-| Payment Handler | Processes Stripe payments |
-| Guest Journey | Sends automated guest messages |
-| Cleaner Scheduler | Assigns cleaning after checkout |
-| Maintenance | Creates repair tickets |
-| Watchdog | Monitors system health |
 
 ---
 
@@ -317,7 +265,7 @@ Just respond or take action as needed!
 
 **That's it!** Your property automation is running. Guests can now message your bot 24/7, and the AI handles inquiries, bookings, and guest communication automatically.
 
-Welcome aboard! 🏠
+Welcome to AIRB by Ergovia!
 
 ---
-*Guide Version: January 2026*
+*Guide Version: March 2026*
