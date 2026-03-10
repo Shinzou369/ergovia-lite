@@ -226,7 +226,7 @@ function buildSetupTasks(data) {
             description: 'Add your name, email, and phone number',
             priority: 'high',
             icon: 'user-edit',
-            actionLink: 'settings.html',
+            actionLink: 'settings',
             actionText: 'Complete Now',
         });
     }
@@ -239,7 +239,7 @@ function buildSetupTasks(data) {
             description: 'Set up a property so the AI can manage bookings',
             priority: 'high',
             icon: 'building',
-            actionLink: 'properties.html',
+            actionLink: 'properties',
             actionText: 'Add Property',
         });
     }

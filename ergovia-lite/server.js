@@ -35,7 +35,7 @@ function checkAndCreateSetupReminders() {
       type: 'reminder',
       title: 'Complete Your Profile',
       message: 'Add your name, email, and phone so the AI assistant can contact you.',
-      actionLink: '/v2/settings.html',
+      actionLink: '/v2/settings',
     });
   }
 
@@ -45,7 +45,7 @@ function checkAndCreateSetupReminders() {
       type: 'reminder',
       title: 'Add API Credentials',
       message: 'Connect your Telegram bot and OpenAI key to activate the AI assistant.',
-      actionLink: '/v2/settings.html',
+      actionLink: '/v2/settings',
     });
   }
 }
@@ -118,9 +118,9 @@ app.get('/', (req, res) => {
     return res.redirect('/login.html');
   }
   if (db.isOnboardingComplete()) {
-    res.redirect('/airb/dashboard.html');
+    res.redirect('/airb/dashboard');
   } else {
-    res.redirect('/onboarding.html');
+    res.redirect('/onboarding');
   }
 });
 
